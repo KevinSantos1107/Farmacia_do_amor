@@ -398,7 +398,7 @@ html, body {
     margin: 30px 0 25px 0;
 }
 
-/* BOTÕES DE CONTROLE - CENTRALIZADOS */
+/* ===== BOTÕES DE CONTROLE - ESTILOS BASE ===== */
 .control-btn {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -417,98 +417,118 @@ html, body {
     overflow: hidden;
 }
 
-.control-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    transform: scale(1.08) translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+/* Efeito de onda no clique (PARA TODOS OS BOTÕES) */
+.control-btn::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    top: 0;
+    left: 0;
+    transform: scale(0);
+    transition: transform 0.3s, opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.control-btn:active::after {
+    transform: scale(1);
+    opacity: 1;
+    transition: transform 0s, opacity 0.1s;
 }
 
 .control-btn:active {
-    transform: scale(0.95);
+    transform: scale(0.95) !important;
 }
 
-/* ===== BOTÕES SHUFFLE E REPEAT - SEM COR AZUL/VERDE ===== */
-/* CORREÇÃO DEFINITIVA: FORÇAR BRANCO EM TODOS OS ESTADOS */
+/* ===== BOTÕES PRÓXIMA E ANTERIOR - NUNCA VERDES ===== */
+#btnPrev.control-btn,
+#btnNext.control-btn {
+    color: #b3b3b3 !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
 
-/* Estado normal */
+#btnPrev.control-btn:hover,
+#btnNext.control-btn:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    transform: scale(1.08) translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* GARANTIR que nunca fiquem verdes em nenhuma situação */
+#btnPrev.control-btn.active,
+#btnNext.control-btn.active,
+#btnPrev.control-btn:active,
+#btnNext.control-btn:active,
+#btnPrev.control-btn.active:active,
+#btnNext.control-btn.active:active,
+#btnPrev.control-btn.active:hover,
+#btnNext.control-btn.active:hover {
+    color: #b3b3b3 !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ===== BOTÕES SHUFFLE E REPEAT - REMODELADOS (BRANCOS) ===== */
+/* Estado normal - Símbolo cinza claro */
 #btnShuffle.control-btn,
 #btnRepeat.control-btn {
-    color: #b3b3b3;
-    background: rgba(255, 255, 255, 0.05);
+    color: #b3b3b3 !important; /* SEMPRE cinza quando inativo */
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Hover */
+/* Hover - Símbolo branco */
 #btnShuffle.control-btn:hover,
 #btnRepeat.control-btn:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff !important; /* Branco no hover */
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    transform: scale(1.08) translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* ESTADO ATIVO - APENAS BRANCO, SEM NENHUMA COR VERDE/AZUL */
+/* ESTADO ATIVO - BRANCO com fundo verde (SEM símbolo verde) */
 #btnShuffle.control-btn.active,
 #btnRepeat.control-btn.active {
-    color: #ffffff !important;
-    background: rgba(255, 255, 255, 0.15) !important;
-    border-color: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important; /* Símbolo BRANCO quando ativo */
+    background: rgba(29, 185, 84, 0.15) !important; /* Fundo verde sutil */
+    border-color: rgba(29, 185, 84, 0.4) !important; /* Borda verde mais forte */
 }
 
-/* REMOVER QUALQUER COR DE TEXTO VERDE QUE VENHA DE OUTRAS REGRAS */
-#btnShuffle.control-btn.active *,
-#btnRepeat.control-btn.active *,
-#btnShuffle.control-btn.active::before,
-#btnRepeat.control-btn.active::before,
-#btnShuffle.control-btn.active::after,
-#btnRepeat.control-btn.active::after {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
+/* Clique ativo (quando já está ativo) - mantém branco */
+#btnShuffle.control-btn.active:active,
+#btnRepeat.control-btn.active:active {
+    color: #ffffff !important; /* Mantém branco durante clique */
+    background: rgba(29, 185, 84, 0.2) !important; /* Fundo verde mais intenso */
 }
 
-/* PONTO INDICADOR - APENAS BRANCO */
-#btnShuffle.control-btn.active::after,
-#btnRepeat.control-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 6px;
-    height: 6px;
-    background: #ffffff !important;
-    border-radius: 50%;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    animation: dotPulse 2s infinite;
-    opacity: 0.8;
+/* Clique quando inativo - mantém cinza */
+#btnShuffle.control-btn:active:not(.active),
+#btnRepeat.control-btn:active:not(.active) {
+    color: #b3b3b3 !important; /* Mantém cinza durante clique */
 }
 
-@keyframes dotPulse {
-    0% { transform: translateX(-50%) scale(1); opacity: 0.8; }
-    50% { transform: translateX(-50%) scale(1.2); opacity: 1; }
-    100% { transform: translateX(-50%) scale(1); opacity: 0.8; }
-}
-
-/* REMOVER QUALQUER ESTILO HERDADO DO TEMA */
-.audio-card .control-btn,
-.audio-card .control-btn.active,
-.audio-card .control-btn:hover {
-    background-image: none !important;
-    -webkit-background-clip: initial !important;
-    background-clip: initial !important;
-}
-
-/* BOTÃO PLAY/PAUSE - CÍRCULO PERFEITO E ÍCONE CENTRALIZADO */
+/* ===== BOTÃO PLAY/PAUSE - PERFEITO COMO ESTAVA ===== */
 .play-pause-lg {
     width: 70px;
     height: 70px;
+    min-width: 70px;
+    min-height: 70px;
     background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
     border: none;
-    border-radius: 50%;
+    border-radius: 50% !important;
     box-shadow: 
         0 6px 20px rgba(29, 185, 84, 0.4),
         0 2px 8px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    color: white;
-    font-size: 24px;
+    color: white !important;
+    font-size: 26px;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
     display: flex;
@@ -517,6 +537,16 @@ html, body {
     padding: 0;
     margin: 0;
     line-height: 1;
+    position: relative;
+}
+
+/* Ajuste fino para centralização do símbolo de play */
+.play-pause-lg:not(.playing) {
+    padding-left: 3px; /* Compensa assimetria do ▶ */
+}
+
+.play-pause-lg.playing {
+    padding: 0; /* ⏸ é simétrico */
 }
 
 .play-pause-lg:hover {
@@ -530,6 +560,33 @@ html, body {
 
 .play-pause-lg:active {
     transform: scale(0.95);
+}
+
+/* Efeito de clique para play/pause também */
+.play-pause-lg::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    top: 0;
+    left: 0;
+    transform: scale(0);
+    transition: transform 0.3s, opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.play-pause-lg:active::after {
+    transform: scale(1);
+    opacity: 1;
+    transition: transform 0s, opacity 0.1s;
+}
+
+/* GARANTIR que o JavaScript não mude a cor do símbolo */
+#btnPlayPause {
+    color: white !important;
 }
 
 /* Informação da Playlist */
@@ -961,13 +1018,6 @@ html, body {
         order: -1;
         margin-bottom: 10px;
     }
-    
-    #btnShuffle.control-btn.active::after,
-    #btnRepeat.control-btn.active::after {
-        bottom: -8px;
-        width: 5px;
-        height: 5px;
-    }
 }
 
 @media (max-width: 480px) {
@@ -1098,34 +1148,43 @@ input:focus {
     pointer-events: none;
 }
 
-/* ===== REGRAS FORTES PARA GARANTIR BRANCO NOS BOTÕES ===== */
-/* Se ainda estiver aparecendo azul/verde, estas regras vão forçar branco */
-
-#btnShuffle[class*="active"],
-#btnRepeat[class*="active"],
-#btnShuffle.active,
-#btnRepeat.active,
-button#btnShuffle.active,
-button#btnRepeat.active {
-    color: #ffffff !important;
-    background-color: rgba(255, 255, 255, 0.15) !important;
-    border-color: rgba(255, 255, 255, 0.25) !important;
-}
-
-/* Remover qualquer estilo inline que possa estar vindo do JavaScript */
-#btnShuffle[style*="color"],
-#btnRepeat[style*="color"] {
+/* ===== REGRAS FINAIS PARA GARANTIR COMPORTAMENTO CORRETO ===== */
+/* Remover qualquer estilo global que force cores indesejadas */
+.control-btn:not(#btnShuffle):not(#btnRepeat):not(#btnPlayPause) {
     color: #b3b3b3 !important;
 }
 
-#btnShuffle[style*="color"]:hover,
-#btnRepeat[style*="color"]:hover {
+/* Garantir que hover não mude cores de forma errada */
+#btnPrev:hover,
+#btnNext:hover,
+#btnShuffle:hover,
+#btnRepeat:hover {
     color: #ffffff !important;
 }
 
-#btnShuffle[style*="color"].active,
-#btnRepeat[style*="color"].active,
-#btnShuffle[style*="color"][class*="active"],
-#btnRepeat[style*="color"][class*="active"] {
+/* Forçar remoção de qualquer cor verde nos símbolos */
+#btnShuffle,
+#btnRepeat {
+    color: #b3b3b3 !important;
+}
+
+#btnShuffle.active,
+#btnRepeat.active {
     color: #ffffff !important;
+}
+
+/* Remover qualquer estilo inline problemático */
+#btnPrev[style*="color"],
+#btnNext[style*="color"],
+#btnShuffle[style*="color"],
+#btnRepeat[style*="color"] {
+    color: inherit !important;
+}
+
+/* Se necessário, substituir os emojis por imagens SVG */
+.shuffle-icon,
+.repeat-icon {
+    font-size: 18px;
+    display: inline-block;
+    line-height: 1;
 }
