@@ -10,14 +10,18 @@
 }
 
 /* Reset Básico */
-* { box-sizing: border-box; }
+* { 
+    box-sizing: border-box; 
+    margin: 0;
+    padding: 0;
+}
+
 html, body {
     height: 100%;
-    margin: 0;
     background: var(--bg-dark); /* Fundo escuro */
     color: var(--text-light); /* Texto claro */
     font-family: var(--font-principal);
-    padding: 0;
+    line-height: 1.6;
 }
 
 /* Layout Principal e Centralização */
@@ -27,13 +31,16 @@ html, body {
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+    width: 100%;
 }
 
 /* Topo / Título */
 .topbar {
     text-align: center;
     margin-bottom: 30px;
+    width: 100%;
 }
+
 .topbar h1 {
     margin: 0;
     font-size: 32px;
@@ -42,94 +49,90 @@ html, body {
     font-weight: 400;
 }
 
+/* Conteúdo Principal */
+.content {
+    width: 100%;
+    max-width: 1100px; /* Limite de largura para o design */
+    margin-bottom: 30px;
+}
+
+.content-main {
+    margin-bottom: 40px;
+}
+
+.grid-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+/* Cards */
+.card {
+    background: var(--bg-card);
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.card-principal {
+    padding: 0;
+    overflow: hidden;
+}
+
 /* 1. Ajuste da Imagem Enquadrada */
 .foto-principal {
     width: 100%;
     height: 300px; /* Altura fixa para o enquadramento */
     overflow: hidden; /* Corta o excesso */
-    border-radius: 8px;
-    margin-bottom: 20px;
+    border-radius: 8px 8px 0 0;
 }
+
 .foto-principal img {
     width: 100%;
     height: 100%;
     object-fit: cover; /* ESSENCIAL: Garante que a imagem preencha o espaço sem deformar */
     display: block;
+    transition: transform 0.5s ease;
+}
+
+.foto-principal:hover img {
+    transform: scale(1.05);
 }
 
 /* Mensagem / Texto */
 .mensagem {
-    padding: 0 20px;
+    padding: 30px;
     text-align: center;
-    margin-bottom: 30px;
 }
+
 .titulo-romantico {
     font-family: var(--font-romantica);
     font-size: 48px;
     color: var(--text-light);
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     font-weight: 400;
+    line-height: 1.2;
 }
+
 .mensagem p {
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.8;
     color: var(--text-muted);
+    margin-bottom: 15px;
 }
 
-
-/* 2. Layout da Grade (Contador e Cards) */
-.content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 2 ou mais colunas responsivas */
-    gap: 25px;
-    width: 100%;
-    max-width: 1100px; /* Limite de largura para o design */
+.mensagem p:last-child {
+    margin-bottom: 0;
 }
 
-.card, .timer-card {
-    background: var(--bg-card);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-}
-
-/* 3. Estilo Spotify para o Player de Áudio */
-.audio-player {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid #282828;
-}
-
-/* Esconder o player HTML padrão, usaremos os controles do JS/CSS */
-#audio { display: none; }
-
-.controls {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-top: 10px;
-}
-.controls button {
-    background: transparent;
-    border: none;
-    color: var(--text-light);
-    cursor: pointer;
-    font-size: 24px;
-    transition: color 0.2s;
-}
-.controls button:hover {
-    color: var(--accent);
-}
-
-#time {
-    color: var(--text-muted);
-    font-size: 14px;
-}
-
-/* 4. Estilo do Contador */
+/* 2. Card do Timer */
 .timer-card {
     text-align: center;
     display: flex;
@@ -137,114 +140,167 @@ html, body {
     justify-content: center;
     align-items: center;
 }
+
 .timer-card h3 {
     color: var(--accent);
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
+
 #countdown-display {
     font-size: 36px;
     font-weight: bold;
     color: var(--text-light);
+    margin: 15px 0;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    line-height: 1.3;
+}
+
+.subtitulo-contador {
+    font-size: 14px;
+    color: var(--text-muted);
     margin-top: 10px;
+    font-style: italic;
 }
 
-/* 5. Estilo da Galeria de Memórias */
-.gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
-    margin-top: 15px;
-    padding-top: 10px;
-    border-top: 1px solid #282828;
-}
-.gallery-item img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 4px;
-    transition: transform 0.3s;
-}
-.gallery-item img:hover {
-    transform: scale(1.05);
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-    .main { padding: 20px 10px; }
-    .topbar h1 { font-size: 28px; }
-    .titulo-romantico { font-size: 36px; }
-    .foto-principal { height: 200px; }
-    .content { grid-template-columns: 1fr; } /* Apenas 1 coluna em celular */
-}
-
-/* --- AJUSTES MANUAIS DE POSICIONAMENTO PARA FOTOS --- */
-
-/* 1. Foco no TOPO (para evitar cortar a cabeça) */
-.foco-topo {
-    object-position: 50% 0% !important; 
-}
-
-/* 2. Foco na BASE (para evitar cortar a mão ou pés) */
-.foco-base {
-    object-position: 50% 100% !important; 
-}
-
-/* 3. Foco na ESQUERDA */
-.foco-esquerda {
-    object-position: 0% 50% !important;
-}
-
-/* 4. Foco na DIREITA */
-.foco-direita {
-    object-position: 100% 50% !important;
-}
-
-/* 5. Ajuste Fino Personalizado (ex: 20% da esquerda e 80% do topo) */
-.foco-personalizado-1 {
-    object-position: 20% 80% !important;
-}
-
-/* --- NOVOS ESTILOS PARA O PLAYER TELA CHEIA (Inspirado na sua imagem) --- */
-
-/* Estilo do Card Principal para o Player */
+/* 3. Player de Áudio - VERSÃO PREMIUM */
 .audio-card {
+    background: linear-gradient(145deg, #1a1a1a 0%, #181818 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+    position: relative;
+}
+
+.audio-card.playing {
+    box-shadow: 
+        0 10px 40px rgba(29, 185, 84, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: rgba(29, 185, 84, 0.2);
+}
+
+.audio-card h3 {
+    background: linear-gradient(90deg, #1db954 0%, #1ed760 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    font-size: 24px;
+    margin-bottom: 25px;
+    text-align: center;
+    padding: 0 10px;
+    width: 100%;
 }
 
 /* Capa da Música */
 .music-cover {
-    width: 80%; /* Ocupa a maior parte do espaço no card */
+    width: 85%;
     max-width: 300px;
     aspect-ratio: 1 / 1; /* Garante que seja um quadrado perfeito */
     overflow: hidden;
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5); /* Sombra para destacar */
-    margin: 15px 0;
+    border-radius: 12px;
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.5),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transform: perspective(1000px) rotateX(2deg);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    margin: 15px 0 25px;
+    position: relative;
 }
+
+.music-cover:hover {
+    transform: perspective(1000px) rotateX(0deg) scale(1.02);
+    box-shadow: 
+        0 15px 40px rgba(29, 185, 84, 0.2),
+        0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
 .music-cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: center;
+    transition: transform 0.5s ease;
+}
+
+.music-cover:hover img {
+    transform: scale(1.05);
+}
+
+/* Badge AO VIVO */
+.badge-ao-vivo {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: linear-gradient(90deg, #ff1b6b 0%, #ff6b9d 100%);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 3px 10px rgba(255, 27, 107, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: pulse 2s infinite;
+    z-index: 2;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0.8; transform: scale(1); }
 }
 
 /* Informações da Música */
 .song-info {
-    margin-bottom: 20px;
+    margin: 25px 0;
+    text-align: center;
+    width: 100%;
 }
+
 .song-title {
-    font-size: 1.4em;
-    font-weight: 600;
-    margin: 0;
-    color: var(--text-light);
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 6px;
+    letter-spacing: -0.2px;
+    line-height: 1.3;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 10px;
 }
+
 .song-artist {
-    font-size: 1em;
-    color: var(--text-muted);
-    margin-top: 5px;
+    font-size: 16px;
+    color: #b3b3b3;
+    font-weight: 500;
+    margin-bottom: 4px;
+    opacity: 0.9;
+}
+
+.album-info {
+    font-size: 14px;
+    color: #8a8a8a;
+    font-style: italic;
+    opacity: 0.7;
 }
 
 /* Controles e Barra de Progresso */
@@ -253,70 +309,754 @@ html, body {
     padding: 0 10px;
 }
 
-/* Barra de Progresso (Estilo Limpo) */
+/* Barra de Progresso VISÍVEL */
 .progress-bar-container {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 15px;
+    margin: 30px 0;
+    padding: 0 5px;
+    width: 100%;
 }
+
 .time-label {
-    color: var(--text-muted);
-    font-size: 0.85em;
-    width: 40px; /* Garante que o tempo não trema */
+    color: #8a8a8a;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    min-width: 45px;
+    text-align: center;
+    opacity: 0.9;
 }
+
+#currentTimeDisplay {
+    color: var(--accent);
+    opacity: 1;
+}
+
 #progressBar {
-    flex-grow: 1; /* Ocupa o espaço central */
+    flex-grow: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
     -webkit-appearance: none;
     appearance: none;
-    height: 4px;
-    background: #333; /* Fundo cinza escuro */
-    border-radius: 2px;
-    cursor: pointer;
+    box-shadow: 
+        inset 0 1px 2px rgba(0, 0, 0, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: all 0.2s;
 }
-/* Estilizando o 'thumb' (o círculo que você arrasta) */
+
+#progressBar:hover {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
 #progressBar::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 12px;
-    height: 12px;
-    background: var(--text-light); /* Círculo branco */
+    width: 16px;
+    height: 16px;
+    background: white;
+    border: 3px solid var(--accent);
     border-radius: 50%;
+    box-shadow: 
+        0 0 0 4px rgba(29, 185, 84, 0.2),
+        0 2px 6px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0;
 }
-/* TODO: Configurar a cor de preenchimento da barra com o verde Spotify via JS */
+
+#progressBar:hover::-webkit-slider-thumb,
+#progressBar:active::-webkit-slider-thumb {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+#progressBar::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: white;
+    border: 3px solid var(--accent);
+    border-radius: 50%;
+    box-shadow: 
+        0 0 0 4px rgba(29, 185, 84, 0.2),
+        0 2px 6px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: all 0.2s;
+}
 
 /* Controles Detalhados */
 .controls-detailed {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
+    margin: 30px 0 25px 0;
 }
+
+/* BOTÕES DE CONTROLE - CENTRALIZADOS */
 .control-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted); /* Ícones menores em cinza */
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #b3b3b3;
     cursor: pointer;
-    font-size: 1.4em;
-    transition: color 0.2s;
+    font-size: 18px;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    padding: 0;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
 }
+
 .control-btn:hover {
-    color: var(--text-light); /* Ficam brancos no hover */
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
+
+.control-btn:active {
+    transform: scale(0.95);
+}
+
+/* BOTÕES SHUFFLE E REPEAT - SEM COR AZUL/VERDE */
+#btnShuffle.control-btn.active,
+#btnRepeat.control-btn.active {
+    color: #ffffff; /* Branco puro em vez de verde */
+    background: rgba(255, 255, 255, 0.12); /* Fundo branco sutil */
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* PONTO INDICADOR EM BRANCO */
+#btnShuffle.control-btn.active::after,
+#btnRepeat.control-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background: #ffffff; /* Branco em vez de verde */
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    animation: dotPulse 2s infinite;
+    opacity: 0.8;
+}
+
+@keyframes dotPulse {
+    0% { transform: translateX(-50%) scale(1); opacity: 0.8; }
+    50% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1); opacity: 0.8; }
+}
+
+/* BOTÃO PLAY/PAUSE - CÍRCULO PERFEITO E ÍCONE CENTRALIZADO */
 .play-pause-lg {
-    background: var(--text-light); /* Botão Play grande em círculo branco */
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
     border: none;
     border-radius: 50%;
-    width: 55px;
-    height: 55px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    box-shadow: 
+        0 6px 20px rgba(29, 185, 84, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 24px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
-    font-size: 2em; /* Tamanho do ícone */
-    color: var(--bg-dark); /* Ícone preto */
-    transition: transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
 }
+
 .play-pause-lg:hover {
-    transform: scale(1.05);
+    transform: scale(1.08);
+    box-shadow: 
+        0 8px 25px rgba(29, 185, 84, 0.5),
+        0 3px 10px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, #1ed760 0%, #2efd7a 100%);
+}
+
+.play-pause-lg:active {
+    transform: scale(0.95);
+}
+
+/* Informação da Playlist */
+.playlist-info {
+    margin-top: 25px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 14px;
+    color: #8a8a8a;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    width: 100%;
+}
+
+/* 4. Galeria de Memórias */
+.gallery-card h3 {
+    color: var(--accent);
+    margin-bottom: 10px;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.gallery-subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 25px;
+    text-align: center;
+    font-style: italic;
+}
+
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+    padding-top: 20px;
+    border-top: 1px solid #282828;
+}
+
+.gallery-item {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.gallery-item:hover {
+    transform: translateY(-5px);
+}
+
+.gallery-image-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    aspect-ratio: 1 / 1;
+}
+
+.gallery-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.gallery-image-container:hover img {
+    transform: scale(1.1);
+}
+
+.gallery-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 18px;
+}
+
+.gallery-image-container:hover .gallery-overlay {
+    opacity: 1;
+}
+
+.gallery-caption {
+    font-size: 13px;
+    text-align: center;
+    color: var(--text-muted);
+    margin-top: 12px;
+    font-weight: 500;
+}
+
+/* Botão Ver Todas as Fotos */
+.btn-view-all {
+    display: block;
+    margin: 30px auto 0;
+    padding: 12px 30px;
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-view-all:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(29, 185, 84, 0.3);
+}
+
+/* 5. Mensagem do Dia */
+.message-card {
+    text-align: center;
+    padding: 30px;
+}
+
+.message-card h3 {
+    color: var(--accent);
+    margin-bottom: 20px;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+#dailyMessage {
+    padding: 25px;
+    background: rgba(29, 185, 84, 0.1);
+    border-radius: 10px;
+    margin: 25px 0;
+    border-left: 4px solid var(--accent);
+}
+
+#dailyMessage p {
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--text-light);
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.message-signature {
+    text-align: right;
+    margin-top: 20px;
+    font-weight: 600;
+    color: var(--accent);
+    font-style: normal;
+}
+
+.btn-new-message {
+    padding: 12px 28px;
+    background: var(--accent);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-new-message:hover {
+    background: #1ed760;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(29, 185, 84, 0.4);
+}
+
+/* 6. Footer */
+.footer {
+    margin-top: 60px;
+    padding: 25px 20px;
+    text-align: center;
+    border-top: 1px solid #282828;
+    width: 100%;
+    max-width: 1100px;
+}
+
+.footer-content {
+    color: var(--text-muted);
+}
+
+.footer-content p:first-child {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: var(--text-light);
+}
+
+.footer-date {
+    font-size: 15px;
+    margin: 10px 0;
+    color: var(--text-muted);
+}
+
+.footer-note {
+    font-size: 14px;
+    font-style: italic;
+    margin-top: 15px;
+    opacity: 0.8;
+}
+
+/* 7. Modal para Fotos */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    animation: fadeIn 0.3s;
+    overflow-y: auto;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    margin: 40px auto;
+    width: 90%;
+    max-width: 900px;
+    background: var(--bg-card);
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.close-modal {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    color: white;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+    background: rgba(0, 0, 0, 0.5);
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+}
+
+.close-modal:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-body img {
+    width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+    background: #000;
+    display: block;
+}
+
+.modal-info {
+    padding: 25px;
+}
+
+.modal-info h3 {
+    margin: 0 0 15px 0;
+    color: var(--text-light);
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.modal-info p {
+    color: var(--text-muted);
+    margin: 0 0 25px 0;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.modal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+    border-top: 1px solid #282828;
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    background: var(--bg-dark);
+    border: 1px solid #333;
+    color: var(--text-light);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.modal-btn:hover {
+    background: #333;
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+#photoCounter {
+    color: var(--text-light);
+    font-weight: bold;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 8. AJUSTES MANUAIS DE POSICIONAMENTO PARA FOTOS */
+.foco-topo { object-position: 50% 0% !important; }
+.foco-base { object-position: 50% 100% !important; }
+.foco-esquerda { object-position: 0% 50% !important; }
+.foco-direita { object-position: 100% 50% !important; }
+.foco-central { object-position: center center !important; }
+.foco-personalizado-1 { object-position: 20% 80% !important; }
+
+/* 9. Responsividade */
+@media (max-width: 768px) {
+    .main { 
+        padding: 20px 15px; 
+    }
+    
+    .topbar h1 { 
+        font-size: 28px; 
+    }
+    
+    .titulo-romantico { 
+        font-size: 36px; 
+    }
+    
+    .foto-principal { 
+        height: 220px; 
+    }
+    
+    .grid-cards { 
+        grid-template-columns: 1fr; 
+        gap: 20px;
+    }
+    
+    .card {
+        padding: 20px;
+    }
+    
+    .mensagem {
+        padding: 20px;
+    }
+    
+    #countdown-display {
+        font-size: 28px;
+    }
+    
+    .music-cover {
+        width: 100%;
+        max-width: 250px;
+    }
+    
+    .controls-detailed {
+        gap: 15px;
+    }
+    
+    .control-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .play-pause-lg {
+        width: 60px;
+        height: 60px;
+        font-size: 22px;
+    }
+    
+    .gallery {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    .modal-content {
+        margin: 20px auto;
+        width: 95%;
+        border-radius: 10px;
+    }
+    
+    .modal-body img {
+        max-height: 400px;
+    }
+    
+    .modal-nav {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .modal-btn {
+        width: 100%;
+    }
+    
+    #photoCounter {
+        order: -1;
+        margin-bottom: 10px;
+    }
+    
+    #btnShuffle.control-btn.active::after,
+    #btnRepeat.control-btn.active::after {
+        bottom: -8px;
+        width: 5px;
+        height: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .topbar h1 { 
+        font-size: 24px; 
+    }
+    
+    .titulo-romantico { 
+        font-size: 30px; 
+    }
+    
+    .foto-principal { 
+        height: 180px; 
+    }
+    
+    .card {
+        padding: 15px;
+    }
+    
+    #countdown-display {
+        font-size: 24px;
+    }
+    
+    .music-cover {
+        max-width: 200px;
+    }
+    
+    .song-title {
+        font-size: 18px;
+    }
+    
+    .song-artist {
+        font-size: 14px;
+    }
+    
+    .gallery {
+        grid-template-columns: 1fr;
+    }
+    
+    .btn-view-all,
+    .btn-new-message {
+        width: 100%;
+        padding: 15px;
+    }
+    
+    .modal-content {
+        margin: 10px auto;
+        width: 100%;
+        border-radius: 0;
+    }
+    
+    .modal-body img {
+        max-height: 300px;
+    }
+    
+    .play-pause-lg {
+        width: 55px;
+        height: 55px;
+        font-size: 20px;
+    }
+    
+    .control-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 15px;
+    }
+}
+
+/* 10. Animações de Loading para Imagens */
+.gallery-image-container img,
+.music-cover img,
+.foto-principal img {
+    background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+    background-size: 200% 100%;
+}
+
+.gallery-image-container img.loaded,
+.music-cover img.loaded,
+.foto-principal img.loaded {
+    background: none;
+}
+
+/* 11. Scrollbar Personalizada */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bg-card);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* 12. Acessibilidade - Foco */
+button:focus,
+input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* 13. Utilitários */
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.mb-20 {
+    margin-bottom: 20px;
+}
+
+/* 14. Estado de Loading */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
 }
