@@ -6,6 +6,7 @@
     <title>Nosso Site de Memórias - Streaming Edition</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>">
 </head>
 <body>
     <main class="main">
@@ -17,13 +18,16 @@
             <div class="card card-principal">
                 
                 <div class="foto-principal">
-                    <img src="images/sua-foto.jpg" alt="Nós dois, o casal mais lindo!" loading="lazy">
+                    <img src="images/capa_principal.jpg" alt="Nós dois, o casal mais lindo!" loading="lazy" class="foco-central">
                 </div>
                 
                 <div class="mensagem">
                     <h3 class="titulo-romantico">Minha Menina da Farmácia</h3>
                     <p>
-                        Aqui você pode escrever sua declaração de amor completa! Fale sobre o que ela significa, a data especial, ou o que te inspira a criar esse site. Use este espaço com o coração.
+                        Desde o momento em que nossos caminhos se cruzaram, minha vida ganhou cores mais vivas, risadas mais verdadeiras e um amor mais profundo. Cada dia ao seu lado é uma página nova em nossa história, escrita com sorrisos, cumplicidade e aqueles olhares que dizem tudo sem precisar de uma única palavra.
+                    </p>
+                    <p>
+                        Você é a melodia que embala meus dias, o abraço que acalma minhas tempestades e o sorriso que ilumina meu mundo. Este site é apenas um pequeno reflexo de tudo que sinto por você - um espaço onde nossas memórias ganham vida e nossa história continua a ser escrita, nota por nota, momento por momento.
                     </p>
                 </div>
             </div>
@@ -32,75 +36,135 @@
         <section class="content grid-cards">
             
             <div class="card timer-card">
-                <h3>Tempo Juntos</h3>
+                <h3>⏳ Tempo Juntos</h3>
                 <p>Contando cada segundo desde o nosso primeiro dia:</p>
-                <div id="countdown-display">Carregando...</div>
+                <div id="countdown-display" class="contador">Carregando...</div>
+                <p class="subtitulo-contador">Cada momento é especial ❤️</p>
             </div>
 
             <div class="card audio-card full-player-style">
-                <h3>Nossa Música</h3>
+                <h3>🎵 Nossa Playlist</h3>
                 
                 <div class="music-cover">
-                    <img src="images/sua-foto.jpg" alt="Capa da Música" loading="lazy">
+                    <img src="images/capa_principal.jpg" alt="Capa da Música" loading="lazy">
+                    <div class="badge-ao-vivo">❤️ AO VIVO</div>
                 </div>
 
                 <div class="song-info">
-                    <h4 class="song-title">Menina da Farmácia 2</h4>
-                    <p class="song-artist">Kevin Santos / Nossa Canção</p>
+                    <h4 class="song-title">Carregando...</h4>
+                    <p class="song-artist">Artista</p>
+                    <div class="album-info">Nossa Trilha Sonora</div>
                 </div>
 
                 <div class="audio-controls-full">
-                    <div class="progress-bar-container">
-                        <span id="currentTimeDisplay" class="time-label">0:00</span>
-                        <input type="range" id="progressBar" value="0" min="0" max="100">
-                        <span id="durationDisplay" class="time-label">-0:00</span>
-                    </div>
+    <div class="progress-bar-container">
+        <span id="currentTimeDisplay" class="time-label">0:00</span>
+        <input type="range" id="progressBar" value="0" min="0" max="100" class="progress-slider">
+        <span id="durationDisplay" class="time-label">-0:00</span>
+    </div>
 
-                    <div class="controls-detailed">
-                        <button id="btnShuffle" class="control-btn">🔀</button>
-                        <button id="btnPrev" class="control-btn">⏮️</button>
-                        <button id="btnPlayPause" class="play-pause-lg">▶️</button>
-                        <button id="btnNext" class="control-btn">⏭️</button>
-                        <button id="btnRepeat" class="control-btn">🔁</button>
-                    </div>
-                </div>
+   
+<div class="controls-detailed">
+    <button id="btnShuffle" class="control-btn" title="Embaralhar">🔀</button>
+    <button id="btnPrev" class="control-btn" title="Anterior">⏮</button>
+    <button id="btnPlayPause" class="play-pause-lg" title="Reproduzir">▶</button>
+    <button id="btnNext" class="control-btn" title="Próxima">⏭</button>
+    <button id="btnRepeat" class="control-btn" title="Repetir">🔁</button>
+</div>
+</div>
                 
-                <audio id="audio" hidden>
-                    <source src="audio/menina-da-farmacia-2.mp3" type="audio/mpeg">
-                    Seu navegador não suporta áudio.
+                <audio id="audio" crossorigin="anonymous">
+                    Seu navegador não suporta áudio. Atualize para uma versão mais recente.
                 </audio>
+                
+                <div class="playlist-info">
+                    <span id="currentTrackNumber">1</span> de <span id="totalTracks">2</span> músicas
+                </div>
             </div>
 
-            <div class="card">
-                <h3>Nossas Melhores Memórias</h3>
+            <div class="card gallery-card">
+                <h3>📸 Nossas Melhores Memórias</h3>
+                <p class="gallery-subtitle">Clique para ampliar e reviver cada momento</p>
                 
                 <div class="gallery">
-                    <div class="gallery-item">
-                        <img src="images/mini/foto_01.jpg" alt="Memória 1">
-                        <p style="font-size: 10px; text-align: center; color: var(--text-muted);">Viagem 2024</p>
+                    <div class="gallery-item" data-index="1">
+                        <div class="gallery-image-container">
+                            <img src="images/mini/foto_01.jpg" alt="Memória 1" loading="lazy">
+                            <div class="gallery-overlay">Ver</div>
+                        </div>
+                        <p class="gallery-caption">Viagem 2024</p>
                     </div>
                     
-                    <div class="gallery-item">
-                        <img src="images/mini/foto_02.jpg" alt="Memória 2">
-                        <p style="font-size: 10px; text-align: center; color: var(--text-muted);">Primeiro Encontro</p>
+                    <div class="gallery-item" data-index="2">
+                        <div class="gallery-image-container">
+                            <img src="images/mini/foto_02.jpg" alt="Memória 2" loading="lazy">
+                            <div class="gallery-overlay">Ver</div>
+                        </div>
+                        <p class="gallery-caption">Primeiro Encontro</p>
                     </div>
                     
-                    <div class="gallery-item">
-                        <img src="images/mini/foto_03.jpg" alt="Memória 3">
-                        <p style="font-size: 10px; text-align: center; color: var(--text-muted);">Nosso Aniversário</p>
+                    <div class="gallery-item" data-index="3">
+                        <div class="gallery-image-container">
+                            <img src="images/mini/foto_03.jpg" alt="Memória 3" loading="lazy">
+                            <div class="gallery-overlay">Ver</div>
+                        </div>
+                        <p class="gallery-caption">Nosso Aniversário</p>
                     </div>
                     
-                    <div class="gallery-item">
-                        <img src="images/mini/foto_04.jpg" alt="Memória 4">
-                        <p style="font-size: 10px; text-align: center; color: var(--text-muted);">Nosso dia D</p>
+                    <div class="gallery-item" data-index="4">
+                        <div class="gallery-image-container">
+                            <img src="images/mini/foto_04.jpg" alt="Memória 4" loading="lazy">
+                            <div class="gallery-overlay">Ver</div>
+                        </div>
+                        <p class="gallery-caption">Nosso dia D</p>
                     </div>
 
                 </div>
+                
+                <button id="btnViewAllPhotos" class="btn-view-all">Ver Todas as Fotos</button>
             </div>
 
         </section>
+        
+        <section class="content">
+            <div class="card message-card">
+                <h3>💌 Mensagem do Dia</h3>
+                <div id="dailyMessage">
+                    <p>"O amor não se vê com os olhos, mas com o coração." - William Shakespeare</p>
+                    <p class="message-signature">Com todo meu amor, sempre.</p>
+                </div>
+                <button id="btnNewMessage" class="btn-new-message">Nova Mensagem</button>
+            </div>
+        </section>
+        
+        <footer class="footer">
+            <div class="footer-content">
+                <p>Feito com ❤️ especialmente para você</p>
+                <p class="footer-date" id="currentDate">Carregando data...</p>
+                <p class="footer-note">Nosso amor é a melhor playlist da vida</p>
+            </div>
+        </footer>
     </main>
+
+    <!-- Modal para visualização de fotos -->
+    <div id="photoModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="modal-body">
+                <img id="modalImage" src="" alt="Foto em tamanho maior">
+                <div class="modal-info">
+                    <h3 id="modalTitle"></h3>
+                    <p id="modalDescription"></p>
+                    <div class="modal-nav">
+                        <button id="btnPrevPhoto" class="modal-btn">← Anterior</button>
+                        <span id="photoCounter">1 / 4</span>
+                        <button id="btnNextPhoto" class="modal-btn">Próxima →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
-</html>
+</html> 
