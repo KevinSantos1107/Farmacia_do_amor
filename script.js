@@ -87,6 +87,49 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const totalTracks = document.getElementById('totalTracks');
     const audioCard = document.querySelector('.audio-card');
 
+    // --- ÍCONES SVG ---
+    const playIcon = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+        </svg>`;
+
+    const pauseIcon = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>`;
+
+    const prevIcon = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+        </svg>`;
+
+    const nextIcon = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+        </svg>`;
+
+    const shuffleIcon = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+        </svg>`;
+
+    const repeatIcon = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.65 4.35l-2.79 2.79c-.32.32-.1.86.35.86H17c1.1 0 2 .9 2 2v3c0 .55.45 1 1 1s1-.45 1-1v-3c0-2.21-1.79-4-4-4h-1.79c-.45 0-.67.54-.35.85l2.79 2.79c.19.2.51.2.7 0l2.79-2.79c.32-.31.1-.85-.35-.85H19c-2.21 0-4 1.79-4 4v3c0 .55-.45 1-1 1s-1-.45-1-1v-3c0-1.1.9-2 2-2h1.79c.45 0 .67-.54.35-.85l-2.79-2.79c-.19-.2-.51-.2-.7 0z"/>
+        </svg>`;
+
+    const repeatOneIcon = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 7h10v1.79c0 .45.54.67.85.35l2.79-2.79c.2-.2.2-.51 0-.71l-2.79-2.79c-.31-.31-.85-.09-.85.36V5H6c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1V7zm10 10H7v-1.79c0-.45-.54-.67-.85-.35l-2.79 2.79c-.2.2-.2.51 0 .71l2.79 2.79c.31.31.85.09.85-.36V19h11c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1s-1 .45-1 1v3zm-4-2V9h-1v4c0 1.1.9 2 2 2h1v-2h-1z"/>
+        </svg>`;
+
+    // --- INICIALIZAR ÍCONES ---
+    btnPrev.innerHTML = prevIcon;
+    btnNext.innerHTML = nextIcon;
+    btnShuffle.innerHTML = shuffleIcon;
+    btnRepeat.innerHTML = repeatIcon;
+    btnPlayPause.innerHTML = playIcon;
+
     // Controle de clique duplo
     let lastClickTime = 0;
     const doubleClickThreshold = 500;
@@ -109,8 +152,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
         // Atualiza visual da barra com gradiente
         progressBar.style.background = `linear-gradient(to right, 
             #1db954 0%, #1db954 ${progress}%, 
-            rgba(255, 255, 255, 0.1) ${progress}%, 
-            rgba(255, 255, 255, 0.1) 100%)`;
+            rgba(255, 255, 255, 0.15) ${progress}%, 
+            rgba(255, 255, 255, 0.15) 100%)`;
     }
 
     function updateTrackCounter() {
@@ -162,12 +205,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
             
             if (audio.duration && !isNaN(audio.duration)) {
                 progressBar.max = Math.floor(audio.duration);
-                durationDisplay.textContent = formatTime(audio.duration);
+                durationDisplay.textContent = `-${formatTime(audio.duration)}`;
                 
                 // RESET: Define tempo atual para 0
                 audio.currentTime = 0;
                 progressBar.value = 0;
-                currentTimeDisplay.textContent = '0:00';
+                currentTimeDisplay.textContent = '0:03';
                 updateProgressFill();
             }
             
@@ -175,14 +218,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
             if (shouldPlay) {
                 audio.play().then(() => {
                     console.log("Tocando após loadTrack:", track.title);
-                    btnPlayPause.textContent = '⏸';
+                    btnPlayPause.innerHTML = pauseIcon;
                     btnPlayPause.classList.add('playing');
                     if (audioCard) audioCard.classList.add('playing');
                 }).catch(e => {
                     console.error("Erro ao tocar:", e);
                 });
             } else {
-                btnPlayPause.textContent = '▶';
+                btnPlayPause.innerHTML = playIcon;
                 btnPlayPause.classList.remove('playing');
                 if (audioCard) audioCard.classList.remove('playing');
             }
@@ -202,7 +245,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     function playPause() {
         if (audio.paused) {
             audio.play().then(() => {
-                btnPlayPause.textContent = '⏸';
+                btnPlayPause.innerHTML = pauseIcon;
                 btnPlayPause.classList.add('playing');
                 if (audioCard) audioCard.classList.add('playing');
                 console.log("Iniciou playback");
@@ -211,7 +254,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             });
         } else {
             audio.pause();
-            btnPlayPause.textContent = '▶';
+            btnPlayPause.innerHTML = playIcon;
             btnPlayPause.classList.remove('playing');
             if (audioCard) audioCard.classList.remove('playing');
         }
@@ -294,8 +337,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
         isShuffleOn = !isShuffleOn;
         
         if (isShuffleOn) {
-            // Ativa shuffle - ADICIONA classe 'active' para ficar VERDE
+            // Ativa shuffle - ADICIONA classe 'active' para ficar BRANCO
             btnShuffle.classList.add('active');
+            btnShuffle.innerHTML = shuffleIcon;
             
             // Cria lista embaralhada
             shuffledPlaylist = [...playlist];
@@ -319,6 +363,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         } else {
             // Desativa shuffle - REMOVE classe 'active' para voltar ao cinza
             btnShuffle.classList.remove('active');
+            btnShuffle.innerHTML = shuffleIcon;
             
             // Encontra a posição da música atual na playlist original
             const currentTrackTitle = shuffledPlaylist[currentTrackIndex].title;
@@ -351,7 +396,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             // Já está na música certa, apenas continua
             if (wasPlaying && audio.paused) {
                 audio.play().then(() => {
-                    btnPlayPause.textContent = '⏸';
+                    btnPlayPause.innerHTML = pauseIcon;
                     btnPlayPause.classList.add('playing');
                     if (audioCard) audioCard.classList.add('playing');
                 });
@@ -366,21 +411,21 @@ document.addEventListener('DOMContentLoaded', (event) => {
         repeatState = (repeatState + 1) % 3;
         
         switch(repeatState) {
-            case 0: // Desligado - SEM classe 'active'
+            case 0: // Desligado
                 btnRepeat.classList.remove('active');
-                btnRepeat.textContent = '🔁';
+                btnRepeat.innerHTML = repeatIcon;
                 audio.loop = false;
                 console.log("Repeat desligado");
                 break;
-            case 1: // Repetir playlist - COM classe 'active' (VERDE)
+            case 1: // Repetir playlist
                 btnRepeat.classList.add('active');
-                btnRepeat.textContent = '🔁';
+                btnRepeat.innerHTML = repeatIcon;
                 audio.loop = false;
                 console.log("Repeat playlist ativado");
                 break;
-            case 2: // Repetir música - COM classe 'active' (VERDE)
+            case 2: // Repetir música
                 btnRepeat.classList.add('active');
-                btnRepeat.textContent = '🔂';
+                btnRepeat.innerHTML = repeatOneIcon;
                 audio.loop = true;
                 console.log("Repeat música ativado");
                 break;
@@ -415,7 +460,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     audio.addEventListener('loadedmetadata', () => {
         if (audio.duration && !isNaN(audio.duration)) {
             progressBar.max = Math.floor(audio.duration);
-            durationDisplay.textContent = formatTime(audio.duration);
+            durationDisplay.textContent = `-${formatTime(audio.duration)}`;
             updateProgressFill();
         }
     });
@@ -456,7 +501,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
     
     // Carrega primeira música
     loadTrack(0, false);
-    btnPlayPause.textContent = '▶';
     updateTrackCounter();
 
     console.log("Player inicializado com sucesso!");
@@ -637,50 +681,19 @@ document.addEventListener('DOMContentLoaded', (event) => {
     updateDailyMessage();
 
     console.log('Página completamente inicializada!');
-});
 
-// Adicionar isso no final do arquivo JavaScript, após todas as outras funções:
+    // =========================================================
+    // 7. Menu do Player (UP NEXT, LYRICS, RELATED)
+    // =========================================================
 
-// =========================================================
-// 7. GARANTIR QUE BOTÕES PRÉV/NEXT NUNCA FICARÃO VERDES
-// =========================================================
-
-// Função para prevenir que os botões prév/next recebam classe 'active'
-function preventActiveClassOnPrevNext() {
-    const btnPrev = document.getElementById('btnPrev');
-    const btnNext = document.getElementById('btnNext');
+    const menuItems = document.querySelectorAll('.menu-item');
     
-    if (btnPrev) {
-        // Remover classe 'active' se existir
-        btnPrev.classList.remove('active');
-        // Observar mudanças na classe
-        const observerPrev = new MutationObserver(() => {
-            if (btnPrev.classList.contains('active')) {
-                btnPrev.classList.remove('active');
-            }
+    menuItems.forEach(item => {
+        item.addEventListener('click', () => {
+            // Remove a classe active de todos
+            menuItems.forEach(i => i.classList.remove('active'));
+            // Adiciona ao item clicado
+            item.classList.add('active');
         });
-        observerPrev.observe(btnPrev, { attributes: true, attributeFilter: ['class'] });
-    }
-    
-    if (btnNext) {
-        // Remover classe 'active' se existir
-        btnNext.classList.remove('active');
-        // Observar mudanças na classe
-        const observerNext = new MutationObserver(() => {
-            if (btnNext.classList.contains('active')) {
-                btnNext.classList.remove('active');
-            }
-        });
-        observerNext.observe(btnNext, { attributes: true, attributeFilter: ['class'] });
-    }
-}
-
-// Executar após a página carregar
-setTimeout(preventActiveClassOnPrevNext, 100);
-
-// Também remover ao clicar nesses botões
-document.addEventListener('click', (event) => {
-    if (event.target.id === 'btnPrev' || event.target.id === 'btnNext') {
-        event.target.classList.remove('active');
-    }
+    });
 });
