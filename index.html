@@ -56,20 +56,47 @@
                     <div class="album-info">Nossa Trilha Sonora</div>
                 </div>
 
+                <!-- Estatísticas da música -->
+                <div class="music-stats">
+                    <div class="music-stat">
+                        <span class="music-stat-icon">🎧</span>
+                        <span>3.1M</span>
+                    </div>
+                    <div class="music-stat">
+                        <span class="music-stat-icon">❤️</span>
+                        <span>35K</span>
+                    </div>
+                    <div class="music-stat">
+                        <span class="music-stat-icon">💤</span>
+                        <span>826</span>
+                    </div>
+                    <div class="music-stat">
+                        <span class="music-stat-icon">💬</span>
+                        <span>+ S₄</span>
+                    </div>
+                </div>
+
                 <div class="audio-controls-full">
                     <div class="progress-bar-container">
-                        <span id="currentTimeDisplay" class="time-label">0:00</span>
+                        <span id="currentTimeDisplay" class="time-label">0:03</span>
                         <input type="range" id="progressBar" value="0" min="0" max="100" class="progress-slider">
-                        <span id="durationDisplay" class="time-label">-0:00</span>
+                        <span id="durationDisplay" class="time-label">-2:58</span>
                     </div>
 
                     <div class="controls-detailed">
-                        <button id="btnShuffle" class="control-btn" title="Embaralhar">🔀</button>
-                        <button id="btnPrev" class="control-btn" title="Anterior">⏮</button>
-                        <button id="btnPlayPause" class="play-pause-lg" title="Reproduzir">▶</button>
-                        <button id="btnNext" class="control-btn" title="Próxima">⏭</button>
-                        <button id="btnRepeat" class="control-btn" title="Repetir">🔁</button>
+                        <button id="btnShuffle" class="control-btn" title="Embaralhar"></button>
+                        <button id="btnPrev" class="control-btn" title="Anterior"></button>
+                        <button id="btnPlayPause" class="play-pause-lg" title="Reproduzir"></button>
+                        <button id="btnNext" class="control-btn" title="Próxima"></button>
+                        <button id="btnRepeat" class="control-btn" title="Repetir"></button>
                     </div>
+                </div>
+
+                <!-- Menu inferior -->
+                <div class="player-menu">
+                    <button class="menu-item active">UP NEXT</button>
+                    <button class="menu-item">LYRICS</button>
+                    <button class="menu-item">RELATED</button>
                 </div>
                 
                 <audio id="audio" crossorigin="anonymous">
