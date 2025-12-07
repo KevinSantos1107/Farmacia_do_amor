@@ -303,28 +303,28 @@ html, body {
     opacity: 0.7;
 }
 
-/* Controles e Barra de Progresso */
+/* Controles e Barra de Progresso - ATUALIZADO PARA FICAR IGUAL À FOTO */
 .audio-controls-full {
     width: 100%;
     padding: 0 10px;
 }
 
-/* Barra de Progresso VISÍVEL */
+/* Barra de Progresso IDÊNTICA À FOTO */
 .progress-bar-container {
     display: flex;
     align-items: center;
     gap: 15px;
-    margin: 30px 0;
+    margin: 25px 0 30px 0;
     padding: 0 5px;
     width: 100%;
 }
 
 .time-label {
     color: #8a8a8a;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    min-width: 45px;
+    min-width: 40px;
     text-align: center;
     opacity: 0.9;
 }
@@ -334,202 +334,140 @@ html, body {
     opacity: 1;
 }
 
+#durationDisplay {
+    color: #8a8a8a;
+}
+
+/* Barra de progresso fina como na foto */
 #progressBar {
     flex-grow: 1;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    height: 3px; /* MAIS FINA como na foto */
+    background: rgba(255, 255, 255, 0.15); /* Fundo mais claro */
+    border-radius: 1.5px;
     border: none;
     cursor: pointer;
     -webkit-appearance: none;
     appearance: none;
-    box-shadow: 
-        inset 0 1px 2px rgba(0, 0, 0, 0.3),
-        0 1px 0 rgba(255, 255, 255, 0.05);
-    transition: all 0.2s;
+    outline: none;
+    transition: height 0.1s;
 }
 
 #progressBar:hover {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.15);
+    height: 5px; /* Aumenta um pouco no hover */
 }
 
 #progressBar::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
     background: white;
-    border: 3px solid var(--accent);
     border-radius: 50%;
-    box-shadow: 
-        0 0 0 4px rgba(29, 185, 84, 0.2),
-        0 2px 6px rgba(0, 0, 0, 0.4);
     cursor: pointer;
     transition: all 0.2s;
-    opacity: 0;
+    opacity: 0; /* Escondido por padrão como na foto */
 }
 
 #progressBar:hover::-webkit-slider-thumb,
 #progressBar:active::-webkit-slider-thumb {
     opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1.2);
 }
 
 #progressBar::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
     background: white;
-    border: 3px solid var(--accent);
     border-radius: 50%;
-    box-shadow: 
-        0 0 0 4px rgba(29, 185, 84, 0.2),
-        0 2px 6px rgba(0, 0, 0, 0.4);
     cursor: pointer;
     transition: all 0.2s;
+    opacity: 0;
 }
 
-/* Controles Detalhados */
+#progressBar:hover::-moz-range-thumb,
+#progressBar:active::-moz-range-thumb {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* Controles Detalhados - TOTALMENTE REPROJETADO PARA FICAR IGUAL À FOTO */
 .controls-detailed {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 20px;
-    margin: 30px 0 25px 0;
+    gap: 25px; /* Mais espaçado como na foto */
+    margin: 20px 0 30px 0;
 }
 
-/* ===== BOTÕES DE CONTROLE - ESTILOS BASE ===== */
+/* ===== BOTÕES DE CONTROLE - ESTILO IDÊNTICO À FOTO ===== */
 .control-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #b3b3b3;
+    background: transparent !important; /* Fundo TRANSPARENTE como na foto */
+    border: none !important; /* SEM borda */
+    color: #b3b3b3 !important; /* Cinza claro como na foto */
     cursor: pointer;
-    font-size: 18px;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 20px; /* Tamanho similar à foto */
+    transition: all 0.2s ease;
     padding: 0;
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    border-radius: 0; /* Sem borda redonda */
+    width: auto; /* Tamanho automático */
+    height: auto; /* Tamanho automático */
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     overflow: hidden;
+    min-width: 32px;
+    min-height: 32px;
 }
 
-/* Efeito de onda no clique (PARA TODOS OS BOTÕES) */
-.control-btn::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    top: 0;
-    left: 0;
-    transform: scale(0);
-    transition: transform 0.3s, opacity 0.3s;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.control-btn:active::after {
-    transform: scale(1);
-    opacity: 1;
-    transition: transform 0s, opacity 0.1s;
-}
-
-.control-btn:active {
-    transform: scale(0.95) !important;
-}
-
-/* ===== BOTÕES PRÓXIMA E ANTERIOR - NUNCA VERDES ===== */
+/* Botões de navegação (anterior/próxima) */
 #btnPrev.control-btn,
 #btnNext.control-btn {
     color: #b3b3b3 !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    font-size: 24px; /* Um pouco maior */
 }
 
-#btnPrev.control-btn:hover,
-#btnNext.control-btn:hover {
-    color: #ffffff !important;
-    background: rgba(255, 255, 255, 0.1) !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-    transform: scale(1.08) translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* GARANTIR que nunca fiquem verdes em nenhuma situação */
-#btnPrev.control-btn.active,
-#btnNext.control-btn.active,
-#btnPrev.control-btn:active,
-#btnNext.control-btn:active,
-#btnPrev.control-btn.active:active,
-#btnNext.control-btn.active:active,
-#btnPrev.control-btn.active:hover,
-#btnNext.control-btn.active:hover {
-    color: #b3b3b3 !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* ===== BOTÕES SHUFFLE E REPEAT - REMODELADOS (BRANCOS) ===== */
-/* Estado normal - Símbolo cinza claro */
+/* Botões shuffle e repeat */
 #btnShuffle.control-btn,
 #btnRepeat.control-btn {
-    color: #b3b3b3 !important; /* SEMPRE cinza quando inativo */
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #b3b3b3 !important;
+    font-size: 18px; /* Um pouco menor */
 }
 
-/* Hover - Símbolo branco */
-#btnShuffle.control-btn:hover,
-#btnRepeat.control-btn:hover {
-    color: #ffffff !important; /* Branco no hover */
-    background: rgba(255, 255, 255, 0.1) !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-    transform: scale(1.08) translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+/* Hover - branco sutil (igual à foto) */
+.control-btn:hover {
+    color: #ffffff !important;
+    transform: scale(1.05);
 }
 
-/* ESTADO ATIVO - BRANCO com fundo verde (SEM símbolo verde) */
+/* SEM efeito de clique visual (igual à foto) */
+.control-btn::after {
+    display: none; /* Remove o efeito de onda */
+}
+
+.control-btn:active {
+    transform: scale(0.98);
+}
+
+/* ESTADO ATIVO para shuffle e repeat (igual à foto - BRANCO) */
 #btnShuffle.control-btn.active,
 #btnRepeat.control-btn.active {
-    color: #ffffff !important; /* Símbolo BRANCO quando ativo */
-    background: rgba(29, 185, 84, 0.15) !important; /* Fundo verde sutil */
-    border-color: rgba(29, 185, 84, 0.4) !important; /* Borda verde mais forte */
+    color: #ffffff !important; /* BRANCO quando ativo */
+    background: transparent !important; /* Sem fundo */
 }
 
-/* Clique ativo (quando já está ativo) - mantém branco */
-#btnShuffle.control-btn.active:active,
-#btnRepeat.control-btn.active:active {
-    color: #ffffff !important; /* Mantém branco durante clique */
-    background: rgba(29, 185, 84, 0.2) !important; /* Fundo verde mais intenso */
-}
-
-/* Clique quando inativo - mantém cinza */
-#btnShuffle.control-btn:active:not(.active),
-#btnRepeat.control-btn:active:not(.active) {
-    color: #b3b3b3 !important; /* Mantém cinza durante clique */
-}
-
-/* ===== BOTÃO PLAY/PAUSE - PERFEITO COMO ESTAVA ===== */
+/* ===== BOTÃO PLAY/PAUSE - VERDE COMO NA FOTO ===== */
 .play-pause-lg {
-    width: 70px;
-    height: 70px;
-    min-width: 70px;
-    min-height: 70px;
-    background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
+    width: 50px; /* MENOR como na foto */
+    height: 50px; /* MENOR como na foto */
+    min-width: 50px;
+    min-height: 50px;
+    background: #1db954 !important; /* Verde sólido como na foto */
     border: none;
     border-radius: 50% !important;
-    box-shadow: 
-        0 6px 20px rgba(29, 185, 84, 0.4),
-        0 2px 8px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
     color: white !important;
-    font-size: 26px;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 20px; /* Menor como na foto */
+    transition: all 0.2s ease;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -538,55 +476,32 @@ html, body {
     margin: 0;
     line-height: 1;
     position: relative;
+    box-shadow: none; /* Sem sombra como na foto */
 }
 
-/* Ajuste fino para centralização do símbolo de play */
+/* Ajuste fino para centralização */
 .play-pause-lg:not(.playing) {
-    padding-left: 3px; /* Compensa assimetria do ▶ */
+    padding-left: 2px; /* Ajuste fino */
 }
 
 .play-pause-lg.playing {
-    padding: 0; /* ⏸ é simétrico */
+    padding: 0;
 }
 
+/* Hover - verde mais claro */
 .play-pause-lg:hover {
-    transform: scale(1.08);
-    box-shadow: 
-        0 8px 25px rgba(29, 185, 84, 0.5),
-        0 3px 10px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    background: linear-gradient(135deg, #1ed760 0%, #2efd7a 100%);
+    background: #1ed760 !important;
+    transform: scale(1.05);
 }
 
+/* Clique - redução sutil */
 .play-pause-lg:active {
     transform: scale(0.95);
 }
 
-/* Efeito de clique para play/pause também */
+/* Garantir que não tenha efeitos estranhos */
 .play-pause-lg::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    top: 0;
-    left: 0;
-    transform: scale(0);
-    transition: transform 0.3s, opacity 0.3s;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.play-pause-lg:active::after {
-    transform: scale(1);
-    opacity: 1;
-    transition: transform 0s, opacity 0.1s;
-}
-
-/* GARANTIR que o JavaScript não mude a cor do símbolo */
-#btnPlayPause {
-    color: white !important;
+    display: none;
 }
 
 /* Informação da Playlist */
@@ -601,6 +516,73 @@ html, body {
     text-align: center;
     font-variant-numeric: tabular-nums;
     width: 100%;
+}
+
+/* ===== ESTILOS ADICIONAIS PARA FICAR IDÊNTICO À FOTO ===== */
+
+/* Estatísticas da música (igual à foto) */
+.music-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 15px 0 25px 0;
+    font-size: 12px;
+    color: #8a8a8a;
+    font-weight: 500;
+}
+
+.music-stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.music-stat-icon {
+    font-size: 10px;
+}
+
+/* Menu inferior (UP NEXT, LYRICS, RELATED) */
+.player-menu {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+}
+
+.menu-item {
+    background: none;
+    border: none;
+    color: #8a8a8a;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 5px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: color 0.2s;
+    position: relative;
+}
+
+.menu-item:hover {
+    color: #ffffff;
+}
+
+.menu-item.active {
+    color: #1db954;
+}
+
+.menu-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #1db954;
+    border-radius: 1px;
 }
 
 /* 4. Galeria de Memórias */
@@ -975,18 +957,23 @@ html, body {
     }
     
     .controls-detailed {
-        gap: 15px;
+        gap: 20px;
     }
     
     .control-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
+        font-size: 18px;
+        min-width: 28px;
+        min-height: 28px;
     }
     
     .play-pause-lg {
-        width: 60px;
-        height: 60px;
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
+    }
+    
+    #btnPrev.control-btn,
+    #btnNext.control-btn {
         font-size: 22px;
     }
     
@@ -1053,6 +1040,25 @@ html, body {
         font-size: 14px;
     }
     
+    .controls-detailed {
+        gap: 15px;
+    }
+    
+    .control-btn {
+        font-size: 16px;
+    }
+    
+    .play-pause-lg {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    #btnPrev.control-btn,
+    #btnNext.control-btn {
+        font-size: 20px;
+    }
+    
     .gallery {
         grid-template-columns: 1fr;
     }
@@ -1071,18 +1077,6 @@ html, body {
     
     .modal-body img {
         max-height: 300px;
-    }
-    
-    .play-pause-lg {
-        width: 55px;
-        height: 55px;
-        font-size: 20px;
-    }
-    
-    .control-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 15px;
     }
 }
 
@@ -1148,43 +1142,42 @@ input:focus {
     pointer-events: none;
 }
 
-/* ===== REGRAS FINAIS PARA GARANTIR COMPORTAMENTO CORRETO ===== */
-/* Remover qualquer estilo global que force cores indesejadas */
-.control-btn:not(#btnShuffle):not(#btnRepeat):not(#btnPlayPause) {
-    color: #b3b3b3 !important;
+/* ===== ESTILOS ADICIONAIS PARA COMPLETAR O DESIGN DA FOTO ===== */
+
+/* Separador entre artista e álbum */
+.song-artist::after {
+    content: "•";
+    margin: 0 8px;
+    opacity: 0.5;
 }
 
-/* Garantir que hover não mude cores de forma errada */
-#btnPrev:hover,
-#btnNext:hover,
-#btnShuffle:hover,
-#btnRepeat:hover {
-    color: #ffffff !important;
+/* Estatísticas inline (96K, 804, etc) - adicionar ao HTML se quiser */
+.song-stats {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: #8a8a8a;
+    font-weight: 500;
 }
 
-/* Forçar remoção de qualquer cor verde nos símbolos */
-#btnShuffle,
-#btnRepeat {
-    color: #b3b3b3 !important;
+.song-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
-#btnShuffle.active,
-#btnRepeat.active {
-    color: #ffffff !important;
-}
-
-/* Remover qualquer estilo inline problemático */
-#btnPrev[style*="color"],
-#btnNext[style*="color"],
-#btnShuffle[style*="color"],
-#btnRepeat[style*="color"] {
-    color: inherit !important;
-}
-
-/* Se necessário, substituir os emojis por imagens SVG */
-.shuffle-icon,
-.repeat-icon {
-    font-size: 18px;
-    display: inline-block;
-    line-height: 1;
+/* Garantir que shuffle e repeat fiquem brancos quando ativos */
+#btnShuffle.control-btn.active::before,
+#btnRepeat.control-btn.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    z-index: -1;
 }
