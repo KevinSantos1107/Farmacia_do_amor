@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         isShuffleOn = !isShuffleOn;
         
         if (isShuffleOn) {
-            // Ativa shuffle
+            // Ativa shuffle - ADICIONA classe 'active' para ficar VERDE
             btnShuffle.classList.add('active');
             
             // Cria lista embaralhada
@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             console.log("Shuffle ativado. Nova lista:", shuffledPlaylist.map(t => t.title));
             
         } else {
-            // Desativa shuffle
+            // Desativa shuffle - REMOVE classe 'active' para voltar ao cinza
             btnShuffle.classList.remove('active');
             
             // Encontra a posição da música atual na playlist original
@@ -366,20 +366,23 @@ document.addEventListener('DOMContentLoaded', (event) => {
         repeatState = (repeatState + 1) % 3;
         
         switch(repeatState) {
-            case 0: // Desligado
+            case 0: // Desligado - SEM classe 'active'
                 btnRepeat.classList.remove('active');
                 btnRepeat.textContent = '🔁';
                 audio.loop = false;
+                console.log("Repeat desligado");
                 break;
-            case 1: // Repetir playlist
+            case 1: // Repetir playlist - COM classe 'active' (VERDE)
                 btnRepeat.classList.add('active');
                 btnRepeat.textContent = '🔁';
                 audio.loop = false;
+                console.log("Repeat playlist ativado");
                 break;
-            case 2: // Repetir música
+            case 2: // Repetir música - COM classe 'active' (VERDE)
                 btnRepeat.classList.add('active');
                 btnRepeat.textContent = '🔂';
                 audio.loop = true;
+                console.log("Repeat música ativado");
                 break;
         }
         console.log("Repeat state alterado para:", repeatState);
@@ -634,4 +637,50 @@ document.addEventListener('DOMContentLoaded', (event) => {
     updateDailyMessage();
 
     console.log('Página completamente inicializada!');
+});
+
+// Adicionar isso no final do arquivo JavaScript, após todas as outras funções:
+
+// =========================================================
+// 7. GARANTIR QUE BOTÕES PRÉV/NEXT NUNCA FICARÃO VERDES
+// =========================================================
+
+// Função para prevenir que os botões prév/next recebam classe 'active'
+function preventActiveClassOnPrevNext() {
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    
+    if (btnPrev) {
+        // Remover classe 'active' se existir
+        btnPrev.classList.remove('active');
+        // Observar mudanças na classe
+        const observerPrev = new MutationObserver(() => {
+            if (btnPrev.classList.contains('active')) {
+                btnPrev.classList.remove('active');
+            }
+        });
+        observerPrev.observe(btnPrev, { attributes: true, attributeFilter: ['class'] });
+    }
+    
+    if (btnNext) {
+        // Remover classe 'active' se existir
+        btnNext.classList.remove('active');
+        // Observar mudanças na classe
+        const observerNext = new MutationObserver(() => {
+            if (btnNext.classList.contains('active')) {
+                btnNext.classList.remove('active');
+            }
+        });
+        observerNext.observe(btnNext, { attributes: true, attributeFilter: ['class'] });
+    }
+}
+
+// Executar após a página carregar
+setTimeout(preventActiveClassOnPrevNext, 100);
+
+// Também remover ao clicar nesses botões
+document.addEventListener('click', (event) => {
+    if (event.target.id === 'btnPrev' || event.target.id === 'btnNext') {
+        event.target.classList.remove('active');
+    }
 });
