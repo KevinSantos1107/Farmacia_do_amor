@@ -1112,6 +1112,7 @@ input:focus {
     opacity: 0.7;
     pointer-events: none;
 }
+
 /* Adicione ao final do seu CSS */
 button:focus,
 input:focus {
@@ -1133,4 +1134,3 @@ input:focus {
     outline: none !important;
     box-shadow: none !important;
 }
-
