@@ -1,36 +1,62 @@
 /* ===== VARIÁVEIS DE CORES POR TEMA ===== */
 :root {
-    /* Tema Meteoros (Padrão) */
-    --theme-bg: #0a0e17;
-    --theme-primary: #6a11cb;
-    --theme-secondary: #2575fc;
-    --theme-accent: #ff6b8b;
+    /* Tema Meteoros (Padrão) - NEON AZUL-VIOLETA */
+    --theme-bg: #0a0a1a;
+    --theme-primary: #8a2be2; /* Neon Violeta */
+    --theme-secondary: #00ffff; /* Neon Ciano */
+    --theme-accent: #ff00ff; /* Neon Magenta */
     --theme-text: #ffffff;
-    --theme-text-secondary: #b8b8d1;
-    --theme-card-bg: rgba(26, 26, 46, 0.95);
-    --theme-card-border: rgba(106, 17, 203, 0.3);
+    --theme-text-secondary: #ccccff;
+    --theme-card-bg: rgba(20, 20, 40, 0.95);
+    --theme-card-border: rgba(138, 43, 226, 0.4);
+    --theme-glow: 0 0 15px rgba(138, 43, 226, 0.7);
+    --theme-glow-strong: 0 0 25px rgba(138, 43, 226, 0.9);
     
-    /* Gradientes */
-    --gradient-primary: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-    --gradient-secondary: linear-gradient(135deg, #ff6b8b 0%, #ff9a9e 100%);
+    /* Gradientes Neon */
+    --gradient-primary: linear-gradient(135deg, #8a2be2 0%, #4169e1 50%, #00ffff 100%);
+    --gradient-secondary: linear-gradient(135deg, #ff00ff 0%, #ff1493 100%);
+    --gradient-neon: linear-gradient(135deg, #8a2be2, #00ffff, #ff00ff);
+    --gradient-text: linear-gradient(90deg, #8a2be2, #00ffff, #ff00ff);
 }
 
-/* Tema Chuva de Corações */
+/* Tema Chuva de Corações - NEON ROSA-VERMELHO */
 .theme-hearts {
-    --theme-bg: #1a0b2e;
-    --theme-primary: #ff2e63;
-    --theme-secondary: #ff9a9e;
-    --theme-accent: #ffd166;
-    --theme-card-bg: rgba(42, 13, 65, 0.95);
+    --theme-bg: #1a001a;
+    --theme-primary: #ff0055; /* Neon Rosa Vibrante */
+    --theme-secondary: #ff3366; /* Neon Rosa Suave */
+    --theme-accent: #ffcc00; /* Neon Amarelo */
+    --theme-text: #ffffff;
+    --theme-text-secondary: #ffd1dc;
+    --theme-card-bg: rgba(40, 0, 20, 0.95);
+    --theme-card-border: rgba(255, 0, 85, 0.5);
+    --theme-glow: 0 0 20px rgba(255, 0, 85, 0.8);
+    --theme-glow-strong: 0 0 30px rgba(255, 0, 85, 1);
+    
+    /* Gradientes Neon Coração */
+    --gradient-primary: linear-gradient(135deg, #ff0055 0%, #ff3366 50%, #ff66b2 100%);
+    --gradient-secondary: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+    --gradient-neon: linear-gradient(135deg, #ff0055, #ff3366, #ffcc00);
+    --gradient-text: linear-gradient(90deg, #ff0055, #ff66b2, #ffcc00);
 }
 
-/* Tema Aurora */
+/* Tema Aurora - NEON VERDE-AZUL CÉU NOTURNO */
 .theme-aurora {
-    --theme-bg: #0c1b33;
-    --theme-primary: #00b4d8;
-    --theme-secondary: #90e0ef;
-    --theme-accent: #caf0f8;
-    --theme-card-bg: rgba(12, 27, 51, 0.95);
+    --theme-bg: #001122;
+    --theme-primary: #00ffaa; /* Neon Verde Água */
+    --theme-secondary: #00ccff; /* Neon Azul Céu */
+    --theme-accent: #aa00ff; /* Neon Violeta Aurora */
+    --theme-text: #ffffff;
+    --theme-text-secondary: #aaffff;
+    --theme-card-bg: rgba(0, 20, 40, 0.95);
+    --theme-card-border: rgba(0, 255, 170, 0.4);
+    --theme-glow: 0 0 15px rgba(0, 255, 170, 0.7);
+    --theme-glow-strong: 0 0 25px rgba(0, 255, 170, 0.9);
+    
+    /* Gradientes Neon Aurora */
+    --gradient-primary: linear-gradient(135deg, #00ffaa 0%, #00ccff 50%, #0088ff 100%);
+    --gradient-secondary: linear-gradient(135deg, #aa00ff 0%, #ff00aa 100%);
+    --gradient-neon: linear-gradient(135deg, #00ffaa, #00ccff, #aa00ff);
+    --gradient-text: linear-gradient(90deg, #00ffaa, #00ccff, #aa00ff);
 }
 
 /* ===== RESET MOBILE-FIRST ===== */
@@ -94,12 +120,13 @@ body {
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     border: 1px solid var(--theme-card-border);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), var(--theme-glow);
 }
 
 .theme-menu-toggle:active {
     transform: scale(0.95);
     background: var(--theme-primary);
+    box-shadow: 0 0 20px var(--theme-primary);
 }
 
 .theme-selector {
@@ -146,16 +173,18 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
 .theme-btn:hover, .theme-btn:active {
     transform: scale(1.1);
     background: var(--theme-primary);
+    box-shadow: 0 0 15px var(--theme-primary);
 }
 
 .theme-btn.active {
     background: var(--theme-primary);
-    box-shadow: 0 0 10px var(--theme-primary);
+    box-shadow: 0 0 15px var(--theme-primary), 0 0 25px var(--theme-primary);
 }
 
 /* ===== CONTAINER PRINCIPAL ===== */
@@ -167,61 +196,108 @@ body {
     z-index: 1;
 }
 
-/* ===== CABEÇALHO ===== */
+/* ===== CABEÇALHO COM NEON ===== */
 .header {
     text-align: center;
     margin: 20px 0 30px;
-    padding: 20px 15px;
+    padding: 25px 15px;
     background: var(--theme-card-bg);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     border: 1px solid var(--theme-card-border);
     animation: fadeIn 0.8s ease-out;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Efeito de brilho no fundo do header */
+.header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: var(--gradient-neon);
+    opacity: 0.05;
+    animation: rotate 20s linear infinite;
+    z-index: -1;
 }
 
 .names-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
     margin-bottom: 15px;
     flex-wrap: wrap;
+    position: relative;
 }
 
 .name {
     font-family: 'Dancing Script', cursive;
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 700;
-    text-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    text-shadow: 
+        0 0 10px currentColor,
+        0 0 20px currentColor,
+        0 0 30px currentColor,
+        0 0 40px var(--theme-primary);
+    position: relative;
+    padding: 0 15px;
+    z-index: 1;
+    animation: neonPulse 3s ease-in-out infinite alternate;
 }
 
+/* Efeito neon específico para cada nome */
 .name.kevin {
-    background: var(--gradient-primary);
+    background: var(--gradient-text);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    animation-delay: 0.5s;
 }
 
 .name.iara {
-    background: var(--gradient-secondary);
+    background: linear-gradient(90deg, var(--theme-accent), var(--theme-secondary), var(--theme-primary));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    animation-delay: 1s;
 }
 
+/* Coração pulsante com neon */
 .heart-separator i {
     color: var(--theme-accent);
-    font-size: 1.5rem;
-    animation: heartbeat 1.5s infinite;
+    font-size: 2.2rem;
+    animation: 
+        heartbeat 1.5s infinite,
+        floatNeon 2s ease-in-out infinite;
+    text-shadow: 
+        0 0 10px var(--theme-accent),
+        0 0 20px var(--theme-accent),
+        0 0 30px var(--theme-accent);
 }
 
 .subtitle {
     font-family: 'Poppins', sans-serif;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: var(--theme-text-secondary);
     margin-top: 10px;
     font-weight: 300;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    position: relative;
+    padding: 5px 15px;
+    display: inline-block;
+}
+
+.subtitle::before, .subtitle::after {
+    content: '✦';
+    color: var(--theme-primary);
+    margin: 0 10px;
+    text-shadow: 0 0 10px var(--theme-primary);
 }
 
 /* ===== SEÇÃO PRINCIPAL ===== */
@@ -236,6 +312,28 @@ body {
     overflow: hidden;
     border: 1px solid var(--theme-card-border);
     animation: slideUp 0.8s ease-out 0.2s both;
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+/* Efeito de brilho nas bordas */
+.main-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: var(--gradient-neon);
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.main-card:hover::before {
+    opacity: 0.3;
 }
 
 .couple-photo {
@@ -296,6 +394,7 @@ body {
     font-size: 1.5rem;
     color: var(--theme-primary);
     margin-top: 3px;
+    text-shadow: 0 0 10px var(--theme-primary);
 }
 
 /* ===== CONTADOR DE TEMPO ===== */
@@ -310,11 +409,13 @@ body {
     font-size: 1.5rem;
     margin-bottom: 10px;
     color: var(--theme-accent);
+    text-shadow: 0 0 10px var(--theme-accent);
 }
 
 .time-counter-section h2 i {
     color: var(--theme-primary);
     margin-right: 10px;
+    text-shadow: 0 0 10px var(--theme-primary);
 }
 
 .section-subtitle {
@@ -337,6 +438,7 @@ body {
     gap: 8px;
 }
 
+/* Time boxes com neon */
 .time-box {
     width: 70px;
     height: 70px;
@@ -347,7 +449,11 @@ body {
     justify-content: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 
+        0 5px 15px rgba(0, 0, 0, 0.3),
+        0 0 10px var(--theme-primary),
+        inset 0 0 10px rgba(255, 255, 255, 0.2);
+    animation: floatNeon 3s ease-in-out infinite;
 }
 
 .time-value {
@@ -355,6 +461,7 @@ body {
     font-size: 1.5rem;
     font-weight: 600;
     color: white;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
 .time-label {
@@ -371,6 +478,13 @@ body {
     border-radius: 12px;
     display: inline-block;
     border: 1px solid var(--theme-card-border);
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.start-date:hover {
+    box-shadow: 0 0 20px var(--theme-primary), inset 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
 .start-date p {
@@ -383,14 +497,16 @@ body {
 
 .start-date i {
     color: var(--theme-primary);
+    text-shadow: 0 0 10px var(--theme-primary);
 }
 
 #startDateDisplay {
     color: var(--theme-accent);
     font-weight: 600;
+    text-shadow: 0 0 10px var(--theme-accent);
 }
 
-/* ===== PLAYER DE MÚSICA (RESTAURADO E SIMPLIFICADO) ===== */
+/* ===== PLAYER DE MÚSICA ===== */
 .music-player-section {
     margin-bottom: 30px;
     animation: fadeIn 0.8s ease-out 0.6s both;
@@ -402,11 +518,13 @@ body {
     margin-bottom: 15px;
     color: var(--theme-accent);
     text-align: center;
+    text-shadow: 0 0 10px var(--theme-accent);
 }
 
 .music-player-section h2 i {
     color: var(--theme-primary);
     margin-right: 10px;
+    text-shadow: 0 0 10px var(--theme-primary);
 }
 
 .music-player {
@@ -417,6 +535,13 @@ body {
     border: 1px solid var(--theme-card-border);
     max-width: 400px;
     margin: 0 auto;
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.music-player:hover {
+    box-shadow: 0 0 25px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
 }
 
 .album-cover {
@@ -426,7 +551,7 @@ body {
     border-radius: 15px;
     overflow: hidden;
     margin: 0 auto 20px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px var(--theme-primary);
 }
 
 .album-cover img {
@@ -464,6 +589,7 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
 .song-info p {
@@ -483,14 +609,16 @@ body {
     border-radius: 2px;
     margin-bottom: 8px;
     overflow: hidden;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
 }
 
 .progress-bar-fill {
     width: 0%;
     height: 100%;
-    background: var(--theme-primary);
+    background: var(--gradient-primary);
     border-radius: 2px;
     transition: width 0.1s linear;
+    box-shadow: 0 0 10px var(--theme-primary);
 }
 
 .time-display {
@@ -522,7 +650,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    box-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.1),
+        inset 0 0 10px rgba(255, 255, 255, 0.05);
 }
 
 .control-btn:active {
@@ -531,6 +662,9 @@ body {
 
 .control-btn:hover {
     background: var(--theme-primary);
+    box-shadow: 
+        0 0 15px var(--theme-primary),
+        0 0 25px var(--theme-primary);
 }
 
 .play-pause-btn {
@@ -538,11 +672,15 @@ body {
     height: 55px;
     background: var(--gradient-primary);
     font-size: 1.2rem;
+    box-shadow: 
+        0 0 20px var(--theme-primary),
+        0 0 30px var(--theme-primary);
 }
 
 .control-btn.active {
     color: var(--theme-primary);
     background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 15px var(--theme-primary);
 }
 
 .playlist-info {
@@ -564,11 +702,13 @@ body {
     margin-bottom: 10px;
     color: var(--theme-accent);
     text-align: center;
+    text-shadow: 0 0 10px var(--theme-accent);
 }
 
 .albums-section h2 i {
     color: var(--theme-primary);
     margin-right: 10px;
+    text-shadow: 0 0 10px var(--theme-primary);
 }
 
 .albums-container {
@@ -583,12 +723,18 @@ body {
     border-radius: 15px;
     overflow: hidden;
     border: 1px solid var(--theme-card-border);
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
     cursor: pointer;
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    position: relative;
 }
 
 .album-card:active {
     transform: scale(0.98);
+}
+
+.album-card:hover {
+    box-shadow: 0 0 20px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
 }
 
 .album-cover-img {
@@ -619,6 +765,7 @@ body {
 
 .album-date i {
     color: var(--theme-primary);
+    text-shadow: 0 0 10px var(--theme-primary);
 }
 
 .album-info > p {
@@ -643,16 +790,17 @@ body {
 
 .album-stats i {
     color: var(--theme-accent);
+    text-shadow: 0 0 10px var(--theme-accent);
 }
 
-/* ===== MODAL DO ÁLBUM (VERSÃO SCROLLABLE) ===== */
+/* ===== MODAL DO ÁLBUM COM NEON ===== */
 .album-modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.9);
     display: none;
     justify-content: center;
     align-items: center;
@@ -672,7 +820,10 @@ body {
     display: flex;
     flex-direction: column;
     border: 1px solid var(--theme-card-border);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    box-shadow: 
+        var(--theme-glow-strong),
+        0 20px 50px rgba(0, 0, 0, 0.5),
+        inset 0 0 30px rgba(255, 255, 255, 0.1);
     overflow: hidden;
     margin: auto;
 }
@@ -696,6 +847,7 @@ body {
     font-weight: 500;
     text-align: center;
     flex: 1;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 .close-modal {
@@ -716,12 +868,16 @@ body {
     position: relative;
     z-index: 11;
     margin-left: auto;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 .close-modal:hover, .close-modal:active {
     background: var(--theme-primary);
     transform: scale(1.1);
     border-color: var(--theme-primary);
+    box-shadow: 
+        0 0 15px var(--theme-primary),
+        0 0 25px var(--theme-primary);
 }
 
 .modal-body {
@@ -744,6 +900,7 @@ body {
     justify-content: center;
     background: rgba(0, 0, 0, 0.2);
     cursor: pointer;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
 .album-viewer img {
@@ -774,10 +931,12 @@ body {
     justify-content: center;
     font-size: 1.2rem;
     transition: background 0.3s ease;
+    box-shadow: 0 0 15px var(--theme-primary);
 }
 
 .album-control-btn:active {
     background: var(--theme-secondary);
+    box-shadow: 0 0 25px var(--theme-secondary);
 }
 
 .photo-info {
@@ -794,6 +953,7 @@ body {
     font-size: 1rem;
     color: var(--theme-text);
     font-weight: 500;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 /* ===== MENSAGENS DO DIA ===== */
@@ -808,11 +968,13 @@ body {
     margin-bottom: 15px;
     color: var(--theme-accent);
     text-align: center;
+    text-shadow: 0 0 10px var(--theme-accent);
 }
 
 .messages-section h2 i {
     color: var(--theme-primary);
     margin-right: 10px;
+    text-shadow: 0 0 10px var(--theme-primary);
 }
 
 .message-card {
@@ -824,6 +986,13 @@ body {
     text-align: center;
     max-width: 400px;
     margin: 0 auto;
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.message-card:hover {
+    box-shadow: 0 0 20px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
 }
 
 .message-content {
@@ -846,16 +1015,17 @@ body {
     font-size: 2rem;
     color: var(--theme-accent);
     position: absolute;
-    opacity: 0.5;
+    opacity: 0.7;
+    text-shadow: 0 0 10px var(--theme-accent);
 }
 
 .message-text::before {
-    top: -5px;
+    top: -10px;
     left: 0;
 }
 
 .message-text::after {
-    bottom: -20px;
+    bottom: -25px;
     right: 0;
 }
 
@@ -879,28 +1049,49 @@ body {
     justify-content: center;
     gap: 8px;
     margin: 0 auto;
-    transition: transform 0.2s ease;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 15px var(--theme-primary);
 }
 
 .new-message-btn:active {
     transform: scale(0.95);
+    box-shadow: 0 0 25px var(--theme-primary);
 }
 
-/* ===== FOOTER ===== */
+/* ===== FOOTER COM NEON ===== */
 .footer {
     margin-top: 40px;
-    padding: 20px 15px;
+    padding: 25px 15px;
     text-align: center;
     background: var(--theme-card-bg);
     border-top: 1px solid var(--theme-card-border);
     animation: fadeIn 0.8s ease-out 1.2s both;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-neon);
+    box-shadow: 0 0 10px var(--theme-primary);
 }
 
 .footer-heart {
-    font-size: 2rem;
+    font-size: 2.5rem;
     color: var(--theme-accent);
     margin-bottom: 10px;
-    animation: heartbeat 1.5s infinite;
+    animation: 
+        heartbeat 1.5s infinite,
+        floatNeon 3s ease-in-out infinite;
+    text-shadow: 
+        0 0 15px var(--theme-accent),
+        0 0 25px var(--theme-accent);
 }
 
 .footer-text {
@@ -908,6 +1099,7 @@ body {
     color: var(--theme-text);
     margin-bottom: 10px;
     font-family: 'Poppins', sans-serif;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 .footer-date {
@@ -922,20 +1114,24 @@ body {
     align-items: center;
     gap: 15px;
     font-family: 'Dancing Script', cursive;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     color: var(--theme-text);
 }
 
 .footer-names i {
     color: var(--theme-accent);
-    animation: heartbeat 1.5s infinite;
+    animation: 
+        heartbeat 1.5s infinite,
+        floatNeon 2s ease-in-out infinite;
+    text-shadow: 0 0 10px var(--theme-accent);
 }
 
 .footer-names span {
-    background: var(--gradient-primary);
+    background: var(--gradient-text);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 /* ===== ANIMAÇÕES ===== */
@@ -990,6 +1186,35 @@ body {
     }
 }
 
+/* ===== ANIMAÇÕES NEON ===== */
+@keyframes neonPulse {
+    0%, 100% {
+        text-shadow: 
+            0 0 10px currentColor,
+            0 0 20px currentColor,
+            0 0 30px currentColor,
+            0 0 40px var(--theme-primary);
+    }
+    50% {
+        text-shadow: 
+            0 0 5px currentColor,
+            0 0 10px currentColor,
+            0 0 15px currentColor,
+            0 0 20px var(--theme-primary);
+    }
+}
+
+@keyframes floatNeon {
+    0%, 100% {
+        transform: translateY(0);
+        filter: drop-shadow(0 0 10px var(--theme-primary));
+    }
+    50% {
+        transform: translateY(-5px);
+        filter: drop-shadow(0 0 20px var(--theme-primary));
+    }
+}
+
 /* ===== FEEDBACK DE CLIQUE PARA REPEAT ===== */
 @keyframes gentleActivation {
     0% {
@@ -1011,15 +1236,15 @@ body {
 }
 
 .theme-meteors #repeatBtn.active {
-    background: rgba(106, 17, 203, 0.2);
+    background: rgba(138, 43, 226, 0.2);
 }
 
 .theme-hearts #repeatBtn.active {
-    background: rgba(255, 46, 99, 0.2);
+    background: rgba(255, 0, 85, 0.2);
 }
 
 .theme-aurora #repeatBtn.active {
-    background: rgba(0, 180, 216, 0.2);
+    background: rgba(0, 255, 170, 0.2);
 }
 
 /* ===== RESPONSIVIDADE DESKTOP ===== */
@@ -1040,11 +1265,11 @@ body {
     }
     
     .name {
-        font-size: 3.5rem;
+        font-size: 3.8rem;
     }
     
     .heart-separator i {
-        font-size: 2rem;
+        font-size: 2.5rem;
     }
     
     .subtitle {
