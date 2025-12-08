@@ -1134,32 +1134,50 @@ input:focus {
     box-shadow: none !important;
 }
 
-/* APENAS ISSO JÁ RESOLVE */
+/* ===== REMOÇÃO DEFINITIVA DO HIGHLIGHT AZUL - ANDROID CHROME ===== */
+
+/* 1. PARA TODOS OS ELEMENTOS (base) */
 * {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
     -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
 }
 
-button, 
-.control-btn, 
+/* 2. BOTÕES ESPECÍFICOS DO SEU SITE */
+button,
+.control-btn,
 .play-pause-lg,
 .btn-view-all,
-.btn-new-message {
+.btn-new-message,
+.gallery-item,
+#btnPrev,
+#btnNext,
+#btnShuffle,
+#btnRepeat,
+#btnPlayPause {
     -webkit-tap-highlight-color: transparent;
-}
-
-button:active, 
-button:focus {
+    tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
     outline: none;
 }
-/* OTIMIZAÇÃO EXTRA PARA iOS (opcional) */
-@supports (-webkit-touch-callout: none) {
-    /* Detecta Safari iOS */
-    body {
-        -webkit-touch-callout: none;
-    }
-    
-    button:active {
-        background-color: transparent;
-    }
+
+/* 3. ESTADOS ACTIVE/FOCUS (importantíssimo!) */
+button:active,
+button:focus,
+.control-btn:active,
+.control-btn:focus,
+.play-pause-lg:active,
+.play-pause-lg:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
 }
 
+/* 4. PARA DISPOSITIVOS TOUCH (mobile) */
+@media (hover: none) and (pointer: coarse) {
+    button:active {
+        opacity: 0.9; /* Feedback visual sutil */
+        transition: opacity 0.1s;
+    }
+}
