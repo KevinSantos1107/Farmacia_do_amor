@@ -1,6 +1,7 @@
 // ===== CONFIGURAÇÕES INICIAIS =====
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar tudo
+    initThemeMenu();
     initThemeSelector();
     initTimeCounter();
     initMusicPlayer();
@@ -103,6 +104,32 @@ function changeTheme(themeName) {
     root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
     
     console.log(`🎨 Tema alterado para: ${theme.name}`);
+}
+
+// ===== CONTROLE DO MENU DE TEMA =====
+function initThemeMenu() {
+    const themeToggle = document.getElementById('themeToggle');
+    const themeSelector = document.getElementById('themeSelector');
+    
+    themeToggle.addEventListener('click', function(e) {
+        e.stopPropagation(); // Evita que o clique se propague
+        themeSelector.classList.toggle('hidden');
+    });
+    
+    // Fechar menu quando clicar fora
+    document.addEventListener('click', function(e) {
+        if (!themeSelector.contains(e.target) && e.target !== themeToggle) {
+            themeSelector.classList.add('hidden');
+        }
+    });
+    
+    // Fechar menu quando trocar de tema
+    const themeButtons = document.querySelectorAll('.theme-btn');
+    themeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            themeSelector.classList.add('hidden');
+        });
+    });
 }
 
 // ===== CONTADOR DE TEMPO =====
@@ -452,7 +479,7 @@ function openAlbum(albumId) {
     // Mostrar modal
     const modal = document.getElementById('albumModal');
     modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    // LINHA REMOVIDA: document.body.style.overflow = 'hidden';
     
     // Atualizar informações do modal
     document.getElementById('modalAlbumTitle').textContent = currentAlbum.title;
@@ -481,7 +508,7 @@ function initModal() {
     
     closeBtn.addEventListener('click', () => {
         modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
+        // LINHA REMOVIDA: document.body.style.overflow = 'auto';
     });
     
     prevBtn.addEventListener('click', () => {
@@ -525,6 +552,13 @@ function initModal() {
             }
         }
     }
+    
+    // Fechar modal clicando no fundo (fora do conteúdo)
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeBtn.click();
+        }
+    });
     
     // Navegação por teclado
     document.addEventListener('keydown', (event) => {
