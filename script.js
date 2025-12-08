@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // 1. Contador de Tempo
     // =========================================================
 
-    const startDate = new Date(2024, 9, 20, 17, 0, 0); 
+    const startDate = new Date(2025, 9, 27, 17, 0, 0); 
     const countdownDisplay = document.getElementById('countdown-display');
 
     if (countdownDisplay) {
@@ -735,5 +735,6 @@ observer.observe(document.body, {
     childList: true,
     subtree: true
 });
+
 
 
