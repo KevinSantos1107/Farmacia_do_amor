@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const totalTracks = document.getElementById('totalTracks');
     const audioCard = document.querySelector('.audio-card');
 
-    // --- ÍCONES SVG ---
+    // --- ÍCONES SVG CORRIGIDOS ---
     const playIcon = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z"/>
@@ -115,12 +115,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     const repeatIcon = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.65 4.35l-2.79 2.79c-.32.32-.1.86.35.86H17c1.1 0 2 .9 2 2v3c0 .55.45 1 1 1s1-.45 1-1v-3c0-2.21-1.79-4-4-4h-1.79c-.45 0-.67.54-.35.85l2.79 2.79c.19.2.51.2.7 0l2.79-2.79c.32-.31.1-.85-.35-.85H19c-2.21 0-4 1.79-4 4v3c0 .55-.45 1-1 1s-1-.45-1-1v-3c0-1.1.9-2 2-2h1.79c.45 0 .67-.54.35-.85l-2.79-2.79c-.19-.2-.51-.2-.7 0z"/>
+            <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
         </svg>`;
 
     const repeatOneIcon = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7 7h10v1.79c0 .45.54.67.85.35l2.79-2.79c.2-.2.2-.51 0-.71l-2.79-2.79c-.31-.31-.85-.09-.85.36V5H6c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1V7zm10 10H7v-1.79c0-.45-.54-.67-.85-.35l-2.79 2.79c-.2.2-.2.51 0 .71l2.79 2.79c.31.31.85.09.85-.36V19h11c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1s-1 .45-1 1v3zm-4-2V9h-1v4c0 1.1.9 2 2 2h1v-2h-1z"/>
+            <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1v4c0 1.1.9 2 2 2h1v-2h-1z"/>
         </svg>`;
 
     // --- INICIALIZAR ÍCONES ---
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const currentList = getCurrentPlaylist();
         const wasPlaying = !audio.paused || fromEnded;
         
-        if (repeatState === 2) {
+        if (repeatState === 1) {
             // Repetir música atual
             audio.currentTime = 0;
             if (wasPlaying) {
@@ -408,30 +408,25 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     function toggleRepeat() {
-        repeatState = (repeatState + 1) % 3;
-        
-        switch(repeatState) {
-            case 0: // Desligado
-                btnRepeat.classList.remove('active');
-                btnRepeat.innerHTML = repeatIcon;
-                audio.loop = false;
-                console.log("Repeat desligado");
-                break;
-            case 1: // Repetir playlist
-                btnRepeat.classList.add('active');
-                btnRepeat.innerHTML = repeatIcon;
-                audio.loop = false;
-                console.log("Repeat playlist ativado");
-                break;
-            case 2: // Repetir música
-                btnRepeat.classList.add('active');
-                btnRepeat.innerHTML = repeatOneIcon;
-                audio.loop = true;
-                console.log("Repeat música ativado");
-                break;
-        }
-        console.log("Repeat state alterado para:", repeatState);
+    // Mude para apenas 2 estados: 0 e 1
+    repeatState = repeatState === 0 ? 1 : 0;
+    
+    if (repeatState === 0) {
+        // DESLIGADO
+        btnRepeat.classList.remove('active');
+        btnRepeat.innerHTML = repeatIcon;
+        audio.loop = false;
+        console.log("Repeat desligado");
+    } else {
+        // REPETIR MÚSICA ATUAL (ESTÁGIO 1)
+        btnRepeat.classList.add('active');
+        btnRepeat.innerHTML = repeatOneIcon; // Ícone com "1"
+        audio.loop = true; // Loop da música atual
+        console.log("Repeat música ativado");
     }
+    
+    console.log("Repeat state:", repeatState);
+}
 
     // --- EVENT LISTENERS ---
     btnPlayPause.addEventListener('click', playPause);
@@ -681,19 +676,4 @@ document.addEventListener('DOMContentLoaded', (event) => {
     updateDailyMessage();
 
     console.log('Página completamente inicializada!');
-
-    // =========================================================
-    // 7. Menu do Player (UP NEXT, LYRICS, RELATED)
-    // =========================================================
-
-    const menuItems = document.querySelectorAll('.menu-item');
-    
-    menuItems.forEach(item => {
-        item.addEventListener('click', () => {
-            // Remove a classe active de todos
-            menuItems.forEach(i => i.classList.remove('active'));
-            // Adiciona ao item clicado
-            item.classList.add('active');
-        });
-    });
 });
