@@ -12,8 +12,13 @@
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
 </head>
 <body>
-    <!-- Seletor de Tema (Mobile - versão simplificada) -->
-    <div class="theme-selector">
+    <!-- Substitua todo o seletor de tema atual por este código: -->
+<div class="theme-menu">
+    <button class="theme-menu-toggle" id="themeToggle" title="Configurar tema">
+        <i class="fas fa-palette"></i>
+    </button>
+    
+    <div class="theme-selector hidden" id="themeSelector">
         <button class="theme-btn active" data-theme="meteors" title="Meteoros">
             <i class="fas fa-meteor"></i>
         </button>
@@ -24,6 +29,7 @@
             <i class="fas fa-palette"></i>
         </button>
     </div>
+</div>
 
     <!-- Conteúdo Principal -->
     <div class="container">
@@ -252,4 +258,5 @@
     <script src="animations.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>
