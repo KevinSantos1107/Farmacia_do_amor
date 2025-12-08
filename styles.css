@@ -14,8 +14,6 @@
     box-sizing: border-box; 
     margin: 0;
     padding: 0;
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
 }
 
 html, body {
@@ -24,9 +22,6 @@ html, body {
     color: var(--text-light); /* Texto claro */
     font-family: var(--font-principal);
     line-height: 1.6;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
 }
 
 /* Layout Principal e Centralização */
@@ -364,8 +359,6 @@ html, body {
     appearance: none;
     outline: none;
     transition: height 0.1s;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
 }
 
 #progressBar:hover {
@@ -432,11 +425,6 @@ html, body {
     justify-content: center;
     position: relative;
     overflow: hidden;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    -webkit-user-select: none;
-    user-select: none;
-    outline: none !important;
 }
 
 /* Garantir que SVGs herdem a cor correta */
@@ -473,8 +461,6 @@ html, body {
 
 .control-btn:active {
     transform: scale(0.98);
-    opacity: 0.8;
-    -webkit-tap-highlight-color: transparent;
 }
 
 /* ESTADO ATIVO para shuffle e repeat (igual à foto - BRANCO) */
@@ -505,11 +491,6 @@ html, body {
     line-height: 1;
     position: relative;
     box-shadow: none; /* Sem sombra como na foto */
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    -webkit-user-select: none;
-    user-select: none;
-    outline: none !important;
 }
 
 /* Botão play/pause SVG */
@@ -528,7 +509,6 @@ html, body {
 /* Clique - redução sutil */
 .play-pause-lg:active {
     transform: scale(0.95);
-    -webkit-tap-highlight-color: transparent;
 }
 
 /* Garantir que não tenha efeitos estranhos */
@@ -595,10 +575,6 @@ html, body {
 .gallery-item {
     cursor: pointer;
     transition: transform 0.3s ease;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none;
-    user-select: none;
-    outline: none;
 }
 
 .gallery-item:hover {
@@ -610,7 +586,6 @@ html, body {
     overflow: hidden;
     border-radius: 10px;
     aspect-ratio: 1 / 1;
-    -webkit-tap-highlight-color: transparent;
 }
 
 .gallery-image-container img {
@@ -668,11 +643,6 @@ html, body {
     transition: all 0.3s;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    -webkit-user-select: none;
-    user-select: none;
-    outline: none !important;
 }
 
 .btn-view-all:hover {
@@ -680,11 +650,6 @@ html, body {
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(29, 185, 84, 0.3);
-}
-
-.btn-view-all:active {
-    transform: scale(0.98);
-    opacity: 0.9;
 }
 
 /* 5. Mensagem do Dia */
@@ -739,22 +704,12 @@ html, body {
     transition: all 0.3s;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    -webkit-user-select: none;
-    user-select: none;
-    outline: none !important;
 }
 
 .btn-new-message:hover {
     background: #1ed760;
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(29, 185, 84, 0.4);
-}
-
-.btn-new-message:active {
-    transform: scale(0.98);
-    opacity: 0.9;
 }
 
 /* 6. Footer */
@@ -842,19 +797,10 @@ html, body {
     align-items: center;
     justify-content: center;
     transition: background 0.3s;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    -webkit-user-select: none;
-    user-select: none;
-    outline: none !important;
 }
 
 .close-modal:hover {
     background: rgba(0, 0, 0, 0.8);
-}
-
-.close-modal:active {
-    transform: scale(0.95);
 }
 
 .modal-body {
@@ -906,22 +852,12 @@ html, body {
     transition: all 0.3s;
     font-weight: 600;
     font-size: 14px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    -webkit-user-select: none;
-    user-select: none;
-    outline: none !important;
 }
 
 .modal-btn:hover {
     background: #333;
     border-color: var(--accent);
     color: var(--accent);
-}
-
-.modal-btn:active {
-    transform: scale(0.98);
-    opacity: 0.9;
 }
 
 #photoCounter {
@@ -1147,25 +1083,11 @@ html, body {
     background: #555;
 }
 
-/* 12. Acessibilidade - Foco (alternativa para highlight azul) */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-a:focus-visible {
-    outline: 2px solid rgba(29, 185, 84, 0.6) !important;
-    outline-offset: 2px !important;
-    box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2) !important;
-}
-
-/* Para navegadores que não suportam :focus-visible */
-button:focus:not(:focus-visible),
-input:focus:not(:focus-visible),
-select:focus:not(:focus-visible),
-textarea:focus:not(:focus-visible),
-a:focus:not(:focus-visible) {
-    outline: none !important;
-    box-shadow: none !important;
+/* 12. Acessibilidade - Foco */
+button:focus,
+input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 /* 13. Utilitários */
@@ -1189,6 +1111,58 @@ a:focus:not(:focus-visible) {
 .loading {
     opacity: 0.7;
     pointer-events: none;
+}
+
+/* =========================================================
+   CORREÇÃO PARA REMOVER HIGHLIGHT AZUL SEM QUEBRAR O PLAYER
+   ========================================================= */
+
+/* REMOVE highlight azul mas mantém funcionalidade do player */
+a, button, input, textarea, select, .gallery-item, .control-btn, .play-pause-lg, 
+.btn-view-all, .btn-new-message, .modal-btn, .close-modal, .gallery-image-container {
+    -webkit-tap-highlight-color: rgba(0,0,0,0.1); /* Feedback sutil em vez de transparente */
+    touch-action: manipulation;
+}
+
+/* Remove highlight específico do iOS/Safari mas mantém funcionalidade */
+input, textarea, button, select, a {
+    -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+}
+
+/* Remove o efeito de highlight forte mas mantém feedback visual */
+button:active, .control-btn:active, .play-pause-lg:active,
+.btn-view-all:active, .btn-new-message:active, .modal-btn:active,
+.close-modal:active, .gallery-item:active {
+    transform: scale(0.98); /* Mantém um feedback sutil */
+    -webkit-tap-highlight-color: rgba(29, 185, 84, 0.2); /* Verde sutil */
+    transition: transform 0.1s ease;
+}
+
+/* Para a barra de progresso do áudio (input range) no mobile */
+#progressBar {
+    -webkit-tap-highlight-color: rgba(255,255,255,0.1);
+}
+
+/* Para o modal e seus elementos */
+.close-modal, .modal-btn, .modal-content {
+    -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+}
+
+/* Remove outline em foco para elementos interativos (acessibilidade alternativa) */
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+    outline: 2px solid rgba(29, 185, 84, 0.6) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2) !important;
+}
+
+/* Para navegadores que não suportam :focus-visible */
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 /* =========================================================
@@ -1236,4 +1210,14 @@ a:focus:not(:focus-visible) {
     .gallery-image-container:hover img,
     .music-cover:hover,
     .music-cover:hover img,
-    .foto-pr
+    .foto-principal:hover img {
+        transform: none;
+    }
+    
+    /* Barra de progresso mais grossa para toque fácil */
+    #progressBar {
+        height: 6px !important;
+    }
+    
+    #progressBar::-webkit-slider-thumb {
+        width
