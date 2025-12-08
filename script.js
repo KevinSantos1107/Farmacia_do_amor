@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // 1. Contador de Tempo
     // =========================================================
 
-    const startDate = new Date(2025, 9, 20, 17, 0, 0); 
+    const startDate = new Date(2024, 9, 20, 17, 0, 0); 
     const countdownDisplay = document.getElementById('countdown-display');
 
     if (countdownDisplay) {
@@ -247,23 +247,15 @@ const repeatOneIcon = `
 
     function playPause() {
         if (audio.paused) {
-            // ATUALIZA VISUAL IMEDIATAMENTE (ANTES de tocar)
-            btnPlayPause.innerHTML = pauseIcon;
-            btnPlayPause.classList.add('playing');
-            if (audioCard) audioCard.classList.add('playing');
-            
-            // DEPOIS tenta tocar
             audio.play().then(() => {
+                btnPlayPause.innerHTML = pauseIcon;
+                btnPlayPause.classList.add('playing');
+                if (audioCard) audioCard.classList.add('playing');
                 console.log("Iniciou playback");
             }).catch(e => {
                 console.error("Erro ao tocar:", e);
-                // Se falhar, volta ao estado anterior
-                btnPlayPause.innerHTML = playIcon;
-                btnPlayPause.classList.remove('playing');
-                if (audioCard) audioCard.classList.remove('playing');
             });
         } else {
-            // PAUSAR - atualização imediata
             audio.pause();
             btnPlayPause.innerHTML = playIcon;
             btnPlayPause.classList.remove('playing');
@@ -493,43 +485,6 @@ const repeatOneIcon = `
         console.log("Música acabou, chamando nextTrack...");
         nextTrack(true);
     });
-    
-    // ========== EVENTOS PARA GARANTIR ESTADO VISUAL CORRETO ==========
-    audio.addEventListener('playing', () => {
-        // Garante que está verde quando realmente está tocando
-        if (!btnPlayPause.classList.contains('playing')) {
-            btnPlayPause.innerHTML = pauseIcon;
-            btnPlayPause.classList.add('playing');
-            if (audioCard) audioCard.classList.add('playing');
-        }
-    });
-
-    audio.addEventListener('pause', () => {
-        // Garante que está cinza quando realmente está pausado
-        if (btnPlayPause.classList.contains('playing')) {
-            btnPlayPause.innerHTML = playIcon;
-            btnPlayPause.classList.remove('playing');
-            if (audioCard) audioCard.classList.remove('playing');
-        }
-    });
-
-    // Verificação periódica para garantir estado visual
-    setInterval(() => {
-        // Verifica se o estado visual corresponde ao estado real
-        if (!audio.paused && !btnPlayPause.classList.contains('playing')) {
-            // Deveria estar verde mas não está - corrige
-            btnPlayPause.innerHTML = pauseIcon;
-            btnPlayPause.classList.add('playing');
-            if (audioCard) audioCard.classList.add('playing');
-        }
-        
-        if (audio.paused && btnPlayPause.classList.contains('playing')) {
-            // Deveria estar cinza mas está verde - corrige
-            btnPlayPause.innerHTML = playIcon;
-            btnPlayPause.classList.remove('playing');
-            if (audioCard) audioCard.classList.remove('playing');
-        }
-    }, 100); // Verifica a cada 100ms
     
     // --- INICIALIZAÇÃO ---
     console.log("Inicializando player...");
