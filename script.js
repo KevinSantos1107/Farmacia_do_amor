@@ -681,48 +681,4 @@ document.addEventListener('DOMContentLoaded', (event) => {
     updateDailyMessage();
 
     console.log('Página completamente inicializada!');
-});
-
-// =========================================================
-// CORREÇÃO PARA PLAYER FUNCIONAR NO CELULAR
-// =========================================================
-
-// Adiciona evento para detectar primeira interação do usuário
-let userHasInteracted = false;
-
-function unlockAudio() {
-    if (!userHasInteracted) {
-        userHasInteracted = true;
-        console.log('Áudio desbloqueado para reprodução');
-        
-        // Tenta tocar se estiver pausado
-        if (audio.paused) {
-            audio.play().then(() => {
-                audio.pause(); // Pausa imediatamente
-                console.log('Áudio pré-carregado e pronto');
-            }).catch(e => {
-                console.log('Aguardando interação explícita');
-            });
-        }
-    }
-}
-
-// Detecta qualquer interação do usuário
-document.addEventListener('touchstart', unlockAudio, { once: true });
-document.addEventListener('click', unlockAudio, { once: true });
-
-// Corrige o botão play/pause para mobile
-btnPlayPause.addEventListener('click', function(e) {
-    if (!userHasInteracted) {
-        unlockAudio();
-        // Pequeno delay para garantir desbloqueio
-        setTimeout(() => {
-            if (audio.paused) {
-                audio.play().catch(console.error);
-            }
-        }, 100);
-    }
-});
-
-console.log('Player configurado para mobile');
-
+}); 
