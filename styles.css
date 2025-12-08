@@ -1220,4 +1220,22 @@ a:focus:not(:focus-visible) {
     }
     
     #progressBar::-webkit-slider-thumb {
-        width
+        width: 18px !important;
+        height: 18px !important;
+        opacity: 1 !important; /* Sempre visível no mobile */
+    }
+}
+
+/* =========================================================
+   CORREÇÃO FINAL PARA BOTÕES DO PLAYER (IMPORTANTE!)
+   ========================================================= */
+#btnPlayPause, #btnPrev, #btnNext, #btnShuffle, #btnRepeat {
+    -webkit-tap-highlight-color: rgba(29, 185, 84, 0.1) !important;
+    outline: none !important;
+    user-select: none;
+}
+
+#btnPlayPause:active, #btnPrev:active, #btnNext:active,
+#btnShuffle:active, #btnRepeat:active {
+    background-color: rgba(29, 185, 84, 0.1) !important;
+}
