@@ -1151,3 +1151,15 @@ button:active,
 button:focus {
     outline: none;
 }
+/* OTIMIZAÇÃO EXTRA PARA iOS (opcional) */
+@supports (-webkit-touch-callout: none) {
+    /* Detecta Safari iOS */
+    body {
+        -webkit-touch-callout: none;
+    }
+    
+    button:active {
+        background-color: transparent;
+    }
+}
+
