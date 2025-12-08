@@ -68,7 +68,7 @@ body {
     pointer-events: none;
 }
 
-/* ===== SELEÇÃO DE TEMA (MOBILE) ===== */
+/* ===== SELEÇÃO DE TEMA (MOBILE) ===== 
 .theme-selector {
     position: fixed;
     top: 10px;
@@ -81,8 +81,9 @@ body {
     padding: 8px;
     border-radius: 50px;
     border: 1px solid var(--theme-card-border);
-}
+} */ 
 
+/* ===== SELEÇÃO DE TEMA (MOBILE) ===== */
 .theme-btn {
     width: 40px;
     height: 40px;
@@ -596,58 +597,47 @@ body {
 }
 
 /* ===== MODAL DO ÁLBUM (STORIES STYLE) ===== */
+/* ===== MODAL DO ÁLBUM (VERSÃO SCROLLABLE) ===== */
 .album-modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.95);
+    background: rgba(0, 0, 0, 0.85);
     display: none;
     justify-content: center;
     align-items: center;
     z-index: 2000;
     animation: fadeIn 0.3s ease;
+    overflow-y: auto; /* Permite scroll */
+    padding: 20px;
 }
 
 .modal-content {
     width: 100%;
-    height: 100%;
+    max-width: 100%;
+    max-height: 90vh; /* Menor que a tela */
     background: var(--theme-card-bg);
+    border-radius: 25px 20px 0 0;
     position: relative;
     display: flex;
     flex-direction: column;
-}
-
-.close-modal {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: rgba(0, 0, 0, 0.5);
-    border: none;
-    color: white;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    font-size: 1.2rem;
+    border: 1px solid var(--theme-card-border);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    margin-top: auto;   
+    margin: auto;
 }
 
 .modal-header {
-    padding: 15px;
+    padding: 18px 20px;
     text-align: center;
     border-bottom: 1px solid var(--theme-card-border);
     background: var(--theme-card-bg);
-}
-
-.modal-header h3 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.3rem;
-    color: var(--theme-text);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .modal-body {
@@ -655,25 +645,30 @@ body {
     display: flex;
     flex-direction: column;
     padding: 15px;
+    overflow: hidden;
 }
 
 .album-viewer {
     flex: 1;
-    border-radius: 10px;
+    min-height: 250px; /* Altura mínima */
+    max-height: 75vh; /* Limita altura máxima */
+    border-radius: 15px;
     overflow: hidden;
     margin-bottom: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .album-viewer img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    border-radius: 10px;
 }
 
+/* Remove o overflow: hidden do body quando modal aberto */
 .album-controls {
     display: flex;
     align-items: center;
@@ -1009,7 +1004,87 @@ body {
         height: 400px;
     }
 }
+/* ===== MENU DE TEMA LATERAL ===== */
+.theme-menu {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
 
+.theme-menu-toggle {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    background: var(--theme-card-bg);
+    color: var(--theme-text);
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--theme-card-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.theme-menu-toggle:active {
+    transform: scale(0.95);
+    background: var(--theme-primary);
+}
+
+.theme-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+    background: rgba(26, 26, 46, 0.95);
+    backdrop-filter: blur(15px);
+    padding: 12px;
+    border-radius: 20px;
+    border: 1px solid var(--theme-card-border);
+    transform-origin: top right;
+    animation: scaleIn 0.2s ease;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.theme-selector.hidden {
+    display: none;
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Remova o seletor de tema antigo do CSS (opcional, mas recomendado) */
+/* Procure e comente ou remova estas linhas no CSS: */
+/*
+.theme-selector {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 1000;
+    background: rgba(26, 26, 46, 0.9);
+    backdrop-filter: blur(10px);
+    padding: 8px;
+    border-radius: 50px;
+    border: 1px solid var(--theme-card-border);
+}
+*/
 /* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
     .control-btn:hover,
@@ -1025,4 +1100,5 @@ body {
     .new-message-btn:active {
         transform: scale(0.95);
     }
+
 }
