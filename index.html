@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kevin & Iara - Nosso Amor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Poppins:wght@300;400;500;600&family=Raleway:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
+</head>
+<body>
+    <!-- Seletor de Tema (Mobile - versão simplificada) -->
+    <div class="theme-selector">
+        <button class="theme-btn active" data-theme="meteors" title="Meteoros">
+            <i class="fas fa-meteor"></i>
+        </button>
+        <button class="theme-btn" data-theme="hearts" title="Corações">
+            <i class="fas fa-heart"></i>
+        </button>
+        <button class="theme-btn" data-theme="aurora" title="Aurora">
+            <i class="fas fa-palette"></i>
+        </button>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        <!-- Cabeçalho com Nomes -->
+        <header class="header">
+            <div class="names-container">
+                <h1 class="name kevin">Kevin</h1>
+                <div class="heart-separator">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <h1 class="name iara">Iara</h1>
+            </div>
+            <p class="subtitle">Uma história escrita a cada momento juntos</p>
+        </header>
+
+        <!-- Seção Principal -->
+        <section class="main-section">
+            <div class="main-card">
+                <div class="couple-photo">
+                    <img src="images/capa_principal.jpg" alt="Kevin e Iara" id="mainPhoto">
+                </div>
+                
+                <div class="love-message">
+                    <h2><i class="fas fa-quote-left"></i> Para Minha Amada <i class="fas fa-quote-right"></i></h2>
+                    <div class="message-content">
+                        <p>Iara, desde o momento em que nossos caminhos se cruzaram, minha vida ganhou cores mais vivas, significados mais profundos e um amor que cresce a cada dia.</p>
+                        <p>Você é a melodia que embala meus dias, o sorriso que ilumina meus momentos e a paz que acalma minha alma. Cada instante ao seu lado é um tesouro que guardo no coração.</p>
+                    </div>
+                    <div class="signature">
+                        <p>Com todo meu amor,</p>
+                        <p class="signature-name">Kevin</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contador de Tempo Juntos -->
+        <section class="time-counter-section">
+            <h2><i class="far fa-clock"></i> Nossa Linha do Tempo</h2>
+            <p class="section-subtitle">Desde que nossas histórias se entrelaçaram</p>
+            
+            <div class="time-counter">
+                <div class="time-unit">
+                    <div class="time-box">
+                        <span class="time-value" id="years">0</span>
+                    </div>
+                    <span class="time-label">Anos</span>
+                </div>
+                
+                <div class="time-unit">
+                    <div class="time-box">
+                        <span class="time-value" id="months">0</span>
+                    </div>
+                    <span class="time-label">Meses</span>
+                </div>
+                
+                <div class="time-unit">
+                    <div class="time-box">
+                        <span class="time-value" id="days">0</span>
+                    </div>
+                    <span class="time-label">Dias</span>
+                </div>
+                
+                <div class="time-unit">
+                    <div class="time-box">
+                        <span class="time-value" id="hours">0</span>
+                    </div>
+                    <span class="time-label">Horas</span>
+                </div>
+                
+                <div class="time-unit">
+                    <div class="time-box">
+                        <span class="time-value" id="minutes">0</span>
+                    </div>
+                    <span class="time-label">Minutos</span>
+                </div>
+                
+                <div class="time-unit">
+                    <div class="time-box">
+                        <span class="time-value" id="seconds">0</span>
+                    </div>
+                    <span class="time-label">Segundos</span>
+                </div>
+            </div>
+            
+            <div class="start-date">
+                <p><i class="far fa-calendar-alt"></i> Desde: <span id="startDateDisplay">15/06/2023</span></p>
+            </div>
+        </section>
+
+        <!-- Player de Música ORIGINAL RESTAURADO -->
+        <section class="music-player-section">
+            <h2><i class="fas fa-music"></i> Nossa Trilha Sonora</h2>
+            
+            <div class="music-player">
+                <div class="album-cover">
+                    <img src="images/capa-musica.jpg" alt="Capa do Álbum">
+                    <div class="vinyl-effect"></div>
+                </div>
+                
+                <div class="song-info">
+                    <h3 id="songTitle">Carregando...</h3>
+                    <p id="songArtist">Artista</p>
+                </div>
+                
+                <div class="player-controls">
+                    <!-- Barra de Progresso Minimalista -->
+                    <div class="progress-container">
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="progressBarFill"></div>
+                        </div>
+                        <div class="time-display">
+                            <span id="currentTime">0:00</span>
+                            <span id="totalTime">0:00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Controles do Player (IGUAL AO ANTIGO) -->
+                    <div class="control-buttons">
+                        <button class="control-btn" id="shuffleBtn" title="Embaralhar">
+                            <i class="fas fa-random"></i>
+                        </button>
+                        <button class="control-btn" id="prevBtn" title="Anterior">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
+                        <button class="control-btn play-pause-btn" id="playPauseBtn" title="Reproduzir">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="control-btn" id="nextBtn" title="Próxima">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                        <button class="control-btn" id="repeatBtn" title="Repetir">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="playlist-info">
+                    <span id="currentTrack">1</span> / <span id="totalTracks">2</span>
+                </div>
+            </div>
+            
+            <audio id="audioPlayer" preload="metadata">
+                Seu navegador não suporta o elemento de áudio.
+            </audio>
+        </section>
+
+        <!-- Galeria de Álbuns (Mobile Friendly) -->
+        <section class="albums-section">
+            <h2><i class="fas fa-images"></i> Nossas Memórias</h2>
+            <p class="section-subtitle">Toque para ver nossas fotos</p>
+            
+            <div class="albums-container" id="albumsContainer">
+                <!-- Álbuns serão carregados aqui -->
+            </div>
+        </section>
+
+        <!-- Modal para Fotos (Stories Style) -->
+        <div class="album-modal" id="albumModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button class="close-modal" id="closeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h3 id="modalAlbumTitle">Álbum</h3>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="album-viewer">
+                        <img id="modalPhoto" src="" alt="Foto">
+                    </div>
+                    
+                    <div class="album-controls">
+                        <button class="album-control-btn prev-btn" id="prevPhotoBtn">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        
+                        <div class="photo-info">
+                            <div class="photo-counter">
+                                <span id="currentPhoto">1</span> / <span id="totalPhotos">0</span>
+                            </div>
+                            <p id="photoDescription">Descrição da foto</p>
+                        </div>
+                        
+                        <button class="album-control-btn next-btn" id="nextPhotoBtn">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensagens do Dia -->
+        <section class="messages-section">
+            <h2><i class="fas fa-envelope"></i> Mensagem Especial</h2>
+            
+            <div class="message-card">
+                <div class="message-content" id="dailyMessage">
+                    <p class="message-text">"O amor verdadeiro não é sobre perfeição, mas sobre aceitação."</p>
+                    <p class="message-author">— Para minha Iara</p>
+                </div>
+                <button class="new-message-btn" id="newMessageBtn">
+                    <i class="fas fa-sync-alt"></i> Nova Mensagem
+                </button>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-heart">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <p class="footer-text">Feito com 💖 para você, Iara</p>
+                <p class="footer-date" id="currentDate">Carregando...</p>
+                <div class="footer-names">
+                    <span>Kevin</span> 
+                    <i class="fas fa-heart"></i> 
+                    <span>Iara</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="animations.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
