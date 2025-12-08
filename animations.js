@@ -1,4 +1,4 @@
-// ===== ANIMAÇÕES DE FUNDO PREMIUM - VERSÃO COM CORAÇÕES BONITOS =====
+// ===== ANIMAÇÕES DE FUNDO PREMIUM - VERSÃO COM CORAÇÕES CONTÍNUOS =====
 
 let canvas, ctx;
 let particles = [];
@@ -13,39 +13,39 @@ const settings = {
         stars: 150,
         meteors: 8,
         starColors: ['#ffffff', '#f0f0ff', '#e6f7ff', '#fffacd'],
-        meteorColors: ['#6a11cb', '#2575fc', '#ff6b8b', '#ffd700'],
-        backgroundColor: '#0a0e17',
+        meteorColors: ['#8a2be2', '#00ffff', '#ff00ff', '#ffd700'],
+        backgroundColor: '#0a0a1a',
         meteorSpeed: 2.5,
         twinkleSpeed: 0.003
     },
     hearts: {
         name: 'Chuva de Corações',
-        hearts: 65, // Mais corações
-        sparkles: 80,
+        hearts: 25, // Número de corações na tela
+        sparkles: 40, // Número de brilhos na tela
         heartColors: [
-            '#ff2e63', '#ff4081', '#e91e63', // Rosa/vermelho vibrante
+            '#ff0055', '#ff3366', '#e91e63', // Rosa/vermelho vibrante
             '#ff6b8b', '#ff9a9e', '#ffccd5', // Rosa suave
             '#ff7676', '#ff5252', '#ff4040'  // Vermelho puro
         ],
         sparkleColors: ['#ffffff', '#ffe6e6', '#ffccd5', '#ffebee'],
-        backgroundColor: '#1a0b2e',
-        heartSpeed: 1.8,
-        floatAmplitude: 1.2,
-        rotationSpeed: 0.02,
-        heartStyles: ['solid', 'gradient', 'outline'] // Estilos diferentes de coração
+        backgroundColor: '#1a001a',
+        heartSpeed: 0.8,
+        floatAmplitude: 0.5,
+        rotationSpeed: 0.01,
+        heartStyles: ['solid', 'gradient', 'outline']
     },
     aurora: {
         name: 'Aurora Boreal',
         layers: 4,
         particles: 100,
         auroraColors: [
-            ['#00ff88', '#00cc66', '#009944'],  // Verde vibrante
-            ['#22ffaa', '#00aa55', '#008844'],  // Verde médio
-            ['#44ffcc', '#00cc88', '#009966'],  // Verde água
-            ['#66ffee', '#00eeaa', '#00aa77']   // Verde claro
+            ['#00ff88', '#00cc66', '#009944'],
+            ['#22ffaa', '#00aa55', '#008844'],
+            ['#44ffcc', '#00cc88', '#009966'],
+            ['#66ffee', '#00eeaa', '#00aa77']
         ],
         starColors: ['#ffffff', '#f0f8ff', '#e6f7ff'],
-        backgroundColor: '#0a1929',
+        backgroundColor: '#001122',
         waveSpeed: 0.0008,
         particleSpeed: 0.6
     }
@@ -95,7 +95,41 @@ function createCanvas() {
 
 function setupCanvas() {
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', handleResize);
+}
+
+function handleResize() {
+    if (!canvas) return;
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Não recriar elementos, apenas ajustar posições se necessário
+    if (currentAnimation === 'hearts') {
+        // Para corações que saíram da tela devido ao resize
+        particles.forEach(particle => {
+            if (particle.type === 'heart') {
+                if (particle.x > canvas.width + 100 || particle.x < -100) {
+                    particle.x = Math.random() * canvas.width;
+                }
+                if (particle.y > canvas.height + 100 || particle.y < -100) {
+                    particle.y = Math.random() * canvas.height;
+                }
+            }
+        });
+        
+        // Ajustar sparkles
+        stars.forEach(star => {
+            if (star.type === 'sparkle') {
+                if (star.x > canvas.width + 100 || star.x < -100) {
+                    star.x = Math.random() * canvas.width;
+                }
+                if (star.y > canvas.height + 100 || star.y < -100) {
+                    star.y = Math.random() * canvas.height;
+                }
+            }
+        });
+    }
 }
 
 function resizeCanvas() {
@@ -103,8 +137,6 @@ function resizeCanvas() {
     
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    
-    createElements();
 }
 
 // ===== CRIAÇÃO DE ELEMENTOS =====
@@ -247,90 +279,111 @@ function drawMeteors() {
     });
 }
 
-// ===== TEMA: CHUVA DE CORAÇÕES BONITOS =====
+// ===== TEMA: CHUVA DE CORAÇÕES CONTÍNUA =====
 function createBeautifulHearts() {
     const config = settings.hearts;
     
     for (let i = 0; i < config.hearts; i++) {
-        const style = config.heartStyles[Math.floor(Math.random() * config.heartStyles.length)];
-        const isOutline = style === 'outline';
-        
-        particles.push({
-            type: 'heart',
-            x: Math.random() * canvas.width,
-            y: Math.random() * -200 - 100,
-            // Ajustar tamanhos para o novo formato
-            size: Math.random() * 24 + 20, // Mais consistente
-            speedY: Math.random() * config.heartSpeed + 0.6,
-            speedX: (Math.random() - 0.5) * 1.2,
-            rotation: Math.random() * Math.PI * 2,
-            rotationSpeed: (Math.random() - 0.5) * config.rotationSpeed * 0.8, // Mais lento
-            color: config.heartColors[Math.floor(Math.random() * config.heartColors.length)],
-            opacity: isOutline ? Math.random() * 0.5 + 0.3 : Math.random() * 0.6 + 0.4,
-            pulseSpeed: Math.random() * 0.01 + 0.003, // Mais lento
-            pulseOffset: Math.random() * Math.PI * 2,
-            swing: Math.random() * Math.PI * 2,
-            swingSpeed: Math.random() * 0.01 + 0.003,
-            style: style,
-            wobble: Math.random() * 0.03 + 0.01, // Menos wobble
-            wobbleOffset: Math.random() * Math.PI * 2,
-            scale: Math.random() * 0.15 + 0.85, // Menos variação de escala
-            glow: Math.random() * 0.2 + 0.1
-        });
+        createSingleHeart();
     }
+}
+
+function createSingleHeart() {
+    const config = settings.hearts;
+    const style = config.heartStyles[Math.floor(Math.random() * config.heartStyles.length)];
+    const isOutline = style === 'outline';
+    
+    particles.push({
+        type: 'heart',
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height, // Começar em posições aleatórias na tela
+        size: Math.random() * 20 + 15, // Tamanho reduzido para melhor performance
+        speedY: Math.random() * config.heartSpeed + 0.6,
+        speedX: (Math.random() - 0.5) * 0.8, // Velocidade horizontal reduzida
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * config.rotationSpeed,
+        color: config.heartColors[Math.floor(Math.random() * config.heartColors.length)],
+        opacity: isOutline ? Math.random() * 0.4 + 0.3 : Math.random() * 0.5 + 0.4,
+        pulseSpeed: Math.random() * 0.008 + 0.003,
+        pulseOffset: Math.random() * Math.PI * 2,
+        swing: Math.random() * Math.PI * 2,
+        swingSpeed: Math.random() * 0.008 + 0.002,
+        style: style,
+        wobble: Math.random() * 0.02 + 0.005,
+        wobbleOffset: Math.random() * Math.PI * 2,
+        scale: Math.random() * 0.1 + 0.9,
+        glow: Math.random() * 0.15 + 0.05,
+        age: 0 // Para controlar tempo de vida
+    });
 }
 
 function createSparkles() {
     const config = settings.hearts;
     
     for (let i = 0; i < config.sparkles; i++) {
-        stars.push({
-            type: 'sparkle',
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: Math.random() * 2.5 + 1,
-            speedY: Math.random() * 0.7 + 0.3,
-            speedX: (Math.random() - 0.5) * 0.5,
-            color: config.sparkleColors[Math.floor(Math.random() * config.sparkleColors.length)],
-            brightness: Math.random() * 0.9 + 0.3,
-            twinkleSpeed: Math.random() * 0.008 + 0.003,
-            twinkleOffset: Math.random() * Math.PI * 2,
-            trail: [],
-            maxTrail: 5
-        });
+        createSingleSparkle();
     }
+}
+
+function createSingleSparkle() {
+    const config = settings.hearts;
+    
+    stars.push({
+        type: 'sparkle',
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2 + 0.8,
+        speedY: Math.random() * 0.5 + 0.2,
+        speedX: (Math.random() - 0.5) * 0.3,
+        color: config.sparkleColors[Math.floor(Math.random() * config.sparkleColors.length)],
+        brightness: Math.random() * 0.8 + 0.3,
+        twinkleSpeed: Math.random() * 0.006 + 0.002,
+        twinkleOffset: Math.random() * Math.PI * 2,
+        trail: [],
+        maxTrail: 3,
+        age: 0
+    });
 }
 
 function drawHearts() {
     const time = Date.now();
     const config = settings.hearts;
     
-    particles.forEach(particle => {
+    particles.forEach((particle, index) => {
         if (particle.type !== 'heart') return;
         
-        // Movimento natural e suave
+        particle.age += 0.01;
+        
+        // Movimento com leve aceleração
+        particle.speedY += 0.002; // Gravidade muito suave
         particle.y += particle.speedY;
+        
+        // Oscilação horizontal natural
         const swing = Math.sin(time * particle.swingSpeed + particle.swing) * config.floatAmplitude;
-        particle.x += swing * 0.3 + particle.speedX;
+        particle.x += swing * 0.2 + particle.speedX;
+        
+        // Resistência do ar no movimento horizontal
+        particle.speedX *= 0.998;
         
         // Efeito de pulsação
-        const pulse = Math.sin(time * particle.pulseSpeed + particle.pulseOffset) * 0.1 + 0.9;
+        const pulse = Math.sin(time * particle.pulseSpeed + particle.pulseOffset) * 0.08 + 0.92;
         const currentSize = particle.size * pulse * particle.scale;
         const currentOpacity = particle.opacity * pulse;
         
-        // Efeito de balanço
+        // Efeito de balanço natural
         particle.rotation += particle.rotationSpeed;
-        particle.rotation += Math.sin(time * particle.wobble + particle.wobbleOffset) * 0.02;
+        particle.rotation += Math.sin(time * particle.wobble + particle.wobbleOffset) * 0.015;
         
-        // Resetar se sair da tela
-        if (particle.y > canvas.height + 150) {
-            particle.y = -150;
-            particle.x = Math.random() * canvas.width;
-        }
-        if (particle.x < -150) {
-            particle.x = canvas.width + 150;
-        } else if (particle.x > canvas.width + 150) {
-            particle.x = -150;
+        // Verificar se saiu da tela
+        const isOffScreen = particle.y > canvas.height + 100 || 
+                           particle.y < -100 || 
+                           particle.x < -100 || 
+                           particle.x > canvas.width + 100;
+        
+        // Reciclar corações que saíram da tela ou são muito antigos
+        if (isOffScreen || particle.age > 50) {
+            recycleHeart(particle);
+            return;
         }
         
         // Desenhar coração
@@ -339,16 +392,19 @@ function drawHearts() {
         ctx.rotate(particle.rotation);
         ctx.globalAlpha = currentOpacity;
         
+        // Efeito de profundidade baseado na posição Y
+        const depthFactor = 1 - Math.min(particle.y / canvas.height, 0.5) * 0.4;
+        
         // Escolher estilo de desenho
         switch(particle.style) {
             case 'solid':
-                drawSolidHeart(currentSize, particle.color, particle.glow);
+                drawSolidHeart(currentSize * depthFactor, particle.color, particle.glow * depthFactor);
                 break;
             case 'gradient':
-                drawGradientHeart(currentSize, particle.color);
+                drawGradientHeart(currentSize * depthFactor, particle.color);
                 break;
             case 'outline':
-                drawOutlineHeart(currentSize, particle.color);
+                drawOutlineHeart(currentSize * depthFactor, particle.color);
                 break;
         }
         
@@ -356,172 +412,190 @@ function drawHearts() {
     });
 }
 
-// CORAÇÃO SÓLIDO - Versão melhorada
+function recycleHeart(heart) {
+    // Resetar para posição acima da tela
+    heart.y = -30;
+    heart.x = Math.random() * canvas.width;
+    
+    // Resetar propriedades de movimento
+    heart.speedY = Math.random() * settings.hearts.heartSpeed + 0.6;
+    heart.speedX = (Math.random() - 0.5) * 0.8;
+    heart.rotation = Math.random() * Math.PI * 2;
+    heart.age = 0;
+    
+    // 15% de chance de mudar de estilo
+    if (Math.random() < 0.15) {
+        heart.style = settings.hearts.heartStyles[
+            Math.floor(Math.random() * settings.hearts.heartStyles.length)
+        ];
+        heart.color = settings.hearts.heartColors[
+            Math.floor(Math.random() * settings.hearts.heartColors.length)
+        ];
+    }
+}
+
+function drawSparkles() {
+    const time = Date.now();
+    const config = settings.hearts;
+    
+    stars.forEach(star => {
+        if (star.type !== 'sparkle') return;
+        
+        star.age += 0.01;
+        star.y += star.speedY;
+        star.x += star.speedX;
+        
+        const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
+        const brightness = star.brightness * twinkle;
+        
+        star.trail.push({ x: star.x, y: star.y });
+        if (star.trail.length > star.maxTrail) {
+            star.trail.shift();
+        }
+        
+        // Verificar se saiu da tela ou é muito antigo
+        const isOffScreen = star.y > canvas.height + 50 || 
+                           star.y < -50 || 
+                           star.x < -50 || 
+                           star.x > canvas.width + 50;
+        
+        if (isOffScreen || star.age > 40) {
+            recycleSparkle(star);
+            return;
+        }
+        
+        // Desenhar trilha suave
+        if (star.trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(star.trail[0].x, star.trail[0].y);
+            
+            for (let i = 1; i < star.trail.length; i++) {
+                ctx.lineTo(star.trail[i].x, star.trail[i].y);
+            }
+            
+            ctx.strokeStyle = `${star.color}15`;
+            ctx.lineWidth = 1;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+        
+        // Desenhar sparkle
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        
+        const gradient = ctx.createRadialGradient(
+            star.x, star.y, 0,
+            star.x, star.y, star.size * 2.5
+        );
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${brightness * 0.9})`);
+        gradient.addColorStop(0.6, `${star.color}${Math.floor(brightness * 100).toString(16).padStart(2, '0')}`);
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        // Raios para sparkles maiores
+        if (star.size > 1.3) {
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI) / 3;
+                const length = star.size * 2.5;
+                ctx.moveTo(star.x, star.y);
+                ctx.lineTo(
+                    star.x + Math.cos(angle) * length,
+                    star.y + Math.sin(angle) * length
+                );
+            }
+            ctx.strokeStyle = `rgba(255, 255, 255, ${brightness * 0.2})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+    });
+}
+
+function recycleSparkle(sparkle) {
+    // Resetar para posição acima ou na tela
+    sparkle.y = Math.random() * canvas.height;
+    sparkle.x = Math.random() * canvas.width;
+    sparkle.trail = [];
+    sparkle.age = 0;
+    
+    // Resetar propriedades
+    sparkle.speedY = Math.random() * 0.5 + 0.2;
+    sparkle.speedX = (Math.random() - 0.5) * 0.3;
+    sparkle.size = Math.random() * 2 + 0.8;
+    sparkle.brightness = Math.random() * 0.8 + 0.3;
+}
+
+// Funções auxiliares para desenhar corações (MANTIDAS)
 function drawSolidHeart(size, color, glow) {
-    // Brilho externo mais suave
-    ctx.beginPath();
-    drawHeartShape(size * 1.15);
-    
-    const outerGlow = ctx.createRadialGradient(0, 0, size * 0.7, 0, 0, size * 1.4);
-    outerGlow.addColorStop(0, color + '30');
-    outerGlow.addColorStop(1, color + '00');
-    
-    ctx.fillStyle = outerGlow;
-    ctx.fill();
-    
-    // Coração principal com gradiente mais bonito
     ctx.beginPath();
     drawHeartShape(size);
     
-    // Gradiente vertical com realce no topo
     const gradient = ctx.createLinearGradient(0, -size * 0.8, 0, size * 0.8);
-    gradient.addColorStop(0, lightenColor(color, 50));
+    gradient.addColorStop(0, lightenColor(color, 40));
     gradient.addColorStop(0.3, color);
     gradient.addColorStop(0.7, color);
-    gradient.addColorStop(1, darkenColor(color, 25));
+    gradient.addColorStop(1, darkenColor(color, 20));
     
     ctx.fillStyle = gradient;
     ctx.fill();
     
-    // Realce central
-    ctx.beginPath();
-    drawHeartShape(size * 0.65);
-    
-    const highlightGradient = ctx.createRadialGradient(0, -size * 0.2, 0, 0, -size * 0.2, size * 0.65);
-    highlightGradient.addColorStop(0, 'rgba(255, 255, 255, ' + (glow * 0.8) + ')');
-    highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    
-    ctx.fillStyle = highlightGradient;
-    ctx.fill();
-    
-    // Contorno suave e brilhante
     ctx.beginPath();
     drawHeartShape(size);
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1;
     ctx.stroke();
 }
 
-// CORAÇÃO GRADIENTE - Versão melhorada
 function drawGradientHeart(size, color) {
-    // Sombra externa suave
-    ctx.beginPath();
-    drawHeartShape(size * 1.1);
-    
-    const shadowGradient = ctx.createRadialGradient(0, 0, size * 0.8, 0, 0, size * 1.3);
-    shadowGradient.addColorStop(0, color + '20');
-    shadowGradient.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = shadowGradient;
-    ctx.fill();
-    
-    // Coração principal com gradiente radial
     ctx.beginPath();
     drawHeartShape(size);
     
     const gradient = ctx.createRadialGradient(
         0, -size * 0.3, 0,
-        0, -size * 0.3, size * 1.2
+        0, -size * 0.3, size
     );
-    gradient.addColorStop(0, lightenColor(color, 70));
-    gradient.addColorStop(0.2, lightenColor(color, 40));
-    gradient.addColorStop(0.5, color);
-    gradient.addColorStop(0.8, darkenColor(color, 15));
-    gradient.addColorStop(1, darkenColor(color, 30));
+    gradient.addColorStop(0, lightenColor(color, 50));
+    gradient.addColorStop(0.3, color);
+    gradient.addColorStop(0.7, darkenColor(color, 10));
+    gradient.addColorStop(1, darkenColor(color, 25));
     
     ctx.fillStyle = gradient;
     ctx.fill();
     
-    // Destaque no topo
-    ctx.beginPath();
-    drawHeartShape(size * 0.4);
-    
-    const topHighlight = ctx.createRadialGradient(0, -size * 0.5, 0, 0, -size * 0.5, size * 0.4);
-    topHighlight.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-    topHighlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    
-    ctx.fillStyle = topHighlight;
-    ctx.fill();
-    
-    // Contorno brilhante
     ctx.beginPath();
     drawHeartShape(size);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
     ctx.stroke();
 }
 
-// CORAÇÃO CONTORNO - Versão melhorada
 function drawOutlineHeart(size, color) {
-    // Sombra do contorno
-    ctx.beginPath();
-    drawHeartShape(size * 1.08);
-    ctx.strokeStyle = color + '40';
-    ctx.lineWidth = 3.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    
-    // Contorno principal brilhante
     ctx.beginPath();
     drawHeartShape(size);
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
     
-    // Linhas internas decorativas
     ctx.beginPath();
-    drawHeartShape(size * 0.75);
-    ctx.setLineDash([2, 4]);
-    ctx.strokeStyle = color + 'a0';
+    drawHeartShape(size * 0.7);
+    ctx.setLineDash([2, 3]);
+    ctx.strokeStyle = color + '80';
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.setLineDash([]);
-    
-    // Pontos brilhantes nas curvas principais
-    const points = [
-        {x: 0, y: -size * 0.2}, // Topo
-        {x: -size * 0.4, y: size * 0.15}, // Lado esquerdo
-        {x: size * 0.4, y: size * 0.15}, // Lado direito
-        {x: 0, y: size * 0.45} // Parte inferior
-    ];
-    
-    points.forEach(point => {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 2.5, 0, Math.PI * 2);
-        
-        const pointGradient = ctx.createRadialGradient(
-            point.x, point.y, 0,
-            point.x, point.y, 3
-        );
-        pointGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-        pointGradient.addColorStop(0.7, color + 'e0');
-        pointGradient.addColorStop(1, color + '00');
-        
-        ctx.fillStyle = pointGradient;
-        ctx.fill();
-    });
 }
 
-// Função auxiliar para desenhar forma de coração (VERSÃO MELHORADA)
-// Função auxiliar para desenhar forma de coração (SIMPLES E FUNCIONAL)
 function drawHeartShape(size) {
-    // Coordenadas fixas para coração perfeito
     ctx.moveTo(0, -size/2);
-    
-    // Lado esquerdo
     ctx.bezierCurveTo(-size/2, -size, -size, 0, 0, size/2);
-    
-    // Lado direito
     ctx.bezierCurveTo(size, 0, size/2, -size, 0, -size/2);
-    
     ctx.closePath();
 }
 
-// Funções auxiliares para cores
 function lightenColor(color, percent) {
     const num = parseInt(color.replace("#", ""), 16);
     const amt = Math.round(2.55 * percent);
@@ -550,80 +624,6 @@ function darkenColor(color, percent) {
         (G > 0 ? G : 0) * 0x100 +
         (B > 0 ? B : 0)
     ).toString(16).slice(1);
-}
-
-function drawSparkles() {
-    const time = Date.now();
-    const config = settings.hearts;
-    
-    stars.forEach(star => {
-        if (star.type !== 'sparkle') return;
-        
-        star.y += star.speedY;
-        star.x += star.speedX;
-        
-        const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.5 + 0.5;
-        const brightness = star.brightness * twinkle;
-        
-        star.trail.push({ x: star.x, y: star.y });
-        if (star.trail.length > star.maxTrail) {
-            star.trail.shift();
-        }
-        
-        if (star.y > canvas.height + 10) {
-            star.y = -10;
-            star.x = Math.random() * canvas.width;
-            star.trail = [];
-        }
-        if (star.x < -10) star.x = canvas.width + 10;
-        if (star.x > canvas.width + 10) star.x = -10;
-        
-        // Desenhar trilha
-        if (star.trail.length > 1) {
-            ctx.beginPath();
-            ctx.moveTo(star.trail[0].x, star.trail[0].y);
-            
-            for (let i = 1; i < star.trail.length; i++) {
-                ctx.lineTo(star.trail[i].x, star.trail[i].y);
-            }
-            
-            ctx.strokeStyle = `${star.color}20`;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        }
-        
-        // Desenhar brilho
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        
-        const gradient = ctx.createRadialGradient(
-            star.x, star.y, 0,
-            star.x, star.y, star.size * 3
-        );
-        gradient.addColorStop(0, `rgba(255, 255, 255, ${brightness})`);
-        gradient.addColorStop(0.7, `${star.color}${Math.floor(brightness * 200).toString(16).padStart(2, '0')}`);
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        
-        // Raios para brilhos maiores
-        if (star.size > 1.5) {
-            ctx.beginPath();
-            for (let i = 0; i < 8; i++) {
-                const angle = (i * Math.PI) / 4;
-                const length = star.size * 4;
-                ctx.moveTo(star.x, star.y);
-                ctx.lineTo(
-                    star.x + Math.cos(angle) * length,
-                    star.y + Math.sin(angle) * length
-                );
-            }
-            ctx.strokeStyle = `rgba(255, 255, 255, ${brightness * 0.3})`;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        }
-    });
 }
 
 // ===== TEMA: AURORA BOREAL (MANTIDO) =====
@@ -845,6 +845,15 @@ function startAnimation() {
     if (animationId) {
         cancelAnimationFrame(animationId);
     }
+    
+    // Limpar arrays
+    particles = [];
+    stars = [];
+    
+    // Criar elementos baseado no tema atual
+    createElements();
+    
+    // Iniciar animação
     animate();
 }
 
@@ -863,10 +872,15 @@ function changeAnimation(animationName) {
         animationId = null;
     }
     
-    createElements();
-    animate();
+    // Limpar arrays
+    particles = [];
+    stars = [];
     
-    document.body.style.backgroundColor = settings[animationName].backgroundColor;
+    // Recriar elementos
+    createElements();
+    
+    // Reiniciar animação
+    animate();
     
     console.log(`✅ ${settings[animationName].name} ativado`);
 }
@@ -879,6 +893,5 @@ window.Animations = {
 
 window.initAnimations = initAnimations;
 
-console.log('💖 animations.js com CORAÇÕES BONITOS carregado!');
-
-console.log('❤️ Corações agora têm: 3 estilos diferentes, gradientes, brilhos e movimento natural');
+console.log('💖 animations.js com CORAÇÕES CONTÍNUOS carregado!');
+console.log('❤️ Corações agora fluem continuamente com reciclagem automática');
