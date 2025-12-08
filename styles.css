@@ -1113,138 +1113,24 @@ input:focus {
     pointer-events: none;
 }
 
-/* =========================================================
-   SOLUÇÃO DEFINITIVA PARA ANDROID - REMOVER HIGHLIGHT
-   ========================================================= */
-
-/* NÃO use -webkit-tap-highlight-color: transparent! Pode quebrar o áudio no Android */
-/* Em vez disso, use este método alternativo */
-
-/* Método 1: Substituir o highlight por um efeito personalizado */
-button, 
-input[type="button"],
-input[type="submit"],
-.btn-view-all,
-.btn-new-message,
-.modal-btn,
-.gallery-item {
-    position: relative;
-    overflow: hidden;
+/* Adicione ao final do seu CSS */
+button:focus,
+input:focus {
+    outline: none !important;
+    box-shadow: none !important;
 }
 
-/* Adiciona um overlay para simular clique */
-button::after,
-input[type="button"]::after,
-input[type="submit"]::after,
-.btn-view-all::after,
-.btn-new-message::after,
-.modal-btn::after,
-.gallery-item::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: transparent;
-    border-radius: inherit;
-    pointer-events: none;
+.control-btn:focus {
+    outline: none !important;
+    box-shadow: none !important;
 }
 
-button:active::after,
-input[type="button"]:active::after,
-input[type="submit"]:active::after,
-.btn-view-all:active::after,
-.btn-new-message:active::after,
-.modal-btn:active::after,
-.gallery-item:active::after {
-    background: rgba(29, 185, 84, 0.2);
-    animation: fadeOut 0.3s forwards;
+.play-pause-lg:focus {
+    outline: none !important;
+    box-shadow: none !important;
 }
 
-@keyframes fadeOut {
-    to {
-        background: transparent;
-    }
-}
-
-/* Método 2: Para os botões do player, use transform em vez de background */
-#btnPlayPause:active,
-#btnPrev:active,
-#btnNext:active,
-#btnShuffle:active,
-#btnRepeat:active,
-.play-pause-lg:active,
-.control-btn:active {
-    transform: scale(0.92);
-    transition: transform 0.1s;
-}
-
-/* Método 3: Para elementos que não precisam de feedback visual */
-.gallery-image-container,
-.music-cover,
-.foto-principal {
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
-}
-
-/* Para inputs e textareas (não afeta funcionalidade) */
-input:not([type="button"]):not([type="submit"]),
-textarea,
-select {
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
-}
-
-/* =========================================================
-   CORREÇÃO ESPECÍFICA PARA O PLAYER NO ANDROID
-   ========================================================= */
-
-/* Mantenha o outline para acessibilidade mas esconda o highlight */
-.control-btn:focus,
-.play-pause-lg:focus,
-#progressBar:focus {
-    outline: 2px solid rgba(29, 185, 84, 0.5);
-    outline-offset: 2px;
-}
-
-/* Para Android Chrome - uso limitado de -webkit-tap-highlight-color */
-@media (hover: none) and (pointer: coarse) {
-    /* Apenas para elementos não críticos */
-    .btn-view-all,
-    .btn-new-message,
-    .modal-btn,
-    .gallery-item,
-    .close-modal {
-        -webkit-tap-highlight-color: rgba(0,0,0,0.05);
-    }
-    
-    /* NÃO aplique aos botões do player no Android */
-    #btnPlayPause,
-    #btnPrev,
-    #btnNext,
-    #btnShuffle,
-    #btnRepeat,
-    .play-pause-lg,
-    .control-btn {
-        /* Deixa o comportamento padrão para o player funcionar */
-    }
-    
-    /* Aumenta área de toque para mobile */
-    .control-btn,
-    .play-pause-lg {
-        min-width: 48px;
-        min-height: 48px;
-    }
-    
-    #progressBar {
-        min-height: 40px; /* Área maior para toque */
-    }
-}
-
-/* Para Safari iOS (se necessário) */
-@supports (-webkit-touch-callout: none) {
-    .gallery-item,
-    .btn-view-all,
-    .btn-new-message {
-        -webkit-tap-highlight-color: rgba(0,0,0,0.1);
-    }
+.menu-item:focus {
+    outline: none !important;
+    box-shadow: none !important;
 }
