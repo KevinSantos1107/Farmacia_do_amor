@@ -187,6 +187,385 @@ body {
     box-shadow: 0 0 15px var(--theme-primary), 0 0 25px var(--theme-primary);
 }
 
+/* ===== PAINEL ADMIN ===== */
+.admin-float-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: var(--theme-primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 9998;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), 0 0 20px var(--theme-primary);
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.admin-float-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 30px var(--theme-primary);
+}
+
+.admin-float-btn:active {
+    transform: scale(0.95);
+}
+
+.admin-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.admin-modal-content {
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    background: var(--theme-card-bg);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--theme-card-border);
+    box-shadow: var(--theme-glow-strong), 0 20px 60px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-modal-header {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--theme-card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.admin-modal-header h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.3rem;
+    color: var(--theme-text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-close-btn {
+    background: none;
+    border: none;
+    color: var(--theme-text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.admin-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--theme-accent);
+}
+
+.admin-tabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--theme-card-border);
+    padding: 0 20px;
+    overflow-x: auto;
+}
+
+.admin-tab {
+    padding: 15px 20px;
+    background: none;
+    border: none;
+    color: var(--theme-text-secondary);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.admin-tab:hover {
+    color: var(--theme-text);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.admin-tab.active {
+    color: var(--theme-accent);
+    border-bottom-color: var(--theme-accent);
+    font-weight: 500;
+}
+
+.admin-tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.admin-tab-pane {
+    display: none;
+}
+
+.admin-tab-pane.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+.admin-form {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    border: 1px solid var(--theme-card-border);
+}
+
+.admin-form h4 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.1rem;
+    color: var(--theme-text);
+    margin-bottom: 15px;
+}
+
+.admin-input, .admin-textarea {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 10px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+.admin-input:focus, .admin-textarea:focus {
+    outline: none;
+    border-color: var(--theme-primary);
+    box-shadow: 0 0 10px var(--theme-primary);
+}
+
+.admin-textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.admin-file-upload {
+    margin-bottom: 15px;
+}
+
+.admin-file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--theme-primary);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.admin-file-label:hover {
+    background: var(--theme-secondary);
+    transform: translateY(-2px);
+}
+
+.admin-file-input {
+    display: none;
+}
+
+.admin-file-upload span {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--theme-text-secondary);
+}
+
+.admin-submit-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.admin-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px var(--theme-primary);
+}
+
+.admin-submit-btn:active {
+    transform: translateY(0);
+}
+
+.admin-list {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid var(--theme-card-border);
+}
+
+.admin-list h4 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.1rem;
+    color: var(--theme-text);
+    margin-bottom: 15px;
+}
+
+.admin-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.admin-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.admin-item-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    color: var(--theme-text);
+}
+
+.admin-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.admin-item-btn {
+    background: none;
+    border: none;
+    color: var(--theme-text-secondary);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 5px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.admin-item-btn:hover {
+    color: var(--theme-accent);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.admin-item-btn.delete:hover {
+    color: #ff4444;
+}
+
+.photo-preview-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.photo-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--theme-card-border);
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-preview-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-footer {
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid var(--theme-card-border);
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.admin-footer-btn {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--theme-card-border);
+    color: var(--theme-text);
+    border-radius: 10px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.admin-footer-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.admin-footer-btn.danger:hover {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
+    border-color: #ff4444;
+}
+
 /* ===== CONTAINER PRINCIPAL ===== */
 .container {
     width: 100%;
@@ -346,6 +725,7 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
 .love-message {
@@ -558,6 +938,7 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
 .vinyl-effect {
@@ -741,6 +1122,7 @@ body {
     width: 100%;
     height: 150px;
     object-fit: cover;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
 .album-info {
@@ -908,6 +1290,7 @@ body {
     max-height: 100%;
     object-fit: contain;
     border-radius: 10px;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
 .album-controls {
@@ -1175,18 +1558,6 @@ body {
     }
 }
 
-@keyframes scaleIn {
-    from {
-        opacity: 0;
-        transform: scale(0.8);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* ===== ANIMAÇÕES NEON ===== */
 @keyframes neonPulse {
     0%, 100% {
         text-shadow: 
@@ -1316,6 +1687,20 @@ body {
     .album-viewer {
         height: 400px;
     }
+    
+    /* Painel Admin Responsivo */
+    .admin-modal-content {
+        max-width: 700px;
+    }
+    
+    .admin-tabs {
+        padding: 0 30px;
+    }
+    
+    .admin-tab {
+        padding: 18px 25px;
+        font-size: 1rem;
+    }
 }
 
 /* ===== RESPONSIVIDADE MOBILE ===== */
@@ -1345,6 +1730,37 @@ body {
     .modal-header h3 {
         font-size: 1.1rem;
         padding: 0 40px;
+    }
+    
+    /* Painel Admin Mobile */
+    .admin-modal-content {
+        max-height: 95vh;
+        margin: 10px;
+    }
+    
+    .admin-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .admin-tab {
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+        padding: 12px 15px;
+        font-size: 0.8rem;
+    }
+    
+    .admin-form {
+        padding: 15px;
+    }
+    
+    .photo-preview-container {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    }
+    
+    .photo-preview {
+        width: 70px;
+        height: 70px;
     }
 }
 
@@ -1379,4 +1795,9 @@ body {
     .new-message-btn:active {
         transform: scale(0.95);
     }
+}
+
+/* Transição automática para imagens */
+img {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
