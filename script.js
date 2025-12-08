@@ -114,17 +114,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
         </svg>`;
 
     const repeatIcon = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
-    </svg>`;
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+        </svg>`;
 
-const repeatOneIcon = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <!-- Setas de repeat -->
-        <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" opacity="0.8"/>
-        <!-- Número 1 destacado -->
-        <path d="M13 15h-2v-4h2v4zm0-6h-2v2h2V9z" fill="white" opacity="0.9"/>
-    </svg>`;
+    const repeatOneIcon = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1v4c0 1.1.9 2 2 2h1v-2h-1z"/>
+        </svg>`;
 
     // --- INICIALIZAR ÍCONES ---
     btnPrev.innerHTML = prevIcon;
@@ -269,7 +266,7 @@ const repeatOneIcon = `
         const currentList = getCurrentPlaylist();
         const wasPlaying = !audio.paused || fromEnded;
         
-        if (repeatState === 1) {
+        if (repeatState === 2) {
             // Repetir música atual
             audio.currentTime = 0;
             if (wasPlaying) {
@@ -411,25 +408,30 @@ const repeatOneIcon = `
     }
 
     function toggleRepeat() {
-    // Mude para apenas 2 estados: 0 e 1
-    repeatState = repeatState === 0 ? 1 : 0;
-    
-    if (repeatState === 0) {
-        // DESLIGADO
-        btnRepeat.classList.remove('active');
-        btnRepeat.innerHTML = repeatIcon;
-        audio.loop = false;
-        console.log("Repeat desligado");
-    } else {
-        // REPETIR MÚSICA ATUAL (ESTÁGIO 1)
-        btnRepeat.classList.add('active');
-        btnRepeat.innerHTML = repeatOneIcon; // Ícone com "1"
-        audio.loop = true; // Loop da música atual
-        console.log("Repeat música ativado");
+        repeatState = (repeatState + 1) % 3;
+        
+        switch(repeatState) {
+            case 0: // Desligado
+                btnRepeat.classList.remove('active');
+                btnRepeat.innerHTML = repeatIcon;
+                audio.loop = false;
+                console.log("Repeat desligado");
+                break;
+            case 1: // Repetir playlist
+                btnRepeat.classList.add('active');
+                btnRepeat.innerHTML = repeatIcon;
+                audio.loop = false;
+                console.log("Repeat playlist ativado");
+                break;
+            case 2: // Repetir música
+                btnRepeat.classList.add('active');
+                btnRepeat.innerHTML = repeatOneIcon;
+                audio.loop = true;
+                console.log("Repeat música ativado");
+                break;
+        }
+        console.log("Repeat state alterado para:", repeatState);
     }
-    
-    console.log("Repeat state:", repeatState);
-}
 
     // --- EVENT LISTENERS ---
     btnPlayPause.addEventListener('click', playPause);
@@ -679,3 +681,4 @@ const repeatOneIcon = `
     updateDailyMessage();
 
     console.log('Página completamente inicializada!');
+});
