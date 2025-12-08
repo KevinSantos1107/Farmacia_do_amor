@@ -31,6 +31,143 @@
         </div>
     </div>
 
+    <!-- Botão Flutuante do Admin -->
+    <div class="admin-float-btn" id="adminFloatBtn" title="Painel Admin">
+        <i class="fas fa-plus"></i>
+    </div>
+
+    <!-- Painel Admin Modal -->
+    <div class="admin-modal" id="adminModal">
+        <div class="admin-modal-content">
+            <div class="admin-modal-header">
+                <h3><i class="fas fa-cog"></i> Painel Administrativo</h3>
+                <button class="admin-close-btn" id="adminCloseBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="music">🎵 Músicas</button>
+                <button class="admin-tab" data-tab="albums">📸 Álbuns</button>
+                <button class="admin-tab" data-tab="photos">🖼️ Fotos</button>
+                <button class="admin-tab" data-tab="messages">💌 Mensagens</button>
+            </div>
+            
+            <div class="admin-tab-content">
+                <!-- Aba de Músicas -->
+                <div class="admin-tab-pane active" id="tab-music">
+                    <h4>Adicionar Nova Música</h4>
+                    <div class="admin-form">
+                        <input type="text" id="musicTitle" placeholder="Título da música" class="admin-input">
+                        <input type="text" id="musicArtist" placeholder="Artista" class="admin-input">
+                        <input type="text" id="musicAlbum" placeholder="Álbum" class="admin-input" value="Nossa Trilha Sonora">
+                        
+                        <div class="admin-file-upload">
+                            <label for="musicFile" class="admin-file-label">
+                                <i class="fas fa-upload"></i> Escolher arquivo MP3
+                            </label>
+                            <input type="file" id="musicFile" accept=".mp3,.wav,.ogg" class="admin-file-input">
+                            <span id="musicFileName">Nenhum arquivo selecionado</span>
+                        </div>
+                        
+                        <button id="addMusicBtn" class="admin-submit-btn">
+                            <i class="fas fa-plus"></i> Adicionar Música
+                        </button>
+                    </div>
+                    
+                    <div class="admin-list">
+                        <h4>Playlist Atual</h4>
+                        <div id="musicList"></div>
+                    </div>
+                </div>
+                
+                <!-- Aba de Álbuns -->
+                <div class="admin-tab-pane" id="tab-albums">
+                    <h4>Criar Novo Álbum</h4>
+                    <div class="admin-form">
+                        <input type="text" id="albumTitle" placeholder="Título do álbum" class="admin-input">
+                        <input type="text" id="albumDate" placeholder="Data (ex: Janeiro 2024)" class="admin-input">
+                        <textarea id="albumDescription" placeholder="Descrição do álbum" class="admin-textarea"></textarea>
+                        
+                        <div class="admin-file-upload">
+                            <label for="albumCover" class="admin-file-label">
+                                <i class="fas fa-image"></i> Escolher capa
+                            </label>
+                            <input type="file" id="albumCover" accept="image/*" class="admin-file-input">
+                            <span id="albumCoverName">Nenhuma imagem selecionada</span>
+                        </div>
+                        
+                        <button id="createAlbumBtn" class="admin-submit-btn">
+                            <i class="fas fa-folder-plus"></i> Criar Álbum
+                        </button>
+                    </div>
+                    
+                    <div class="admin-list">
+                        <h4>Álbuns Existentes</h4>
+                        <div id="albumsList"></div>
+                    </div>
+                </div>
+                
+                <!-- Aba de Fotos -->
+                <div class="admin-tab-pane" id="tab-photos">
+                    <h4>Adicionar Fotos ao Álbum</h4>
+                    <div class="admin-form">
+                        <select id="photoAlbumSelect" class="admin-input">
+                            <option value="">Selecione um álbum</option>
+                        </select>
+                        
+                        <div class="admin-file-upload">
+                            <label for="photoFiles" class="admin-file-label">
+                                <i class="fas fa-images"></i> Escolher fotos
+                            </label>
+                            <input type="file" id="photoFiles" accept="image/*" multiple class="admin-file-input">
+                            <span id="photoFilesCount">Nenhuma foto selecionada</span>
+                        </div>
+                        
+                        <div id="photoPreview" class="photo-preview-container"></div>
+                        
+                        <button id="addPhotosBtn" class="admin-submit-btn">
+                            <i class="fas fa-plus-circle"></i> Adicionar Fotos
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Aba de Mensagens -->
+                <div class="admin-tab-pane" id="tab-messages">
+                    <h4>Nova Mensagem</h4>
+                    <div class="admin-form">
+                        <textarea id="messageText" placeholder="Digite sua mensagem especial..." class="admin-textarea"></textarea>
+                        <input type="text" id="messageAuthor" placeholder="Autor (ex: Kevin para Iara)" class="admin-input" value="Kevin para Iara">
+                        
+                        <button id="addMessageBtn" class="admin-submit-btn">
+                            <i class="fas fa-heart"></i> Adicionar Mensagem
+                        </button>
+                    </div>
+                    
+                    <div class="admin-list">
+                        <h4>Mensagens Existentes</h4>
+                        <div id="messagesList"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-footer">
+                <button id="exportDataBtn" class="admin-footer-btn">
+                    <i class="fas fa-download"></i> Exportar Dados
+                </button>
+                <button id="importDataBtn" class="admin-footer-btn">
+                    <i class="fas fa-upload"></i> Importar Dados
+                </button>
+                <button id="resetDataBtn" class="admin-footer-btn danger">
+                    <i class="fas fa-trash"></i> Resetar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input oculto para importação -->
+    <input type="file" id="importFileInput" accept=".json" style="display: none;">
+
     <!-- Conteúdo Principal -->
     <div class="container">
         <!-- Cabeçalho com Nomes -->
