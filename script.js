@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // 1. Contador de Tempo
     // =========================================================
 
-    const startDate = new Date(2024, 9, 20, 17, 0, 0); 
+    const startDate = new Date(2025, 9, 20, 17, 0, 0); 
     const countdownDisplay = document.getElementById('countdown-display');
 
     if (countdownDisplay) {
@@ -114,14 +114,17 @@ document.addEventListener('DOMContentLoaded', (event) => {
         </svg>`;
 
     const repeatIcon = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
-        </svg>`;
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+    </svg>`;
 
-    const repeatOneIcon = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1v4c0 1.1.9 2 2 2h1v-2h-1z"/>
-        </svg>`;
+const repeatOneIcon = `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <!-- Setas de repeat -->
+        <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" opacity="0.8"/>
+        <!-- Número 1 destacado -->
+        <path d="M13 15h-2v-4h2v4zm0-6h-2v2h2V9z" fill="white" opacity="0.9"/>
+    </svg>`;
 
     // --- INICIALIZAR ÍCONES ---
     btnPrev.innerHTML = prevIcon;
@@ -244,15 +247,23 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     function playPause() {
         if (audio.paused) {
+            // ATUALIZA VISUAL IMEDIATAMENTE (ANTES de tocar)
+            btnPlayPause.innerHTML = pauseIcon;
+            btnPlayPause.classList.add('playing');
+            if (audioCard) audioCard.classList.add('playing');
+            
+            // DEPOIS tenta tocar
             audio.play().then(() => {
-                btnPlayPause.innerHTML = pauseIcon;
-                btnPlayPause.classList.add('playing');
-                if (audioCard) audioCard.classList.add('playing');
                 console.log("Iniciou playback");
             }).catch(e => {
                 console.error("Erro ao tocar:", e);
+                // Se falhar, volta ao estado anterior
+                btnPlayPause.innerHTML = playIcon;
+                btnPlayPause.classList.remove('playing');
+                if (audioCard) audioCard.classList.remove('playing');
             });
         } else {
+            // PAUSAR - atualização imediata
             audio.pause();
             btnPlayPause.innerHTML = playIcon;
             btnPlayPause.classList.remove('playing');
@@ -483,6 +494,43 @@ document.addEventListener('DOMContentLoaded', (event) => {
         nextTrack(true);
     });
     
+    // ========== EVENTOS PARA GARANTIR ESTADO VISUAL CORRETO ==========
+    audio.addEventListener('playing', () => {
+        // Garante que está verde quando realmente está tocando
+        if (!btnPlayPause.classList.contains('playing')) {
+            btnPlayPause.innerHTML = pauseIcon;
+            btnPlayPause.classList.add('playing');
+            if (audioCard) audioCard.classList.add('playing');
+        }
+    });
+
+    audio.addEventListener('pause', () => {
+        // Garante que está cinza quando realmente está pausado
+        if (btnPlayPause.classList.contains('playing')) {
+            btnPlayPause.innerHTML = playIcon;
+            btnPlayPause.classList.remove('playing');
+            if (audioCard) audioCard.classList.remove('playing');
+        }
+    });
+
+    // Verificação periódica para garantir estado visual
+    setInterval(() => {
+        // Verifica se o estado visual corresponde ao estado real
+        if (!audio.paused && !btnPlayPause.classList.contains('playing')) {
+            // Deveria estar verde mas não está - corrige
+            btnPlayPause.innerHTML = pauseIcon;
+            btnPlayPause.classList.add('playing');
+            if (audioCard) audioCard.classList.add('playing');
+        }
+        
+        if (audio.paused && btnPlayPause.classList.contains('playing')) {
+            // Deveria estar cinza mas está verde - corrige
+            btnPlayPause.innerHTML = playIcon;
+            btnPlayPause.classList.remove('playing');
+            if (audioCard) audioCard.classList.remove('playing');
+        }
+    }, 100); // Verifica a cada 100ms
+    
     // --- INICIALIZAÇÃO ---
     console.log("Inicializando player...");
     
@@ -677,8 +725,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     console.log('Página completamente inicializada!');
 
-
-    
 // =========================================================
 // 8. REMOVER HIGHLIGHT AZUL NO MOBILE
 // =========================================================
@@ -710,6 +756,4 @@ removeMobileHighlight();
 // Reaplica se novos elementos forem adicionados
 setTimeout(removeMobileHighlight, 1000);
 setTimeout(removeMobileHighlight, 3000);
-
 });
-
