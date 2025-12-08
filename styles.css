@@ -1134,39 +1134,51 @@ input:focus {
     box-shadow: none !important;
 }
 
-/* ===== REMOÇÃO HIGHLIGHT AZUL - VERSÃO LIMPA ===== */
+/* ===== REMOÇÃO DEFINITIVA DO HIGHLIGHT AZUL - ANDROID CHROME ===== */
 
-/* 1. Para todos os elementos */
+/* 1. PARA TODOS OS ELEMENTOS (base) */
 * {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
     -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
 }
 
-/* 2. Elementos interativos do seu site */
+/* 2. BOTÕES ESPECÍFICOS DO SEU SITE */
 button,
 .control-btn,
 .play-pause-lg,
 .btn-view-all,
 .btn-new-message,
-.gallery-item {
+.gallery-item,
+#btnPrev,
+#btnNext,
+#btnShuffle,
+#btnRepeat,
+#btnPlayPause {
     -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
     -webkit-user-select: none;
     user-select: none;
+    outline: none;
 }
 
-/* 3. Remover outlines */
+/* 3. ESTADOS ACTIVE/FOCUS (importantíssimo!) */
 button:active,
 button:focus,
 .control-btn:active,
 .control-btn:focus,
 .play-pause-lg:active,
 .play-pause-lg:focus {
-    outline: none;
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
 }
 
-/* 4. Feedback sutil apenas para mobile */
+/* 4. PARA DISPOSITIVOS TOUCH (mobile) */
 @media (hover: none) and (pointer: coarse) {
-    .control-btn:active,
-    .play-pause-lg:active {
-        opacity: 0.8;
+    button:active {
+        opacity: 0.9; /* Feedback visual sutil */
+        transition: opacity 0.1s;
     }
 }
+
