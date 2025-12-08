@@ -676,4 +676,40 @@ document.addEventListener('DOMContentLoaded', (event) => {
     updateDailyMessage();
 
     console.log('Página completamente inicializada!');
+
+
+    
+// =========================================================
+// 8. REMOVER HIGHLIGHT AZUL NO MOBILE
+// =========================================================
+
+// Função para remover highlight de todos os botões
+function removeMobileHighlight() {
+    // Seleciona todos os botões
+    const allButtons = document.querySelectorAll('button');
+    const interactiveElements = document.querySelectorAll('.control-btn, .play-pause-lg, .btn-view-all, .btn-new-message, .gallery-item');
+    
+    // Aplica estilo via JavaScript (sobrescreve CSS)
+    allButtons.forEach(btn => {
+        btn.style.webkitTapHighlightColor = 'transparent';
+        btn.style.tapHighlightColor = 'transparent';
+        btn.style.outline = 'none';
+    });
+    
+    interactiveElements.forEach(el => {
+        el.style.webkitTapHighlightColor = 'transparent';
+        el.style.tapHighlightColor = 'transparent';
+    });
+    
+    console.log('Mobile highlight removido via JS');
+}
+
+// Executa quando a página carrega
+removeMobileHighlight();
+
+// Reaplica se novos elementos forem adicionados
+setTimeout(removeMobileHighlight, 1000);
+setTimeout(removeMobileHighlight, 3000);
+
 });
+
