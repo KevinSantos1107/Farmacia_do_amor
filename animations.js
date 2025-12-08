@@ -39,10 +39,10 @@ const settings = {
         layers: 4,
         particles: 100,
         auroraColors: [
-            ['#00ff9d', '#00b894', '#00a085'],
-            ['#00cec9', '#00b7c2', '#009d9a'],
-            ['#0984e3', '#074b83', '#032b50'],
-            ['#6c5ce7', '#5a4fcf', '#483cb7']
+            ['#00ff88', '#00cc66', '#009944'],  // Verde vibrante
+            ['#22ffaa', '#00aa55', '#008844'],  // Verde médio
+            ['#44ffcc', '#00cc88', '#009966'],  // Verde água
+            ['#66ffee', '#00eeaa', '#00aa77']   // Verde claro
         ],
         starColors: ['#ffffff', '#f0f8ff', '#e6f7ff'],
         backgroundColor: '#0a1929',
@@ -259,22 +259,23 @@ function createBeautifulHearts() {
             type: 'heart',
             x: Math.random() * canvas.width,
             y: Math.random() * -200 - 100,
-            size: Math.random() * 28 + 16,
+            // Ajustar tamanhos para o novo formato
+            size: Math.random() * 24 + 20, // Mais consistente
             speedY: Math.random() * config.heartSpeed + 0.6,
             speedX: (Math.random() - 0.5) * 1.2,
             rotation: Math.random() * Math.PI * 2,
-            rotationSpeed: (Math.random() - 0.5) * config.rotationSpeed,
+            rotationSpeed: (Math.random() - 0.5) * config.rotationSpeed * 0.8, // Mais lento
             color: config.heartColors[Math.floor(Math.random() * config.heartColors.length)],
-            opacity: isOutline ? Math.random() * 0.6 + 0.4 : Math.random() * 0.7 + 0.5,
-            pulseSpeed: Math.random() * 0.015 + 0.005,
+            opacity: isOutline ? Math.random() * 0.5 + 0.3 : Math.random() * 0.6 + 0.4,
+            pulseSpeed: Math.random() * 0.01 + 0.003, // Mais lento
             pulseOffset: Math.random() * Math.PI * 2,
             swing: Math.random() * Math.PI * 2,
-            swingSpeed: Math.random() * 0.015 + 0.005,
+            swingSpeed: Math.random() * 0.01 + 0.003,
             style: style,
-            wobble: Math.random() * 0.05 + 0.02,
+            wobble: Math.random() * 0.03 + 0.01, // Menos wobble
             wobbleOffset: Math.random() * Math.PI * 2,
-            scale: Math.random() * 0.2 + 0.9,
-            glow: Math.random() * 0.3 + 0.1
+            scale: Math.random() * 0.15 + 0.85, // Menos variação de escala
+            glow: Math.random() * 0.2 + 0.1
         });
     }
 }
@@ -352,152 +353,167 @@ function drawHearts() {
     });
 }
 
-// Coração sólido e bonito
+// CORAÇÃO SÓLIDO - Versão melhorada
 function drawSolidHeart(size, color, glow) {
-    // Desenhar brilho externo
+    // Brilho externo mais suave
     ctx.beginPath();
-    drawHeartShape(size * 1.1);
+    drawHeartShape(size * 1.15);
     
-    const outerGlow = ctx.createRadialGradient(0, 0, size * 0.8, 0, 0, size * 1.3);
-    outerGlow.addColorStop(0, color + '40');
+    const outerGlow = ctx.createRadialGradient(0, 0, size * 0.7, 0, 0, size * 1.4);
+    outerGlow.addColorStop(0, color + '30');
     outerGlow.addColorStop(1, color + '00');
     
     ctx.fillStyle = outerGlow;
     ctx.fill();
     
-    // Coração principal
+    // Coração principal com gradiente mais bonito
     ctx.beginPath();
     drawHeartShape(size);
     
-    // Gradiente interno
-    const gradient = ctx.createRadialGradient(0, size * 0.1, 0, 0, size * 0.1, size);
-    gradient.addColorStop(0, lightenColor(color, 40));
-    gradient.addColorStop(0.5, color);
-    gradient.addColorStop(1, darkenColor(color, 20));
+    // Gradiente vertical com realce no topo
+    const gradient = ctx.createLinearGradient(0, -size * 0.8, 0, size * 0.8);
+    gradient.addColorStop(0, lightenColor(color, 50));
+    gradient.addColorStop(0.3, color);
+    gradient.addColorStop(0.7, color);
+    gradient.addColorStop(1, darkenColor(color, 25));
     
     ctx.fillStyle = gradient;
     ctx.fill();
     
-    // Brilho interno
+    // Realce central
     ctx.beginPath();
-    drawHeartShape(size * 0.7);
+    drawHeartShape(size * 0.65);
     
-    ctx.fillStyle = `rgba(255, 255, 255, ${glow})`;
+    const highlightGradient = ctx.createRadialGradient(0, -size * 0.2, 0, 0, -size * 0.2, size * 0.65);
+    highlightGradient.addColorStop(0, 'rgba(255, 255, 255, ' + (glow * 0.8) + ')');
+    highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.fillStyle = highlightGradient;
     ctx.fill();
     
-    // Contorno suave
+    // Contorno suave e brilhante
     ctx.beginPath();
     drawHeartShape(size);
-    ctx.strokeStyle = `rgba(255, 255, 255, 0.2)`;
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
     ctx.stroke();
 }
 
-// Coração com gradiente
+// CORAÇÃO GRADIENTE - Versão melhorada
 function drawGradientHeart(size, color) {
+    // Sombra externa suave
+    ctx.beginPath();
+    drawHeartShape(size * 1.1);
+    
+    const shadowGradient = ctx.createRadialGradient(0, 0, size * 0.8, 0, 0, size * 1.3);
+    shadowGradient.addColorStop(0, color + '20');
+    shadowGradient.addColorStop(1, 'transparent');
+    
+    ctx.fillStyle = shadowGradient;
+    ctx.fill();
+    
+    // Coração principal com gradiente radial
     ctx.beginPath();
     drawHeartShape(size);
     
-    // Gradiente vertical
-    const gradient = ctx.createLinearGradient(0, -size, 0, size);
-    gradient.addColorStop(0, lightenColor(color, 60));
-    gradient.addColorStop(0.3, color);
-    gradient.addColorStop(0.7, color);
+    const gradient = ctx.createRadialGradient(
+        0, -size * 0.3, 0,
+        0, -size * 0.3, size * 1.2
+    );
+    gradient.addColorStop(0, lightenColor(color, 70));
+    gradient.addColorStop(0.2, lightenColor(color, 40));
+    gradient.addColorStop(0.5, color);
+    gradient.addColorStop(0.8, darkenColor(color, 15));
     gradient.addColorStop(1, darkenColor(color, 30));
     
     ctx.fillStyle = gradient;
     ctx.fill();
     
-    // Detalhe central
+    // Destaque no topo
     ctx.beginPath();
-    drawHeartShape(size * 0.5);
+    drawHeartShape(size * 0.4);
     
-    const innerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.5);
-    innerGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
-    innerGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    const topHighlight = ctx.createRadialGradient(0, -size * 0.5, 0, 0, -size * 0.5, size * 0.4);
+    topHighlight.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+    topHighlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
     
-    ctx.fillStyle = innerGradient;
+    ctx.fillStyle = topHighlight;
     ctx.fill();
     
     // Contorno brilhante
     ctx.beginPath();
     drawHeartShape(size);
-    ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
     ctx.stroke();
 }
 
-// Coração apenas contorno
+// CORAÇÃO CONTORNO - Versão melhorada
 function drawOutlineHeart(size, color) {
     // Sombra do contorno
     ctx.beginPath();
-    drawHeartShape(size * 1.05);
-    ctx.strokeStyle = color + '30';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-    
-    // Contorno principal
-    ctx.beginPath();
-    drawHeartShape(size);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    drawHeartShape(size * 1.08);
+    ctx.strokeStyle = color + '40';
+    ctx.lineWidth = 3.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
     
-    // Pontilhado interno
+    // Contorno principal brilhante
     ctx.beginPath();
-    drawHeartShape(size * 0.8);
-    ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = color + '80';
+    drawHeartShape(size);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    
+    // Linhas internas decorativas
+    ctx.beginPath();
+    drawHeartShape(size * 0.75);
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = color + 'a0';
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.setLineDash([]);
     
-    // Brilho nos pontos
-    ctx.beginPath();
-    ctx.arc(0, -size * 0.1, 2, 0, Math.PI * 2);
-    ctx.arc(-size * 0.4, size * 0.3, 2, 0, Math.PI * 2);
-    ctx.arc(size * 0.4, size * 0.3, 2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.fill();
+    // Pontos brilhantes nas curvas principais
+    const points = [
+        {x: 0, y: -size * 0.2}, // Topo
+        {x: -size * 0.4, y: size * 0.15}, // Lado esquerdo
+        {x: size * 0.4, y: size * 0.15}, // Lado direito
+        {x: 0, y: size * 0.45} // Parte inferior
+    ];
+    
+    points.forEach(point => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 2.5, 0, Math.PI * 2);
+        
+        const pointGradient = ctx.createRadialGradient(
+            point.x, point.y, 0,
+            point.x, point.y, 3
+        );
+        pointGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        pointGradient.addColorStop(0.7, color + 'e0');
+        pointGradient.addColorStop(1, color + '00');
+        
+        ctx.fillStyle = pointGradient;
+        ctx.fill();
+    });
 }
 
-// Função auxiliar para desenhar forma de coração
+// Função auxiliar para desenhar forma de coração (VERSÃO MELHORADA)
+// Função auxiliar para desenhar forma de coração (SIMPLES E FUNCIONAL)
 function drawHeartShape(size) {
-    const topCurveHeight = size * 0.9;
-    const bottomCurveWidth = size * 0.8;
+    // Coordenadas fixas para coração perfeito
+    ctx.moveTo(0, -size/2);
     
-    // Coração mais bonito e proporcional
-    ctx.moveTo(0, -size * 0.25);
+    // Lado esquerdo
+    ctx.bezierCurveTo(-size/2, -size, -size, 0, 0, size/2);
     
-    // Curva esquerda superior
-    ctx.bezierCurveTo(
-        -size * 0.8, -size * 0.25,
-        -size * 1.1, topCurveHeight * 0.2,
-        -bottomCurveWidth * 0.5, topCurveHeight * 0.7
-    );
-    
-    // Curva esquerda inferior
-    ctx.bezierCurveTo(
-        -bottomCurveWidth * 0.2, size * 1.05,
-        0, size * 0.85,
-        0, size * 0.85
-    );
-    
-    // Curva direita inferior
-    ctx.bezierCurveTo(
-        0, size * 0.85,
-        bottomCurveWidth * 0.2, size * 1.05,
-        bottomCurveWidth * 0.5, topCurveHeight * 0.7
-    );
-    
-    // Curva direita superior
-    ctx.bezierCurveTo(
-        size * 1.1, topCurveHeight * 0.2,
-        size * 0.8, -size * 0.25,
-        0, -size * 0.25
-    );
+    // Lado direito
+    ctx.bezierCurveTo(size, 0, size/2, -size, 0, -size/2);
     
     ctx.closePath();
 }
@@ -861,4 +877,5 @@ window.Animations = {
 window.initAnimations = initAnimations;
 
 console.log('💖 animations.js com CORAÇÕES BONITOS carregado!');
+
 console.log('❤️ Corações agora têm: 3 estilos diferentes, gradientes, brilhos e movimento natural');
