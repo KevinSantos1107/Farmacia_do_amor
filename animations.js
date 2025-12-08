@@ -324,11 +324,14 @@ function drawHearts() {
         
         // Resetar se sair da tela
         if (particle.y > canvas.height + 150) {
-            particle.y = -100;
+            particle.y = -150;
             particle.x = Math.random() * canvas.width;
         }
-        if (particle.x < -100) particle.x = canvas.width + 100;
-        if (particle.x > canvas.width + 100) particle.x = -100;
+        if (particle.x < -150) {
+            particle.x = canvas.width + 150;
+        } else if (particle.x > canvas.width + 150) {
+            particle.x = -150;
+        }
         
         // Desenhar coração
         ctx.save();
