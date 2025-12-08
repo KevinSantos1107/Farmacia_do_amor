@@ -14,13 +14,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar animações depois de um delay
     setTimeout(() => {
-        initAnimations();  // ← CHAMADA DIRETA
+        if (typeof initAnimations === 'function') {
+            initAnimations();
+        }
     }, 500);
 });
 
 // ===== CONFIGURAÇÕES DE DATAS =====
-const START_DATE = new Date('2023-06-15T00:00:00'); // ALTERE PARA SUA DATA
-const START_DATE_DISPLAY = '15/06/2023'; // Formato de exibição
+const START_DATE = new Date('2023-06-15T00:00:00');
+const START_DATE_DISPLAY = '15/06/2023';
 
 // ===== SISTEMA DE TEMAS =====
 const themes = {
@@ -68,15 +70,11 @@ function initThemeSelector() {
         button.addEventListener('click', function() {
             const theme = this.dataset.theme;
             
-            // Remover classe ativa de todos os botões
             themeButtons.forEach(btn => btn.classList.remove('active'));
-            // Adicionar classe ativa ao botão clicado
             this.classList.add('active');
             
-            // Alterar tema
             changeTheme(theme);
             
-            // Alterar animação de fundo
             if (window.Animations && typeof window.Animations.changeTheme === 'function') {
                 window.Animations.changeTheme(theme);
             }
@@ -90,11 +88,9 @@ function changeTheme(themeName) {
     currentTheme = themeName;
     const theme = themes[themeName];
     
-    // Alterar classe do body
     document.body.className = '';
     document.body.classList.add(`theme-${themeName}`);
     
-    // Atualizar variáveis CSS
     const root = document.documentElement;
     root.style.setProperty('--theme-bg', theme.colors.bg);
     root.style.setProperty('--theme-primary', theme.colors.primary);
@@ -111,19 +107,22 @@ function initThemeMenu() {
     const themeToggle = document.getElementById('themeToggle');
     const themeSelector = document.getElementById('themeSelector');
     
+    if (!themeToggle || !themeSelector) {
+        console.warn('⚠️ Elementos do menu de tema não encontrados');
+        return;
+    }
+    
     themeToggle.addEventListener('click', function(e) {
-        e.stopPropagation(); // Evita que o clique se propague
+        e.stopPropagation();
         themeSelector.classList.toggle('hidden');
     });
     
-    // Fechar menu quando clicar fora
     document.addEventListener('click', function(e) {
         if (!themeSelector.contains(e.target) && e.target !== themeToggle) {
             themeSelector.classList.add('hidden');
         }
     });
     
-    // Fechar menu quando trocar de tema
     const themeButtons = document.querySelectorAll('.theme-btn');
     themeButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -134,10 +133,7 @@ function initThemeMenu() {
 
 // ===== CONTADOR DE TEMPO =====
 function initTimeCounter() {
-    // Exibir data de início
     document.getElementById('startDateDisplay').textContent = START_DATE_DISPLAY;
-    
-    // Atualizar contador imediatamente e a cada segundo
     updateTimeCounter();
     setInterval(updateTimeCounter, 1000);
 }
@@ -146,7 +142,6 @@ function updateTimeCounter() {
     const now = new Date();
     const diff = now - START_DATE;
     
-    // Calcular unidades de tempo
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
@@ -159,7 +154,6 @@ function updateTimeCounter() {
     const remainingMinutes = minutes % 60;
     const remainingSeconds = seconds % 60;
     
-    // Atualizar elementos
     document.getElementById('years').textContent = years.toString().padStart(2, '0');
     document.getElementById('months').textContent = months.toString().padStart(2, '0');
     document.getElementById('days').textContent = remainingDays.toString().padStart(2, '0');
@@ -168,7 +162,7 @@ function updateTimeCounter() {
     document.getElementById('seconds').textContent = remainingSeconds.toString().padStart(2, '0');
 }
 
-// ===== PLAYER DE MÚSICA (RESTAURADO - FUNCIONALIDADES ORIGINAIS) =====
+// ===== PLAYER DE MÚSICA =====
 const playlist = [
     {
         title: "menina-da-farmacia",
@@ -187,8 +181,7 @@ const playlist = [
 let currentTrackIndex = 0;
 let isPlaying = false;  
 let isShuffled = false;
-let repeatMode = 0; // 0 = off, 1 = all, 2 = one
-let lastPrevClickTime = 0; // Variável declarada aqui
+let repeatMode = 0;
 
 function initMusicPlayer() {
     const audio = document.getElementById('audioPlayer');
@@ -199,80 +192,65 @@ function initMusicPlayer() {
     const repeatBtn = document.getElementById('repeatBtn');
     const progressBarFill = document.getElementById('progressBarFill');
     
-    // Carregar primeira música
+    if (!audio) {
+        console.warn('⚠️ Elemento de áudio não encontrado');
+        return;
+    }
+    
     loadTrack(currentTrackIndex);
     
-    // Event Listeners ORIGINAIS - MODIFICADOS
     playPauseBtn.addEventListener('click', togglePlayPause);
-    prevBtn.addEventListener('click', handlePrevTrack);  // ← Agora usa handlePrevTrack
-    nextBtn.addEventListener('click', handleNextTrack);  // ← Agora usa handleNextTrack
+    prevBtn.addEventListener('click', () => handlePrevTrack(audio));
+    nextBtn.addEventListener('click', nextTrack);
     shuffleBtn.addEventListener('click', toggleShuffle);
     repeatBtn.addEventListener('click', toggleRepeat);
     
-    // Barra de progresso clicável
     progressBarFill.parentElement.addEventListener('click', function(e) {
         const rect = this.getBoundingClientRect();
         const percent = (e.clientX - rect.left) / rect.width;
         audio.currentTime = audio.duration * percent;
-        updateProgressBar();
+        updateProgressBar(audio);
     });
     
-    audio.addEventListener('timeupdate', updateProgressBar);
-    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('timeupdate', () => updateProgressBar(audio));
+    audio.addEventListener('loadedmetadata', () => updateDuration(audio));
     audio.addEventListener('ended', handleTrackEnd);
     audio.addEventListener('play', () => {
-        document.querySelector('.music-player').classList.add('playing');
+        document.querySelector('.music-player')?.classList.add('playing');
     });
     audio.addEventListener('pause', () => {
-        document.querySelector('.music-player').classList.remove('playing');
+        document.querySelector('.music-player')?.classList.remove('playing');
     });
     
-    // Volume fixo para mobile
     audio.volume = 0.8;
 }
 
-// FUNÇÕES DE NAVEGAÇÃO MODIFICADAS
-function handlePrevTrack() {
-    const audio = document.getElementById('audioPlayer');
-    
-    // SEMPRE verifica se está após 3 segundos
+function handlePrevTrack(audio) {
     if (audio.currentTime > 3) {
-        // Está depois de 3 segundos - volta ao início
         audio.currentTime = 0;
-        updateProgressBar();
-        console.log('⏪ Voltou ao início da música (tempo > 3s)');
+        updateProgressBar(audio);
     } else {
-        // Está antes de 3 segundos - vai para música anterior
         currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
         loadTrack(currentTrackIndex);
-        
         if (isPlaying) {
-            setTimeout(() => {
-                audio.play();
-            }, 100);
+            setTimeout(() => audio.play(), 100);
         }
-        console.log('⏮️ Foi para música anterior (tempo < 3s)');
     }
 }
 
-function handleNextTrack() {
-    const now = Date.now();
-    
-    // Se clicou rapidamente 2 vezes, avança
-    if (now - lastPrevClickTime < 1500) {
-        nextTrack();
-        console.log('⏭️ Foi para próxima música');
-    } else {
-        // Primeiro clique, apenas avança
-        nextTrack();
+function nextTrack() {
+    currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+    loadTrack(currentTrackIndex);
+    if (isPlaying) {
+        document.getElementById('audioPlayer').play();
     }
-    
-    lastPrevClickTime = now;
 }
 
 function loadTrack(index) {
     const track = playlist[index];
     const audio = document.getElementById('audioPlayer');
+    
+    if (!audio) return;
     
     audio.src = track.src;
     document.getElementById('songTitle').textContent = track.title;
@@ -280,11 +258,9 @@ function loadTrack(index) {
     document.getElementById('currentTrack').textContent = index + 1;
     document.getElementById('totalTracks').textContent = playlist.length;
     
-    // Reset da barra de progresso
     document.getElementById('progressBarFill').style.width = '0%';
     document.getElementById('currentTime').textContent = '0:00';
     
-    // Se estava tocando, continua
     if (isPlaying) {
         setTimeout(() => audio.play(), 100);
     }
@@ -305,39 +281,11 @@ function togglePlayPause() {
     }
 }
 
-function prevTrack() {
-    currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
-    loadTrack(currentTrackIndex);
-    
-    if (isPlaying) {
-        document.getElementById('audioPlayer').play();
-    }
-    
-    console.log('⏮️ Foi para música anterior');
-}
-
-function nextTrack() {
-    currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
-    loadTrack(currentTrackIndex);
-    
-    if (isPlaying) {
-        document.getElementById('audioPlayer').play();
-    }
-    
-    console.log('⏭️ Foi para próxima música');
-}
-
 function toggleShuffle() {
     const shuffleBtn = document.getElementById('shuffleBtn');
     isShuffled = !isShuffled;
     shuffleBtn.classList.toggle('active', isShuffled);
-    
-    if (isShuffled) {
-        // Embaralhar playlist (apenas visual, não altera ordem original)
-        shuffleBtn.style.color = 'var(--theme-primary)';
-    } else {
-        shuffleBtn.style.color = '';
-    }
+    shuffleBtn.style.color = isShuffled ? 'var(--theme-primary)' : '';
 }
 
 function toggleRepeat() {
@@ -346,26 +294,18 @@ function toggleRepeat() {
     
     repeatBtn.classList.toggle('active', repeatMode > 0);
     
-    switch (repeatMode) {
-        case 0:
-            // Repeat off
-            repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
-            repeatBtn.title = "Repetir desligado";
-            repeatBtn.style.color = '';
-            console.log('🔁 Repeat: Off');
-            break;
-        case 1:
-            // Repeat one
-            repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
-            repeatBtn.title = "Repetir uma música";
-            repeatBtn.style.color = 'var(--theme-primary)';
-            console.log('🔂 Repeat: One');
-            break;
+    if (repeatMode === 0) {
+        repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
+        repeatBtn.title = "Repetir desligado";
+        repeatBtn.style.color = '';
+    } else {
+        repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
+        repeatBtn.title = "Repetir uma música";
+        repeatBtn.style.color = 'var(--theme-primary)';
     }
 }
 
-function updateProgressBar() {
-    const audio = document.getElementById('audioPlayer');
+function updateProgressBar(audio) {
     const progressBarFill = document.getElementById('progressBarFill');
     const currentTime = document.getElementById('currentTime');
     const totalTime = document.getElementById('totalTime');
@@ -373,25 +313,21 @@ function updateProgressBar() {
     if (audio.duration) {
         const progress = (audio.currentTime / audio.duration) * 100;
         progressBarFill.style.width = `${progress}%`;
-        
         currentTime.textContent = formatTime(audio.currentTime);
         totalTime.textContent = formatTime(audio.duration);
     }
 }
 
-function updateDuration() {
-    const audio = document.getElementById('audioPlayer');
+function updateDuration(audio) {
     const totalTime = document.getElementById('totalTime');
     totalTime.textContent = formatTime(audio.duration);
 }
 
 function handleTrackEnd() {
     if (repeatMode === 1) {
-        // Repetir mesma música
         document.getElementById('audioPlayer').currentTime = 0;
         document.getElementById('audioPlayer').play();
     } else {
-        // Próxima música
         nextTrack();
         if (isPlaying) {
             document.getElementById('audioPlayer').play();
@@ -411,7 +347,7 @@ const albums = [
         id: 1,
         title: "Primeiros Encontros",
         date: "Junho 2023",
-        cover: "images/capas-albuns/primeiro-encontro.jpg", // NOVO CAMINHO
+        cover: "images/capas-albuns/primeiro-encontro.jpg",
         photoCount: 4,
         description: "Os primeiros momentos mágicos que deram início à nossa história.",
         photos: [
@@ -425,7 +361,7 @@ const albums = [
         id: 2,
         title: "Viagem Inesquecível", 
         date: "Dezembro 2023",
-        cover: "images/capas-albuns/viagem.jpg", // NOVO CAMINHO
+        cover: "images/capas-albuns/viagem.jpg",
         photoCount: 4,
         description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
         photos: [
@@ -442,6 +378,13 @@ let currentPhotoIndex = 0;
 
 function initAlbums() {
     const container = document.getElementById('albumsContainer');
+    
+    if (!container) {
+        console.warn('⚠️ Container de álbuns não encontrado');
+        return;
+    }
+    
+    container.innerHTML = '';
     
     albums.forEach(album => {
         const albumCard = document.createElement('div');
@@ -467,22 +410,31 @@ function initAlbums() {
         albumCard.addEventListener('click', () => openAlbum(album.id));
         container.appendChild(albumCard);
     });
+    
+    console.log(`✅ ${albums.length} álbuns carregados`);
 }
 
 function openAlbum(albumId) {
     currentAlbum = albums.find(a => a.id === albumId);
-    if (!currentAlbum) return;
+    if (!currentAlbum) {
+        console.warn('⚠️ Álbum não encontrado:', albumId);
+        return;
+    }
     
     currentPhotoIndex = 0;
     updateAlbumViewer();
     
-    // Mostrar modal
     const modal = document.getElementById('albumModal');
-    modal.style.display = 'flex';
-    // LINHA REMOVIDA: document.body.style.overflow = 'hidden';
+    if (modal) {
+        modal.style.display = 'flex';
+    }
     
-    // Atualizar informações do modal
-    document.getElementById('modalAlbumTitle').textContent = currentAlbum.title;
+    const titleElement = document.getElementById('modalAlbumTitle');
+    if (titleElement) {
+        titleElement.textContent = currentAlbum.title;
+    }
+    
+    console.log(`📸 Álbum aberto: ${currentAlbum.title}`);
 }
 
 function updateAlbumViewer() {
@@ -491,13 +443,13 @@ function updateAlbumViewer() {
     const photo = currentAlbum.photos[currentPhotoIndex];
     const modalPhoto = document.getElementById('modalPhoto');
     
-    modalPhoto.src = photo.src;
-    modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+    if (modalPhoto) {
+        modalPhoto.src = photo.src;
+        modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+    }
     
-    // Atualizar contador e descrição
     document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
     document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
-    document.getElementById('photoDescription').textContent = photo.description;
 }
 
 function initModal() {
@@ -506,9 +458,13 @@ function initModal() {
     const prevBtn = document.getElementById('prevPhotoBtn');
     const nextBtn = document.getElementById('nextPhotoBtn');
     
+    if (!modal || !closeBtn || !prevBtn || !nextBtn) {
+        console.warn('⚠️ Elementos do modal não encontrados');
+        return;
+    }
+    
     closeBtn.addEventListener('click', () => {
         modal.style.display = 'none';
-        // LINHA REMOVIDA: document.body.style.overflow = 'auto';
     });
     
     prevBtn.addEventListener('click', () => {
@@ -524,6 +480,42 @@ function initModal() {
             updateAlbumViewer();
         }
     });
+    
+    // ===== NAVEGAÇÃO ESTILO INSTAGRAM =====
+    const albumViewer = document.querySelector('.album-viewer');
+    if (albumViewer) {
+        albumViewer.addEventListener('click', (e) => {
+            if (!currentAlbum) return;
+            
+            const rect = albumViewer.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const width = rect.width;
+            
+            if (clickX < width / 2) {
+                prevBtn.click();
+            } else {
+                nextBtn.click();
+            }
+        });
+        
+        albumViewer.style.cursor = 'pointer';
+        
+        albumViewer.addEventListener('mousedown', () => {
+            albumViewer.style.opacity = '0.9';
+        });
+        
+        albumViewer.addEventListener('mouseup', () => {
+            albumViewer.style.opacity = '1';
+        });
+        
+        albumViewer.addEventListener('touchstart', () => {
+            albumViewer.style.opacity = '0.9';
+        }, { passive: true });
+        
+        albumViewer.addEventListener('touchend', () => {
+            albumViewer.style.opacity = '1';
+        }, { passive: true });
+    }
     
     // Swipe para mobile
     let touchStartX = 0;
@@ -544,23 +536,19 @@ function initModal() {
         
         if (Math.abs(diff) > swipeThreshold) {
             if (diff > 0) {
-                // Swipe para esquerda - próxima foto
                 nextBtn.click();
             } else {
-                // Swipe para direita - foto anterior
                 prevBtn.click();
             }
         }
     }
     
-    // Fechar modal clicando no fundo (fora do conteúdo)
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             closeBtn.click();
         }
     });
     
-    // Navegação por teclado
     document.addEventListener('keydown', (event) => {
         if (modal.style.display === 'flex') {
             if (event.key === 'Escape') {
@@ -572,6 +560,8 @@ function initModal() {
             }
         }
     });
+    
+    console.log('✅ Modal inicializado com navegação Instagram');
 }
 
 // ===== MENSAGENS DO DIA =====
@@ -595,11 +585,12 @@ const messages = [
 ];
 
 function initMessages() {
-    // Mostrar mensagem aleatória inicial
     showRandomMessage();
     
-    // Event listener para o botão
-    document.getElementById('newMessageBtn').addEventListener('click', showRandomMessage);
+    const newMessageBtn = document.getElementById('newMessageBtn');
+    if (newMessageBtn) {
+        newMessageBtn.addEventListener('click', showRandomMessage);
+    }
 }
 
 function showRandomMessage() {
@@ -607,17 +598,18 @@ function showRandomMessage() {
     const message = messages[randomIndex];
     
     const messageElement = document.getElementById('dailyMessage');
-    messageElement.innerHTML = `
-        <p class="message-text">"${message.text}"</p>
-        <p class="message-author">— ${message.author}</p>
-    `;
-    
-    // Efeito de transição
-    messageElement.style.opacity = '0';
-    setTimeout(() => {
-        messageElement.style.transition = 'opacity 0.3s ease';
-        messageElement.style.opacity = '1';
-    }, 10);
+    if (messageElement) {
+        messageElement.innerHTML = `
+            <p class="message-text">"${message.text}"</p>
+            <p class="message-author">— ${message.author}</p>
+        `;
+        
+        messageElement.style.opacity = '0';
+        setTimeout(() => {
+            messageElement.style.transition = 'opacity 0.3s ease';
+            messageElement.style.opacity = '1';
+        }, 10);
+    }
 }
 
 // ===== FUNÇÕES UTILITÁRIAS =====
@@ -631,7 +623,10 @@ function updateCurrentDate() {
     };
     
     const dateString = now.toLocaleDateString('pt-BR', options);
-    document.getElementById('currentDate').textContent = `Hoje é ${dateString}`;
+    const dateElement = document.getElementById('currentDate');
+    if (dateElement) {
+        dateElement.textContent = `Hoje é ${dateString}`;
+    }
 }
 
 // ===== INICIALIZAÇÃO COMPLETA =====
