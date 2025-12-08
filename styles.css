@@ -14,6 +14,8 @@
     box-sizing: border-box; 
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
 }
 
 html, body {
@@ -22,6 +24,9 @@ html, body {
     color: var(--text-light); /* Texto claro */
     font-family: var(--font-principal);
     line-height: 1.6;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* Layout Principal e Centralização */
@@ -359,6 +364,8 @@ html, body {
     appearance: none;
     outline: none;
     transition: height 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 #progressBar:hover {
@@ -425,6 +432,11 @@ html, body {
     justify-content: center;
     position: relative;
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none !important;
 }
 
 /* Garantir que SVGs herdem a cor correta */
@@ -461,6 +473,8 @@ html, body {
 
 .control-btn:active {
     transform: scale(0.98);
+    opacity: 0.8;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* ESTADO ATIVO para shuffle e repeat (igual à foto - BRANCO) */
@@ -491,6 +505,11 @@ html, body {
     line-height: 1;
     position: relative;
     box-shadow: none; /* Sem sombra como na foto */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none !important;
 }
 
 /* Botão play/pause SVG */
@@ -509,6 +528,7 @@ html, body {
 /* Clique - redução sutil */
 .play-pause-lg:active {
     transform: scale(0.95);
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Garantir que não tenha efeitos estranhos */
@@ -575,6 +595,10 @@ html, body {
 .gallery-item {
     cursor: pointer;
     transition: transform 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
 
 .gallery-item:hover {
@@ -586,6 +610,7 @@ html, body {
     overflow: hidden;
     border-radius: 10px;
     aspect-ratio: 1 / 1;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .gallery-image-container img {
@@ -643,6 +668,11 @@ html, body {
     transition: all 0.3s;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none !important;
 }
 
 .btn-view-all:hover {
@@ -650,6 +680,11 @@ html, body {
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(29, 185, 84, 0.3);
+}
+
+.btn-view-all:active {
+    transform: scale(0.98);
+    opacity: 0.9;
 }
 
 /* 5. Mensagem do Dia */
@@ -704,12 +739,22 @@ html, body {
     transition: all 0.3s;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none !important;
 }
 
 .btn-new-message:hover {
     background: #1ed760;
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(29, 185, 84, 0.4);
+}
+
+.btn-new-message:active {
+    transform: scale(0.98);
+    opacity: 0.9;
 }
 
 /* 6. Footer */
@@ -797,10 +842,19 @@ html, body {
     align-items: center;
     justify-content: center;
     transition: background 0.3s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none !important;
 }
 
 .close-modal:hover {
     background: rgba(0, 0, 0, 0.8);
+}
+
+.close-modal:active {
+    transform: scale(0.95);
 }
 
 .modal-body {
@@ -852,12 +906,22 @@ html, body {
     transition: all 0.3s;
     font-weight: 600;
     font-size: 14px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none !important;
 }
 
 .modal-btn:hover {
     background: #333;
     border-color: var(--accent);
     color: var(--accent);
+}
+
+.modal-btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
 }
 
 #photoCounter {
@@ -1083,11 +1147,25 @@ html, body {
     background: #555;
 }
 
-/* 12. Acessibilidade - Foco */
-button:focus,
-input:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+/* 12. Acessibilidade - Foco (alternativa para highlight azul) */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+    outline: 2px solid rgba(29, 185, 84, 0.6) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2) !important;
+}
+
+/* Para navegadores que não suportam :focus-visible */
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 /* 13. Utilitários */
@@ -1113,24 +1191,49 @@ input:focus {
     pointer-events: none;
 }
 
-/* Adicione ao final do seu CSS */
-button:focus,
-input:focus {
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-.control-btn:focus {
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-.play-pause-lg:focus {
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-.menu-item:focus {
-    outline: none !important;
-    box-shadow: none !important;
-}
+/* =========================================================
+   ESTILOS ESPECÍFICOS PARA DISPOSITIVOS MÓVEIS (TOUCH)
+   ========================================================= */
+@media (hover: none) and (pointer: coarse) {
+    /* Feedback visual para toque em dispositivos móveis */
+    .control-btn:active,
+    .play-pause-lg:active,
+    .btn-view-all:active,
+    .btn-new-message:active,
+    .modal-btn:active,
+    .close-modal:active,
+    .gallery-item:active {
+        transform: scale(0.96);
+        opacity: 0.85;
+        transition: transform 0.1s ease, opacity 0.1s ease;
+    }
+    
+    /* Remove hover effects em dispositivos touch */
+    .control-btn:hover,
+    .play-pause-lg:hover,
+    .btn-view-all:hover,
+    .btn-new-message:hover,
+    .modal-btn:hover,
+    .gallery-item:hover {
+        transform: none;
+    }
+    
+    /* Aumenta área de toque para botões em mobile */
+    .control-btn,
+    .play-pause-lg,
+    .modal-btn {
+        min-height: 44px; /* Tamanho mínimo recomendado para toque */
+        min-width: 44px;
+    }
+    
+    /* Feedback visual para imagens da galeria */
+    .gallery-item:active .gallery-image-container {
+        opacity: 0.9;
+    }
+    
+    /* Remove efeitos de hover que podem interferir em touch */
+    .gallery-image-container:hover .gallery-overlay,
+    .gallery-image-container:hover img,
+    .music-cover:hover,
+    .music-cover:hover img,
+    .foto-pr
