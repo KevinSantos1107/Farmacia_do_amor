@@ -682,3 +682,53 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     console.log('Página completamente inicializada!');
 }); 
+
+// =========================================================
+// FORÇAR HIGHLIGHT 100% TRANSPARENTE VIA JAVASCRIPT
+// =========================================================
+
+function forceTransparentHighlight() {
+    console.log('Forçando highlight transparente...');
+    
+    // Aplica para todos os elementos da página
+    const allElements = document.querySelectorAll('*');
+    
+    allElements.forEach(element => {
+        // Aplica o estilo inline para ter prioridade máxima
+        element.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
+        element.style.webkitTapHighlightColor = 'transparent';
+    });
+    
+    // Aplica também para o body e html
+    document.body.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
+    document.documentElement.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
+    
+    console.log('Highlight transparente aplicado para todos os elementos');
+}
+
+// Executa quando a página carrega
+document.addEventListener('DOMContentLoaded', forceTransparentHighlight);
+
+// Executa novamente após um pequeno delay para garantir
+setTimeout(forceTransparentHighlight, 100);
+setTimeout(forceTransparentHighlight, 500);
+setTimeout(forceTransparentHighlight, 1000);
+
+// Também executa quando o usuário interage
+document.addEventListener('touchstart', forceTransparentHighlight);
+document.addEventListener('click', forceTransparentHighlight);
+
+// Para elementos dinâmicos (que podem ser criados depois)
+const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.addedNodes.length) {
+            forceTransparentHighlight();
+        }
+    });
+});
+
+// Observa mudanças no DOM
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
+});
