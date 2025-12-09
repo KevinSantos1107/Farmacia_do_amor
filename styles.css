@@ -1380,3 +1380,125 @@ body {
         transform: scale(0.95);
     }
 }
+
+/* ===== BOTÃO DE TEMA DISCRETO PARA MOBILE ===== */
+
+/* Botão de tema menor e mais discreto em mobile */
+@media (max-width: 768px) {
+    .theme-menu {
+        top: 10px;
+        right: 10px;
+    }
+    
+    .theme-menu-toggle {
+        width: 38px;
+        height: 38px;
+        font-size: 1rem;
+        border-width: 1px;
+        backdrop-filter: blur(5px);
+        opacity: 0.85;
+        transition: all 0.3s ease;
+    }
+    
+    .theme-menu-toggle:active {
+        transform: scale(0.9);
+        opacity: 1;
+    }
+    
+    /* Menu de tema menor */
+    .theme-selector {
+        padding: 10px;
+        gap: 8px;
+        border-radius: 18px;
+        margin-top: 8px;
+    }
+    
+    .theme-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+    
+    /* Reduzir brilho em mobile */
+    .theme-btn.active,
+    .theme-menu-toggle {
+        box-shadow: 0 0 10px var(--theme-primary);
+    }
+    
+    /* Efeito de toque */
+    .theme-btn:active {
+        transform: scale(0.85);
+    }
+}
+
+/* Para celulares muito pequenos */
+@media (max-width: 480px) {
+    .theme-menu {
+        top: 8px;
+        right: 8px;
+    }
+    
+    .theme-menu-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 0.95rem;
+        opacity: 0.8;
+    }
+    
+    .theme-selector {
+        padding: 8px;
+        gap: 6px;
+        right: 8px;
+        left: auto;
+    }
+    
+    .theme-btn {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+/* Indicador visual quando menu está aberto */
+.theme-menu-toggle.menu-open {
+    background: var(--theme-primary) !important;
+    box-shadow: 0 0 20px var(--theme-primary) !important;
+    transform: rotate(90deg);
+}
+
+/* Transição suave */
+.theme-menu-toggle {
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+/* Classe para modo mobile */
+.is-mobile .theme-menu-toggle {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Melhorar área de toque em mobile */
+@media (max-width: 768px) {
+    .theme-menu-toggle {
+        cursor: pointer;
+    }
+    
+    /* Aumentar área de toque invisível */
+    .theme-menu-toggle::after {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: -10px;
+        right: -10px;
+        bottom: -10px;
+    }
+}
+
+/* Efeito de loading no botão */
+.theme-menu-toggle:active {
+    animation: gentlePress 0.2s ease;
+}
+
+@keyframes gentlePress {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.85); }
+    100% { transform: scale(1); }
+}
