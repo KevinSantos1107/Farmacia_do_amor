@@ -1517,3 +1517,26 @@ console.log(`
 ║   🖼️  Sistema de imagens corrigido ║
 ╚══════════════════════════════════════╝
 `);
+
+
+// ===== FORÇAR CARREGAMENTO DE IMAGENS =====
+window.addEventListener('load', function() {
+    setTimeout(() => {
+        const mainPhoto = document.getElementById('mainPhoto');
+        const musicCover = document.querySelector('.album-cover img');
+        
+        // Forçar fallback se necessário
+        if (mainPhoto && (mainPhoto.naturalWidth === 0 || !mainPhoto.complete)) {
+            console.log('⚠️ Forçando fallback para foto principal');
+            mainPhoto.src = 'https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+        }
+        
+        if (musicCover && (musicCover.naturalWidth === 0 || !musicCover.complete)) {
+            console.log('⚠️ Forçando fallback para capa da música');
+            musicCover.src = 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+        }
+        
+        // Aplicar transições novamente
+        addImageTransitions();
+    }, 3000);
+});
