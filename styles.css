@@ -1243,7 +1243,6 @@ body {
     }
 }
 
-/* ===== FEEDBACK DE CLIQUE PARA REPEAT ===== */
 /* ===== FEEDBACK DE CLIQUE PARA REPEAT - CORRIGIDO ===== */
 @keyframes gentleActivation {
     0% {
@@ -1261,7 +1260,13 @@ body {
 }
 
 #repeatBtn.active {
-    animation: gentleActivation 0.3s ease;
+    animation: gentleActivation 0.3s ease forwards;
+}
+
+/* ESTADO NORMAL - IMPORTANTE! */
+#repeatBtn:not(.active) {
+    animation: none !important;
+    transform: scale(1) !important;
 }
 
 /* Tema específico para repeat ativo */
