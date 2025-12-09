@@ -24,26 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ===== CONFIGURAÇÕES DE DATAS =====
 const START_DATE = new Date('2023-06-15T00:00:00');
 const START_DATE_DISPLAY = '15/06/2023';
-// ===== DETECÇÃO DE TOUCH PARA MOBILE =====
-if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-    // Adicionar classe ao body para CSS específico
-    document.body.classList.add('touch-device');
-    
-    // Remover qualquer foco persistente em botões
-    document.addEventListener('touchstart', function() {
-        // Esta função está vazia mas ajuda no comportamento touch
-    }, { passive: true });
-    
-    // Prevenir comportamento de rolagem ao tocar em botões
-    const buttons = document.querySelectorAll('button, [role="button"]');
-    buttons.forEach(button => {
-        button.addEventListener('touchstart', function(e) {
-            // Não fazer preventDefault para não bloquear cliques
-        }, { passive: true });
-    });
-    
-    console.log('📱 Dispositivo touch detectado');
-}
 
 // ===== SISTEMA DE TEMAS =====
 const themes = {
@@ -220,11 +200,35 @@ function initMusicPlayer() {
     
     loadTrack(currentTrackIndex);
     
-    playPauseBtn.addEventListener('click', togglePlayPause);
-    prevBtn.addEventListener('click', () => handlePrevTrack(audio));
-    nextBtn.addEventListener('click', nextTrack);
-    shuffleBtn.addEventListener('click', toggleShuffle);
-    repeatBtn.addEventListener('click', toggleRepeat);
+   playPauseBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    togglePlayPause();
+    clearPlayerTouchStates();
+});
+
+prevBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    handlePrevTrack(audio);
+    clearPlayerTouchStates();
+});
+
+nextBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    nextTrack();
+    clearPlayerTouchStates();
+});
+
+shuffleBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleShuffle();
+    clearPlayerTouchStates();
+});
+
+repeatBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleRepeat();
+    clearPlayerTouchStates();
+});
     
     progressBarFill.parentElement.addEventListener('click', function(e) {
         const rect = this.getBoundingClientRect();
@@ -300,6 +304,9 @@ function togglePlayPause() {
         isPlaying = false;
         playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
     }
+    
+    // Adicionar esta linha no final da função:
+    setTimeout(clearPlayerTouchStates, 100);
 }
 
 function toggleShuffle() {
@@ -311,19 +318,43 @@ function toggleShuffle() {
 
 function toggleRepeat() {
     const repeatBtn = document.getElementById('repeatBtn');
+    
+    // Alternar entre os modos
     repeatMode = (repeatMode + 1) % 2;
     
-    repeatBtn.classList.toggle('active', repeatMode > 0);
-    
+    // Atualizar visual com timeout para resetar o estado
     if (repeatMode === 0) {
         repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
         repeatBtn.title = "Repetir desligado";
-        repeatBtn.style.color = '';
+        repeatBtn.classList.remove('active');
+        // Remover cor depois de um tempo
+        setTimeout(() => {
+            repeatBtn.style.color = '';
+        }, 300);
     } else {
         repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
         repeatBtn.title = "Repetir uma música";
+        repeatBtn.classList.add('active');
         repeatBtn.style.color = 'var(--theme-primary)';
     }
+    
+    // Forçar remoção da classe 'active' após animação
+    setTimeout(() => {
+        repeatBtn.classList.remove('touch-active');
+    }, 500);
+}
+
+// Função para limpar estados touch dos botões do player
+function clearPlayerTouchStates() {
+    const playerButtons = document.querySelectorAll('.control-btn');
+    playerButtons.forEach(btn => {
+        btn.classList.remove('touch-active');
+        // Remover transformações que possam ter ficado
+        btn.style.transform = '';
+        // Resetar opacidade se necessário
+        btn.style.opacity = '';
+    });
+    console.log('🔄 Estados touch do player resetados');
 }
 
 function updateProgressBar(audio) {
