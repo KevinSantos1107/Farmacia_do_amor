@@ -1410,4 +1410,83 @@ body {
             background: rgba(255, 255, 255, 0.1) !important;
         }
     }
+
+/* ===== SOLUÇÃO DEFINITIVA - BOTÕES RESETAM APÓS CLIQUE ===== */
+
+/* Estado normal dos botões */
+.control-btn {
+    transition: all 0.2s ease !important;
 }
+
+/* Quando pressionado - efeito rápido */
+.control-btn:active {
+    transform: scale(0.9) !important;
+    opacity: 0.8 !important;
+    transition: transform 0.1s ease, opacity 0.1s ease !important;
+}
+
+/* Reset automático após soltar o botão */
+.control-btn:not(:active) {
+    transform: scale(1) !important;
+    opacity: 1 !important;
+    transition: transform 0.3s ease, opacity 0.3s ease !important;
+}
+
+/* Para botões de estado ativo (repeat/shuffle ativados) */
+.control-btn.active {
+    color: var(--theme-primary) !important;
+    filter: drop-shadow(0 0 8px var(--theme-primary)) !important;
+}
+
+/* Botões que NÃO são de estado (play, pause, prev, next) */
+.control-btn:not(.active) {
+    /* Garantir que voltem ao estilo normal após clique */
+    animation: resetButton 0.5s forwards !important;
+}
+
+@keyframes resetButton {
+    to {
+        color: var(--theme-text) !important;
+        filter: none !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 
+            0 0 10px rgba(255, 255, 255, 0.1),
+            inset 0 0 10px rgba(255, 255, 255, 0.05) !important;
+    }
+}
+
+/* Específico para mobile */
+@media (max-width: 767px) {
+    .control-btn {
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+    }
+    
+    .control-btn:active {
+        transform: scale(0.85) !important;
+        transition: transform 0.08s ease !important;
+    }
+    
+    /* Forçar reset em mobile */
+    .control-btn {
+        animation: forceResetMobile 0.6s ease-in-out forwards;
+    }
+    
+    @keyframes forceResetMobile {
+        0%, 100% {
+            transform: scale(1) !important;
+            opacity: 1 !important;
+        }
+    }
+}
+
+/* Específico para o botão de play/pause */
+.play-pause-btn:active {
+    transform: scale(0.88) !important;
+}
+
+.play-pause-btn:not(:active) {
+    transform: scale(1) !important;
+}
+}
+
