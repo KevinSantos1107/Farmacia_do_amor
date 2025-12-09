@@ -284,24 +284,32 @@ function togglePlayPause() {
 function toggleShuffle() {
     const shuffleBtn = document.getElementById('shuffleBtn');
     isShuffled = !isShuffled;
-    shuffleBtn.classList.toggle('active', isShuffled);
-    shuffleBtn.style.color = isShuffled ? 'var(--theme-primary)' : '';
+    
+    // Remove primeiro, depois adiciona se necessário
+    shuffleBtn.classList.remove('active');
+    shuffleBtn.style.color = ''; // Limpa o estilo inline
+    
+    if (isShuffled) {
+        shuffleBtn.classList.add('active');
+    }
 }
 
 function toggleRepeat() {
     const repeatBtn = document.getElementById('repeatBtn');
     repeatMode = (repeatMode + 1) % 2;
     
-    repeatBtn.classList.toggle('active', repeatMode > 0);
+    // Remove a classe active primeiro
+    repeatBtn.classList.remove('active');
     
     if (repeatMode === 0) {
         repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
         repeatBtn.title = "Repetir desligado";
-        repeatBtn.style.color = '';
+        repeatBtn.style.color = ''; // Limpa o estilo inline
     } else {
+        repeatBtn.classList.add('active'); // Adiciona a classe active
         repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
         repeatBtn.title = "Repetir uma música";
-        repeatBtn.style.color = 'var(--theme-primary)';
+        repeatBtn.style.color = ''; // Remove estilo inline, deixa o CSS fazer o trabalho
     }
 }
 
