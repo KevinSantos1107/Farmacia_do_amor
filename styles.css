@@ -1475,4 +1475,97 @@ body {
         min-height: 48px;
     }
 }
+/* ===== CORREÇÃO ESPECÍFICA PARA BOTÕES DO PLAYER DE MÚSICA ===== */
+
+/* Remover qualquer estado persistente nos botões do player */
+.music-player .control-btn {
+    transition: all 0.2s ease !important;
+    position: relative;
+}
+
+/* Estado ativo temporário apenas para feedback */
+.music-player .control-btn:active {
+    transform: scale(0.92);
+    transition: transform 0.15s ease !important;
+}
+
+/* Estado 'active' do botão repeat/shuffle (funcional) */
+.music-player .control-btn.active {
+    color: var(--theme-primary) !important;
+    box-shadow: 0 0 10px var(--theme-primary) !important;
+}
+
+/* Estado 'touch-active' temporário (apenas para feedback visual) */
+.music-player .control-btn.touch-active {
+    transform: scale(0.92);
+    opacity: 0.9;
+    transition: all 0.1s ease !important;
+}
+
+/* Garantir que o estado touch-active seja removido */
+.music-player .control-btn:not(.active) {
+    animation: resetButtonState 0.3s ease forwards;
+}
+
+@keyframes resetButtonState {
+    to {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.1),
+                    inset 0 0 10px rgba(255, 255, 255, 0.05);
+    }
+}
+
+/* Específico para mobile - prevenir estados persistentes */
+@media (max-width: 767px) {
+    .music-player .control-btn {
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+        user-select: none;
+        touch-action: manipulation;
+    }
+    
+    .music-player .control-btn:active {
+        transform: scale(0.90) !important;
+        transition: transform 0.08s ease !important;
+    }
+    
+    /* Reset automático dos estados */
+    .music-player .control-btn {
+        animation: mobileButtonReset 0.5s ease forwards;
+    }
+    
+    @keyframes mobileButtonReset {
+        0% {
+            transform: scale(1);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+}
+
+/* Especificamente para o botão de repeat quando ativo */
+.music-player #repeatBtn.active {
+    animation: repeatPulse 0.5s ease;
+}
+
+@keyframes repeatPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 10px var(--theme-primary);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 20px var(--theme-primary);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 10px var(--theme-primary);
+    }
+}
+
+/* Garantir que os botões voltem ao normal */
+.music-player .control-btn:not(:active):not(.active) {
+    transform: scale(1) !important;
+}
 }
