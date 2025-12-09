@@ -186,7 +186,9 @@
         <section class="main-section">
             <div class="main-card">
                 <div class="couple-photo">
-                    <img src="images/capa_principal.jpg" alt="Kevin e Iara" id="mainPhoto">
+                    <!-- IMAGEM PRINCIPAL COM FALLBACK -->
+                    <img src="" alt="Kevin e Iara" id="mainPhoto" 
+                         data-fallback="https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80">
                 </div>
                 
                 <div class="love-message">
@@ -257,13 +259,15 @@
             </div>
         </section>
 
-        <!-- Player de Música ORIGINAL RESTAURADO -->
+        <!-- Player de Música -->
         <section class="music-player-section">
             <h2><i class="fas fa-music"></i> Nossa Trilha Sonora</h2>
             
             <div class="music-player">
                 <div class="album-cover">
-                    <img src="images/capa-musica.jpg" alt="Capa do Álbum">
+                    <!-- CAPA DA MÚSICA COM FALLBACK -->
+                    <img src="" alt="Capa do Álbum" 
+                         data-fallback="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80">
                     <div class="vinyl-effect"></div>
                 </div>
                 
@@ -284,7 +288,7 @@
                         </div>
                     </div>
                     
-                    <!-- Controles do Player (IGUAL AO ANTIGO) -->
+                    <!-- Controles do Player -->
                     <div class="control-buttons">
                         <button class="control-btn" id="shuffleBtn" title="Embaralhar">
                             <i class="fas fa-random"></i>
@@ -314,7 +318,7 @@
             </audio>
         </section>
 
-        <!-- Galeria de Álbuns (Mobile Friendly) -->
+        <!-- Galeria de Álbuns -->
         <section class="albums-section">
             <h2><i class="fas fa-images"></i> Nossas Memórias</h2>
             <p class="section-subtitle">Toque para ver nossas fotos</p>
@@ -324,7 +328,7 @@
             </div>
         </section>
 
-        <!-- Modal para Fotos (Stories Style) -->
+        <!-- Modal para Fotos -->
         <div class="album-modal" id="albumModal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -336,7 +340,7 @@
                 
                 <div class="modal-body">
                     <div class="album-viewer">
-                        <img id="modalPhoto" src="" alt="Foto">
+                        <img id="modalPhoto" src="" alt="Foto" data-fallback="https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80">
                     </div>
                     
                     <div class="album-controls">
