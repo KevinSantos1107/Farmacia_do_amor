@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initAlbums();
     initMessages();
     initModal();
+    initTouchImprovements(); // ← ADICIONE ESTA LINHA AQUI
     updateCurrentDate();
     
     console.log('💖 Site Kevin & Iara carregado com sucesso!');
@@ -591,6 +592,41 @@ function initMessages() {
     if (newMessageBtn) {
         newMessageBtn.addEventListener('click', showRandomMessage);
     }
+}
+
+// ===== MELHORIA DE TOUCH PARA DISPOSITIVOS MÓVEIS =====
+function initTouchImprovements() {
+    // Prevenir comportamento padrão de toque longo
+    document.addEventListener('touchstart', function(e) {
+        if (e.target.tagName === 'BUTTON' || 
+            e.target.closest('button') || 
+            e.target.closest('.album-card') ||
+            e.target.closest('.theme-btn') ||
+            e.target.closest('.control-btn')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Remover estado :active após o toque
+    document.addEventListener('touchend', function(e) {
+        const activeElement = e.target;
+        setTimeout(() => {
+            if (activeElement && activeElement.blur) {
+                activeElement.blur();
+            }
+        }, 100);
+    });
+    
+    // Prevenir zoom com toque duplo em botões
+    document.addEventListener('touchmove', function(e) {
+        if (e.target.tagName === 'BUTTON' || 
+            e.target.closest('button') || 
+            e.target.closest('.control-btn')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    console.log('✅ Melhorias de touch aplicadas');
 }
 
 function showRandomMessage() {
