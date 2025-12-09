@@ -68,28 +68,28 @@ let albums = [
         id: 1,
         title: "Primeiros Encontros",
         date: "Junho 2023",
-        cover: "images/capas-albuns/primeiro-encontro.jpg",
+        cover: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
         photoCount: 4,
         description: "Os primeiros momentos mágicos que deram início à nossa história.",
         photos: [
-            { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" },
-            { src: "images/fotos/album1/2.jpg", description: "Passeio no parque" },
-            { src: "images/fotos/album1/3.jpg", description: "Primeiro cinema" },
-            { src: "images/fotos/album1/4.jpg", description: "Jantar especial" }
+            { src: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Nosso primeiro café juntos" },
+            { src: "https://images.unsplash.com/photo-1518623489648-a173ef7824f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Passeio no parque" },
+            { src: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Primeiro cinema" },
+            { src: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Jantar especial" }
         ]
     },
     {
         id: 2,
         title: "Viagem Inesquecível", 
         date: "Dezembro 2023",
-        cover: "images/capas-albuns/viagem.jpg",
+        cover: "https://images.unsplash.com/photo-1539635278303-d4002c07eae3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
         photoCount: 4,
         description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
         photos: [
-            { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
-            { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
-            { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" },
-            { src: "images/fotos/album2/4.jpg", description: "Comidas típicas" }
+            { src: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Chegada ao destino" },
+            { src: "https://images.unsplash.com/photo-1518623489648-a173ef7824f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Paisagem deslumbrante" },
+            { src: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Aventuras pela cidade" },
+            { src: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Comidas típicas" }
         ]
     }
 ];
@@ -116,6 +116,127 @@ let messages = [
         author: "Kevin para Iara"
     }
 ];
+
+// ===== IMAGENS PRINCIPAIS COM FALLBACK =====
+const IMAGES = {
+    mainPhoto: {
+        fallback: 'https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        alt: 'Kevin e Iara - Amor Eterno'
+    },
+    musicCover: {
+        fallback: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        alt: 'Capa do Álbum - Nossa Música'
+    }
+};
+
+// ===== SISTEMA DE GERENCIAMENTO DE IMAGENS =====
+class ImageManager {
+    constructor() {
+        this.cachedImages = new Map();
+        this.init();
+    }
+    
+    init() {
+        console.log('🖼️ Gerenciador de imagens inicializado');
+        this.setupImageFallbacks();
+    }
+    
+    setupImageFallbacks() {
+        // Foto principal do topo
+        const mainPhoto = document.getElementById('mainPhoto');
+        if (mainPhoto) {
+            mainPhoto.addEventListener('error', () => {
+                console.log('🔄 Usando fallback para foto principal');
+                mainPhoto.src = IMAGES.mainPhoto.fallback;
+                mainPhoto.alt = IMAGES.mainPhoto.alt;
+                this.applyImageTransitions(mainPhoto);
+            });
+            
+            // Tentar carregar a imagem original
+            if (!mainPhoto.src || mainPhoto.src === '') {
+                mainPhoto.src = 'images/capa_principal.jpg';
+            }
+        }
+        
+        // Capa da música
+        const musicCover = document.querySelector('.album-cover img');
+        if (musicCover) {
+            musicCover.addEventListener('error', () => {
+                console.log('🔄 Usando fallback para capa da música');
+                musicCover.src = IMAGES.musicCover.fallback;
+                musicCover.alt = IMAGES.musicCover.alt;
+                this.applyImageTransitions(musicCover);
+            });
+            
+            // Tentar carregar a imagem original
+            if (!musicCover.src || musicCover.src === '') {
+                musicCover.src = 'images/capa-musica.jpg';
+            }
+        }
+        
+        // Configurar fallback para todas as imagens
+        document.querySelectorAll('img[data-fallback]').forEach(img => {
+            img.addEventListener('error', () => {
+                const fallback = img.getAttribute('data-fallback');
+                if (fallback) {
+                    console.log(`🔄 Usando fallback para: ${img.alt}`);
+                    img.src = fallback;
+                    this.applyImageTransitions(img);
+                }
+            });
+        });
+    }
+    
+    applyImageTransitions(img) {
+        img.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
+        img.style.opacity = '0';
+        img.style.transform = 'scale(0.98)';
+        
+        // Usar timeout para garantir que a imagem tenha tempo de carregar
+        setTimeout(() => {
+            img.style.opacity = '1';
+            img.style.transform = 'scale(1)';
+        }, 100);
+    }
+    
+    createPlaceholderImage(text, width = 400, height = 300, color1 = '#8a2be2', color2 = '#00ffff') {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Fundo gradiente
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, color1);
+        gradient.addColorStop(1, color2);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+        
+        // Coração
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.beginPath();
+        const centerX = width / 2;
+        const centerY = height / 2;
+        ctx.moveTo(centerX, centerY - 50);
+        ctx.bezierCurveTo(centerX - 50, centerY - 100, centerX - 100, centerY - 50, centerX, centerY + 50);
+        ctx.bezierCurveTo(centerX + 100, centerY - 50, centerX + 50, centerY - 100, centerX, centerY - 50);
+        ctx.fill();
+        
+        // Texto
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, centerX, centerY + 100);
+        
+        // Ícone do coração
+        ctx.font = '40px "Font Awesome 5 Free"';
+        ctx.fillText('💖', centerX, centerY);
+        
+        return canvas.toDataURL('image/jpeg', 0.9);
+    }
+}
 
 // ===== COMPRESSÃO DE IMAGENS SEM PERDA =====
 async function compressImage(file, maxWidth = 1200, quality = 0.85) {
@@ -166,7 +287,7 @@ function addImageTransitions() {
     // Adiciona transição suave a todas as imagens
     document.querySelectorAll('img').forEach(img => {
         if (!img.style.transition) {
-            img.style.transition = 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out';
+            img.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
         }
         
         // Efeito ao carregar
@@ -191,6 +312,16 @@ function addImageTransitions() {
             });
         }
     });
+    
+    // Forçar transição em imagens que já carregaram
+    setTimeout(() => {
+        document.querySelectorAll('img').forEach(img => {
+            if (img.complete && img.naturalWidth > 0) {
+                img.style.opacity = '1';
+                img.style.transform = 'scale(1)';
+            }
+        });
+    }, 500);
 }
 
 // ===== SISTEMA DE GERENCIAMENTO LOCAL =====
@@ -294,6 +425,7 @@ class LocalDataManager {
 // ===== INICIALIZAÇÃO DO SISTEMA ADMIN =====
 let dataManager;
 let selectedPhotos = [];
+let imageManager;
 
 function initAdminPanel() {
     dataManager = new LocalDataManager();
@@ -1043,15 +1175,9 @@ function initAlbums() {
         albumCard.className = 'album-card';
         albumCard.dataset.id = album.id;
         
-        // Verificar se a capa é uma URL de objeto
-        const coverSrc = album.cover.startsWith('blob:') || 
-                        album.cover.startsWith('data:') || 
-                        album.cover.startsWith('http') ? 
-                        album.cover : 
-                        `${album.cover}?t=${Date.now()}`;
-        
         albumCard.innerHTML = `
-            <img src="${coverSrc}" alt="${album.title}" class="album-cover-img" loading="lazy">
+            <img src="${album.cover}" alt="${album.title}" class="album-cover-img" loading="lazy" 
+                 data-fallback="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80">
             <div class="album-info">
                 <h3>${album.title}</h3>
                 <p class="album-date">
@@ -1068,7 +1194,7 @@ function initAlbums() {
         
         // Aplicar transição
         const img = albumCard.querySelector('img');
-        img.style.transition = 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out';
+        img.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
         img.style.opacity = '0';
         img.style.transform = 'scale(0.98)';
         
@@ -1078,6 +1204,12 @@ function initAlbums() {
                 img.style.transform = 'scale(1)';
             }, 100);
         };
+        
+        // Fallback para erro
+        img.addEventListener('error', function() {
+            console.log(`❌ Erro ao carregar capa do álbum: ${album.title}`);
+            this.src = this.getAttribute('data-fallback');
+        });
         
         albumCard.addEventListener('click', () => openAlbum(album.id));
         container.appendChild(albumCard);
@@ -1127,6 +1259,12 @@ function updateAlbumViewer() {
                 modalPhoto.style.transform = 'scale(1)';
             }, 100);
         };
+        
+        // Fallback para erro
+        modalPhoto.addEventListener('error', function() {
+            console.log('❌ Erro ao carregar foto do álbum');
+            this.src = this.getAttribute('data-fallback');
+        });
     }
     
     document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
@@ -1289,12 +1427,45 @@ function updateCurrentDate() {
     }
 }
 
+// ===== VERIFICAÇÃO DE IMAGENS FALTANDO =====
+function checkMissingImages() {
+    console.log('🔍 Verificando imagens...');
+    
+    const imagesToCheck = [
+        { selector: '#mainPhoto', name: 'Foto Principal' },
+        { selector: '.album-cover img', name: 'Capa da Música' }
+    ];
+    
+    let missingCount = 0;
+    
+    imagesToCheck.forEach(img => {
+        const element = document.querySelector(img.selector);
+        if (element) {
+            if (!element.src || element.src === '' || element.naturalWidth === 0) {
+                console.warn(`❌ ${img.name} não carregou`);
+                missingCount++;
+                
+                // Tentar usar fallback
+                if (element.hasAttribute('data-fallback')) {
+                    element.src = element.getAttribute('data-fallback');
+                }
+            } else {
+                console.log(`✅ ${img.name} carregada`);
+            }
+        }
+    });
+    
+    if (missingCount > 0) {
+        console.log(`🔄 ${missingCount} imagens usando fallback`);
+    }
+}
+
 // ===== INICIALIZAÇÃO COMPLETA =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM carregado, iniciando site...');
     
-    // Verificar elementos
-    checkElements();
+    // Inicializar gerenciador de imagens
+    imageManager = new ImageManager();
     
     // Inicializar tudo
     initThemeMenu();
@@ -1308,6 +1479,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Aplicar transições nas imagens
     setTimeout(addImageTransitions, 500);
+    
+    // Verificar imagens após carregamento
+    setTimeout(checkMissingImages, 2000);
     
     // Inicializar painel admin
     setTimeout(() => {
@@ -1330,31 +1504,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1500);
 });
 
-function checkElements() {
-    const elements = {
-        'backgroundCanvas': document.getElementById('backgroundCanvas'),
-        'audioPlayer': document.getElementById('audioPlayer'),
-        'themeToggle': document.getElementById('themeToggle'),
-        'albumsContainer': document.getElementById('albumsContainer'),
-        'playPauseBtn': document.getElementById('playPauseBtn'),
-        'dailyMessage': document.getElementById('dailyMessage'),
-        'adminFloatBtn': document.getElementById('adminFloatBtn')
-    };
-    
-    console.log('🔍 Verificando elementos:');
-    let missing = [];
-    
-    for (const [name, element] of Object.entries(elements)) {
-        const exists = element !== null;
-        console.log(`${exists ? '✅' : '❌'} ${name}`);
-        if (!exists) missing.push(name);
-    }
-    
-    if (missing.length > 0) {
-        console.warn(`⚠️ Elementos faltando: ${missing.join(', ')}`);
-    }
-}
-
 // ===== LOGO INICIAL =====
 console.log(`
 ╔══════════════════════════════════════╗
@@ -1365,5 +1514,6 @@ console.log(`
 ║   📸 ${albums.length} álbuns organizados ║
 ║   🎨 ${Object.keys(themes).length} temas disponíveis ║
 ║   🛠️  Painel Admin ativado         ║
+║   🖼️  Sistema de imagens corrigido ║
 ╚══════════════════════════════════════╝
 `);
