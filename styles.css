@@ -1351,43 +1351,8 @@ body {
     }
 }
 
-/* Touch device optimizations */
-@media (hover: none) and (pointer: coarse) {
-    /* Remove hover states em dispositivos touch */
-    .control-btn:hover,
-    .album-control-btn:hover,
-    .theme-btn:hover,
-    .theme-menu-toggle:hover,
-    .close-modal:hover,
-    .new-message-btn:hover,
-    .album-card:hover,
-    .main-card:hover,
-    .message-card:hover,
-    .start-date:hover,
-    .music-player:hover {
-        transform: none;
-        background: inherit;
-        box-shadow: inherit;
-    }
-    
-    /* Define estados :active apenas para feedback visual momentâneo */
-    .control-btn:active,
-    .album-control-btn:active,
-    .theme-btn:active,
-    .theme-menu-toggle:active,
-    .close-modal:active,
-    .new-message-btn:active {
-        transform: scale(0.95);
-    }
-    
-    /* Garante que o estado 'active' do repeat não persista */
-    .control-btn.active:not(:active) {
-        color: var(--theme-primary);
-        background: rgba(255, 255, 255, 0.15);
-        box-shadow: 0 0 15px var(--theme-primary);
-        transform: scale(1);
-    }
-   /* ===== FIX DEFINITIVO PARA MOBILE ===== */
+
+  /* ===== FIX DEFINITIVO PARA MOBILE ===== */
 @media (hover: none) and (pointer: coarse) {
     .control-btn:hover,
     .album-control-btn:hover,
