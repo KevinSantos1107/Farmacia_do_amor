@@ -702,3 +702,75 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
 });
+
+// ===== LAZY LOADING E SKELETON PARA IMAGENS =====
+document.addEventListener('DOMContentLoaded', function() {
+    // Função para adicionar efeito de loading nas imagens
+    function setupImageLoading() {
+        const images = document.querySelectorAll('img');
+        
+        images.forEach(img => {
+            // Se a imagem já foi carregada
+            if (img.complete) {
+                img.classList.add('loaded');
+            } else {
+                // Quando a imagem carregar
+                img.addEventListener('load', function() {
+                    setTimeout(() => {
+                        this.classList.add('loaded');
+                    }, 100);
+                });
+                
+                // Se der erro, também marca como carregada
+                img.addEventListener('error', function() {
+                    this.classList.add('loaded');
+                    console.warn('❌ Erro ao carregar imagem:', this.src);
+                });
+            }
+        });
+    }
+    
+    // Executar na inicialização
+    setupImageLoading();
+    
+    // Re-executar quando novos álbuns/fotos forem carregados
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+                setupImageLoading();
+            }
+        });
+    });
+    
+    // Observar mudanças no container de álbuns
+    const albumsContainer = document.getElementById('albumsContainer');
+    if (albumsContainer) {
+        observer.observe(albumsContainer, {
+            childList: true,
+            subtree: true
+        });
+    }
+    
+    // Observar mudanças no modal
+    const modalPhoto = document.getElementById('modalPhoto');
+    if (modalPhoto) {
+        observer.observe(modalPhoto.parentElement, {
+            attributes: true,
+            attributeFilter: ['src']
+        });
+    }
+    
+    console.log('✅ Sistema de loading de imagens ativado');
+});
+
+// Melhorar a função updateAlbumViewer para usar o skeleton
+const originalUpdateAlbumViewer = updateAlbumViewer;
+if (typeof updateAlbumViewer === 'function') {
+    updateAlbumViewer = function() {
+        const modalPhoto = document.getElementById('modalPhoto');
+        if (modalPhoto) {
+            modalPhoto.classList.remove('loaded');
+        }
+        originalUpdateAlbumViewer();
+    };
+}
