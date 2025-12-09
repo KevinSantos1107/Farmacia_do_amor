@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initMessages();
     initModal();
     updateCurrentDate();
+    initImageSkeletons();
+    initCouplePhotoSkeleton();
     
     console.log('💖 Site Kevin & Iara carregado com sucesso!');
     
@@ -198,6 +200,26 @@ function initMusicPlayer() {
     }
     
     loadTrack(currentTrackIndex);
+
+     // Skeleton inicial do player
+    const albumCover = document.querySelector('.album-cover');
+    const albumImg = albumCover?.querySelector('img');
+    
+    if (albumImg && albumCover) {
+        albumCover.classList.add('loading');
+        
+        albumImg.addEventListener('load', function() {
+            this.classList.add('loaded');
+            albumCover.classList.add('loaded');
+            albumCover.classList.remove('loading');
+        }, { once: true });
+        
+        if (albumImg.complete && albumImg.naturalHeight !== 0) {
+            albumImg.classList.add('loaded');
+            albumCover.classList.add('loaded');
+            albumCover.classList.remove('loading');
+        }
+    }
     
     playPauseBtn.addEventListener('click', togglePlayPause);
     prevBtn.addEventListener('click', () => handlePrevTrack(audio));
@@ -280,6 +302,20 @@ function loadTrack(index) {
     
     if (!audio) return;
     
+    // ===== ADICIONE ESTAS LINHAS (ANTES de audio.src) =====
+    const albumCover = document.querySelector('.album-cover');
+    const albumImg = albumCover?.querySelector('img');
+    
+    if (albumImg && albumCover) {
+        // Remove classes antigas
+        albumImg.classList.remove('loaded');
+        albumCover.classList.remove('loaded');
+        
+        // Adiciona loading
+        albumCover.classList.add('loading');
+    }
+    // ===== FIM DAS LINHAS ADICIONADAS =====
+    
     audio.src = track.src;
     document.getElementById('songTitle').textContent = track.title;
     document.getElementById('songArtist').textContent = track.artist;
@@ -288,6 +324,17 @@ function loadTrack(index) {
     
     document.getElementById('progressBarFill').style.width = '0%';
     document.getElementById('currentTime').textContent = '0:00';
+    
+    // ===== ADICIONE ESTAS LINHAS (DEPOIS de atualizar elementos) =====
+    if (albumImg && albumCover) {
+        // Quando a imagem carregar
+        albumImg.addEventListener('load', function() {
+            this.classList.add('loaded');
+            albumCover.classList.add('loaded');
+            albumCover.classList.remove('loading');
+        }, { once: true });
+    }
+    // ===== FIM =====
     
     if (isPlaying) {
         setTimeout(() => audio.play(), 100);
@@ -447,6 +494,26 @@ function initAlbums() {
         
         albumCard.addEventListener('click', () => openAlbum(album.id));
         container.appendChild(albumCard);
+
+         // Pega a imagem que acabou de ser criada
+        const img = albumCard.querySelector('.album-cover-img');
+        
+        if (img) {
+            // Adiciona classe loading
+            img.classList.add('loading');
+            
+            // Quando carregar
+            img.addEventListener('load', function() {
+                this.classList.add('loaded');
+                this.classList.remove('loading');
+            });
+            
+            // Se já estiver carregada
+            if (img.complete && img.naturalHeight !== 0) {
+                img.classList.add('loaded');
+                img.classList.remove('loading');
+            }
+        }
     });
     
     console.log(`✅ ${albums.length} álbuns carregados`);
@@ -460,6 +527,14 @@ function openAlbum(albumId) {
     }
     
     currentPhotoIndex = 0;
+
+     // Garante que o skeleton vai aparecer
+    const viewer = document.querySelector('.album-viewer');
+    if (viewer) {
+        viewer.classList.add('loading');
+        viewer.classList.remove('loaded');
+    }
+    
     updateAlbumViewer();
     
     const modal = document.getElementById('albumModal');
@@ -480,10 +555,29 @@ function updateAlbumViewer() {
     
     const photo = currentAlbum.photos[currentPhotoIndex];
     const modalPhoto = document.getElementById('modalPhoto');
+    const viewer = document.querySelector('.album-viewer');
     
-    if (modalPhoto) {
+    if (modalPhoto && viewer) {
+        // ===== ADICIONE ESTAS LINHAS =====
+        // Remove classes antigas
+        modalPhoto.classList.remove('loaded');
+        viewer.classList.remove('loaded');
+        
+        // Adiciona loading
+        viewer.classList.add('loading');
+        // ===== FIM =====
+        
         modalPhoto.src = photo.src;
         modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+        
+        // ===== ADICIONE ESTAS LINHAS =====
+        // Quando carregar
+        modalPhoto.addEventListener('load', function() {
+            this.classList.add('loaded');
+            viewer.classList.add('loaded');
+            viewer.classList.remove('loading');
+        }, { once: true });
+        // ===== FIM =====
     }
     
     document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
@@ -666,6 +760,77 @@ function updateCurrentDate() {
         dateElement.textContent = `Hoje é ${dateString}`;
     }
 }
+
+// ===== SKELETON PARA FOTO DO CASAL =====
+function initCouplePhotoSkeleton() {
+    const couplePhoto = document.querySelector('.couple-photo');
+    const coupleImg = couplePhoto?.querySelector('img');
+    
+    if (coupleImg && couplePhoto) {
+        couplePhoto.classList.add('loading');
+        
+        coupleImg.addEventListener('load', function() {
+            this.classList.add('loaded');
+            couplePhoto.classList.add('loaded');
+            couplePhoto.classList.remove('loading');
+        });
+        
+        if (coupleImg.complete && coupleImg.naturalHeight !== 0) {
+            coupleImg.classList.add('loaded');
+            couplePhoto.classList.add('loaded');
+            couplePhoto.classList.remove('loading');
+        }
+    }
+}
+
+// ===== FUNÇÃO UTILITÁRIA PARA SKELETON =====
+function setupImageSkeleton(imgElement, containerElement = null) {
+    if (!imgElement) return;
+    
+    const container = containerElement || imgElement.parentElement;
+    
+    // Adiciona loading
+    imgElement.classList.add('loading');
+    if (container) container.classList.add('loading');
+    
+    // Quando carregar
+    imgElement.addEventListener('load', function() {
+        this.classList.add('loaded');
+        this.classList.remove('loading');
+        if (container) {
+            container.classList.add('loaded');
+            container.classList.remove('loading');
+        }
+    }, { once: true });
+    
+    // Se já estiver carregada
+    if (imgElement.complete && imgElement.naturalHeight !== 0) {
+        imgElement.classList.add('loaded');
+        imgElement.classList.remove('loading');
+        if (container) {
+            container.classList.add('loaded');
+            container.classList.remove('loading');
+        }
+    }
+}
+
+function initImageSkeletons() {
+    // Foto do casal
+    const coupleImg = document.querySelector('.couple-photo img');
+    const couplePhoto = document.querySelector('.couple-photo');
+    setupImageSkeleton(coupleImg, couplePhoto);
+    
+    // Player de música
+    const albumImg = document.querySelector('.album-cover img');
+    const albumCover = document.querySelector('.album-cover');
+    setupImageSkeleton(albumImg, albumCover);
+    
+    // Cards de álbuns
+    document.querySelectorAll('.album-cover-img').forEach(img => {
+        setupImageSkeleton(img);
+    });
+}
+// ===== FIM DA FUNÇÃO UTILITÁRIA =====
 
 // ===== INICIALIZAÇÃO COMPLETA =====
 console.log(`
