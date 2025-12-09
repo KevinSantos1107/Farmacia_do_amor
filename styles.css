@@ -1403,8 +1403,6 @@ body {
     }
 }
 
-
-  /* ===== FIX DEFINITIVO PARA MOBILE ===== */
 @media (hover: none) and (pointer: coarse) {
     .control-btn:hover,
     .album-control-btn:hover,
@@ -1424,7 +1422,6 @@ body {
         transition: transform 0.05s ease;
     }
     
-    /* Força reset imediato após touch */
     .control-btn,
     .album-control-btn,
     .theme-btn {
@@ -1434,18 +1431,15 @@ body {
         user-select: none !important;
     }
     
-    /* Estado active do repeat/shuffle - SEM efeitos extras */
     .control-btn.active {
         color: var(--theme-primary);
         background: rgba(255, 255, 255, 0.15);
         box-shadow: 0 0 15px var(--theme-primary);
         transform: scale(1);
     }
+} /* ← Fecha o @media aqui */
 
-
-    /* ===== LOADING SKELETON PARA IMAGENS ===== */
-
-/* Skeleton para imagens principais */
+/* ===== LOADING SKELETON PARA IMAGENS ===== */
 .couple-photo,
 .album-cover,
 .album-cover-img,
@@ -1470,7 +1464,6 @@ body {
     }
 }
 
-/* Quando a imagem carregar, remove o skeleton */
 .couple-photo img,
 .album-cover img,
 .album-cover-img,
@@ -1486,7 +1479,6 @@ body {
     opacity: 1;
 }
 
-/* Skeleton para cards de álbum */
 .album-card.loading .album-cover-img {
     background: linear-gradient(
         90deg,
@@ -1498,7 +1490,6 @@ body {
     animation: skeletonLoading 1.5s ease-in-out infinite;
 }
 
-/* Efeito de fade-in suave */
 @keyframes fadeInImage {
     from {
         opacity: 0;
@@ -1514,5 +1505,4 @@ body {
 .album-cover img.loaded,
 .album-cover-img.loaded {
     animation: fadeInImage 0.6s ease-out;
-}
 }
