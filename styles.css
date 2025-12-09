@@ -1441,4 +1441,78 @@ body {
         box-shadow: 0 0 15px var(--theme-primary);
         transform: scale(1);
     }
+
+
+    /* ===== LOADING SKELETON PARA IMAGENS ===== */
+
+/* Skeleton para imagens principais */
+.couple-photo,
+.album-cover,
+.album-cover-img,
+.album-viewer {
+    position: relative;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.03) 0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.03) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeletonLoading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonLoading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Quando a imagem carregar, remove o skeleton */
+.couple-photo img,
+.album-cover img,
+.album-cover-img,
+.album-viewer img {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.couple-photo img.loaded,
+.album-cover img.loaded,
+.album-cover-img.loaded,
+.album-viewer img.loaded {
+    opacity: 1;
+}
+
+/* Skeleton para cards de álbum */
+.album-card.loading .album-cover-img {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeletonLoading 1.5s ease-in-out infinite;
+}
+
+/* Efeito de fade-in suave */
+@keyframes fadeInImage {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.couple-photo img.loaded,
+.album-cover img.loaded,
+.album-cover-img.loaded {
+    animation: fadeInImage 0.6s ease-out;
+}
 }
