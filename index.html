@@ -12,24 +12,43 @@
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
 </head>
 <body>
-    <!-- Menu de Tema Lateral -->
-    <div class="theme-menu">
-        <button class="theme-menu-toggle" id="themeToggle" title="Configurar tema">
-            <i class="fas fa-palette"></i>
-        </button>
-        
-        <div class="theme-selector hidden" id="themeSelector">
-            <button class="theme-btn active" data-theme="meteors" title="Meteoros">
-                <i class="fas fa-meteor"></i>
-            </button>
-            <button class="theme-btn" data-theme="hearts" title="Corações">
-                <i class="fas fa-heart"></i>
-            </button>
-            <button class="theme-btn" data-theme="aurora" title="Aurora">
-                <i class="fas fa-palette"></i>
+    <!-- Drawer de Temas (escondido à direita) -->
+    <div class="theme-drawer" id="themeDrawer">
+        <div class="drawer-header">
+            <h3><i class="fas fa-palette"></i> Escolha um Tema</h3>
+            <button class="close-drawer" id="closeDrawer">
+                <i class="fas fa-times"></i>
             </button>
         </div>
+        <div class="drawer-content">
+            <div class="theme-options">
+                <button class="theme-option active" data-theme="meteors">
+                    <div class="theme-preview meteors-preview"></div>
+                    <span class="theme-name">Meteoros</span>
+                    <i class="fas fa-check check-icon"></i>
+                </button>
+                
+                <button class="theme-option" data-theme="hearts">
+                    <div class="theme-preview hearts-preview"></div>
+                    <span class="theme-name">Corações</span>
+                    <i class="fas fa-check check-icon"></i>
+                </button>
+                
+                <button class="theme-option" data-theme="aurora">
+                    <div class="theme-preview aurora-preview"></div>
+                    <span class="theme-name">Aurora</span>
+                    <i class="fas fa-check check-icon"></i>
+                </button>
+            </div>
+            
+            <div class="drawer-info">
+                <p><i class="fas fa-info-circle"></i> Arraste da borda direita para abrir/fechar</p>
+            </div>
+        </div>
     </div>
+    
+    <!-- Overlay para fechar drawer ao clicar fora -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
 
     <!-- Conteúdo Principal -->
     <div class="container">
@@ -120,7 +139,7 @@
             </div>
         </section>
 
-        <!-- Player de Música ORIGINAL RESTAURADO -->
+        <!-- Player de Música -->
         <section class="music-player-section">
             <h2><i class="fas fa-music"></i> Nossa Trilha Sonora</h2>
             
@@ -136,7 +155,6 @@
                 </div>
                 
                 <div class="player-controls">
-                    <!-- Barra de Progresso Minimalista -->
                     <div class="progress-container">
                         <div class="progress-bar-bg">
                             <div class="progress-bar-fill" id="progressBarFill"></div>
@@ -147,7 +165,6 @@
                         </div>
                     </div>
                     
-                    <!-- Controles do Player (IGUAL AO ANTIGO) -->
                     <div class="control-buttons">
                         <button class="control-btn" id="shuffleBtn" title="Embaralhar">
                             <i class="fas fa-random"></i>
@@ -177,7 +194,7 @@
             </audio>
         </section>
 
-        <!-- Galeria de Álbuns (Mobile Friendly) -->
+        <!-- Galeria de Álbuns -->
         <section class="albums-section">
             <h2><i class="fas fa-images"></i> Nossas Memórias</h2>
             <p class="section-subtitle">Toque para ver nossas fotos</p>
@@ -187,7 +204,7 @@
             </div>
         </section>
 
-        <!-- Modal para Fotos (Stories Style) -->
+        <!-- Modal para Fotos -->
         <div class="album-modal" id="albumModal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -252,6 +269,145 @@
             </div>
         </footer>
     </div>
+
+    <!-- Painel de Administração -->
+    <div class="admin-panel-overlay" id="adminOverlay">
+        <div class="admin-panel">
+            <div class="admin-header">
+                <h3><i class="fas fa-cog"></i> Painel de Administração</h3>
+                <button class="close-admin" id="closeAdmin">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="photos">Fotos</button>
+                <button class="admin-tab" data-tab="music">Música</button>
+                <button class="admin-tab" data-tab="albums">Álbuns</button>
+            </div>
+            
+            <div class="admin-content">
+                <div class="admin-tab-content active" id="photosTab">
+                    <h4><i class="fas fa-image"></i> Gerenciar Fotos</h4>
+                    <div class="form-group">
+                        <label>Selecione o Álbum:</label>
+                        <select id="albumSelect" class="form-select">
+                            <option value="">Selecione um álbum</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Enviar Foto:</label>
+                        <input type="file" id="photoUpload" accept="image/*" class="form-file">
+                        <small>Formatos: JPG, PNG, GIF (max 5MB)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Descrição da Foto:</label>
+                        <input type="text" id="photoDescription" placeholder="Descrição da foto..." class="form-input">
+                    </div>
+                    
+                    <button class="admin-btn" id="uploadPhotoBtn">
+                        <i class="fas fa-upload"></i> Adicionar Foto
+                    </button>
+                    
+                    <div class="photos-preview" id="photosPreview">
+                        <h5>Fotos do Álbum:</h5>
+                        <div class="photos-grid" id="photosGrid"></div>
+                    </div>
+                </div>
+                
+                <div class="admin-tab-content" id="musicTab">
+                    <h4><i class="fas fa-music"></i> Gerenciar Músicas</h4>
+                    
+                    <div class="form-group">
+                        <label>Título da Música:</label>
+                        <input type="text" id="musicTitle" placeholder="Nome da música..." class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Artista:</label>
+                        <input type="text" id="musicArtist" placeholder="Nome do artista..." class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Álbum (opcional):</label>
+                        <input type="text" id="musicAlbum" placeholder="Álbum da música..." class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Enviar Música:</label>
+                        <input type="file" id="musicUpload" accept="audio/*" class="form-file">
+                        <small>Formatos: MP3, WAV, OGG (max 10MB)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>URL da Capa (opcional):</label>
+                        <input type="text" id="musicCover" placeholder="URL da imagem de capa..." class="form-input">
+                    </div>
+                    
+                    <button class="admin-btn" id="uploadMusicBtn">
+                        <i class="fas fa-upload"></i> Adicionar Música
+                    </button>
+                    
+                    <div class="music-list" id="musicList">
+                        <h5>Playlist Atual:</h5>
+                        <div class="music-items" id="musicItems"></div>
+                    </div>
+                </div>
+                
+                <div class="admin-tab-content" id="albumsTab">
+                    <h4><i class="fas fa-images"></i> Gerenciar Álbuns</h4>
+                    
+                    <div class="form-group">
+                        <label>Título do Álbum:</label>
+                        <input type="text" id="albumTitle" placeholder="Nome do álbum..." class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Data:</label>
+                        <input type="text" id="albumDate" placeholder="Ex: Junho 2023" class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Descrição:</label>
+                        <textarea id="albumDescription" placeholder="Descrição do álbum..." class="form-textarea" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Capa do Álbum:</label>
+                        <input type="file" id="albumCover" accept="image/*" class="form-file">
+                        <small>ou use uma URL:</small>
+                        <input type="text" id="albumCoverUrl" placeholder="URL da imagem de capa..." class="form-input" style="margin-top: 5px;">
+                    </div>
+                    
+                    <button class="admin-btn" id="createAlbumBtn">
+                        <i class="fas fa-plus"></i> Criar Novo Álbum
+                    </button>
+                    
+                    <div class="albums-list" id="albumsList">
+                        <h5>Álbuns Existentes:</h5>
+                        <div class="admin-albums-grid" id="adminAlbumsGrid"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-footer">
+                <button class="admin-btn secondary" id="saveChangesBtn">
+                    <i class="fas fa-save"></i> Salvar Tudo
+                </button>
+                <button class="admin-btn danger" id="resetDataBtn">
+                    <i class="fas fa-trash"></i> Restaurar Padrão
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão de Admin Discreto -->
+    <div class="admin-touch-area" id="adminTouchArea"></div>
+    <button class="floating-admin-btn" id="adminAccessBtn" title="Painel Admin (Acesso Direto)">
+        <i class="fas fa-cog"></i>
+    </button>
 
     <!-- Scripts -->
     <script src="animations.js"></script>
