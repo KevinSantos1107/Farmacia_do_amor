@@ -650,24 +650,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s ease;
+    transition: all 0.3s ease;
     box-shadow: 
         0 0 10px rgba(255, 255, 255, 0.1),
         inset 0 0 10px rgba(255, 255, 255, 0.05);
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    touch-action: manipulation;
-    position: relative;
-    outline: none;
-}   
+}
 
 .control-btn:active {
-    transform: scale(0.92);
-    background: var(--theme-primary);
-    box-shadow: 
-        0 0 20px var(--theme-primary),
-        inset 0 0 20px rgba(255, 255, 255, 0.3);
-    transition: transform 0.08s ease, background 0.08s ease;
+    transform: scale(0.95);
 }
 
 .control-btn:hover {
@@ -675,15 +665,6 @@ body {
     box-shadow: 
         0 0 15px var(--theme-primary),
         0 0 25px var(--theme-primary);
-}
-
-@media (hover: hover) {
-    .control-btn:hover {
-        background: var(--theme-primary);
-        box-shadow: 
-            0 0 15px var(--theme-primary),
-            0 0 25px var(--theme-primary);
-    }
 }
 
 .play-pause-btn {
@@ -696,19 +677,10 @@ body {
         0 0 30px var(--theme-primary);
 }
 
-.play-pause-btn:active {
-    transform: scale(0.9);
-    box-shadow: 
-        0 0 25px var(--theme-primary),
-        0 0 35px var(--theme-primary),
-        inset 0 0 20px rgba(255, 255, 255, 0.3);
-}
-
 .control-btn.active {
     color: var(--theme-primary);
     background: rgba(255, 255, 255, 0.15);
     box-shadow: 0 0 15px var(--theme-primary);
-    animation: none;
 }
 
 .playlist-info {
@@ -1243,63 +1215,36 @@ body {
     }
 }
 
-/* ===== FEEDBACK DE CLIQUE PARA REPEAT - CORRIGIDO ===== */
+/* ===== FEEDBACK DE CLIQUE PARA REPEAT ===== */
 @keyframes gentleActivation {
     0% {
         transform: scale(1);
-        box-shadow: 0 0 15px var(--theme-primary);
+        background: rgba(255, 255, 255, 0.1);
     }
     50% {
-        transform: scale(1.1);
-        box-shadow: 0 0 25px var(--theme-primary);
+        transform: scale(1.15);
+        background: rgba(var(--theme-primary-rgb), 0.2);
     }
     100% {
         transform: scale(1);
-        box-shadow: 0 0 15px var(--theme-primary);
+        background: rgba(255, 255, 255, 0.1);
     }
 }
 
 #repeatBtn.active {
-    animation: gentleActivation 0.3s ease forwards;
+    animation: gentleActivation 0.4s ease;
 }
 
-/* ESTADO NORMAL - IMPORTANTE! */
-#repeatBtn:not(.active) {
-    animation: none !important;
-    transform: scale(1) !important;
-}
-
-/* Tema específico para repeat ativo */
-.theme-meteors #repeatBtn[data-repeat="1"] {
-    color: var(--theme-primary);
+.theme-meteors #repeatBtn.active {
     background: rgba(138, 43, 226, 0.2);
-    box-shadow: 0 0 15px var(--theme-primary);
 }
 
-.theme-hearts #repeatBtn[data-repeat="1"] {
-    color: var(--theme-primary);
+.theme-hearts #repeatBtn.active {
     background: rgba(255, 0, 85, 0.2);
-    box-shadow: 0 0 15px var(--theme-primary);
 }
 
-.theme-aurora #repeatBtn[data-repeat="1"] {
-    color: var(--theme-primary);
+.theme-aurora #repeatBtn.active {
     background: rgba(0, 255, 170, 0.2);
-    box-shadow: 0 0 15px var(--theme-primary);
-}
-
-/* ===== RESET DE ESTADOS APÓS ANIMAÇÃO ===== */
-@keyframes resetButton {
-    from {
-        transform: scale(0.95);
-    }
-    to {
-        transform: scale(1);
-    }
-}
-
-.control-btn:not(:active) {
-    animation: resetButton 0.1s ease;
 }
 
 /* ===== RESPONSIVIDADE DESKTOP ===== */
@@ -1419,38 +1364,20 @@ body {
     }
 }
 
-/* ===== OTIMIZAÇÕES PARA DISPOSITIVOS TÁTEIS ===== */
+/* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
-    /* Botões do player - feedback de toque */
-    .control-btn:active {
-        transform: scale(0.92);
-        transition: transform 0.08s ease;
+    .control-btn:hover,
+    .album-control-btn:hover,
+    .theme-btn:hover,
+    .new-message-btn:hover {
+        transform: none;
     }
     
-    /* Resetar transform após clique */
-    .control-btn:not(:active) {
-        transform: scale(1);
-    }
-    
-    /* Outros botões */
+    .control-btn:active,
     .album-control-btn:active,
     .theme-btn:active,
     .new-message-btn:active {
         transform: scale(0.95);
-        transition: transform 0.08s ease;
-    }
-    
-    /* Cards de álbum */
-    .album-card:active {
-        transform: scale(0.98);
-    }
-    
-    /* Botões do menu de tema */
-    .theme-menu-toggle:active {
-        transform: scale(0.95);
-    }
-    
-    .theme-btn:active {
-        transform: scale(1.1);
     }
 }
+
