@@ -318,19 +318,31 @@ function toggleShuffle() {
 
 function toggleRepeat() {
     const repeatBtn = document.getElementById('repeatBtn');
+    if (!repeatBtn) return;
+    
     repeatMode = (repeatMode + 1) % 2;
+    repeatBtn.dataset.repeat = repeatMode;
     
-    repeatBtn.classList.toggle('active', repeatMode > 0);
+    // SEMPRE remover a classe active primeiro
+    repeatBtn.classList.remove('active');
     
-    if (repeatMode === 0) {
-        repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
-        repeatBtn.title = "Repetir desligado";
-        repeatBtn.style.color = '';
-    } else {
-        repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
-        repeatBtn.title = "Repetir uma música";
-        repeatBtn.style.color = 'var(--theme-primary)';
-    }
+    // Pequeno delay para resetar qualquer animação pendente
+    setTimeout(() => {
+        if (repeatMode === 0) {
+            // Repeat desligado
+            repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
+            repeatBtn.title = "Repetir desligado";
+            repeatBtn.style.color = '';
+            repeatBtn.style.transform = 'scale(1)';
+        } else {
+            // Repeat ativado
+            repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
+            repeatBtn.title = "Repetir uma música";
+            repeatBtn.classList.add('active');
+            repeatBtn.style.color = 'var(--theme-primary)';
+            repeatBtn.style.transform = 'scale(1)';
+        }
+    }, 10);
 }
 
 function updateProgressBar(audio) {
@@ -727,16 +739,20 @@ function forceRemoveActiveState(element) {
     element.style.transform = '';
     
     // Para o botão de repeat, manter o estilo se estiver ativado
-    if (element.id === 'repeatBtn') {
-        if (repeatMode === 1) {
-            element.classList.add('active');
-            element.style.color = 'var(--theme-primary)';
-        } else {
-            element.classList.remove('active');
-            element.style.color = '';
-            element.style.animation = 'none';
-        }
+// Para o botão de repeat, manter o estilo se estiver ativado
+if (element.id === 'repeatBtn') {
+    element.style.transform = 'scale(1)';
+    
+    // Apenas resetar se não estiver no modo repeat ativo
+    if (repeatMode === 0) {
+        element.classList.remove('active');
+        element.style.color = '';
+    } else {
+        // Se estiver ativo, garantir que tem a classe
+        element.classList.add('active');
+        element.style.color = 'var(--theme-primary)';
     }
+}
     
     // Para o botão de shuffle
     if (element.id === 'shuffleBtn') {
