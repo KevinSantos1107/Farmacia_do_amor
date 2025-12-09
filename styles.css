@@ -1379,130 +1379,100 @@ body {
     .new-message-btn:active {
         transform: scale(0.95);
     }
-    /* ===== CORREÇÃO PARA BOTÕES DO PLAYER ===== */
-.control-btn {
-    /* Remover qualquer transição que possa causar atraso */
-    transition: all 0.15s ease !important;
-    /* Garantir que o estado ativo seja limpo rapidamente */
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-    outline: none;
-    user-select: none;
-}
+/* ===== CORREÇÕES ESPECÍFICAS PARA TOUCH ===== */
 
-/* Estado ativo mais rápido */
-.control-btn:active {
-    transform: scale(0.9);
-    transition: transform 0.08s ease !important;
-}
-
-/* Especificamente para o botão de play/pause */
-.play-pause-btn:active {
+/* Classe para dispositivos touch */
+.touch-device .control-btn:active,
+.touch-device .album-control-btn:active,
+.touch-device .theme-btn:active,
+.touch-device .new-message-btn:active,
+.touch-device .close-modal:active,
+.touch-device .album-card:active {
     transform: scale(0.95);
-    transition: transform 0.08s ease !important;
+    transition: transform 0.1s ease !important;
 }
 
-/* ===== CORREÇÃO PARA BOTÕES DO MODAL ===== */
-.album-controls .album-control-btn {
-    width: 50px;
-    height: 50px;
-    font-size: 1.3rem;
-}
-
-/* ===== CORREÇÃO PARA BOTÕES DE TEMA ===== */
-.theme-menu-toggle:active {
-    transform: scale(0.85);
-    transition: transform 0.1s ease;
-}
-
-.theme-btn:active {
-    transform: scale(0.85);
-    transition: transform 0.1s ease;
-}
-
-/* ===== CORREÇÃO PARA BOTÃO DE NOVA MENSAGEM ===== */
-.new-message-btn:active {
+/* Feedback visual específico para touch */
+.touch-device .control-btn.touch-active,
+.touch-device .album-control-btn.touch-active,
+.touch-device .theme-btn.touch-active,
+.touch-device .new-message-btn.touch-active,
+.touch-device .close-modal.touch-active {
     transform: scale(0.95);
-    transition: transform 0.1s ease;
+    opacity: 0.9;
 }
 
-/* ===== CORREÇÃO PARA FECHAR MODAL ===== */
-.close-modal:active {
-    transform: scale(0.85) rotate(90deg);
-    transition: transform 0.1s ease;
+/* Para o botão de play/pause */
+.is-touch-device .play-pause-btn:active,
+.is-touch-device .play-pause-btn.touch-active {
+    transform: scale(0.92);
 }
 
-/* ===== MELHORIA DE TOUCH PARA CARDS DE ÁLBUM ===== */
-.album-card {
-    cursor: pointer;
-    /* Remover qualquer transição que cause delay */
-    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
-}
-
-.album-card:active {
+/* Para cards de álbum */
+.is-touch-device .album-card:active,
+.is-touch-device .album-card.touch-active {
     transform: scale(0.98);
-    box-shadow: 0 0 15px var(--theme-primary) !important;
-    transition: transform 0.08s ease, box-shadow 0.08s ease !important;
+    box-shadow: 0 0 20px var(--theme-primary) !important;
 }
 
-/* ===== SISTEMA DE TOQUE MELHORADO PARA MOBILE ===== */
-@media (max-width: 767px) {
-    /* Prevenir seleção de texto em botões */
-    button {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+/* Remover hover effects em dispositivos touch */
+@media (hover: none) and (pointer: coarse) {
+    .control-btn:hover,
+    .album-control-btn:hover,
+    .theme-btn:hover,
+    .new-message-btn:hover,
+    .close-modal:hover,
+    .album-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
     }
     
-    /* Reset do estado ativo para controles */
+    /* Melhor feedback de toque */
     .control-btn:active,
     .album-control-btn:active,
     .theme-btn:active,
     .new-message-btn:active,
-    .close-modal:active {
-        transform: scale(0.85) !important;
-        transition: transform 0.1s ease !important;
+    .close-modal:active,
+    .album-card:active {
+        transform: scale(0.92) !important;
+        transition: transform 0.08s ease !important;
     }
     
-    /* Efeito de toque mais rápido */
-    .control-btn:active,
-    .album-control-btn:active,
-    .theme-btn:active,
-    .new-message-btn:active,
-    .close-modal:active {
-        transform: scale(0.85);
-        transition: transform 0.08s ease, box-shadow 0.08s ease !important;
-        box-shadow: 0 0 20px var(--theme-primary) !important;
-    }
-    
-    /* Para o botão de play/pause */
     .play-pause-btn:active {
-        transform: scale(0.9);
-        box-shadow: 0 0 25px var(--theme-primary) !important;
+        transform: scale(0.90) !important;
     }
-    
-    /* Remover estados hover em dispositivos touch */
-    @media (hover: none) and (pointer: coarse) {
-        .control-btn:hover,
-        .album-control-btn:hover,
-        .theme-btn:hover,
-        .new-message-btn:hover,
-        .close-modal:hover,
-        .album-card:hover {
-            transform: none;
-            box-shadow: none;
-        }
-    }
-    
-    /* Desativar transições durante o toque */
+}
+
+/* Garantir que botões sejam clicáveis em mobile */
+@media (max-width: 767px) {
     .control-btn,
     .album-control-btn,
     .theme-btn,
     .new-message-btn,
     .close-modal,
     .album-card {
-        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+    }
+    
+    /* Tamanhos mínimos para toque (acessibilidade) */
+    .control-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .play-pause-btn {
+        min-width: 50px;
+        min-height: 50px;
+    }
+    
+    .album-control-btn {
+        min-width: 48px;
+        min-height: 48px;
     }
 }
 }
