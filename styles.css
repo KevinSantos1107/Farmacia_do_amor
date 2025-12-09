@@ -1364,208 +1364,50 @@ body {
     }
 }
 
-/* Touch device optimizations */
-@media (hover: none) and (pointer: coarse) {
-    .control-btn:hover,
-    .album-control-btn:hover,
-    .theme-btn:hover,
-    .new-message-btn:hover {
-        transform: none;
-    }
-    
-    .control-btn:active,
-    .album-control-btn:active,
-    .theme-btn:active,
-    .new-message-btn:active {
-        transform: scale(0.95);
-    }
-/* ===== CORREÇÕES ESPECÍFICAS PARA TOUCH ===== */
-
-/* Classe para dispositivos touch */
-.touch-device .control-btn:active,
-.touch-device .album-control-btn:active,
-.touch-device .theme-btn:active,
-.touch-device .new-message-btn:active,
-.touch-device .close-modal:active,
-.touch-device .album-card:active {
-    transform: scale(0.95);
-    transition: transform 0.1s ease !important;
-}
-
-/* Feedback visual específico para touch */
-.touch-device .control-btn.touch-active,
-.touch-device .album-control-btn.touch-active,
-.touch-device .theme-btn.touch-active,
-.touch-device .new-message-btn.touch-active,
-.touch-device .close-modal.touch-active {
-    transform: scale(0.95);
-    opacity: 0.9;
-}
-
-/* Para o botão de play/pause */
-.is-touch-device .play-pause-btn:active,
-.is-touch-device .play-pause-btn.touch-active {
-    transform: scale(0.92);
-}
-
-/* Para cards de álbum */
-.is-touch-device .album-card:active,
-.is-touch-device .album-card.touch-active {
-    transform: scale(0.98);
-    box-shadow: 0 0 20px var(--theme-primary) !important;
-}
-
-/* Remover hover effects em dispositivos touch */
-@media (hover: none) and (pointer: coarse) {
-    .control-btn:hover,
-    .album-control-btn:hover,
-    .theme-btn:hover,
-    .new-message-btn:hover,
-    .close-modal:hover,
-    .album-card:hover {
-        transform: none !important;
-        box-shadow: none !important;
-    }
-    
-    /* Melhor feedback de toque */
-    .control-btn:active,
-    .album-control-btn:active,
-    .theme-btn:active,
-    .new-message-btn:active,
-    .close-modal:active,
-    .album-card:active {
-        transform: scale(0.92) !important;
-        transition: transform 0.08s ease !important;
-    }
-    
-    .play-pause-btn:active {
-        transform: scale(0.90) !important;
-    }
-}
-
-/* Garantir que botões sejam clicáveis em mobile */
-@media (max-width: 767px) {
-    .control-btn,
-    .album-control-btn,
-    .theme-btn,
-    .new-message-btn,
-    .close-modal,
-    .album-card {
-        -webkit-tap-highlight-color: transparent;
-        cursor: pointer;
-        user-select: none;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-    }
-    
-    /* Tamanhos mínimos para toque (acessibilidade) */
-    .control-btn {
-        min-width: 44px;
-        min-height: 44px;
-    }
-    
-    .play-pause-btn {
-        min-width: 50px;
-        min-height: 50px;
-    }
-    
-    .album-control-btn {
-        min-width: 48px;
-        min-height: 48px;
-    }
-}
-/* ===== CORREÇÃO ESPECÍFICA PARA BOTÕES DO PLAYER DE MÚSICA ===== */
-
-/* Remover qualquer estado persistente nos botões do player */
+/* ===== SOLUÇÃO DEFINITIVA PARA BOTÕES PRESOS ===== */
+/* Esta é a chave da solução: */
 .music-player .control-btn {
-    transition: all 0.2s ease !important;
-    position: relative;
+    /* Garantir que não tenha transições problemáticas */
+    transition: transform 0.2s ease, background-color 0.2s ease !important;
 }
 
-/* Estado ativo temporário apenas para feedback */
-.music-player .control-btn:active {
-    transform: scale(0.92);
-    transition: transform 0.15s ease !important;
-}
-
-/* Estado 'active' do botão repeat/shuffle (funcional) */
-.music-player .control-btn.active {
-    color: var(--theme-primary) !important;
-    box-shadow: 0 0 10px var(--theme-primary) !important;
-}
-
-/* Estado 'touch-active' temporário (apenas para feedback visual) */
-.music-player .control-btn.touch-active {
-    transform: scale(0.92);
-    opacity: 0.9;
-    transition: all 0.1s ease !important;
-}
-
-/* Garantir que o estado touch-active seja removido */
-.music-player .control-btn:not(.active) {
-    animation: resetButtonState 0.3s ease forwards;
-}
-
-@keyframes resetButtonState {
-    to {
-        transform: scale(1);
-        opacity: 1;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.1),
-                    inset 0 0 10px rgba(255, 255, 255, 0.05);
-    }
-}
-
-/* Específico para mobile - prevenir estados persistentes */
-@media (max-width: 767px) {
-    .music-player .control-btn {
-        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
-        user-select: none;
-        touch-action: manipulation;
-    }
-    
-    .music-player .control-btn:active {
-        transform: scale(0.90) !important;
-        transition: transform 0.08s ease !important;
-    }
-    
-    /* Reset automático dos estados */
-    .music-player .control-btn {
-        animation: mobileButtonReset 0.5s ease forwards;
-    }
-    
-    @keyframes mobileButtonReset {
-        0% {
-            transform: scale(1);
-        }
-        100% {
-            transform: scale(1);
-        }
-    }
-}
-
-/* Especificamente para o botão de repeat quando ativo */
-.music-player #repeatBtn.active {
-    animation: repeatPulse 0.5s ease;
-}
-
-@keyframes repeatPulse {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 10px var(--theme-primary);
-    }
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 0 20px var(--theme-primary);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 10px var(--theme-primary);
-    }
-}
-
-/* Garantir que os botões voltem ao normal */
-.music-player .control-btn:not(:active):not(.active) {
+/* Estado normal */
+.music-player .control-btn {
     transform: scale(1) !important;
 }
+
+/* Quando clicado (temporário) */
+.music-player .control-btn:active {
+    transform: scale(0.9) !important;
+}
+
+/* IMPORTANTE: Garantir reset quando não estiver ativo */
+.music-player .control-btn:not(:active) {
+    transform: scale(1) !important;
+}
+
+/* Para botões ativos (repeat/shuffle ligados) */
+.music-player .control-btn.active {
+    color: var(--theme-primary) !important;
+    filter: drop-shadow(0 0 8px var(--theme-primary)) !important;
+}
+
+/* Específico para mobile - garantir reset */
+@media (max-width: 767px) {
+    .music-player .control-btn {
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+    }
+    
+    /* Reset mais agressivo para mobile */
+    .music-player .control-btn {
+        animation: forceResetMobile 0.5s forwards;
+    }
+    
+    @keyframes forceResetMobile {
+        to {
+            transform: scale(1) !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+    }
 }
