@@ -650,21 +650,28 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    transition: transform 0.1s ease, background 0.2s ease;
     box-shadow: 
         0 0 10px rgba(255, 255, 255, 0.1),
         inset 0 0 10px rgba(255, 255, 255, 0.05);
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+/* Remove TODOS os estados hover e active problemáticos */
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .control-btn:active {
-    transform: scale(0.95);
+    transform: scale(0.9);
 }
 
-.control-btn:hover {
-    background: var(--theme-primary);
-    box-shadow: 
-        0 0 15px var(--theme-primary),
-        0 0 25px var(--theme-primary);
+/* Estado ativado (repeat/shuffle ligados) - SEM animações extras */
+.control-btn.active {
+    color: var(--theme-primary);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 15px var(--theme-primary);
 }
 
 .play-pause-btn {
@@ -677,10 +684,8 @@ body {
         0 0 30px var(--theme-primary);
 }
 
-.control-btn.active {
-    color: var(--theme-primary);
-    background: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 15px var(--theme-primary);
+.play-pause-btn:active {
+    transform: scale(0.95);
 }
 
 .playlist-info {
@@ -1216,24 +1221,6 @@ body {
 }
 
 /* ===== FEEDBACK DE CLIQUE PARA REPEAT ===== */
-@keyframes gentleActivation {
-    0% {
-        transform: scale(1);
-        background: rgba(255, 255, 255, 0.1);
-    }
-    50% {
-        transform: scale(1.15);
-        background: rgba(var(--theme-primary-rgb), 0.2);
-    }
-    100% {
-        transform: scale(1);
-        background: rgba(255, 255, 255, 0.1);
-    }
-}
-
-#repeatBtn.active {
-    animation: gentleActivation 0.4s ease;
-}
 
 .theme-meteors #repeatBtn.active {
     background: rgba(138, 43, 226, 0.2);
@@ -1400,21 +1387,41 @@ body {
         box-shadow: 0 0 15px var(--theme-primary);
         transform: scale(1);
     }
-    /* ===== FIX DEFINITIVO PARA MOBILE ===== */
-.control-btn:focus,
-.album-control-btn:focus,
-.theme-btn:focus,
-.theme-menu-toggle:focus,
-.close-modal:focus,
-.new-message-btn:focus {
-    outline: none !important;
-    background: inherit !important;
-    color: inherit !important;
-}
-
-/* Mantém o estilo da classe .active */
-.control-btn.active:focus {
-    color: var(--theme-primary) !important;
-    background: rgba(255, 255, 255, 0.15) !important;
-}
+   /* ===== FIX DEFINITIVO PARA MOBILE ===== */
+@media (hover: none) and (pointer: coarse) {
+    .control-btn:hover,
+    .album-control-btn:hover,
+    .theme-btn:hover,
+    .theme-menu-toggle:hover,
+    .close-modal:hover,
+    .new-message-btn:hover {
+        background: inherit;
+        transform: none;
+        box-shadow: inherit;
+    }
+    
+    .control-btn:active,
+    .album-control-btn:active,
+    .theme-btn:active {
+        transform: scale(0.9);
+        transition: transform 0.05s ease;
+    }
+    
+    /* Força reset imediato após touch */
+    .control-btn,
+    .album-control-btn,
+    .theme-btn {
+        -webkit-tap-highlight-color: transparent !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    /* Estado active do repeat/shuffle - SEM efeitos extras */
+    .control-btn.active {
+        color: var(--theme-primary);
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 0 15px var(--theme-primary);
+        transform: scale(1);
+    }
 }
