@@ -657,7 +657,7 @@ body {
 }
 
 .control-btn:active {
-    animation: clickAnimation 0.3s ease;
+    transform: scale(0.95);
 }
 
 .control-btn:hover {
@@ -731,7 +731,6 @@ body {
 
 .album-card:active {
     transform: scale(0.98);
-    animation: cardClickAnimation 0.3s ease;
 }
 
 .album-card:hover {
@@ -872,10 +871,9 @@ body {
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
-.close-modal:active {
-    animation: clickAnimation 0.3s ease;
+.close-modal:hover, .close-modal:active {
     background: var(--theme-primary);
-    transform: scale(0.95);
+    transform: scale(1.1);
     border-color: var(--theme-primary);
     box-shadow: 
         0 0 15px var(--theme-primary),
@@ -903,10 +901,6 @@ body {
     background: rgba(0, 0, 0, 0.2);
     cursor: pointer;
     box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-}
-
-.album-viewer:active {
-    animation: viewerClickAnimation 0.3s ease;
 }
 
 .album-viewer img {
@@ -941,9 +935,7 @@ body {
 }
 
 .album-control-btn:active {
-    animation: clickAnimation 0.3s ease;
     background: var(--theme-secondary);
-    transform: scale(0.95);
     box-shadow: 0 0 25px var(--theme-secondary);
 }
 
@@ -1062,7 +1054,6 @@ body {
 }
 
 .new-message-btn:active {
-    animation: buttonClickAnimation 0.3s ease;
     transform: scale(0.95);
     box-shadow: 0 0 25px var(--theme-primary);
 }
@@ -1224,84 +1215,36 @@ body {
     }
 }
 
-/* ===== ANIMAÇÕES DE CLIQUE (MODIFICAÇÕES PRINCIPAIS) ===== */
-/* Animação para botões de controle quando clicados */
-@keyframes clickAnimation {
+/* ===== FEEDBACK DE CLIQUE PARA REPEAT ===== */
+@keyframes gentleActivation {
     0% {
         transform: scale(1);
-        box-shadow: 0 0 10px var(--theme-primary);
+        background: rgba(255, 255, 255, 0.1);
     }
     50% {
-        transform: scale(0.85);
-        box-shadow: 0 0 25px var(--theme-primary);
+        transform: scale(1.15);
+        background: rgba(var(--theme-primary-rgb), 0.2);
     }
     100% {
         transform: scale(1);
-        box-shadow: 0 0 10px var(--theme-primary);
+        background: rgba(255, 255, 255, 0.1);
     }
 }
 
-/* Animação para o botão de nova mensagem */
-@keyframes buttonClickAnimation {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 15px var(--theme-primary);
-    }
-    50% {
-        transform: scale(0.9);
-        box-shadow: 0 0 30px var(--theme-primary);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 15px var(--theme-primary);
-    }
+#repeatBtn.active {
+    animation: gentleActivation 0.4s ease;
 }
 
-/* Animação para cards de álbum quando clicados */
-@keyframes cardClickAnimation {
-    0% {
-        transform: scale(1);
-        box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-    }
-    50% {
-        transform: scale(0.97);
-        box-shadow: 0 0 30px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
-    }
-    100% {
-        transform: scale(0.98);
-        box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-    }
+.theme-meteors #repeatBtn.active {
+    background: rgba(138, 43, 226, 0.2);
 }
 
-/* Animação para o album-viewer quando clicado */
-@keyframes viewerClickAnimation {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
-    100% {
-        opacity: 1;
-    }
+.theme-hearts #repeatBtn.active {
+    background: rgba(255, 0, 85, 0.2);
 }
 
-/* ===== FEEDBACK DE CLIQUE PARA REPEAT (REMOVIDO O ESTADO PERMANENTE) ===== */
-#repeatBtn:active {
-    animation: clickAnimation 0.3s ease;
-    background: var(--theme-primary);
-}
-
-.theme-meteors #repeatBtn:active {
-    background: rgba(138, 43, 226, 0.8);
-}
-
-.theme-hearts #repeatBtn:active {
-    background: rgba(255, 0, 85, 0.8);
-}
-
-.theme-aurora #repeatBtn:active {
-    background: rgba(0, 255, 170, 0.8);
+.theme-aurora #repeatBtn.active {
+    background: rgba(0, 255, 170, 0.2);
 }
 
 /* ===== RESPONSIVIDADE DESKTOP ===== */
@@ -1423,18 +1366,38 @@ body {
 
 /* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
+    /* Remove hover states em dispositivos touch */
     .control-btn:hover,
     .album-control-btn:hover,
     .theme-btn:hover,
-    .new-message-btn:hover {
+    .theme-menu-toggle:hover,
+    .close-modal:hover,
+    .new-message-btn:hover,
+    .album-card:hover,
+    .main-card:hover,
+    .message-card:hover,
+    .start-date:hover,
+    .music-player:hover {
         transform: none;
+        background: inherit;
+        box-shadow: inherit;
     }
     
+    /* Define estados :active apenas para feedback visual momentâneo */
     .control-btn:active,
     .album-control-btn:active,
     .theme-btn:active,
+    .theme-menu-toggle:active,
+    .close-modal:active,
     .new-message-btn:active {
-        animation: clickAnimation 0.3s ease;
         transform: scale(0.95);
+    }
+    
+    /* Garante que o estado 'active' do repeat não persista */
+    .control-btn.active:not(:active) {
+        color: var(--theme-primary);
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 0 15px var(--theme-primary);
+        transform: scale(1);
     }
 }
