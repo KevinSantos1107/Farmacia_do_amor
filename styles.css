@@ -1441,10 +1441,14 @@ body {
 
 /* ===== LOADING SKELETON PARA IMAGENS ===== */
 .couple-photo,
-.album-cover,
-.album-cover-img,
-.album-viewer {
+.album-cover {
     position: relative;
+}
+
+/* Skeleton APENAS enquanto NÃO carregado */
+.couple-photo:not(:has(img.loaded)),
+.album-cover:not(:has(img.loaded)),
+.album-viewer:not(:has(img.loaded)) {
     background: linear-gradient(
         90deg,
         rgba(255, 255, 255, 0.03) 0%,
@@ -1464,6 +1468,7 @@ body {
     }
 }
 
+/* Imagens começam invisíveis */
 .couple-photo img,
 .album-cover img,
 .album-cover-img,
@@ -1472,22 +1477,13 @@ body {
     transition: opacity 0.5s ease-in-out;
 }
 
+/* Quando carregadas, ficam visíveis */
 .couple-photo img.loaded,
 .album-cover img.loaded,
 .album-cover-img.loaded,
 .album-viewer img.loaded {
     opacity: 1;
-}
-
-.album-card.loading .album-cover-img {
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.05) 0%,
-        rgba(255, 255, 255, 0.1) 50%,
-        rgba(255, 255, 255, 0.05) 100%
-    );
-    background-size: 200% 100%;
-    animation: skeletonLoading 1.5s ease-in-out infinite;
+    animation: fadeInImage 0.6s ease-out;
 }
 
 @keyframes fadeInImage {
@@ -1501,8 +1497,14 @@ body {
     }
 }
 
-.couple-photo img.loaded,
-.album-cover img.loaded,
-.album-cover-img.loaded {
-    animation: fadeInImage 0.6s ease-out;
+/* Skeleton para cards de álbum */
+.album-cover-img:not(.loaded) {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeletonLoading 1.5s ease-in-out infinite;
 }
