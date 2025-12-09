@@ -1400,4 +1400,21 @@ body {
         box-shadow: 0 0 15px var(--theme-primary);
         transform: scale(1);
     }
+    /* ===== FIX DEFINITIVO PARA MOBILE ===== */
+.control-btn:focus,
+.album-control-btn:focus,
+.theme-btn:focus,
+.theme-menu-toggle:focus,
+.close-modal:focus,
+.new-message-btn:focus {
+    outline: none !important;
+    background: inherit !important;
+    color: inherit !important;
+}
+
+/* Mantém o estilo da classe .active */
+.control-btn.active:focus {
+    color: var(--theme-primary) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+}
 }
