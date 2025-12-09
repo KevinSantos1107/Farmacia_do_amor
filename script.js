@@ -24,6 +24,26 @@ document.addEventListener('DOMContentLoaded', function() {
 // ===== CONFIGURAÇÕES DE DATAS =====
 const START_DATE = new Date('2023-06-15T00:00:00');
 const START_DATE_DISPLAY = '15/06/2023';
+// ===== DETECÇÃO DE TOUCH PARA MOBILE =====
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    // Adicionar classe ao body para CSS específico
+    document.body.classList.add('touch-device');
+    
+    // Remover qualquer foco persistente em botões
+    document.addEventListener('touchstart', function() {
+        // Esta função está vazia mas ajuda no comportamento touch
+    }, { passive: true });
+    
+    // Prevenir comportamento de rolagem ao tocar em botões
+    const buttons = document.querySelectorAll('button, [role="button"]');
+    buttons.forEach(button => {
+        button.addEventListener('touchstart', function(e) {
+            // Não fazer preventDefault para não bloquear cliques
+        }, { passive: true });
+    });
+    
+    console.log('📱 Dispositivo touch detectado');
+}
 
 // ===== SISTEMA DE TEMAS =====
 const themes = {
@@ -596,37 +616,43 @@ function initMessages() {
 
 // ===== MELHORIA DE TOUCH PARA DISPOSITIVOS MÓVEIS =====
 function initTouchImprovements() {
-    // Prevenir comportamento padrão de toque longo
-    document.addEventListener('touchstart', function(e) {
-        if (e.target.tagName === 'BUTTON' || 
-            e.target.closest('button') || 
-            e.target.closest('.album-card') ||
-            e.target.closest('.theme-btn') ||
-            e.target.closest('.control-btn')) {
-            e.preventDefault();
-        }
-    }, { passive: false });
+    // Adicionar classe para detectar dispositivo touch
+    document.body.classList.add('is-touch-device');
     
-    // Remover estado :active após o toque
+    // Remover estado :active após o toque - MÉTODO CORRETO
     document.addEventListener('touchend', function(e) {
         const activeElement = e.target;
+        // Pequeno delay para garantir que o clique seja processado
         setTimeout(() => {
             if (activeElement && activeElement.blur) {
                 activeElement.blur();
             }
-        }, 100);
+            // Remover qualquer classe active que possa ter ficado
+            document.body.classList.remove('touch-active');
+        }, 300);
     });
     
-    // Prevenir zoom com toque duplo em botões
-    document.addEventListener('touchmove', function(e) {
-        if (e.target.tagName === 'BUTTON' || 
-            e.target.closest('button') || 
-            e.target.closest('.control-btn')) {
-            e.preventDefault();
-        }
-    }, { passive: false });
+    // Apenas prevenir comportamento padrão em elementos específicos
+    const touchElements = document.querySelectorAll(
+        '.control-btn, .album-control-btn, .theme-btn, .new-message-btn, .close-modal'
+    );
     
-    console.log('✅ Melhorias de touch aplicadas');
+    touchElements.forEach(element => {
+        element.addEventListener('touchstart', function(e) {
+            // Adicionar classe para feedback visual
+            this.classList.add('touch-active');
+            // Permitir que o evento prossiga normalmente
+        }, { passive: true });
+        
+        element.addEventListener('touchend', function(e) {
+            // Remover classe após um tempo
+            setTimeout(() => {
+                this.classList.remove('touch-active');
+            }, 300);
+        }, { passive: true });
+    });
+    
+    console.log('✅ Melhorias de touch aplicadas (versão corrigida)');
 }
 
 function showRandomMessage() {
