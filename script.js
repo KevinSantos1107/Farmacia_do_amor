@@ -227,10 +227,25 @@ function initMusicPlayer() {
 
 function handlePrevTrack(audio) {
     if (audio.currentTime > 3) {
+        // Se passou mais de 3 segundos, volta ao início da música atual
         audio.currentTime = 0;
         updateProgressBar(audio);
     } else {
-        currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+        // Música anterior
+        if (isShuffled) {
+            // No shuffle, vai para música aleatória
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * playlist.length);
+            } while (randomIndex === currentTrackIndex && playlist.length > 1);
+            
+            currentTrackIndex = randomIndex;
+            console.log('🔀 Shuffle: tocando música anterior aleatória', currentTrackIndex + 1);
+        } else {
+            // Modo normal
+            currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+        }
+        
         loadTrack(currentTrackIndex);
         if (isPlaying) {
             setTimeout(() => audio.play(), 100);
@@ -239,7 +254,20 @@ function handlePrevTrack(audio) {
 }
 
 function nextTrack() {
-    currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+    if (isShuffled) {
+        // Modo shuffle: escolhe música aleatória (diferente da atual)
+        let randomIndex;
+        do {
+            randomIndex = Math.floor(Math.random() * playlist.length);
+        } while (randomIndex === currentTrackIndex && playlist.length > 1);
+        
+        currentTrackIndex = randomIndex;
+        console.log('🔀 Shuffle: tocando música', currentTrackIndex + 1);
+    } else {
+        // Modo normal: próxima música em ordem
+        currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+    }
+    
     loadTrack(currentTrackIndex);
     if (isPlaying) {
         document.getElementById('audioPlayer').play();
@@ -285,12 +313,14 @@ function toggleShuffle() {
     const shuffleBtn = document.getElementById('shuffleBtn');
     isShuffled = !isShuffled;
     
-    // Remove primeiro, depois adiciona se necessário
     shuffleBtn.classList.remove('active');
-    shuffleBtn.style.color = ''; // Limpa o estilo inline
+    shuffleBtn.style.color = '';
     
     if (isShuffled) {
         shuffleBtn.classList.add('active');
+        console.log('🔀 Modo shuffle ATIVADO');
+    } else {
+        console.log('▶️ Modo shuffle DESATIVADO - ordem normal');
     }
 }
 
