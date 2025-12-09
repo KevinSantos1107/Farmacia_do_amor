@@ -82,6 +82,16 @@ body {
     transition: background-color 0.5s ease;
     padding-bottom: 20px;
 }
+/* Respeitar preferências de movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 /* Canvas de Fundo */
 #backgroundCanvas {
@@ -300,23 +310,48 @@ body {
     padding: 0 15px;
     z-index: 1;
     animation: neonPulse 3s ease-in-out infinite alternate;
+    will-change: text-shadow;
 }
 
 /* Efeito neon específico para cada nome */
 .name.kevin {
-    background: var(--gradient-text);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation-delay: 0.5s;
+  /* Fallback para navegadores antigos */
+  color: var(--theme-primary);
+  
+  /* Gradiente moderno */
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation-delay: 0.5s;
+}
+
+/* Resetar cor se background-clip não funcionar */
+@supports not (background-clip: text) {
+  .name.kevin {
+    color: var(--theme-primary);
+    -webkit-text-fill-color: var(--theme-primary);
+  }
 }
 
 .name.iara {
-    background: linear-gradient(90deg, var(--theme-accent), var(--theme-secondary), var(--theme-primary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation-delay: 1s;
+  /* Fallback para navegadores antigos */
+  color: var(--theme-accent);
+  
+  /* Gradiente moderno */
+  background: linear-gradient(90deg, var(--theme-accent), var(--theme-secondary), var(--theme-primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation-delay: 1s;
+}
+
+/* Resetar cor se background-clip não funcionar */
+@supports not (background-clip: text) {
+  .name.iara {
+    color: var(--theme-accent);
+    -webkit-text-fill-color: var(--theme-accent);
+  }
 }
 
 /* Coração pulsante com neon */
@@ -330,6 +365,7 @@ body {
         0 0 10px var(--theme-accent),
         0 0 20px var(--theme-accent),
         0 0 30px var(--theme-accent);
+    will-change: transform;
 }
 
 .subtitle {
@@ -506,6 +542,7 @@ body {
         0 0 10px var(--theme-primary),
         inset 0 0 10px rgba(255, 255, 255, 0.2);
     animation: floatNeon 3s ease-in-out infinite;
+    will-change: transform, filter;
 }
 
 .time-value {
@@ -1404,40 +1441,40 @@ body {
 }
 
 @media (hover: none) and (pointer: coarse) {
-    .control-btn:hover,
-    .album-control-btn:hover,
-    .theme-btn:hover,
-    .theme-menu-toggle:hover,
-    .close-modal:hover,
-    .new-message-btn:hover {
-        background: inherit;
-        transform: none;
-        box-shadow: inherit;
-    }
-    
-    .control-btn:active,
-    .album-control-btn:active,
-    .theme-btn:active {
-        transform: scale(0.9);
-        transition: transform 0.05s ease;
-    }
-    
-    .control-btn,
-    .album-control-btn,
-    .theme-btn {
-        -webkit-tap-highlight-color: transparent !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        user-select: none !important;
-    }
-    
-    .control-btn.active {
-        color: var(--theme-primary);
-        background: rgba(255, 255, 255, 0.15);
-        box-shadow: 0 0 15px var(--theme-primary);
-        transform: scale(1);
-    }
-} /* ← Fecha o @media aqui */
+  .control-btn:hover,
+  .album-control-btn:hover,
+  .theme-btn:hover,
+  .theme-menu-toggle:hover,
+  .close-modal:hover,
+  .new-message-btn:hover {
+    background: inherit;
+    transform: none;
+    box-shadow: inherit;
+  }
+  
+  .control-btn:active,
+  .album-control-btn:active,
+  .theme-btn:active {
+    transform: scale(0.9);
+    transition: transform 0.05s ease;
+  }
+  
+  .control-btn,
+  .album-control-btn,
+  .theme-btn {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+  
+  .control-btn.active {
+    color: var(--theme-primary);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 15px var(--theme-primary);
+    transform: scale(1);
+  }
+}
 
 /* ===== LOADING SKELETON PARA IMAGENS ===== */
 .couple-photo,
@@ -1445,18 +1482,26 @@ body {
     position: relative;
 }
 
-/* Skeleton APENAS enquanto NÃO carregado */
-.couple-photo:not(:has(img.loaded)),
-.album-cover:not(:has(img.loaded)),
-.album-viewer:not(:has(img.loaded)) {
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.03) 0%,
-        rgba(255, 255, 255, 0.08) 50%,
-        rgba(255, 255, 255, 0.03) 100%
-    );
-    background-size: 200% 100%;
-    animation: skeletonLoading 1.5s ease-in-out infinite;
+/* Skeleton enquanto carregando */
+.couple-photo.loading,
+.album-cover.loading,
+.album-viewer.loading {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonLoading 1.5s ease-in-out infinite;
+}
+
+/* Remove skeleton quando carregado */
+.couple-photo.loaded,
+.album-cover.loaded,
+.album-viewer.loaded {
+  background: none;
+  animation: none;
 }
 
 @keyframes skeletonLoading {
@@ -1498,13 +1543,18 @@ body {
 }
 
 /* Skeleton para cards de álbum */
-.album-cover-img:not(.loaded) {
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.05) 0%,
-        rgba(255, 255, 255, 0.1) 50%,
-        rgba(255, 255, 255, 0.05) 100%
-    );
-    background-size: 200% 100%;
-    animation: skeletonLoading 1.5s ease-in-out infinite;
+.album-cover-img.loading {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonLoading 1.5s ease-in-out infinite;
+}
+
+.album-cover-img.loaded {
+  background: none;
+  animation: none;
 }
