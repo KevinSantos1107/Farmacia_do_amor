@@ -199,11 +199,37 @@ function initMusicPlayer() {
     
     loadTrack(currentTrackIndex);
     
-    playPauseBtn.addEventListener('click', togglePlayPause);
-    prevBtn.addEventListener('click', () => handlePrevTrack(audio));
-    nextBtn.addEventListener('click', nextTrack);
-    shuffleBtn.addEventListener('click', toggleShuffle);
-    repeatBtn.addEventListener('click', toggleRepeat);
+    // Configurar eventos para todos os botões de controle
+    const controlButtons = [playPauseBtn, prevBtn, nextBtn, shuffleBtn, repeatBtn];
+    
+    controlButtons.forEach(button => {
+        if (button) {
+            setupButtonEvents(button);
+        }
+    });
+    
+    // Eventos específicos
+    if (playPauseBtn) {
+        playPauseBtn.addEventListener('click', togglePlayPause);
+    }
+    
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => handlePrevTrack(audio));
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', nextTrack);
+    }
+    
+    if (shuffleBtn) {
+        shuffleBtn.addEventListener('click', toggleShuffle);
+    }
+    
+    if (repeatBtn) {
+        repeatBtn.addEventListener('click', toggleRepeat);
+        // Inicializar estado do repeat
+        repeatBtn.dataset.repeat = repeatMode;
+    }
     
     progressBarFill.parentElement.addEventListener('click', function(e) {
         const rect = this.getBoundingClientRect();
@@ -223,6 +249,8 @@ function initMusicPlayer() {
     });
     
     audio.volume = 0.8;
+    
+    console.log('✅ Player de música inicializado com correções de toque');
 }
 
 function handlePrevTrack(audio) {
@@ -628,6 +656,133 @@ function updateCurrentDate() {
         dateElement.textContent = `Hoje é ${dateString}`;
     }
 }
+// ===== NOVAS FUNÇÕES PARA CORRIGIR CLIQUE =====
+
+// Função para configurar eventos dos botões
+function setupButtonEvents(button) {
+    if (!button) return;
+    
+    // Remover highlight padrão do iOS/Android
+    button.style.webkitTapHighlightColor = 'transparent';
+    
+    // Evento touchstart - para feedback tátil imediato
+    button.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        this.classList.add('touch-active');
+        this.style.transform = 'scale(0.92)';
+    }, { passive: false });
+    
+    // Evento touchend - remover estado ativo
+    button.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        this.classList.remove('touch-active');
+        this.style.transform = '';
+        
+        // Pequeno delay para garantir que o clique seja processado
+        setTimeout(() => {
+            this.blur(); // Remove foco
+            forceRemoveActiveState(this);
+        }, 100);
+    }, { passive: false });
+    
+    // Evento touchcancel - quando o toque é interrompido
+    button.addEventListener('touchcancel', function() {
+        this.classList.remove('touch-active');
+        this.style.transform = '';
+        forceRemoveActiveState(this);
+    });
+    
+    // Evento mousedown - para desktop
+    button.addEventListener('mousedown', function() {
+        this.classList.add('mouse-active');
+    });
+    
+    // Evento mouseup - remover estado ativo
+    button.addEventListener('mouseup', function() {
+        this.classList.remove('mouse-active');
+        forceRemoveActiveState(this);
+    });
+    
+    // Evento mouseleave - se o mouse sair durante o clique
+    button.addEventListener('mouseleave', function() {
+        this.classList.remove('mouse-active');
+        forceRemoveActiveState(this);
+    });
+    
+    // Prevenir comportamento padrão de arrastar no mobile
+    button.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+    });
+}
+
+// Função para forçar remoção do estado ativo
+function forceRemoveActiveState(element) {
+    if (!element) return;
+    
+    // Remover classes de estado ativo
+    element.classList.remove('touch-active', 'mouse-active');
+    
+    // Resetar transform
+    element.style.transform = '';
+    
+    // Para o botão de repeat, manter o estilo se estiver ativado
+    if (element.id === 'repeatBtn') {
+        if (repeatMode === 1) {
+            element.classList.add('active');
+            element.style.color = 'var(--theme-primary)';
+        } else {
+            element.classList.remove('active');
+            element.style.color = '';
+            element.style.animation = 'none';
+        }
+    }
+    
+    // Para o botão de shuffle
+    if (element.id === 'shuffleBtn') {
+        if (isShuffled) {
+            element.style.color = 'var(--theme-primary)';
+        } else {
+            element.style.color = '';
+        }
+    }
+}
+
+// ===== INICIALIZAÇÃO COMPLETA =====
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tudo
+    initThemeMenu();
+    initThemeSelector();
+    initTimeCounter();
+    initMusicPlayer(); // Agora com correções
+    initAlbums();
+    initMessages();
+    initModal();
+    updateCurrentDate();
+    
+    console.log('💖 Site Kevin & Iara carregado com correções de toque!');
+    
+    // Inicializar animações depois de um delay
+    setTimeout(() => {
+        if (typeof initAnimations === 'function') {
+            initAnimations();
+        }
+    }, 500);
+    
+    // Adicionar listener global para reset de estados ativos
+    document.addEventListener('touchstart', function() {
+        // Este evento vazio ajuda a prevenir comportamentos indesejados
+    }, { passive: true });
+    
+    document.addEventListener('touchend', function(e) {
+        // Remover estado ativo de qualquer elemento que possa ter ficado preso
+        const activeElements = document.querySelectorAll('.touch-active, .mouse-active');
+        activeElements.forEach(el => {
+            el.classList.remove('touch-active', 'mouse-active');
+            el.style.transform = '';
+        });
+    }, { passive: true });
+});
 
 // ===== INICIALIZAÇÃO COMPLETA =====
 console.log(`
