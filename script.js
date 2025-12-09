@@ -199,31 +199,11 @@ function initMusicPlayer() {
     
     loadTrack(currentTrackIndex);
     
-    // Event listeners SIMPLES - sem classes complexas
-    playPauseBtn.addEventListener('click', function() {
-        togglePlayPause();
-        this.style.transform = 'scale(1)';
-    });
-    
-    prevBtn.addEventListener('click', function() {
-        handlePrevTrack(audio);
-        this.style.transform = 'scale(1)';
-    });
-    
-    nextBtn.addEventListener('click', function() {
-        nextTrack();
-        this.style.transform = 'scale(1)';
-    });
-    
-    shuffleBtn.addEventListener('click', function() {
-        toggleShuffle();
-        this.style.transform = 'scale(1)';
-    });
-    
-    repeatBtn.addEventListener('click', function() {
-        toggleRepeat();
-        this.style.transform = 'scale(1)';
-    });
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    prevBtn.addEventListener('click', () => handlePrevTrack(audio));
+    nextBtn.addEventListener('click', nextTrack);
+    shuffleBtn.addEventListener('click', toggleShuffle);
+    repeatBtn.addEventListener('click', toggleRepeat);
     
     progressBarFill.parentElement.addEventListener('click', function(e) {
         const rect = this.getBoundingClientRect();
@@ -243,8 +223,6 @@ function initMusicPlayer() {
     });
     
     audio.volume = 0.8;
-    
-    console.log('🎵 Player de música inicializado');
 }
 
 function handlePrevTrack(audio) {
@@ -306,30 +284,24 @@ function togglePlayPause() {
 function toggleShuffle() {
     const shuffleBtn = document.getElementById('shuffleBtn');
     isShuffled = !isShuffled;
-    
-    if (isShuffled) {
-        shuffleBtn.style.color = 'var(--theme-primary)';
-        shuffleBtn.style.filter = 'drop-shadow(0 0 8px var(--theme-primary))';
-    } else {
-        shuffleBtn.style.color = '';
-        shuffleBtn.style.filter = '';
-    }
+    shuffleBtn.classList.toggle('active', isShuffled);
+    shuffleBtn.style.color = isShuffled ? 'var(--theme-primary)' : '';
 }
 
 function toggleRepeat() {
     const repeatBtn = document.getElementById('repeatBtn');
     repeatMode = (repeatMode + 1) % 2;
     
+    repeatBtn.classList.toggle('active', repeatMode > 0);
+    
     if (repeatMode === 0) {
         repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
         repeatBtn.title = "Repetir desligado";
         repeatBtn.style.color = '';
-        repeatBtn.style.filter = '';
     } else {
         repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
         repeatBtn.title = "Repetir uma música";
         repeatBtn.style.color = 'var(--theme-primary)';
-        repeatBtn.style.filter = 'drop-shadow(0 0 8px var(--theme-primary))';
     }
 }
 
@@ -668,48 +640,3 @@ console.log(`
 ║   🎨 ${Object.keys(themes).length} temas disponíveis ║
 ╚══════════════════════════════════════╝
 `);
-
-// ===== SOLUÇÃO DEFINITIVA PARA BOTÕES PRESOS =====
-document.addEventListener('DOMContentLoaded', function() {
-    // Esperar um pouco para garantir que tudo carregou
-    setTimeout(function() {
-        // Encontrar todos os botões do player
-        const playerButtons = document.querySelectorAll('.music-player .control-btn');
-        
-        playerButtons.forEach(button => {
-            // Garantir que comece no estado normal
-            button.style.transform = 'scale(1)';
-            
-            // SOLUÇÃO: Adicionar evento para clicar fora do botão
-            document.addEventListener('click', function(event) {
-                // Se o clique NÃO foi no botão
-                if (!button.contains(event.target)) {
-                    // Resetar o botão imediatamente
-                    button.style.transform = 'scale(1)';
-                    button.style.opacity = '1';
-                    
-                    // Se não for botão ativo (repeat/shuffle), remover cor
-                    if (!button.classList.contains('active')) {
-                        button.style.color = '';
-                        button.style.filter = '';
-                    }
-                }
-            });
-            
-            // Também resetar quando tocar em qualquer lugar da tela (mobile)
-            document.addEventListener('touchstart', function(event) {
-                if (!button.contains(event.target)) {
-                    button.style.transform = 'scale(1)';
-                    button.style.opacity = '1';
-                    
-                    if (!button.classList.contains('active')) {
-                        button.style.color = '';
-                        button.style.filter = '';
-                    }
-                }
-            }, { passive: true });
-        });
-        
-        console.log('✅ Sistema anti-botão-preso ativado');
-    }, 1000);
-});
