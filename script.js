@@ -1,6 +1,28 @@
+// ===== CONFIGURAÇÕES INICIAIS =====
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tudo
+    initThemeMenu();
+    initThemeSelector();
+    initTimeCounter();
+    initMusicPlayer();
+    initAlbums();
+    initMessages();
+    initModal();
+    updateCurrentDate();
+    
+    console.log('💖 Site Kevin & Iara carregado com sucesso!');
+    
+    // Inicializar animações depois de um delay
+    setTimeout(() => {
+        if (typeof initAnimations === 'function') {
+            initAnimations();
+        }
+    }, 500);
+});
+
 // ===== CONFIGURAÇÕES DE DATAS =====
-const START_DATE = new Date('2025-10-11T17:00:00');
-const START_DATE_DISPLAY = '11/10/2025';
+const START_DATE = new Date('2023-06-15T00:00:00');
+const START_DATE_DISPLAY = '15/06/2023';
 
 // ===== SISTEMA DE TEMAS =====
 const themes = {
@@ -80,7 +102,7 @@ function changeTheme(themeName) {
     console.log(`🎨 Tema alterado para: ${theme.name}`);
 }
 
-// ===== CONTROLE DO MENU DE TEMA (ATUALIZADA) =====
+// ===== CONTROLE DO MENU DE TEMA =====
 function initThemeMenu() {
     const themeToggle = document.getElementById('themeToggle');
     const themeSelector = document.getElementById('themeSelector');
@@ -90,104 +112,23 @@ function initThemeMenu() {
         return;
     }
     
-    // Adicionar classe inicial para mobile
-    if (window.innerWidth <= 768) {
-        themeToggle.classList.add('mobile-mode');
-    }
-    
     themeToggle.addEventListener('click', function(e) {
         e.stopPropagation();
-        
-        // Alternar visibilidade
-        const isOpening = themeSelector.classList.contains('hidden');
-        
-        if (isOpening) {
-            themeSelector.classList.remove('hidden');
-            this.classList.add('menu-open');
-        } else {
-            themeSelector.classList.add('hidden');
-            this.classList.remove('menu-open');
-        }
+        themeSelector.classList.toggle('hidden');
     });
     
-    // Fechar menu ao clicar fora
     document.addEventListener('click', function(e) {
         if (!themeSelector.contains(e.target) && e.target !== themeToggle) {
             themeSelector.classList.add('hidden');
-            themeToggle.classList.remove('menu-open');
         }
     });
     
-    // Fechar menu ao trocar tema
     const themeButtons = document.querySelectorAll('.theme-btn');
     themeButtons.forEach(button => {
         button.addEventListener('click', function() {
             themeSelector.classList.add('hidden');
-            themeToggle.classList.remove('menu-open');
         });
     });
-    
-    // Ajustar comportamento em redimensionamento
-    window.addEventListener('resize', function() {
-        if (window.innerWidth <= 768) {
-            themeToggle.classList.add('mobile-mode');
-        } else {
-            themeToggle.classList.remove('mobile-mode');
-            themeToggle.classList.remove('menu-open');
-        }
-    });
-}
-
-// ===== BOTÃO DE TEMA INTELIGENTE PARA MOBILE =====
-function initSmartThemeButton() {
-    const themeToggle = document.getElementById('themeToggle');
-    const themeSelector = document.getElementById('themeSelector');
-    
-    if (!themeToggle) return;
-    
-    // Só ativar em dispositivos móveis
-    if (window.innerWidth > 768) return;
-    
-    let lastScrollTop = 0;
-    let scrollTimeout;
-    
-    function handleScroll() {
-        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-        const scrollThreshold = 100; // pixels antes de começar a esconder
-        
-        // Verificar se está rolando para baixo
-        const isScrollingDown = currentScroll > lastScrollTop;
-        
-        if (currentScroll > scrollThreshold && isScrollingDown) {
-            // Usuário está rolando para baixo - tornar botão mais discreto
-            themeToggle.style.opacity = '0.6';
-            themeToggle.style.transform = 'scale(0.85)';
-            
-            // Fechar menu se estiver aberto
-            if (themeSelector && !themeSelector.classList.contains('hidden')) {
-                themeSelector.classList.add('hidden');
-                themeToggle.classList.remove('menu-open');
-            }
-        } else if (currentScroll < scrollThreshold) {
-            // Usuário está no topo - mostrar botão normal
-            themeToggle.style.opacity = '1';
-            themeToggle.style.transform = 'scale(1)';
-        }
-        
-        lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
-        
-        // Restaurar botão depois de parar de rolar
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-            themeToggle.style.opacity = '1';
-            themeToggle.style.transform = 'scale(1)';
-        }, 1000);
-    }
-    
-    // Adicionar evento de scroll
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    console.log('🎨 Botão de tema inteligente ativado para mobile');
 }
 
 // ===== CONTADOR DE TEMPO =====
@@ -224,14 +165,14 @@ function updateTimeCounter() {
 // ===== PLAYER DE MÚSICA =====
 const playlist = [
     {
-        title: "Menina da Farmácia",
-        artist: "Kevin Santos / Nossa Canção",
+        title: "menina-da-farmacia",
+        artist: "Seu Artista",
         src: "audio/menina-da-farmacia.mp3",
         album: "Nossa Trilha Sonora"
     },
     {
-        title: "Menina da Farmácia 2",
-        artist: "Kevin Santos / Nossa Canção",
+        title: "menina-da-farmacia-2",
+        artist: "Seu Artista",
         src: "audio/menina-da-farmacia-2.mp3",
         album: "Nossa Trilha Sonora"
     }
@@ -688,53 +629,14 @@ function updateCurrentDate() {
     }
 }
 
-// ===== INICIALIZAÇÃO COMPLETA (APENAS UMA VEZ!) =====
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar tudo na ordem correta (APENAS UMA VEZ!)
-    initThemeMenu();
-    initThemeSelector();
-    initTimeCounter();
-    initMusicPlayer();
-    initAlbums();
-    initMessages();
-    initModal();
-    updateCurrentDate();
-    
-    // Inicializar botão inteligente para mobile
-    setTimeout(initSmartThemeButton, 800);
-    
-    // Verificar se está em mobile e adicionar classe
-    if (window.innerWidth <= 768) {
-        document.body.classList.add('is-mobile');
-    }
-    
-    // Atualizar quando redimensionar
-    window.addEventListener('resize', function() {
-        if (window.innerWidth <= 768) {
-            document.body.classList.add('is-mobile');
-            // Reativar botão inteligente se necessário
-            initSmartThemeButton();
-        } else {
-            document.body.classList.remove('is-mobile');
-        }
-    });
-    
-    console.log(`
-╔══════════════════════════════════════════════╗
-║   💖 SITE KEVIN & IARA INICIADO COM SUCESSO  ║
-╠══════════════════════════════════════════════╣
-║   📱 Botão de tema discreto para mobile      ║
-║   🎨 ${Object.keys(themes).length} temas disponíveis       ║
-║   🎵 Player musical funcionando              ║
-║   📸 ${albums.length} álbuns organizados      ║
-╚══════════════════════════════════════════════╝
-    `);
-    
-    // Inicializar animações depois de um delay
-    setTimeout(() => {
-        if (typeof initAnimations === 'function') {
-            initAnimations();
-        }
-    }, 500);
-});
-
+// ===== INICIALIZAÇÃO COMPLETA =====
+console.log(`
+╔══════════════════════════════════════╗
+║   💖 SITE KEVIN & IARA INICIADO 💖   ║
+╠══════════════════════════════════════╣
+║   📱 Otimizado para Mobile          ║
+║   🎵 Player original restaurado     ║
+║   📸 ${albums.length} álbuns organizados ║
+║   🎨 ${Object.keys(themes).length} temas disponíveis ║
+╚══════════════════════════════════════╝
+`);
