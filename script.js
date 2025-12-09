@@ -647,4 +647,32 @@ console.log(`
 ║   📸 ${albums.length} álbuns organizados ║
 ║   🎨 ${Object.keys(themes).length} temas disponíveis ║
 ╚══════════════════════════════════════╝
+
+// ===== FIX PARA FOCUS STATE EM MOBILE =====
+document.addEventListener('DOMContentLoaded', function() {
+    // Lista de todos os botões que precisam do fix
+    const buttons = document.querySelectorAll(
+        '.control-btn, .album-control-btn, .theme-btn, ' +
+        '.theme-menu-toggle, .close-modal, .new-message-btn'
+    );
+    
+    buttons.forEach(button => {
+        // Remove o focus imediatamente após o click/touch
+        button.addEventListener('click', function() {
+            this.blur(); // Remove o foco
+        });
+        
+        // Previne o estado de focus em touch
+        button.addEventListener('touchend', function() {
+            this.blur(); // Remove o foco após touch
+        });
+        
+        // Previne mousedown de manter o focus
+        button.addEventListener('mousedown', function(e) {
+            e.preventDefault(); // Previne o focus
+        });
+    });
+    
+    console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
+});
 `);
