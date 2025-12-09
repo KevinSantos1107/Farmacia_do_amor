@@ -199,31 +199,11 @@ function initMusicPlayer() {
     
     loadTrack(currentTrackIndex);
     
-    // SOLUÇÃO: Event listeners com timeout para reset automático
-    playPauseBtn.addEventListener('click', function() {
-        togglePlayPause();
-        resetButtonStyle(this);
-    });
-    
-    prevBtn.addEventListener('click', function() {
-        handlePrevTrack(audio);
-        resetButtonStyle(this);
-    });
-    
-    nextBtn.addEventListener('click', function() {
-        nextTrack();
-        resetButtonStyle(this);
-    });
-    
-    shuffleBtn.addEventListener('click', function() {
-        toggleShuffle();
-        resetButtonStyle(this);
-    });
-    
-    repeatBtn.addEventListener('click', function() {
-        toggleRepeat();
-        resetButtonStyle(this);
-    });
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    prevBtn.addEventListener('click', () => handlePrevTrack(audio));
+    nextBtn.addEventListener('click', nextTrack);
+    shuffleBtn.addEventListener('click', toggleShuffle);
+    repeatBtn.addEventListener('click', toggleRepeat);
     
     progressBarFill.parentElement.addEventListener('click', function(e) {
         const rect = this.getBoundingClientRect();
@@ -243,25 +223,6 @@ function initMusicPlayer() {
     });
     
     audio.volume = 0.8;
-    
-    console.log('🎵 Player de música inicializado');
-}
-
-// FUNÇÃO QUE RESETA O BOTÃO APÓS O CLIQUE (igual ao tema)
-function resetButtonStyle(button) {
-    // Pequeno delay para garantir que o clique foi processado
-    setTimeout(() => {
-        // Resetar estilo visual (mantém cor se for botão ativo)
-        button.style.transform = 'scale(1)';
-        button.style.opacity = '1';
-        
-        // Se não for botão de estado ativo (repeat/shuffle), resetar cor
-        if (!button.classList.contains('active')) {
-            button.style.color = '';
-            button.style.filter = '';
-            button.style.boxShadow = '0 0 10px rgba(255, 255, 255, 0.1), inset 0 0 10px rgba(255, 255, 255, 0.05)';
-        }
-    }, 150);
 }
 
 function handlePrevTrack(audio) {
@@ -323,34 +284,24 @@ function togglePlayPause() {
 function toggleShuffle() {
     const shuffleBtn = document.getElementById('shuffleBtn');
     isShuffled = !isShuffled;
-    
-    if (isShuffled) {
-        shuffleBtn.style.color = 'var(--theme-primary)';
-        shuffleBtn.style.filter = 'drop-shadow(0 0 8px var(--theme-primary))';
-        shuffleBtn.classList.add('active');
-    } else {
-        shuffleBtn.style.color = '';
-        shuffleBtn.style.filter = '';
-        shuffleBtn.classList.remove('active');
-    }
+    shuffleBtn.classList.toggle('active', isShuffled);
+    shuffleBtn.style.color = isShuffled ? 'var(--theme-primary)' : '';
 }
 
 function toggleRepeat() {
     const repeatBtn = document.getElementById('repeatBtn');
     repeatMode = (repeatMode + 1) % 2;
     
+    repeatBtn.classList.toggle('active', repeatMode > 0);
+    
     if (repeatMode === 0) {
         repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
         repeatBtn.title = "Repetir desligado";
         repeatBtn.style.color = '';
-        repeatBtn.style.filter = '';
-        repeatBtn.classList.remove('active');
     } else {
         repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
         repeatBtn.title = "Repetir uma música";
         repeatBtn.style.color = 'var(--theme-primary)';
-        repeatBtn.style.filter = 'drop-shadow(0 0 8px var(--theme-primary))';
-        repeatBtn.classList.add('active');
     }
 }
 
@@ -447,7 +398,7 @@ function initAlbums() {
                 <p class="album-date">
                     <i class="far fa-calendar-alt"></i> ${album.date}
                 </p>
-                <p>${album.description</p>
+                <p>${album.description}</p>
                 <div class="album-stats">
                     <span>
                         <i class="far fa-images"></i> ${album.photoCount} fotos
