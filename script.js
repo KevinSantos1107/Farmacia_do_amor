@@ -1,3 +1,25 @@
+// ===== CONFIGURAÇÕES INICIAIS =====
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tudo
+    initThemeMenu();
+    initThemeSelector();
+    initTimeCounter();
+    initMusicPlayer();
+    initAlbums();
+    initMessages();
+    initModal();
+    updateCurrentDate();
+    
+    console.log('💖 Site Kevin & Iara carregado com sucesso!');
+    
+    // Inicializar animações depois de um delay
+    setTimeout(() => {
+        if (typeof initAnimations === 'function') {
+            initAnimations();
+        }
+    }, 500);
+});
+
 // ===== CONFIGURAÇÕES DE DATAS =====
 const START_DATE = new Date('2023-06-15T00:00:00');
 const START_DATE_DISPLAY = '15/06/2023';
@@ -41,898 +63,6 @@ const themes = {
 
 let currentTheme = 'meteors';
 
-// ===== PLAYER DE MÚSICA =====
-let playlist = [
-    {
-        title: "menina-da-farmacia",
-        artist: "Seu Artista",
-        src: "audio/menina-da-farmacia.mp3",
-        album: "Nossa Trilha Sonora"
-    },
-    {
-        title: "menina-da-farmacia-2",
-        artist: "Seu Artista",
-        src: "audio/menina-da-farmacia-2.mp3",
-        album: "Nossa Trilha Sonora"
-    }
-];
-
-let currentTrackIndex = 0;
-let isPlaying = false;  
-let isShuffled = false;
-let repeatMode = 0;
-
-// ===== ÁLBUNS DE FOTOS =====
-let albums = [
-    {
-        id: 1,
-        title: "Primeiros Encontros",
-        date: "Junho 2023",
-        cover: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        photoCount: 4,
-        description: "Os primeiros momentos mágicos que deram início à nossa história.",
-        photos: [
-            { src: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Nosso primeiro café juntos" },
-            { src: "https://images.unsplash.com/photo-1518623489648-a173ef7824f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Passeio no parque" },
-            { src: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Primeiro cinema" },
-            { src: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Jantar especial" }
-        ]
-    },
-    {
-        id: 2,
-        title: "Viagem Inesquecível", 
-        date: "Dezembro 2023",
-        cover: "https://images.unsplash.com/photo-1539635278303-d4002c07eae3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-        photoCount: 4,
-        description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
-        photos: [
-            { src: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Chegada ao destino" },
-            { src: "https://images.unsplash.com/photo-1518623489648-a173ef7824f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Paisagem deslumbrante" },
-            { src: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Aventuras pela cidade" },
-            { src: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", description: "Comidas típicas" }
-        ]
-    }
-];
-
-let currentAlbum = null;
-let currentPhotoIndex = 0;
-
-// ===== MENSAGENS DO DIA =====
-let messages = [
-    {
-        text: "Cada dia ao seu lado é uma página nova em nosso livro de amor, escrita com sorrisos, carinho e cumplicidade.",
-        author: "Kevin para Iara"
-    },
-    {
-        text: "Se eu pudesse escolher novamente entre todas as pessoas do mundo, escolheria você, sempre você.",
-        author: "Kevin para Iara"
-    },
-    {
-        text: "Nos seus olhos encontro meu lugar favorito no mundo, onde posso ser apenas eu e saber que sou amado.",
-        author: "Kevin para Iara"
-    },
-    {
-        text: "O amor que sinto por você não cabe em palavras, mas transborda em cada gesto, cada olhar, cada momento juntos.",
-        author: "Kevin para Iara"
-    }
-];
-
-// ===== IMAGENS PRINCIPAIS COM FALLBACK =====
-const IMAGES = {
-    mainPhoto: {
-        fallback: 'https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        alt: 'Kevin e Iara - Amor Eterno'
-    },
-    musicCover: {
-        fallback: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        alt: 'Capa do Álbum - Nossa Música'
-    }
-};
-
-// ===== SISTEMA DE GERENCIAMENTO DE IMAGENS =====
-class ImageManager {
-    constructor() {
-        this.cachedImages = new Map();
-        this.init();
-    }
-    
-    init() {
-        console.log('🖼️ Gerenciador de imagens inicializado');
-        this.setupImageFallbacks();
-    }
-    
-    setupImageFallbacks() {
-        // Foto principal do topo
-        const mainPhoto = document.getElementById('mainPhoto');
-        if (mainPhoto) {
-            mainPhoto.addEventListener('error', () => {
-                console.log('🔄 Usando fallback para foto principal');
-                mainPhoto.src = IMAGES.mainPhoto.fallback;
-                mainPhoto.alt = IMAGES.mainPhoto.alt;
-                this.applyImageTransitions(mainPhoto);
-            });
-            
-            // Tentar carregar a imagem original
-            if (!mainPhoto.src || mainPhoto.src === '') {
-                mainPhoto.src = 'images/capa_principal.jpg';
-            }
-        }
-        
-        // Capa da música
-        const musicCover = document.querySelector('.album-cover img');
-        if (musicCover) {
-            musicCover.addEventListener('error', () => {
-                console.log('🔄 Usando fallback para capa da música');
-                musicCover.src = IMAGES.musicCover.fallback;
-                musicCover.alt = IMAGES.musicCover.alt;
-                this.applyImageTransitions(musicCover);
-            });
-            
-            // Tentar carregar a imagem original
-            if (!musicCover.src || musicCover.src === '') {
-                musicCover.src = 'images/capa-musica.jpg';
-            }
-        }
-        
-        // Configurar fallback para todas as imagens
-        document.querySelectorAll('img[data-fallback]').forEach(img => {
-            img.addEventListener('error', () => {
-                const fallback = img.getAttribute('data-fallback');
-                if (fallback) {
-                    console.log(`🔄 Usando fallback para: ${img.alt}`);
-                    img.src = fallback;
-                    this.applyImageTransitions(img);
-                }
-            });
-        });
-    }
-    
-    applyImageTransitions(img) {
-        img.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
-        img.style.opacity = '0';
-        img.style.transform = 'scale(0.98)';
-        
-        // Usar timeout para garantir que a imagem tenha tempo de carregar
-        setTimeout(() => {
-            img.style.opacity = '1';
-            img.style.transform = 'scale(1)';
-        }, 100);
-    }
-    
-    createPlaceholderImage(text, width = 400, height = 300, color1 = '#8a2be2', color2 = '#00ffff') {
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        
-        const ctx = canvas.getContext('2d');
-        
-        // Fundo gradiente
-        const gradient = ctx.createLinearGradient(0, 0, width, height);
-        gradient.addColorStop(0, color1);
-        gradient.addColorStop(1, color2);
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height);
-        
-        // Coração
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.beginPath();
-        const centerX = width / 2;
-        const centerY = height / 2;
-        ctx.moveTo(centerX, centerY - 50);
-        ctx.bezierCurveTo(centerX - 50, centerY - 100, centerX - 100, centerY - 50, centerX, centerY + 50);
-        ctx.bezierCurveTo(centerX + 100, centerY - 50, centerX + 50, centerY - 100, centerX, centerY - 50);
-        ctx.fill();
-        
-        // Texto
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 20px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(text, centerX, centerY + 100);
-        
-        // Ícone do coração
-        ctx.font = '40px "Font Awesome 5 Free"';
-        ctx.fillText('💖', centerX, centerY);
-        
-        return canvas.toDataURL('image/jpeg', 0.9);
-    }
-}
-
-// ===== COMPRESSÃO DE IMAGENS SEM PERDA =====
-async function compressImage(file, maxWidth = 1200, quality = 0.85) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        
-        reader.onload = function(event) {
-            const img = new Image();
-            img.src = event.target.result;
-            
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-                
-                // Redimensionar proporcionalmente se necessário
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
-                }
-                
-                canvas.width = width;
-                canvas.height = height;
-                
-                const ctx = canvas.getContext('2d');
-                
-                // Configurações para manter qualidade
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                // Converter para formato WebP para melhor compressão
-                canvas.toBlob((blob) => {
-                    const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".webp"), {
-                        type: 'image/webp',
-                        lastModified: Date.now()
-                    });
-                    resolve(compressedFile);
-                }, 'image/webp', quality);
-            };
-        };
-    });
-}
-
-// ===== EFEITO DE TRANSIÇÃO DELICADO NAS IMAGENS =====
-function addImageTransitions() {
-    // Adiciona transição suave a todas as imagens
-    document.querySelectorAll('img').forEach(img => {
-        if (!img.style.transition) {
-            img.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
-        }
-        
-        // Efeito ao carregar
-        img.style.opacity = '0';
-        img.style.transform = 'scale(0.98)';
-        
-        img.onload = function() {
-            setTimeout(() => {
-                img.style.opacity = '1';
-                img.style.transform = 'scale(1)';
-            }, 100);
-        };
-        
-        // Efeito hover (se não for mobile)
-        if (window.innerWidth > 768) {
-            img.addEventListener('mouseenter', () => {
-                img.style.transform = 'scale(1.02)';
-            });
-            
-            img.addEventListener('mouseleave', () => {
-                img.style.transform = 'scale(1)';
-            });
-        }
-    });
-    
-    // Forçar transição em imagens que já carregaram
-    setTimeout(() => {
-        document.querySelectorAll('img').forEach(img => {
-            if (img.complete && img.naturalWidth > 0) {
-                img.style.opacity = '1';
-                img.style.transform = 'scale(1)';
-            }
-        });
-    }, 500);
-}
-
-// ===== SISTEMA DE GERENCIAMENTO LOCAL =====
-class LocalDataManager {
-    constructor() {
-        this.storageKey = 'kevinIaraSiteData';
-        this.defaultData = {
-            playlist: playlist,
-            albums: albums,
-            messages: messages
-        };
-        this.init();
-    }
-    
-    init() {
-        // Carregar dados salvos ou usar padrão
-        const savedData = localStorage.getItem(this.storageKey);
-        if (savedData) {
-            try {
-                const parsed = JSON.parse(savedData);
-                if (parsed.playlist) playlist = parsed.playlist;
-                if (parsed.albums) albums = parsed.albums;
-                if (parsed.messages) messages = parsed.messages;
-                console.log('📂 Dados locais carregados');
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-                this.saveData();
-            }
-        } else {
-            this.saveData();
-        }
-    }
-    
-    saveData() {
-        const data = {
-            playlist: playlist,
-            albums: albums,
-            messages: messages,
-            lastUpdate: new Date().toISOString()
-        };
-        localStorage.setItem(this.storageKey, JSON.stringify(data));
-        console.log('💾 Dados salvos localmente');
-    }
-    
-    exportData() {
-        const data = this.getFullData();
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `kevin-iara-backup-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-    
-    importData(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    if (data.playlist) playlist = data.playlist;
-                    if (data.albums) albums = data.albums;
-                    if (data.messages) messages = data.messages;
-                    this.saveData();
-                    resolve(true);
-                } catch (error) {
-                    reject(error);
-                }
-            }.bind(this);
-            reader.readAsText(file);
-        });
-    }
-    
-    getFullData() {
-        return {
-            playlist: playlist,
-            albums: albums,
-            messages: messages,
-            metadata: {
-                exportDate: new Date().toISOString(),
-                version: '1.0'
-            }
-        };
-    }
-    
-    resetData() {
-        if (confirm('Tem certeza que deseja resetar todos os dados para os valores padrão?')) {
-            localStorage.removeItem(this.storageKey);
-            playlist = [...this.defaultData.playlist];
-            albums = [...this.defaultData.albums];
-            messages = [...this.defaultData.messages];
-            this.saveData();
-            location.reload();
-        }
-    }
-}
-
-// ===== INICIALIZAÇÃO DO SISTEMA ADMIN =====
-let dataManager;
-let selectedPhotos = [];
-let imageManager;
-
-function initAdminPanel() {
-    dataManager = new LocalDataManager();
-    
-    // Elementos do DOM
-    const adminFloatBtn = document.getElementById('adminFloatBtn');
-    const adminModal = document.getElementById('adminModal');
-    const adminCloseBtn = document.getElementById('adminCloseBtn');
-    const adminTabs = document.querySelectorAll('.admin-tab');
-    const importFileInput = document.getElementById('importFileInput');
-    
-    if (!adminFloatBtn || !adminModal) {
-        console.warn('⚠️ Elementos do painel admin não encontrados');
-        return;
-    }
-    
-    // Event Listeners
-    adminFloatBtn.addEventListener('click', () => {
-        adminModal.style.display = 'flex';
-        updateAdminLists();
-    });
-    
-    adminCloseBtn.addEventListener('click', () => {
-        adminModal.style.display = 'none';
-    });
-    
-    adminModal.addEventListener('click', (e) => {
-        if (e.target === adminModal) {
-            adminModal.style.display = 'none';
-        }
-    });
-    
-    // Tabs
-    adminTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabId = tab.dataset.tab;
-            adminTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            
-            document.querySelectorAll('.admin-tab-pane').forEach(pane => {
-                pane.classList.remove('active');
-            });
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-        });
-    });
-    
-    // Inicializar funcionalidades específicas
-    initMusicAdmin();
-    initAlbumsAdmin();
-    initPhotosAdmin();
-    initMessagesAdmin();
-    initAdminButtons();
-    
-    console.log('✅ Painel admin inicializado');
-}
-
-// ===== GERENCIAMENTO DE MÚSICAS =====
-function initMusicAdmin() {
-    const addMusicBtn = document.getElementById('addMusicBtn');
-    const musicFileInput = document.getElementById('musicFile');
-    const musicFileName = document.getElementById('musicFileName');
-    
-    if (!addMusicBtn) return;
-    
-    musicFileInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            musicFileName.textContent = this.files[0].name;
-        } else {
-            musicFileName.textContent = 'Nenhum arquivo selecionado';
-        }
-    });
-    
-    addMusicBtn.addEventListener('click', async () => {
-        const title = document.getElementById('musicTitle').value;
-        const artist = document.getElementById('musicArtist').value;
-        const album = document.getElementById('musicAlbum').value;
-        const file = musicFileInput.files[0];
-        
-        if (!title || !artist || !file) {
-            alert('Por favor, preencha todos os campos obrigatórios');
-            return;
-        }
-        
-        // Criar URL local para o arquivo
-        const audioUrl = URL.createObjectURL(file);
-        
-        // Adicionar à playlist
-        playlist.push({
-            title: title,
-            artist: artist,
-            src: audioUrl,
-            album: album,
-            file: file.name
-        });
-        
-        // Salvar dados
-        dataManager.saveData();
-        
-        // Resetar formulário
-        document.getElementById('musicTitle').value = '';
-        document.getElementById('musicArtist').value = '';
-        document.getElementById('musicAlbum').value = 'Nossa Trilha Sonora';
-        musicFileInput.value = '';
-        musicFileName.textContent = 'Nenhum arquivo selecionado';
-        
-        // Atualizar lista
-        updateMusicList();
-        
-        alert('Música adicionada com sucesso!');
-    });
-}
-
-function updateMusicList() {
-    const musicList = document.getElementById('musicList');
-    if (!musicList) return;
-    
-    musicList.innerHTML = '';
-    
-    playlist.forEach((track, index) => {
-        const item = document.createElement('div');
-        item.className = 'admin-item';
-        item.innerHTML = `
-            <div class="admin-item-title">
-                <strong>${track.title}</strong> - ${track.artist}
-            </div>
-            <div class="admin-item-actions">
-                <button class="admin-item-btn play" data-index="${index}" title="Tocar">
-                    <i class="fas fa-play"></i>
-                </button>
-                <button class="admin-item-btn delete" data-index="${index}" title="Remover">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-        musicList.appendChild(item);
-    });
-    
-    // Adicionar event listeners aos botões
-    document.querySelectorAll('.admin-item-btn.play').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const index = parseInt(this.dataset.index);
-            currentTrackIndex = index;
-            loadTrack(index);
-            if (!isPlaying) {
-                togglePlayPause();
-            }
-        });
-    });
-    
-    document.querySelectorAll('.admin-item-btn.delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const index = parseInt(this.dataset.index);
-            if (confirm(`Remover "${playlist[index].title}"?`)) {
-                playlist.splice(index, 1);
-                dataManager.saveData();
-                updateMusicList();
-            }
-        });
-    });
-}
-
-// ===== GERENCIAMENTO DE ÁLBUNS =====
-function initAlbumsAdmin() {
-    const createAlbumBtn = document.getElementById('createAlbumBtn');
-    const albumCoverInput = document.getElementById('albumCover');
-    const albumCoverName = document.getElementById('albumCoverName');
-    
-    if (!createAlbumBtn) return;
-    
-    albumCoverInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            albumCoverName.textContent = this.files[0].name;
-        } else {
-            albumCoverName.textContent = 'Nenhuma imagem selecionada';
-        }
-    });
-    
-    createAlbumBtn.addEventListener('click', async () => {
-        const title = document.getElementById('albumTitle').value;
-        const date = document.getElementById('albumDate').value;
-        const description = document.getElementById('albumDescription').value;
-        const file = albumCoverInput.files[0];
-        
-        if (!title || !date || !description || !file) {
-            alert('Por favor, preencha todos os campos');
-            return;
-        }
-        
-        // Comprimir imagem
-        const compressedFile = await compressImage(file);
-        const coverUrl = URL.createObjectURL(compressedFile);
-        
-        // Criar novo álbum
-        const newAlbum = {
-            id: albums.length + 1,
-            title: title,
-            date: date,
-            cover: coverUrl,
-            photoCount: 0,
-            description: description,
-            photos: []
-        };
-        
-        albums.push(newAlbum);
-        dataManager.saveData();
-        
-        // Resetar formulário
-        document.getElementById('albumTitle').value = '';
-        document.getElementById('albumDate').value = '';
-        document.getElementById('albumDescription').value = '';
-        albumCoverInput.value = '';
-        albumCoverName.textContent = 'Nenhuma imagem selecionada';
-        
-        // Atualizar listas
-        updateAlbumsList();
-        updateAlbumSelect();
-        initAlbums(); // Recarregar galeria
-        
-        alert('Álbum criado com sucesso!');
-    });
-}
-
-function updateAlbumsList() {
-    const albumsList = document.getElementById('albumsList');
-    if (!albumsList) return;
-    
-    albumsList.innerHTML = '';
-    
-    albums.forEach((album, index) => {
-        const item = document.createElement('div');
-        item.className = 'admin-item';
-        item.innerHTML = `
-            <div class="admin-item-title">
-                <strong>${album.title}</strong> - ${album.date} (${album.photoCount} fotos)
-            </div>
-            <div class="admin-item-actions">
-                <button class="admin-item-btn view" data-id="${album.id}" title="Ver">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="admin-item-btn delete" data-index="${index}" title="Remover">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-        albumsList.appendChild(item);
-    });
-    
-    // Event listeners
-    document.querySelectorAll('.admin-item-btn.view').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const albumId = parseInt(this.dataset.id);
-            openAlbum(albumId);
-            document.getElementById('adminModal').style.display = 'none';
-        });
-    });
-    
-    document.querySelectorAll('.admin-item-btn.delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const index = parseInt(this.dataset.index);
-            if (confirm(`Remover o álbum "${albums[index].title}"?`)) {
-                albums.splice(index, 1);
-                dataManager.saveData();
-                updateAlbumsList();
-                updateAlbumSelect();
-                initAlbums();
-            }
-        });
-    });
-}
-
-// ===== GERENCIAMENTO DE FOTOS =====
-function initPhotosAdmin() {
-    const photoFilesInput = document.getElementById('photoFiles');
-    const photoFilesCount = document.getElementById('photoFilesCount');
-    const addPhotosBtn = document.getElementById('addPhotosBtn');
-    const photoPreview = document.getElementById('photoPreview');
-    
-    if (!photoFilesInput) return;
-    
-    // Atualizar select de álbuns
-    updateAlbumSelect();
-    
-    photoFilesInput.addEventListener('change', async function() {
-        photoFilesCount.textContent = `${this.files.length} foto(s) selecionada(s)`;
-        photoPreview.innerHTML = '';
-        selectedPhotos = Array.from(this.files);
-        
-        // Preview das fotos
-        for (const file of selectedPhotos) {
-            const compressedFile = await compressImage(file);
-            const url = URL.createObjectURL(compressedFile);
-            
-            const preview = document.createElement('div');
-            preview.className = 'photo-preview';
-            preview.innerHTML = `
-                <img src="${url}" alt="Preview">
-                <button class="photo-preview-remove" data-name="${file.name}">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            photoPreview.appendChild(preview);
-        }
-        
-        // Remover fotos do preview
-        document.querySelectorAll('.photo-preview-remove').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const fileName = this.dataset.name;
-                selectedPhotos = selectedPhotos.filter(f => f.name !== fileName);
-                this.parentElement.remove();
-                photoFilesCount.textContent = `${selectedPhotos.length} foto(s) selecionada(s)`;
-            });
-        });
-    });
-    
-    addPhotosBtn.addEventListener('click', async () => {
-        const albumSelect = document.getElementById('photoAlbumSelect');
-        const albumId = parseInt(albumSelect.value);
-        
-        if (!albumId || selectedPhotos.length === 0) {
-            alert('Selecione um álbum e pelo menos uma foto');
-            return;
-        }
-        
-        const album = albums.find(a => a.id === albumId);
-        if (!album) {
-            alert('Álbum não encontrado');
-            return;
-        }
-        
-        // Processar cada foto
-        for (const file of selectedPhotos) {
-            const compressedFile = await compressImage(file);
-            const photoUrl = URL.createObjectURL(compressedFile);
-            
-            album.photos.push({
-                src: photoUrl,
-                description: `Foto ${album.photos.length + 1}`
-            });
-        }
-        
-        album.photoCount = album.photos.length;
-        dataManager.saveData();
-        
-        // Resetar
-        photoFilesInput.value = '';
-        photoFilesCount.textContent = 'Nenhuma foto selecionada';
-        photoPreview.innerHTML = '';
-        selectedPhotos = [];
-        
-        alert(`${album.photos.length} fotos adicionadas ao álbum "${album.title}"!`);
-    });
-}
-
-function updateAlbumSelect() {
-    const select = document.getElementById('photoAlbumSelect');
-    if (!select) return;
-    
-    select.innerHTML = '<option value="">Selecione um álbum</option>';
-    
-    albums.forEach(album => {
-        const option = document.createElement('option');
-        option.value = album.id;
-        option.textContent = `${album.title} (${album.date})`;
-        select.appendChild(option);
-    });
-}
-
-// ===== GERENCIAMENTO DE MENSAGENS =====
-function initMessagesAdmin() {
-    const addMessageBtn = document.getElementById('addMessageBtn');
-    
-    if (!addMessageBtn) return;
-    
-    addMessageBtn.addEventListener('click', () => {
-        const text = document.getElementById('messageText').value;
-        const author = document.getElementById('messageAuthor').value;
-        
-        if (!text || !author) {
-            alert('Por favor, preencha todos os campos');
-            return;
-        }
-        
-        messages.push({
-            text: text,
-            author: author
-        });
-        
-        dataManager.saveData();
-        
-        // Resetar
-        document.getElementById('messageText').value = '';
-        document.getElementById('messageAuthor').value = 'Kevin para Iara';
-        
-        updateMessagesList();
-        alert('Mensagem adicionada com sucesso!');
-    });
-}
-
-function updateMessagesList() {
-    const messagesList = document.getElementById('messagesList');
-    if (!messagesList) return;
-    
-    messagesList.innerHTML = '';
-    
-    messages.forEach((msg, index) => {
-        const item = document.createElement('div');
-        item.className = 'admin-item';
-        item.innerHTML = `
-            <div style="flex: 1;">
-                <div class="admin-item-title">"${msg.text.substring(0, 50)}..."</div>
-                <div style="font-size: 0.8rem; color: var(--theme-text-secondary);">${msg.author}</div>
-            </div>
-            <div class="admin-item-actions">
-                <button class="admin-item-btn delete" data-index="${index}" title="Remover">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-        messagesList.appendChild(item);
-    });
-    
-    document.querySelectorAll('.admin-item-btn.delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const index = parseInt(this.dataset.index);
-            if (confirm('Remover esta mensagem?')) {
-                messages.splice(index, 1);
-                dataManager.saveData();
-                updateMessagesList();
-            }
-        });
-    });
-}
-
-// ===== BOTÕES GERAIS DO ADMIN =====
-function initAdminButtons() {
-    const exportBtn = document.getElementById('exportDataBtn');
-    const importBtn = document.getElementById('importDataBtn');
-    const resetBtn = document.getElementById('resetDataBtn');
-    const importFileInput = document.getElementById('importFileInput');
-    
-    if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
-            dataManager.exportData();
-        });
-    }
-    
-    if (importBtn) {
-        importBtn.addEventListener('click', () => {
-            importFileInput.click();
-        });
-        
-        importFileInput.addEventListener('change', async function() {
-            if (this.files.length > 0) {
-                try {
-                    await dataManager.importData(this.files[0]);
-                    alert('Dados importados com sucesso! A página será recarregada.');
-                    location.reload();
-                } catch (error) {
-                    alert('Erro ao importar dados: ' + error.message);
-                }
-            }
-        });
-    }
-    
-    if (resetBtn) {
-        resetBtn.addEventListener('click', () => {
-            dataManager.resetData();
-        });
-    }
-}
-
-// ===== ATUALIZAR TODAS AS LISTAS =====
-function updateAdminLists() {
-    updateMusicList();
-    updateAlbumsList();
-    updateMessagesList();
-}
-
-// ===== FUNÇÕES ORIGINAIS (MANTIDAS) =====
-function initThemeMenu() {
-    const themeToggle = document.getElementById('themeToggle');
-    const themeSelector = document.getElementById('themeSelector');
-    
-    if (!themeToggle || !themeSelector) {
-        console.warn('⚠️ Elementos do menu de tema não encontrados');
-        return;
-    }
-    
-    themeToggle.addEventListener('click', function(e) {
-        e.stopPropagation();
-        themeSelector.classList.toggle('hidden');
-    });
-    
-    document.addEventListener('click', function(e) {
-        if (!themeSelector.contains(e.target) && e.target !== themeToggle) {
-            themeSelector.classList.add('hidden');
-        }
-    });
-    
-    const themeButtons = document.querySelectorAll('.theme-btn');
-    themeButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            themeSelector.classList.add('hidden');
-        });
-    });
-}
-
 function initThemeSelector() {
     const themeButtons = document.querySelectorAll('.theme-btn');
     
@@ -972,6 +102,36 @@ function changeTheme(themeName) {
     console.log(`🎨 Tema alterado para: ${theme.name}`);
 }
 
+// ===== CONTROLE DO MENU DE TEMA =====
+function initThemeMenu() {
+    const themeToggle = document.getElementById('themeToggle');
+    const themeSelector = document.getElementById('themeSelector');
+    
+    if (!themeToggle || !themeSelector) {
+        console.warn('⚠️ Elementos do menu de tema não encontrados');
+        return;
+    }
+    
+    themeToggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        themeSelector.classList.toggle('hidden');
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!themeSelector.contains(e.target) && e.target !== themeToggle) {
+            themeSelector.classList.add('hidden');
+        }
+    });
+    
+    const themeButtons = document.querySelectorAll('.theme-btn');
+    themeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            themeSelector.classList.add('hidden');
+        });
+    });
+}
+
+// ===== CONTADOR DE TEMPO =====
 function initTimeCounter() {
     document.getElementById('startDateDisplay').textContent = START_DATE_DISPLAY;
     updateTimeCounter();
@@ -1001,6 +161,27 @@ function updateTimeCounter() {
     document.getElementById('minutes').textContent = remainingMinutes.toString().padStart(2, '0');
     document.getElementById('seconds').textContent = remainingSeconds.toString().padStart(2, '0');
 }
+
+// ===== PLAYER DE MÚSICA =====
+const playlist = [
+    {
+        title: "menina-da-farmacia",
+        artist: "Seu Artista",
+        src: "audio/menina-da-farmacia.mp3",
+        album: "Nossa Trilha Sonora"
+    },
+    {
+        title: "menina-da-farmacia-2",
+        artist: "Seu Artista",
+        src: "audio/menina-da-farmacia-2.mp3",
+        album: "Nossa Trilha Sonora"
+    }
+];
+
+let currentTrackIndex = 0;
+let isPlaying = false;  
+let isShuffled = false;
+let repeatMode = 0;
 
 function initMusicPlayer() {
     const audio = document.getElementById('audioPlayer');
@@ -1160,6 +341,41 @@ function formatTime(seconds) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+// ===== ÁLBUNS DE FOTOS =====
+const albums = [
+    {
+        id: 1,
+        title: "Primeiros Encontros",
+        date: "Junho 2023",
+        cover: "images/capas-albuns/primeiro-encontro.jpg",
+        photoCount: 4,
+        description: "Os primeiros momentos mágicos que deram início à nossa história.",
+        photos: [
+            { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" },
+            { src: "images/fotos/album1/2.jpg", description: "Passeio no parque" },
+            { src: "images/fotos/album1/3.jpg", description: "Primeiro cinema" },
+            { src: "images/fotos/album1/4.jpg", description: "Jantar especial" }
+        ]
+    },
+    {
+        id: 2,
+        title: "Viagem Inesquecível", 
+        date: "Dezembro 2023",
+        cover: "images/capas-albuns/viagem.jpg",
+        photoCount: 4,
+        description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
+        photos: [
+            { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
+            { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
+            { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" },
+            { src: "images/fotos/album2/4.jpg", description: "Comidas típicas" }
+        ]
+    }
+];
+
+let currentAlbum = null;
+let currentPhotoIndex = 0;
+
 function initAlbums() {
     const container = document.getElementById('albumsContainer');
     
@@ -1176,8 +392,7 @@ function initAlbums() {
         albumCard.dataset.id = album.id;
         
         albumCard.innerHTML = `
-            <img src="${album.cover}" alt="${album.title}" class="album-cover-img" loading="lazy" 
-                 data-fallback="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80">
+            <img src="${album.cover}" alt="${album.title}" class="album-cover-img">
             <div class="album-info">
                 <h3>${album.title}</h3>
                 <p class="album-date">
@@ -1191,25 +406,6 @@ function initAlbums() {
                 </div>
             </div>
         `;
-        
-        // Aplicar transição
-        const img = albumCard.querySelector('img');
-        img.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
-        img.style.opacity = '0';
-        img.style.transform = 'scale(0.98)';
-        
-        img.onload = function() {
-            setTimeout(() => {
-                img.style.opacity = '1';
-                img.style.transform = 'scale(1)';
-            }, 100);
-        };
-        
-        // Fallback para erro
-        img.addEventListener('error', function() {
-            console.log(`❌ Erro ao carregar capa do álbum: ${album.title}`);
-            this.src = this.getAttribute('data-fallback');
-        });
         
         albumCard.addEventListener('click', () => openAlbum(album.id));
         container.appendChild(albumCard);
@@ -1250,21 +446,6 @@ function updateAlbumViewer() {
     if (modalPhoto) {
         modalPhoto.src = photo.src;
         modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
-        modalPhoto.style.opacity = '0';
-        modalPhoto.style.transform = 'scale(0.98)';
-        
-        modalPhoto.onload = function() {
-            setTimeout(() => {
-                modalPhoto.style.opacity = '1';
-                modalPhoto.style.transform = 'scale(1)';
-            }, 100);
-        };
-        
-        // Fallback para erro
-        modalPhoto.addEventListener('error', function() {
-            console.log('❌ Erro ao carregar foto do álbum');
-            this.src = this.getAttribute('data-fallback');
-        });
     }
     
     document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
@@ -1383,6 +564,26 @@ function initModal() {
     console.log('✅ Modal inicializado com navegação Instagram');
 }
 
+// ===== MENSAGENS DO DIA =====
+const messages = [
+    {
+        text: "Cada dia ao seu lado é uma página nova em nosso livro de amor, escrita com sorrisos, carinho e cumplicidade.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Se eu pudesse escolher novamente entre todas as pessoas do mundo, escolheria você, sempre você.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Nos seus olhos encontro meu lugar favorito no mundo, onde posso ser apenas eu e saber que sou amado.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "O amor que sinto por você não cabe em palavras, mas transborda em cada gesto, cada olhar, cada momento juntos.",
+        author: "Kevin para Iara"
+    }
+];
+
 function initMessages() {
     showRandomMessage();
     
@@ -1411,6 +612,7 @@ function showRandomMessage() {
     }
 }
 
+// ===== FUNÇÕES UTILITÁRIAS =====
 function updateCurrentDate() {
     const now = new Date();
     const options = { 
@@ -1427,84 +629,7 @@ function updateCurrentDate() {
     }
 }
 
-// ===== VERIFICAÇÃO DE IMAGENS FALTANDO =====
-function checkMissingImages() {
-    console.log('🔍 Verificando imagens...');
-    
-    const imagesToCheck = [
-        { selector: '#mainPhoto', name: 'Foto Principal' },
-        { selector: '.album-cover img', name: 'Capa da Música' }
-    ];
-    
-    let missingCount = 0;
-    
-    imagesToCheck.forEach(img => {
-        const element = document.querySelector(img.selector);
-        if (element) {
-            if (!element.src || element.src === '' || element.naturalWidth === 0) {
-                console.warn(`❌ ${img.name} não carregou`);
-                missingCount++;
-                
-                // Tentar usar fallback
-                if (element.hasAttribute('data-fallback')) {
-                    element.src = element.getAttribute('data-fallback');
-                }
-            } else {
-                console.log(`✅ ${img.name} carregada`);
-            }
-        }
-    });
-    
-    if (missingCount > 0) {
-        console.log(`🔄 ${missingCount} imagens usando fallback`);
-    }
-}
-
 // ===== INICIALIZAÇÃO COMPLETA =====
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 DOM carregado, iniciando site...');
-    
-    // Inicializar gerenciador de imagens
-    imageManager = new ImageManager();
-    
-    // Inicializar tudo
-    initThemeMenu();
-    initThemeSelector();
-    initTimeCounter();
-    initMusicPlayer();
-    initAlbums();
-    initMessages();
-    initModal();
-    updateCurrentDate();
-    
-    // Aplicar transições nas imagens
-    setTimeout(addImageTransitions, 500);
-    
-    // Verificar imagens após carregamento
-    setTimeout(checkMissingImages, 2000);
-    
-    // Inicializar painel admin
-    setTimeout(() => {
-        initAdminPanel();
-    }, 1000);
-    
-    console.log('💖 Site Kevin & Iara carregado com sucesso!');
-    
-    // Inicializar animações depois de um delay
-    setTimeout(() => {
-        if (typeof window.Animations !== 'undefined' && 
-            typeof window.Animations.init === 'function') {
-            window.Animations.init();
-        } else {
-            console.warn('⚠️ Animações não carregadas, verificando...');
-            if (typeof initAnimations === 'function') {
-                initAnimations();
-            }
-        }
-    }, 1500);
-});
-
-// ===== LOGO INICIAL =====
 console.log(`
 ╔══════════════════════════════════════╗
 ║   💖 SITE KEVIN & IARA INICIADO 💖   ║
@@ -1513,30 +638,5 @@ console.log(`
 ║   🎵 Player original restaurado     ║
 ║   📸 ${albums.length} álbuns organizados ║
 ║   🎨 ${Object.keys(themes).length} temas disponíveis ║
-║   🛠️  Painel Admin ativado         ║
-║   🖼️  Sistema de imagens corrigido ║
 ╚══════════════════════════════════════╝
 `);
-
-
-// ===== FORÇAR CARREGAMENTO DE IMAGENS =====
-window.addEventListener('load', function() {
-    setTimeout(() => {
-        const mainPhoto = document.getElementById('mainPhoto');
-        const musicCover = document.querySelector('.album-cover img');
-        
-        // Forçar fallback se necessário
-        if (mainPhoto && (mainPhoto.naturalWidth === 0 || !mainPhoto.complete)) {
-            console.log('⚠️ Forçando fallback para foto principal');
-            mainPhoto.src = 'https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
-        }
-        
-        if (musicCover && (musicCover.naturalWidth === 0 || !musicCover.complete)) {
-            console.log('⚠️ Forçando fallback para capa da música');
-            musicCover.src = 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
-        }
-        
-        // Aplicar transições novamente
-        addImageTransitions();
-    }, 3000);
-});
