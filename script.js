@@ -181,7 +181,7 @@ const playlist = [
 let currentTrackIndex = 0;
 let isPlaying = false;  
 let isShuffled = false;
-let repeatMode = 0; // 0=Desligado, 1=Repetir Música
+let repeatMode = 0;
 
 function initMusicPlayer() {
     const audio = document.getElementById('audioPlayer');
@@ -285,7 +285,7 @@ function toggleShuffle() {
     const shuffleBtn = document.getElementById('shuffleBtn');
     isShuffled = !isShuffled;
     shuffleBtn.classList.toggle('active', isShuffled);
-    // A cor já é controlada pelo CSS quando a classe 'active' é adicionada
+    shuffleBtn.style.color = isShuffled ? 'var(--theme-primary)' : '';
 }
 
 function toggleRepeat() {
@@ -294,11 +294,14 @@ function toggleRepeat() {
     
     repeatBtn.classList.toggle('active', repeatMode > 0);
     
-    // A cor e animação já são controladas pelo CSS quando a classe 'active' é adicionada
     if (repeatMode === 0) {
+        repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
         repeatBtn.title = "Repetir desligado";
+        repeatBtn.style.color = '';
     } else {
+        repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
         repeatBtn.title = "Repetir uma música";
+        repeatBtn.style.color = 'var(--theme-primary)';
     }
 }
 
