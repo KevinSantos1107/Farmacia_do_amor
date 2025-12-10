@@ -613,30 +613,19 @@ const messages = [
     }
 ];
 
-let lastMessageIndex = -1;
+let currentMessageIndex = 0;
 
 function initMessages() {
-    showRandomMessage();
+    showMessage();
     
     const newMessageBtn = document.getElementById('newMessageBtn');
     if (newMessageBtn) {
-        newMessageBtn.addEventListener('click', showRandomMessage);
+        newMessageBtn.addEventListener('click', showNextMessage);
     }
 }
 
-function showRandomMessage() {
-    let randomIndex;
-    
-    if (messages.length === 1) {
-        randomIndex = 0;
-    } else {
-        do {
-            randomIndex = Math.floor(Math.random() * messages.length);
-        } while (randomIndex === lastMessageIndex);
-    }
-    
-    lastMessageIndex = randomIndex;
-    const message = messages[randomIndex];
+function showMessage() {
+    const message = messages[currentMessageIndex];
     
     const messageElement = document.getElementById('dailyMessage');
     if (messageElement) {
@@ -652,7 +641,13 @@ function showRandomMessage() {
         }, 10);
     }
     
-    console.log(`💌 Nova mensagem exibida: ${randomIndex + 1}/${messages.length}`);
+    console.log(`💌 Mensagem ${currentMessageIndex + 1}/${messages.length} exibida`);
+}
+
+function showNextMessage() {
+    // Avança para próxima mensagem (circular)
+    currentMessageIndex = (currentMessageIndex + 1) % messages.length;
+    showMessage();
 }
 
 // ===== FUNÇÕES UTILITÁRIAS =====
