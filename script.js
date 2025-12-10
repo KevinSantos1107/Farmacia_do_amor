@@ -21,8 +21,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ===== CONFIGURAÇÕES DE DATAS =====
-const START_DATE = new Date('2025-10-11T17:00:00');
-const START_DATE_DISPLAY = '11/10/2025';
+const START_DATE = new Date('2023-06-15T00:00:00');
+const START_DATE_DISPLAY = '15/06/2023';
 
 // ===== SISTEMA DE TEMAS =====
 const themes = {
@@ -165,14 +165,14 @@ function updateTimeCounter() {
 // ===== PLAYER DE MÚSICA =====
 const playlist = [
     {
-        title: "Menina da Farmácia",
-        artist: "Kevin Santos / Nossa Canção",
+        title: "menina-da-farmacia",
+        artist: "Seu Artista",
         src: "audio/menina-da-farmacia.mp3",
         album: "Nossa Trilha Sonora"
     },
     {
-        title: "Menina da Farmácia 2",
-        artist: "Kevin Santos / Nossa Canção",
+        title: "menina-da-farmacia-2",
+        artist: "Seu Artista",
         src: "audio/menina-da-farmacia-2.mp3",
         album: "Nossa Trilha Sonora"
     }
@@ -627,11 +627,7 @@ function initMessages() {
     
     const newMessageBtn = document.getElementById('newMessageBtn');
     if (newMessageBtn) {
-        // Usar pointerdown para resposta mais imediata
-        newMessageBtn.addEventListener('pointerdown', function(event) {
-            event.preventDefault(); // Prevenir comportamento padrão se necessário
-            showRandomMessage();
-        });
+        newMessageBtn.addEventListener('click', showRandomMessage);
     }
 }
 
