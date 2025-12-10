@@ -21,8 +21,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ===== CONFIGURAÇÕES DE DATAS =====
-const START_DATE = new Date('2025-10-27T17:00:00');
-const START_DATE_DISPLAY = '27/10/2025';
+const START_DATE = new Date('2025-10-11T17:00:00');
+const START_DATE_DISPLAY = '11/10/2025';
 
 // ===== SISTEMA DE TEMAS =====
 const themes = {
