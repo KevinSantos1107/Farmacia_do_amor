@@ -227,13 +227,10 @@ function initMusicPlayer() {
 
 function handlePrevTrack(audio) {
     if (audio.currentTime > 3) {
-        // Se passou mais de 3 segundos, volta ao início da música atual
         audio.currentTime = 0;
         updateProgressBar(audio);
     } else {
-        // Música anterior
         if (isShuffled) {
-            // No shuffle, vai para música aleatória
             let randomIndex;
             do {
                 randomIndex = Math.floor(Math.random() * playlist.length);
@@ -242,7 +239,6 @@ function handlePrevTrack(audio) {
             currentTrackIndex = randomIndex;
             console.log('🔀 Shuffle: tocando música anterior aleatória', currentTrackIndex + 1);
         } else {
-            // Modo normal
             currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
         }
         
@@ -255,7 +251,6 @@ function handlePrevTrack(audio) {
 
 function nextTrack() {
     if (isShuffled) {
-        // Modo shuffle: escolhe música aleatória (diferente da atual)
         let randomIndex;
         do {
             randomIndex = Math.floor(Math.random() * playlist.length);
@@ -264,7 +259,6 @@ function nextTrack() {
         currentTrackIndex = randomIndex;
         console.log('🔀 Shuffle: tocando música', currentTrackIndex + 1);
     } else {
-        // Modo normal: próxima música em ordem
         currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
     }
     
@@ -328,18 +322,17 @@ function toggleRepeat() {
     const repeatBtn = document.getElementById('repeatBtn');
     repeatMode = (repeatMode + 1) % 2;
     
-    // Remove a classe active primeiro
     repeatBtn.classList.remove('active');
     
     if (repeatMode === 0) {
         repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
         repeatBtn.title = "Repetir desligado";
-        repeatBtn.style.color = ''; // Limpa o estilo inline
+        repeatBtn.style.color = '';
     } else {
-        repeatBtn.classList.add('active'); // Adiciona a classe active
+        repeatBtn.classList.add('active');
         repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
         repeatBtn.title = "Repetir uma música";
-        repeatBtn.style.color = ''; // Remove estilo inline, deixa o CSS fazer o trabalho
+        repeatBtn.style.color = '';
     }
 }
 
@@ -519,7 +512,6 @@ function initModal() {
         }
     });
     
-    // ===== NAVEGAÇÃO ESTILO INSTAGRAM =====
     const albumViewer = document.querySelector('.album-viewer');
     if (albumViewer) {
         albumViewer.addEventListener('click', (e) => {
@@ -555,7 +547,6 @@ function initModal() {
         }, { passive: true });
     }
     
-    // Swipe para mobile
     let touchStartX = 0;
     let touchEndX = 0;
     
@@ -622,6 +613,8 @@ const messages = [
     }
 ];
 
+let lastMessageIndex = -1;
+
 function initMessages() {
     showRandomMessage();
     
@@ -632,7 +625,17 @@ function initMessages() {
 }
 
 function showRandomMessage() {
-    const randomIndex = Math.floor(Math.random() * messages.length);
+    let randomIndex;
+    
+    if (messages.length === 1) {
+        randomIndex = 0;
+    } else {
+        do {
+            randomIndex = Math.floor(Math.random() * messages.length);
+        } while (randomIndex === lastMessageIndex);
+    }
+    
+    lastMessageIndex = randomIndex;
     const message = messages[randomIndex];
     
     const messageElement = document.getElementById('dailyMessage');
@@ -648,6 +651,8 @@ function showRandomMessage() {
             messageElement.style.opacity = '1';
         }, 10);
     }
+    
+    console.log(`💌 Nova mensagem exibida: ${randomIndex + 1}/${messages.length}`);
 }
 
 // ===== FUNÇÕES UTILITÁRIAS =====
