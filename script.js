@@ -9,8 +9,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initMessages();
     initModal();
     updateCurrentDate();
-    initImageSkeletons();
-    initCouplePhotoSkeleton();
     
     console.log('💖 Site Kevin & Iara carregado com sucesso!');
     
@@ -200,26 +198,6 @@ function initMusicPlayer() {
     }
     
     loadTrack(currentTrackIndex);
-
-     // Skeleton inicial do player
-    const albumCover = document.querySelector('.album-cover');
-    const albumImg = albumCover?.querySelector('img');
-    
-    if (albumImg && albumCover) {
-        albumCover.classList.add('loading');
-        
-        albumImg.addEventListener('load', function() {
-            this.classList.add('loaded');
-            albumCover.classList.add('loaded');
-            albumCover.classList.remove('loading');
-        }, { once: true });
-        
-        if (albumImg.complete && albumImg.naturalHeight !== 0) {
-            albumImg.classList.add('loaded');
-            albumCover.classList.add('loaded');
-            albumCover.classList.remove('loading');
-        }
-    }
     
     playPauseBtn.addEventListener('click', togglePlayPause);
     prevBtn.addEventListener('click', () => handlePrevTrack(audio));
@@ -249,10 +227,13 @@ function initMusicPlayer() {
 
 function handlePrevTrack(audio) {
     if (audio.currentTime > 3) {
+        // Se passou mais de 3 segundos, volta ao início da música atual
         audio.currentTime = 0;
         updateProgressBar(audio);
     } else {
+        // Música anterior
         if (isShuffled) {
+            // No shuffle, vai para música aleatória
             let randomIndex;
             do {
                 randomIndex = Math.floor(Math.random() * playlist.length);
@@ -261,6 +242,7 @@ function handlePrevTrack(audio) {
             currentTrackIndex = randomIndex;
             console.log('🔀 Shuffle: tocando música anterior aleatória', currentTrackIndex + 1);
         } else {
+            // Modo normal
             currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
         }
         
@@ -273,6 +255,7 @@ function handlePrevTrack(audio) {
 
 function nextTrack() {
     if (isShuffled) {
+        // Modo shuffle: escolhe música aleatória (diferente da atual)
         let randomIndex;
         do {
             randomIndex = Math.floor(Math.random() * playlist.length);
@@ -281,6 +264,7 @@ function nextTrack() {
         currentTrackIndex = randomIndex;
         console.log('🔀 Shuffle: tocando música', currentTrackIndex + 1);
     } else {
+        // Modo normal: próxima música em ordem
         currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
     }
     
@@ -296,15 +280,6 @@ function loadTrack(index) {
     
     if (!audio) return;
     
-    const albumCover = document.querySelector('.album-cover');
-    const albumImg = albumCover?.querySelector('img');
-    
-    if (albumImg && albumCover) {
-        albumImg.classList.remove('loaded');
-        albumCover.classList.remove('loaded');
-        albumCover.classList.add('loading');
-    }
-    
     audio.src = track.src;
     document.getElementById('songTitle').textContent = track.title;
     document.getElementById('songArtist').textContent = track.artist;
@@ -313,32 +288,6 @@ function loadTrack(index) {
     
     document.getElementById('progressBarFill').style.width = '0%';
     document.getElementById('currentTime').textContent = '0:00';
-    
-    if (albumImg && albumCover) {
-        // ⚠️ IMPORTANTE: Força o carregamento da nova imagem
-        const imgSrc = albumImg.src;
-        albumImg.src = '';
-        
-        // Timeout para garantir que o navegador detecte a mudança
-        setTimeout(() => {
-            albumImg.src = imgSrc;
-            
-            albumImg.addEventListener('load', function() {
-                this.classList.add('loaded');
-                albumCover.classList.add('loaded');
-                albumCover.classList.remove('loading');
-            }, { once: true });
-            
-            // Fallback se não carregar em 3 segundos
-            setTimeout(() => {
-                if (!albumImg.classList.contains('loaded')) {
-                    albumImg.classList.add('loaded');
-                    albumCover.classList.add('loaded');
-                    albumCover.classList.remove('loading');
-                }
-            }, 3000);
-        }, 50);
-    }
     
     if (isPlaying) {
         setTimeout(() => audio.play(), 100);
@@ -379,17 +328,18 @@ function toggleRepeat() {
     const repeatBtn = document.getElementById('repeatBtn');
     repeatMode = (repeatMode + 1) % 2;
     
+    // Remove a classe active primeiro
     repeatBtn.classList.remove('active');
     
     if (repeatMode === 0) {
         repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
         repeatBtn.title = "Repetir desligado";
-        repeatBtn.style.color = '';
+        repeatBtn.style.color = ''; // Limpa o estilo inline
     } else {
-        repeatBtn.classList.add('active');
+        repeatBtn.classList.add('active'); // Adiciona a classe active
         repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
         repeatBtn.title = "Repetir uma música";
-        repeatBtn.style.color = '';
+        repeatBtn.style.color = ''; // Remove estilo inline, deixa o CSS fazer o trabalho
     }
 }
 
@@ -429,18 +379,20 @@ function formatTime(seconds) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-// ===== ÁLBUNS DE FOTOS - VERSÃO SEGURA COM CONTAGEM DINÂMICA =====
+// ===== ÁLBUNS DE FOTOS =====
 const albums = [
     {
         id: 1,
         title: "Primeiros Encontros",
         date: "Junho 2023",
         cover: "images/capas-albuns/primeiro-encontro.jpg",
+        photoCount: 4,
         description: "Os primeiros momentos mágicos que deram início à nossa história.",
         photos: [
-            { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" }
-            // ✅ Adicione apenas as fotos que REALMENTE EXISTEM
-            // ✅ O sistema calculará photoCount automaticamente
+            { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" },
+            { src: "images/fotos/album1/2.jpg", description: "Passeio no parque" },
+            { src: "images/fotos/album1/3.jpg", description: "Primeiro cinema" },
+            { src: "images/fotos/album1/4.jpg", description: "Jantar especial" }
         ]
     },
     {
@@ -448,13 +400,13 @@ const albums = [
         title: "Viagem Inesquecível", 
         date: "Dezembro 2023",
         cover: "images/capas-albuns/viagem.jpg",
+        photoCount: 4,
         description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
         photos: [
-            { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" }
-            // ✅ Apenas 1 foto? Sistema mostrará "1 foto" automaticamente
-            // ✅ Quando adicionar mais fotos, basta incluir aqui:
-            // { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
-            // { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" }
+            { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
+            { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
+            { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" },
+            { src: "images/fotos/album2/4.jpg", description: "Comidas típicas" }
         ]
     }
 ];
@@ -462,7 +414,6 @@ const albums = [
 let currentAlbum = null;
 let currentPhotoIndex = 0;
 
-// ===== FUNÇÃO SEGURA: INICIALIZAÇÃO COM VALIDAÇÃO =====
 function initAlbums() {
     const container = document.getElementById('albumsContainer');
     
@@ -474,15 +425,6 @@ function initAlbums() {
     container.innerHTML = '';
     
     albums.forEach(album => {
-        // ✅ CALCULA photoCount DINAMICAMENTE
-        const photoCount = album.photos.length;
-        
-        // ⚠️ VALIDAÇÃO: Não exibe álbum vazio
-        if (photoCount === 0) {
-            console.warn(`⚠️ Álbum "${album.title}" não possui fotos`);
-            return; // Pula este álbum
-        }
-        
         const albumCard = document.createElement('div');
         albumCard.className = 'album-card';
         albumCard.dataset.id = album.id;
@@ -497,7 +439,7 @@ function initAlbums() {
                 <p>${album.description}</p>
                 <div class="album-stats">
                     <span>
-                        <i class="far fa-images"></i> ${photoCount} ${photoCount === 1 ? 'foto' : 'fotos'}
+                        <i class="far fa-images"></i> ${album.photoCount} fotos
                     </span>
                 </div>
             </div>
@@ -505,35 +447,9 @@ function initAlbums() {
         
         albumCard.addEventListener('click', () => openAlbum(album.id));
         container.appendChild(albumCard);
-
-        // Skeleton para imagem do card
-        const img = albumCard.querySelector('.album-cover-img');
-        
-        if (img) {
-            img.classList.add('loading');
-            
-            img.addEventListener('load', function() {
-                this.classList.add('loaded');
-                this.classList.remove('loading');
-            });
-            
-            // ⚠️ Fallback: remove loading após 3 segundos
-            setTimeout(() => {
-                if (!img.classList.contains('loaded')) {
-                    img.classList.add('loaded');
-                    img.classList.remove('loading');
-                    console.warn(`⚠️ Capa do álbum "${album.title}" demorou para carregar`);
-                }
-            }, 3000);
-            
-            if (img.complete && img.naturalHeight !== 0) {
-                img.classList.add('loaded');
-                img.classList.remove('loading');
-            }
-        }
     });
     
-    console.log(`✅ ${albums.length} álbuns carregados com total de ${albums.reduce((sum, a) => sum + a.photos.length, 0)} fotos`);
+    console.log(`✅ ${albums.length} álbuns carregados`);
 }
 
 function openAlbum(albumId) {
@@ -544,13 +460,6 @@ function openAlbum(albumId) {
     }
     
     currentPhotoIndex = 0;
-
-    const viewer = document.querySelector('.album-viewer');
-    if (viewer) {
-        viewer.classList.add('loading');
-        viewer.classList.remove('loaded');
-    }
-    
     updateAlbumViewer();
     
     const modal = document.getElementById('albumModal');
@@ -563,62 +472,20 @@ function openAlbum(albumId) {
         titleElement.textContent = currentAlbum.title;
     }
     
-    console.log(`📸 Álbum aberto: ${currentAlbum.title} (${currentAlbum.photos.length} fotos)`);
+    console.log(`📸 Álbum aberto: ${currentAlbum.title}`);
 }
 
-// ===== FUNÇÃO SEGURA: ANTI-LOADING INFINITO =====
 function updateAlbumViewer() {
     if (!currentAlbum) return;
     
-    // ✅ VALIDAÇÃO: Verifica se índice é válido
-    if (currentPhotoIndex >= currentAlbum.photos.length) {
-        currentPhotoIndex = 0;
-    }
-    
     const photo = currentAlbum.photos[currentPhotoIndex];
     const modalPhoto = document.getElementById('modalPhoto');
-    const viewer = document.querySelector('.album-viewer');
     
-    if (modalPhoto && viewer) {
-        // Remove classes antigas
-        modalPhoto.classList.remove('loaded');
-        viewer.classList.remove('loaded');
-        
-        // Adiciona loading
-        viewer.classList.add('loading');
-        
+    if (modalPhoto) {
         modalPhoto.src = photo.src;
         modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
-        
-        // ⚠️ TIMEOUT DE SEGURANÇA: 5 segundos
-        const loadingTimeout = setTimeout(() => {
-            if (!modalPhoto.classList.contains('loaded')) {
-                modalPhoto.classList.add('loaded');
-                viewer.classList.add('loaded');
-                viewer.classList.remove('loading');
-                console.warn(`⚠️ Foto ${currentPhotoIndex + 1} (${photo.src}) não carregou a tempo`);
-            }
-        }, 5000);
-        
-        // Quando carregar
-        modalPhoto.addEventListener('load', function() {
-            clearTimeout(loadingTimeout); // ✅ Cancela timeout
-            this.classList.add('loaded');
-            viewer.classList.add('loaded');
-            viewer.classList.remove('loading');
-        }, { once: true });
-        
-        // ⚠️ ERRO: Remove loading se imagem falhar
-        modalPhoto.addEventListener('error', function() {
-            clearTimeout(loadingTimeout);
-            this.classList.add('loaded');
-            viewer.classList.add('loaded');
-            viewer.classList.remove('loading');
-            console.error(`❌ Erro ao carregar: ${photo.src}`);
-        }, { once: true });
     }
     
-    // Atualiza contador
     document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
     document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
 }
@@ -652,7 +519,7 @@ function initModal() {
         }
     });
     
-    // Navegação estilo Instagram
+    // ===== NAVEGAÇÃO ESTILO INSTAGRAM =====
     const albumViewer = document.querySelector('.album-viewer');
     if (albumViewer) {
         albumViewer.addEventListener('click', (e) => {
@@ -800,70 +667,6 @@ function updateCurrentDate() {
     }
 }
 
-// ===== SKELETON PARA FOTO DO CASAL =====
-function initCouplePhotoSkeleton() {
-    const couplePhoto = document.querySelector('.couple-photo');
-    const coupleImg = couplePhoto?.querySelector('img');
-    
-    if (coupleImg && couplePhoto) {
-        couplePhoto.classList.add('loading');
-        
-        coupleImg.addEventListener('load', function() {
-            this.classList.add('loaded');
-            couplePhoto.classList.add('loaded');
-            couplePhoto.classList.remove('loading');
-        });
-        
-        if (coupleImg.complete && coupleImg.naturalHeight !== 0) {
-            coupleImg.classList.add('loaded');
-            couplePhoto.classList.add('loaded');
-            couplePhoto.classList.remove('loading');
-        }
-    }
-}
-
-// ===== FUNÇÃO UTILITÁRIA PARA SKELETON =====
-function setupImageSkeleton(imgElement, containerElement = null) {
-    if (!imgElement) return;
-    
-    const container = containerElement || imgElement.parentElement;
-    
-    imgElement.classList.add('loading');
-    if (container) container.classList.add('loading');
-    
-    imgElement.addEventListener('load', function() {
-        this.classList.add('loaded');
-        this.classList.remove('loading');
-        if (container) {
-            container.classList.add('loaded');
-            container.classList.remove('loading');
-        }
-    }, { once: true });
-    
-    if (imgElement.complete && imgElement.naturalHeight !== 0) {
-        imgElement.classList.add('loaded');
-        imgElement.classList.remove('loading');
-        if (container) {
-            container.classList.add('loaded');
-            container.classList.remove('loading');
-        }
-    }
-}
-
-function initImageSkeletons() {
-    const coupleImg = document.querySelector('.couple-photo img');
-    const couplePhoto = document.querySelector('.couple-photo');
-    setupImageSkeleton(coupleImg, couplePhoto);
-    
-    const albumImg = document.querySelector('.album-cover img');
-    const albumCover = document.querySelector('.album-cover');
-    setupImageSkeleton(albumImg, albumCover);
-    
-    document.querySelectorAll('.album-cover-img').forEach(img => {
-        setupImageSkeleton(img);
-    });
-}
-
 // ===== INICIALIZAÇÃO COMPLETA =====
 console.log(`
 ╔══════════════════════════════════════╗
@@ -871,9 +674,8 @@ console.log(`
 ╠══════════════════════════════════════╣
 ║   📱 Otimizado para Mobile          ║
 ║   🎵 Player original restaurado     ║
-║   📸 Sistema de álbuns dinâmico     ║
-║   🎨 ${Object.keys(themes).length} temas disponíveis               ║
-║   🔒 Proteção anti-loading infinito ║
+║   📸 ${albums.length} álbuns organizados ║
+║   🎨 ${Object.keys(themes).length} temas disponíveis ║
 ╚══════════════════════════════════════╝
 `);
 
@@ -899,64 +701,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
-});
-
-// ===== LAZY LOADING E SKELETON PARA IMAGENS =====
-document.addEventListener('DOMContentLoaded', function() {
-    // Função para adicionar efeito de loading nas imagens
-    function setupImageLoading() {
-        const images = document.querySelectorAll('img');
-        
-        images.forEach(img => {
-            // Se a imagem já foi carregada
-            if (img.complete) {
-                img.classList.add('loaded');
-            } else {
-                // Quando a imagem carregar
-                img.addEventListener('load', function() {
-                    setTimeout(() => {
-                        this.classList.add('loaded');
-                    }, 100);
-                });
-                
-                // Se der erro, também marca como carregada
-                img.addEventListener('error', function() {
-                    this.classList.add('loaded');
-                    console.warn('❌ Erro ao carregar imagem:', this.src);
-                });
-            }
-        });
-    }
-    
-    // Executar na inicialização
-    setupImageLoading();
-    
-    // Re-executar quando novos álbuns/fotos forem carregados
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.addedNodes.length) {
-                setupImageLoading();
-            }
-        });
-    });
-    
-    // Observar mudanças no container de álbuns
-    const albumsContainer = document.getElementById('albumsContainer');
-    if (albumsContainer) {
-        observer.observe(albumsContainer, {
-            childList: true,
-            subtree: true
-        });
-    }
-    
-    // Observar mudanças no modal
-    const modalPhoto = document.getElementById('modalPhoto');
-    if (modalPhoto) {
-        observer.observe(modalPhoto.parentElement, {
-            attributes: true,
-            attributeFilter: ['src']
-        });
-    }
-    
-    console.log('✅ Sistema de loading de imagens ativado');
 });
