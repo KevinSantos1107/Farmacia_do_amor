@@ -627,7 +627,11 @@ function initMessages() {
     
     const newMessageBtn = document.getElementById('newMessageBtn');
     if (newMessageBtn) {
-        newMessageBtn.addEventListener('click', showRandomMessage);
+        // Usar pointerdown para resposta mais imediata
+        newMessageBtn.addEventListener('pointerdown', function(event) {
+            event.preventDefault(); // Prevenir comportamento padrão se necessário
+            showRandomMessage();
+        });
     }
 }
 
