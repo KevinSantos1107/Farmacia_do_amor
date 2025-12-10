@@ -315,11 +315,29 @@ function loadTrack(index) {
     document.getElementById('currentTime').textContent = '0:00';
     
     if (albumImg && albumCover) {
-        albumImg.addEventListener('load', function() {
-            this.classList.add('loaded');
-            albumCover.classList.add('loaded');
-            albumCover.classList.remove('loading');
-        }, { once: true });
+        // ⚠️ IMPORTANTE: Força o carregamento da nova imagem
+        const imgSrc = albumImg.src;
+        albumImg.src = '';
+        
+        // Timeout para garantir que o navegador detecte a mudança
+        setTimeout(() => {
+            albumImg.src = imgSrc;
+            
+            albumImg.addEventListener('load', function() {
+                this.classList.add('loaded');
+                albumCover.classList.add('loaded');
+                albumCover.classList.remove('loading');
+            }, { once: true });
+            
+            // Fallback se não carregar em 3 segundos
+            setTimeout(() => {
+                if (!albumImg.classList.contains('loaded')) {
+                    albumImg.classList.add('loaded');
+                    albumCover.classList.add('loaded');
+                    albumCover.classList.remove('loading');
+                }
+            }, 3000);
+        }, 50);
     }
     
     if (isPlaying) {
@@ -432,9 +450,11 @@ const albums = [
         cover: "images/capas-albuns/viagem.jpg",
         description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
         photos: [
-            { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
-            { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" }
-            // ✅ Apenas 2 fotos? Sistema mostrará "2 fotos" automaticamente
+            { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" }
+            // ✅ Apenas 1 foto? Sistema mostrará "1 foto" automaticamente
+            // ✅ Quando adicionar mais fotos, basta incluir aqui:
+            // { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
+            // { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" }
         ]
     }
 ];
@@ -852,13 +872,91 @@ console.log(`
 ║   📱 Otimizado para Mobile          ║
 ║   🎵 Player original restaurado     ║
 ║   📸 Sistema de álbuns dinâmico     ║
-║   🎨 3 temas disponíveis            ║
+║   🎨 ${Object.keys(themes).length} temas disponíveis               ║
 ║   🔒 Proteção anti-loading infinito ║
 ╚══════════════════════════════════════╝
 `);
 
 // ===== FIX PARA FOCUS STATE EM MOBILE =====
-// (código completo incluído)
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll(
+        '.control-btn, .album-control-btn, .theme-btn, ' +
+        '.theme-menu-toggle, .close-modal, .new-message-btn'
+    );
+    
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            this.blur();
+        });
+        
+        button.addEventListener('touchend', function() {
+            this.blur();
+        });
+        
+        button.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+        });
+    });
+    
+    console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
+});
 
 // ===== LAZY LOADING E SKELETON PARA IMAGENS =====
-// (código completo incluído)
+document.addEventListener('DOMContentLoaded', function() {
+    // Função para adicionar efeito de loading nas imagens
+    function setupImageLoading() {
+        const images = document.querySelectorAll('img');
+        
+        images.forEach(img => {
+            // Se a imagem já foi carregada
+            if (img.complete) {
+                img.classList.add('loaded');
+            } else {
+                // Quando a imagem carregar
+                img.addEventListener('load', function() {
+                    setTimeout(() => {
+                        this.classList.add('loaded');
+                    }, 100);
+                });
+                
+                // Se der erro, também marca como carregada
+                img.addEventListener('error', function() {
+                    this.classList.add('loaded');
+                    console.warn('❌ Erro ao carregar imagem:', this.src);
+                });
+            }
+        });
+    }
+    
+    // Executar na inicialização
+    setupImageLoading();
+    
+    // Re-executar quando novos álbuns/fotos forem carregados
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+                setupImageLoading();
+            }
+        });
+    });
+    
+    // Observar mudanças no container de álbuns
+    const albumsContainer = document.getElementById('albumsContainer');
+    if (albumsContainer) {
+        observer.observe(albumsContainer, {
+            childList: true,
+            subtree: true
+        });
+    }
+    
+    // Observar mudanças no modal
+    const modalPhoto = document.getElementById('modalPhoto');
+    if (modalPhoto) {
+        observer.observe(modalPhoto.parentElement, {
+            attributes: true,
+            attributeFilter: ['src']
+        });
+    }
+    
+    console.log('✅ Sistema de loading de imagens ativado');
+});
