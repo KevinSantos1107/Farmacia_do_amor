@@ -170,6 +170,20 @@
     );
 }
 
+/* Ajustar padding do header no tema Winter para compensar a neve */
+.theme-winter .header {
+    padding: 20px 15px 25px;
+}
+
+.theme-winter .names-container {
+    margin-bottom: 12px;
+}
+
+.theme-winter .subtitle {
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
 /* Frost/geada nas bordas */
 .theme-winter .album-card {
     position: relative;
