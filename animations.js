@@ -866,10 +866,6 @@ function createWinterScene() {
         createWinterSparkle();
     }
     
-    for (let i = 0; i < config.icePatches; i++) {
-        createIcePatch();
-    }
-    
     for (let i = 0; i < config.frostLines; i++) {
         createFrostLine();
     }
@@ -1017,7 +1013,6 @@ function drawWinterScene() {
     
     drawWinterFog();
     drawFrostLines();
-    drawIcePatches();
     drawWinterSparkles();
     drawSmallSnowflakes();
     drawMainSnowflakes();
