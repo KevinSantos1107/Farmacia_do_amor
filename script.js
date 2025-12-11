@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ===== CONFIGURAÇÕES DE DATAS =====
-const START_DATE = new Date(2025, 9, 11, 0, 0, 0);
+const START_DATE = new Date('2025-10-11T00:00:00');
 const START_DATE_DISPLAY = '11/10/2025';
 
 // ===== SISTEMA DE TEMAS =====
