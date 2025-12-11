@@ -172,16 +172,16 @@
 
 /* Ajustar padding do header no tema Winter para compensar a neve */
 .theme-winter .header {
-    padding: 20px 15px 25px;
+    padding: 25px 15px;
 }
 
 .theme-winter .names-container {
-    margin-bottom: 12px;
+    margin-bottom: 15px;
 }
 
 .theme-winter .subtitle {
-    margin-top: 8px;
-    line-height: 1.4;
+    margin-top: 10px;
+    line-height: 1.3;
 }
 
 /* Frost/geada nas bordas */
