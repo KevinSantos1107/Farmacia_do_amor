@@ -58,7 +58,18 @@ const themes = {
             text: '#ffffff',
             textSecondary: '#a8dadc'
         }
+    },
+winter: {
+    name: 'Inverno Mágico',
+    colors: {
+        bg: '#1a2332',
+        primary: '#e3f2fd',
+        secondary: '#81d4fa',
+        accent: '#b3e5fc',
+        text: '#ffffff',
+        textSecondary: '#e1f5fe'
     }
+}
 };
 
 let currentTheme = 'meteors';
