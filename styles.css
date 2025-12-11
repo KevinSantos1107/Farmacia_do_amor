@@ -77,17 +77,6 @@
     --gradient-secondary: linear-gradient(135deg, #b3e5fc 0%, #81d4fa 100%);
     --gradient-neon: linear-gradient(135deg, #e3f2fd, #81d4fa, #b3e5fc);
     --gradient-text: linear-gradient(90deg, #e3f2fd, #81d4fa, #ffffff);
-    
-    /* Gradiente de céu invernal - de cima para baixo */
-    background: linear-gradient(to bottom, 
-        #0f1c2e 0%,
-        #1a2839 15%,
-        #243447 30%,
-        #2d4057 50%,
-        #364a5f 70%,
-        #3f5268 85%,
-        #4a5d70 100%
-    );
 }
 
 /* ===== EFEITOS DE INVERNO NOS ELEMENTOS ===== */
@@ -103,7 +92,7 @@
     top: 0;                       /* ← MUDOU DE -2px PARA 0 */
     left: 0;
     right: 0;
-    height: 12px;                 /* ← MUDOU DE 15px PARA 12px */
+    height: 8px;                 /* ← MUDOU DE 15px PARA 12px */
     background: linear-gradient(to bottom, 
         rgba(255, 255, 255, 0.95) 0%,
         rgba(240, 248, 255, 0.85) 40%,
@@ -1687,28 +1676,7 @@ body {
         margin-top: auto;
     }
 
-    /* Ajuste específico do subtitle Winter no mobile */
-   /* Forçar subtitle em 2 linhas no Winter - IGUAL AOS OUTROS TEMAS */
-.theme-winter .subtitle {
-    font-size: 1rem !important;
-    letter-spacing: 2px !important;
-    line-height: 1.4 !important;
-    margin-top: 10px !important;
-    padding: 5px 15px !important;
-    max-width: none !important;
-    word-spacing: normal !important;
-    display: inline-block !important;
-}
-
-/* Mobile - forçar 2 linhas */
-@media (max-width: 767px) {
-    .theme-winter .subtitle {
-        font-size: 1rem !important;
-        letter-spacing: 2px !important;
-        max-width: 280px !important;
-        line-height: 1.4 !important;
-    }
-}
+    
 
     .album-viewer {
         max-height: 55vh;
@@ -1748,7 +1716,7 @@ body {
 }
 
 
-  /* ===== FIX DEFINITIVO PARA MOBILE ===== */
+ /* ===== FIX DEFINITIVO PARA MOBILE ===== */
 @media (hover: none) and (pointer: coarse) {
     .control-btn:hover,
     .album-control-btn:hover,
@@ -1784,5 +1752,34 @@ body {
         background: rgba(255, 255, 255, 0.15);
         box-shadow: 0 0 15px var(--theme-primary);
         transform: scale(1);
+    }
+} /* ⚠️ AQUI FECHA O @media (hover: none) ⚠️ */
+
+/* ===== GARANTIR CONSISTÊNCIA DO TEMA WINTER ===== */
+/* ⚠️ ESTE CÓDIGO DEVE ESTAR AQUI, FORA DE QUALQUER @media ⚠️ */
+.theme-winter .container,
+.theme-winter .header,
+.theme-winter .main-card,
+.theme-winter .music-player,
+.theme-winter .message-card {
+    min-height: auto !important;
+    height: auto !important;
+}
+
+/* Garantir que o subtitle do Winter seja igual aos outros */
+.theme-winter .subtitle {
+    font-size: 1rem !important;
+    letter-spacing: 2px !important;
+    line-height: 1.4 !important;
+    display: inline-block !important;
+    white-space: nowrap !important;
+}
+
+@media (max-width: 767px) {
+    .theme-winter .subtitle {
+        font-size: 0.9rem !important;
+        white-space: normal !important;
+        max-width: 280px !important;
+        line-height: 1.3 !important;
     }
 }
