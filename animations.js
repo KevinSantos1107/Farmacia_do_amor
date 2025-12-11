@@ -3,6 +3,7 @@
 let canvas, ctx;
 let particles = [];
 let stars = [];
+let snowAccumulation = [];
 let animationId = null;
 let currentAnimation = 'meteors';
 
@@ -49,6 +50,29 @@ const settings = {
         waveSpeed: 0.0008,
         particleSpeed: 0.6
     }
+    ,
+winter: {
+    name: 'Inverno Mágico',
+    snowflakes: 80,
+    smallSnow: 120,
+    sparkles: 60,
+    snowColors: ['#ffffff', '#f0f8ff', '#e6f7ff', '#fafbfc'],
+    sparkleColors: ['#e3f2fd', '#b3e5fc', '#ffffff'],
+    skyGradient: [
+        '#0f1c2e',
+        '#1a2839',
+        '#243447',
+        '#2d4057',
+        '#364a5f',
+        '#3f5268',
+        '#4a5d70'
+    ],
+    snowSpeed: 0.6,
+    windStrength: 0.3,
+    rotationSpeed: 0.02,
+    accumulation: true,
+    glowIntensity: 0.4
+}
 };
 
 // ===== INICIALIZAÇÃO =====
@@ -143,6 +167,7 @@ function resizeCanvas() {
 function createElements() {
     particles = [];
     stars = [];
+    snowAccumulation = []; // ← ADICIONAR
     
     if (currentAnimation === 'meteors') {
         createStars();
@@ -153,7 +178,9 @@ function createElements() {
     } else if (currentAnimation === 'aurora') {
         createAurora();
         createAuroraStars();
-    }
+    } else if (currentAnimation === 'winter') { // ← ADICIONAR
+        createWinterScene(); // ← ADICIONAR
+    } // ← ADICIONAR
 }
 
 // ===== TEMA: CHUVA DE METEOROS (MANTIDO) =====
@@ -819,13 +846,524 @@ function drawAuroraStars() {
     });
 }
 
+// ===== TEMA: INVERNO MÁGICO =====
+function createWinterScene() {
+    const config = settings.winter;
+    
+    for (let i = 0; i < config.snowflakes; i++) {
+        createMainSnowflake();
+    }
+    
+    for (let i = 0; i < config.smallSnow; i++) {
+        createSmallSnowflake();
+    }
+    
+    for (let i = 0; i < config.sparkles; i++) {
+        createWinterSparkle();
+    }
+    
+    initSnowAccumulation();
+}
+
+function createMainSnowflake() {
+    const config = settings.winter;
+    const types = ['detailed', 'star', 'crystal'];
+    
+    particles.push({
+        type: 'mainSnow',
+        snowType: types[Math.floor(Math.random() * types.length)],
+        x: Math.random() * canvas.width,
+        y: Math.random() * -canvas.height,
+        size: Math.random() * 8 + 6,
+        speedY: Math.random() * config.snowSpeed + 0.4,
+        speedX: (Math.random() - 0.5) * config.windStrength,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * config.rotationSpeed,
+        swing: Math.random() * Math.PI * 2,
+        swingSpeed: Math.random() * 0.01 + 0.003,
+        swingAmplitude: Math.random() * 1.5 + 0.5,
+        color: config.snowColors[Math.floor(Math.random() * config.snowColors.length)],
+        opacity: Math.random() * 0.4 + 0.6,
+        wobble: Math.random() * 0.015 + 0.005,
+        wobbleOffset: Math.random() * Math.PI * 2,
+        depth: Math.random() * 0.5 + 0.7,
+        glow: Math.random() * config.glowIntensity + 0.1,
+        age: 0,
+        landed: false
+    });
+}
+
+function createSmallSnowflake() {
+    const config = settings.winter;
+    
+    particles.push({
+        type: 'smallSnow',
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 3 + 1,
+        speedY: Math.random() * 0.3 + 0.1,
+        speedX: (Math.random() - 0.5) * 0.2,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.01,
+        color: config.snowColors[Math.floor(Math.random() * config.snowColors.length)],
+        opacity: Math.random() * 0.2 + 0.1,
+        depth: Math.random() * 0.3 + 0.3,
+        age: 0
+    });
+}
+
+function createWinterSparkle() {
+    const config = settings.winter;
+    
+    stars.push({
+        type: 'winterSparkle',
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height * 0.7,
+        size: Math.random() * 2 + 0.5,
+        speedY: Math.random() * 0.2 + 0.05,
+        speedX: (Math.random() - 0.5) * 0.15,
+        color: config.sparkleColors[Math.floor(Math.random() * config.sparkleColors.length)],
+        brightness: Math.random() * 0.8 + 0.3,
+        twinkleSpeed: Math.random() * 0.008 + 0.003,
+        twinkleOffset: Math.random() * Math.PI * 2,
+        pulseSpeed: Math.random() * 0.01 + 0.005,
+        pulseOffset: Math.random() * Math.PI * 2,
+        age: 0
+    });
+}
+
+function initSnowAccumulation() {
+    const segments = Math.floor(canvas.width / 15);
+    
+    for (let i = 0; i <= segments; i++) {
+        snowAccumulation.push({
+            x: i * 15,
+            height: 0,
+            maxHeight: Math.random() * 30 + 20,
+            growthRate: 0.02
+        });
+    }
+}
+
+function drawWinterScene() {
+    drawWinterSparkles();
+    drawSmallSnowflakes();
+    drawMainSnowflakes();
+    drawSnowAccumulation();
+}
+
+function drawSmallSnowflakes() {
+    particles.forEach(particle => {
+        if (particle.type !== 'smallSnow') return;
+        
+        particle.age += 0.01;
+        particle.y += particle.speedY;
+        particle.x += particle.speedX;
+        particle.rotation += particle.rotationSpeed;
+        
+        if (particle.y > canvas.height + 20) {
+            particle.y = -20;
+            particle.x = Math.random() * canvas.width;
+        }
+        if (particle.x < -20) particle.x = canvas.width + 20;
+        if (particle.x > canvas.width + 20) particle.x = -20;
+        
+        ctx.save();
+        ctx.translate(particle.x, particle.y);
+        ctx.rotate(particle.rotation);
+        ctx.globalAlpha = particle.opacity * particle.depth;
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, particle.size * particle.depth, 0, Math.PI * 2);
+        
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, particle.size * particle.depth * 2);
+        gradient.addColorStop(0, particle.color);
+        gradient.addColorStop(0.5, particle.color + 'aa');
+        gradient.addColorStop(1, particle.color + '00');
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        ctx.restore();
+    });
+}
+
+function drawMainSnowflakes() {
+    const time = Date.now();
+    const config = settings.winter;
+    
+    particles.forEach((particle, index) => {
+        if (particle.type !== 'mainSnow') return;
+        
+        if (particle.landed) return;
+        
+        particle.age += 0.01;
+        particle.speedY += 0.002;
+        particle.y += particle.speedY;
+        
+        const swing = Math.sin(time * particle.swingSpeed + particle.swing) * particle.swingAmplitude;
+        particle.x += swing * 0.15 + particle.speedX;
+        
+        particle.rotation += particle.rotationSpeed;
+        particle.rotation += Math.sin(time * particle.wobble + particle.wobbleOffset) * 0.01;
+        
+        if (particle.y > canvas.height - 60) {
+            accumulateSnow(particle);
+            particle.landed = true;
+            
+            setTimeout(() => {
+                createMainSnowflake();
+            }, Math.random() * 2000);
+            return;
+        }
+        
+        if (particle.x < -50) particle.x = canvas.width + 50;
+        if (particle.x > canvas.width + 50) particle.x = -50;
+        
+        ctx.save();
+        ctx.translate(particle.x, particle.y);
+        ctx.rotate(particle.rotation);
+        ctx.globalAlpha = particle.opacity;
+        
+        const scale = particle.size * particle.depth;
+        
+        switch(particle.snowType) {
+            case 'detailed':
+                drawDetailedSnowflake(scale, particle.color, particle.glow);
+                break;
+            case 'star':
+                drawStarSnowflake(scale, particle.color, particle.glow);
+                break;
+            case 'crystal':
+                drawCrystalSnowflake(scale, particle.color, particle.glow);
+                break;
+        }
+        
+        ctx.restore();
+    });
+}
+
+function drawDetailedSnowflake(size, color, glow) {
+    for (let i = 0; i < 6; i++) {
+        ctx.save();
+        ctx.rotate((Math.PI * 2 * i) / 6);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -size);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = size * 0.12;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        for (let j = 1; j <= 3; j++) {
+            const y = -size * (j / 3.5);
+            const branchSize = size * 0.25;
+            
+            ctx.beginPath();
+            ctx.moveTo(-branchSize, y);
+            ctx.lineTo(branchSize, y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = size * 0.08;
+            ctx.stroke();
+            
+            if (j === 3) {
+                ctx.beginPath();
+                ctx.moveTo(-branchSize * 0.6, y - branchSize * 0.5);
+                ctx.lineTo(0, y);
+                ctx.lineTo(branchSize * 0.6, y - branchSize * 0.5);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = size * 0.06;
+                ctx.stroke();
+            }
+        }
+        
+        ctx.restore();
+    }
+    
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.15, 0, Math.PI * 2);
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.3);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.5, color + 'cc');
+    gradient.addColorStop(1, color + '00');
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    if (glow > 0.2) {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 1.3, 0, Math.PI * 2);
+        const glowGradient = ctx.createRadialGradient(0, 0, size * 0.8, 0, 0, size * 1.3);
+        glowGradient.addColorStop(0, color + Math.floor(glow * 60).toString(16).padStart(2, '0'));
+        glowGradient.addColorStop(1, color + '00');
+        ctx.fillStyle = glowGradient;
+        ctx.fill();
+    }
+}
+
+function drawStarSnowflake(size, color, glow) {
+    for (let i = 0; i < 8; i++) {
+        ctx.save();
+        ctx.rotate((Math.PI * 2 * i) / 8);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -size * 0.9);
+        ctx.lineTo(-size * 0.15, -size * 0.7);
+        ctx.lineTo(0, -size);
+        ctx.lineTo(size * 0.15, -size * 0.7);
+        ctx.lineTo(0, -size * 0.9);
+        ctx.closePath();
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, -size);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(0.7, color);
+        gradient.addColorStop(1, '#ffffff');
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        ctx.strokeStyle = '#ffffff88';
+        ctx.lineWidth = size * 0.04;
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.12, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+}
+
+function drawCrystalSnowflake(size, color, glow) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 * i) / 6;
+        const x = Math.cos(angle) * size * 0.6;
+        const y = Math.sin(angle) * size * 0.6;
+        
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.closePath();
+    
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.8);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.4, color + 'ee');
+    gradient.addColorStop(0.7, color + 'aa');
+    gradient.addColorStop(1, color + '66');
+    
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = size * 0.08;
+    ctx.stroke();
+    
+    for (let i = 0; i < 6; i++) {
+        ctx.save();
+        ctx.rotate((Math.PI * 2 * i) / 6);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -size * 0.5);
+        ctx.strokeStyle = '#ffffffaa';
+        ctx.lineWidth = size * 0.06;
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    
+    for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * (0.15 + i * 0.15), 0, Math.PI * 2);
+        ctx.strokeStyle = '#ffffff44';
+        ctx.lineWidth = size * 0.03;
+        ctx.stroke();
+    }
+}
+
+function drawWinterSparkles() {
+    const time = Date.now();
+    
+    stars.forEach(star => {
+        if (star.type !== 'winterSparkle') return;
+        
+        star.age += 0.01;
+        star.y += star.speedY;
+        star.x += star.speedX;
+        
+        const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
+        const pulse = Math.sin(time * star.pulseSpeed + star.pulseOffset) * 0.3 + 0.7;
+        const brightness = star.brightness * twinkle * pulse;
+        
+        if (star.y > canvas.height + 30) {
+            star.y = -30;
+            star.x = Math.random() * canvas.width;
+        }
+        if (star.x < -30) star.x = canvas.width + 30;
+        if (star.x > canvas.width + 30) star.x = -30;
+        
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        
+        const gradient = ctx.createRadialGradient(
+            star.x, star.y, 0,
+            star.x, star.y, star.size * 4
+        );
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${brightness})`);
+        gradient.addColorStop(0.3, `${star.color}${Math.floor(brightness * 180).toString(16).padStart(2, '0')}`);
+        gradient.addColorStop(0.7, `${star.color}${Math.floor(brightness * 80).toString(16).padStart(2, '0')}`);
+        gradient.addColorStop(1, `${star.color}00`);
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        if (star.size > 1.2 && brightness > 0.6) {
+            ctx.save();
+            ctx.translate(star.x, star.y);
+            ctx.rotate(time * 0.001);
+            
+            for (let i = 0; i < 4; i++) {
+                const angle = (i * Math.PI) / 2;
+                const length = star.size * 3 * brightness;
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${brightness * 0.4})`;
+                ctx.lineWidth = 1;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+    });
+}
+
+function accumulateSnow(snowflake) {
+    const segmentIndex = Math.floor(snowflake.x / 15);
+    
+    if (segmentIndex >= 0 && segmentIndex < snowAccumulation.length) {
+        const segment = snowAccumulation[segmentIndex];
+        
+        if (segment.height < segment.maxHeight) {
+            segment.height += segment.growthRate * snowflake.size * 0.3;
+        }
+    }
+}
+
+function drawSnowAccumulation() {
+    if (snowAccumulation.length === 0) return;
+    
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height);
+    
+    for (let i = 0; i < snowAccumulation.length; i++) {
+        const segment = snowAccumulation[i];
+        const x = segment.x;
+        const y = canvas.height - segment.height;
+        
+        if (i === 0) {
+            ctx.lineTo(x, y);
+        } else {
+            const prevSegment = snowAccumulation[i - 1];
+            const prevX = prevSegment.x;
+            const prevY = canvas.height - prevSegment.height;
+            
+            const cpX = (prevX + x) / 2;
+            const cpY = (prevY + y) / 2;
+            
+            ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
+        }
+    }
+    
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.lineTo(0, canvas.height);
+    ctx.closePath();
+    
+    const gradient = ctx.createLinearGradient(0, canvas.height - 50, 0, canvas.height);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.3, '#f8f9fa');
+    gradient.addColorStop(0.6, '#e3f2fd');
+    gradient.addColorStop(1, '#cfe2f3');
+    
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height);
+    
+    for (let i = 0; i < snowAccumulation.length; i++) {
+        const segment = snowAccumulation[i];
+        const x = segment.x;
+        const y = canvas.height - segment.height;
+        
+        if (i === 0) {
+            ctx.lineTo(x, y);
+        } else {
+            const prevSegment = snowAccumulation[i - 1];
+            const prevX = prevSegment.x;
+            const prevY = canvas.height - prevSegment.height;
+            
+            const cpX = (prevX + x) / 2;
+            const cpY = (prevY + y) / 2;
+            
+            ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
+        }
+    }
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    for (let i = 0; i < snowAccumulation.length; i += 3) {
+        const segment = snowAccumulation[i];
+        if (segment.height > 5) {
+            const x = segment.x + (Math.random() - 0.5) * 10;
+            const y = canvas.height - segment.height - Math.random() * 5;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+            const sparkleGrad = ctx.createRadialGradient(x, y, 0, x, y, 4);
+            sparkleGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+            sparkleGrad.addColorStop(0.5, 'rgba(227, 242, 253, 0.5)');
+            sparkleGrad.addColorStop(1, 'rgba(227, 242, 253, 0)');
+            ctx.fillStyle = sparkleGrad;
+            ctx.fill();
+        }
+    }
+}
+
+
 // ===== ANIMAÇÃO PRINCIPAL =====
 function animate() {
     if (!ctx || !canvas) return;
     
-    const bgColor = settings[currentAnimation].backgroundColor;
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Desenhar fundo
+    if (currentAnimation === 'winter') {
+        // Gradiente de céu invernal
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        settings.winter.skyGradient.forEach((color, index) => {
+            gradient.addColorStop(index / (settings.winter.skyGradient.length - 1), color);
+        });
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+        const bgColor = settings[currentAnimation].backgroundColor;
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     
     if (currentAnimation === 'meteors') {
         drawStars();
@@ -836,6 +1374,8 @@ function animate() {
     } else if (currentAnimation === 'aurora') {
         drawAuroraStars();
         drawAurora();
+    } else if (currentAnimation === 'winter') {
+        drawWinterScene();
     }
     
     animationId = requestAnimationFrame(animate);
@@ -849,6 +1389,7 @@ function startAnimation() {
     // Limpar arrays
     particles = [];
     stars = [];
+    snowAccumulation = []; // ← ADICIONAR
     
     // Criar elementos baseado no tema atual
     createElements();
@@ -875,6 +1416,7 @@ function changeAnimation(animationName) {
     // Limpar arrays
     particles = [];
     stars = [];
+    snowAccumulation = [];
     
     // Recriar elementos
     createElements();
