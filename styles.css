@@ -1087,10 +1087,14 @@ body {
     max-height: 100%;
     object-fit: contain;
     border-radius: 10px;
-    transition: transform 0.2s ease-out; /* ← ADICIONAR */
+    transition: transform none; /* ← ADICIONAR */
     transform-origin: center; /* ← ADICIONAR */
     user-select: none; /* ← ADICIONAR */
     -webkit-user-drag: none; /* ← ADICIONAR */
+}
+
+.album-viewer img.zoom-transition {
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .album-controls {
