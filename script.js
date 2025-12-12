@@ -482,6 +482,7 @@
     let isPinching = false;
     let initialPinchDistance = 0;
     let lastGestureTime = 0;
+    let blockNavigation = false;
 
     function initAlbums() {
         const container = document.getElementById('albumsContainer');
@@ -563,6 +564,7 @@
     }
 
     // ===== FUNÇÕES DE ZOOM =====
+// ===== FUNÇÕES DE ZOOM =====
 function resetZoom() {
     const modalPhoto = document.getElementById('modalPhoto');
     
@@ -573,14 +575,21 @@ function resetZoom() {
     translateX = 0;
     translateY = 0;
     isDragging = false;
+    isPinching = false; // ← ADICIONAR
+    blockNavigation = true; // ← ADICIONAR: Bloquear navegação ao resetar
     updateImageTransform();
     
     // Remover transição depois
     setTimeout(() => {
         modalPhoto.classList.remove('zoom-transition');
     }, 300);
+    
+    // ← ADICIONAR: Desbloquear navegação após 500ms
+    setTimeout(() => {
+        blockNavigation = false;
+        lastGestureTime = Date.now(); // Atualizar tempo
+    }, 500);
 }
-
     function updateImageTransform() {
         const modalPhoto = document.getElementById('modalPhoto');
         if (!modalPhoto) return;
@@ -643,19 +652,31 @@ function handleZoom(delta, centerX, centerY) {
         resetZoom(); // ← ADICIONAR
     });
         
-        prevBtn.addEventListener('click', () => {
-            if (currentAlbum) {
-                currentPhotoIndex = (currentPhotoIndex - 1 + currentAlbum.photos.length) % currentAlbum.photos.length;
-                updateAlbumViewer();
-            }
-        });
+prevBtn.addEventListener('click', () => {
+    // ← ADICIONAR: Bloquear se houver zoom
+    if (zoomLevel > 1 || blockNavigation) {
+        console.log('🚫 Navegação bloqueada');
+        return;
+    }
+    
+    if (currentAlbum) {
+        currentPhotoIndex = (currentPhotoIndex - 1 + currentAlbum.photos.length) % currentAlbum.photos.length;
+        updateAlbumViewer();
+    }
+});
         
-        nextBtn.addEventListener('click', () => {
-            if (currentAlbum) {
-                currentPhotoIndex = (currentPhotoIndex + 1) % currentAlbum.photos.length;
-                updateAlbumViewer();
-            }
-        });
+nextBtn.addEventListener('click', () => {
+    // ← ADICIONAR: Bloquear se houver zoom
+    if (zoomLevel > 1 || blockNavigation) {
+        console.log('🚫 Navegação bloqueada');
+        return;
+    }
+    
+    if (currentAlbum) {
+        currentPhotoIndex = (currentPhotoIndex + 1) % currentAlbum.photos.length;
+        updateAlbumViewer();
+    }
+});
         
     const albumViewer = document.querySelector('.album-viewer');
     const modalPhoto = document.getElementById('modalPhoto');
@@ -694,24 +715,31 @@ function handleZoom(delta, centerX, centerY) {
         // ===== PINCH TO ZOOM (MOBILE) =====
 
 albumViewer.addEventListener('touchstart', (e) => {
-    lastGestureTime = Date.now(); // Atualizar tempo do último gesto
+    // ← ADICIONAR: Bloquear navegação se houver zoom
+    if (zoomLevel > 1) {
+        blockNavigation = true;
+    }
+    
+    lastGestureTime = Date.now();
     
     if (e.touches.length === 2) {
         // MODO PINCH
         e.preventDefault();
+        e.stopPropagation(); // ← ADICIONAR
         isPinching = true;
-        isDragging = false; // Desabilitar drag durante pinch
+        isDragging = false;
+        blockNavigation = true; // ← ADICIONAR
         
         initialPinchDistance = getTouchDistance(e.touches[0], e.touches[1]);
         lastTouchDistance = initialPinchDistance;
         
-        // NÃO iniciar drag aqui
-        
     } else if (e.touches.length === 1 && zoomLevel > 1) {
         // MODO DRAG (apenas com 1 dedo e zoom ativo)
         e.preventDefault();
+        e.stopPropagation(); // ← ADICIONAR
         isPinching = false;
         isDragging = true;
+        blockNavigation = true; // ← ADICIONAR
         startX = e.touches[0].clientX - translateX;
         startY = e.touches[0].clientY - translateY;
         modalPhoto.style.cursor = 'grabbing';
@@ -719,27 +747,32 @@ albumViewer.addEventListener('touchstart', (e) => {
 }, { passive: false });
 
 albumViewer.addEventListener('touchmove', (e) => {
-    lastGestureTime = Date.now(); // Atualizar tempo do último gesto
+    lastGestureTime = Date.now();
+    
+    // ← ADICIONAR: Bloquear navegação durante movimento
+    if (zoomLevel > 1 || isPinching || isDragging) {
+        blockNavigation = true;
+    }
     
     if (e.touches.length === 2 && isPinching) {
-        // ===== MODO PINCH PURO (SEM DRAG SIMULTÂNEO) =====
+        // ===== MODO PINCH PURO =====
         e.preventDefault();
+        e.stopPropagation(); // ← ADICIONAR
         
         const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
         const delta = currentDistance - lastTouchDistance;
         
-        // Calcular centro do pinch para zoom focal
         const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
         
-        // Aplicar zoom
-        handleZoom(delta * 2, centerX, centerY); // *2 para sensibilidade melhor
+        handleZoom(delta * 2, centerX, centerY);
         
         lastTouchDistance = currentDistance;
         
     } else if (e.touches.length === 1 && isDragging && zoomLevel > 1) {
-        // ===== MODO DRAG PURO (APENAS COM 1 DEDO) =====
+        // ===== MODO DRAG PURO =====
         e.preventDefault();
+        e.stopPropagation(); // ← ADICIONAR
         
         translateX = e.touches[0].clientX - startX;
         translateY = e.touches[0].clientY - startY;
@@ -750,17 +783,28 @@ albumViewer.addEventListener('touchmove', (e) => {
 albumViewer.addEventListener('touchend', (e) => {
     if (e.touches.length === 0) {
         // Todos os dedos foram retirados
+        const wasZoomed = zoomLevel > 1; // ← ADICIONAR
+        
         isPinching = false;
         isDragging = false;
         modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-        lastGestureTime = Date.now(); // Atualizar ao soltar
+        
+        // ← ADICIONAR: Se estava com zoom, bloquear navegação temporariamente
+        if (wasZoomed) {
+            blockNavigation = true;
+            setTimeout(() => {
+                blockNavigation = false;
+            }, 400);
+        }
+        
+        lastGestureTime = Date.now();
         
     } else if (e.touches.length === 1 && isPinching) {
-        // Transição de 2 dedos para 1 dedo (pinch -> possível drag)
+        // Transição de 2 dedos para 1 dedo
         isPinching = false;
+        blockNavigation = true; // ← ADICIONAR
         
         if (zoomLevel > 1) {
-            // Preparar para drag se ainda tiver zoom
             isDragging = true;
             startX = e.touches[0].clientX - translateX;
             startY = e.touches[0].clientY - translateY;
@@ -769,9 +813,10 @@ albumViewer.addEventListener('touchend', (e) => {
 });
 
 albumViewer.addEventListener('click', (e) => {
-    // Bloquear clique se acabou de fazer zoom/drag ou se está com zoom
     const timeSinceGesture = Date.now() - lastGestureTime;
-    if (zoomLevel > 1 || timeSinceGesture < 300) {
+    
+    // ← MODIFICAR: Verificar também blockNavigation
+    if (zoomLevel > 1 || blockNavigation || timeSinceGesture < 400) {
         e.preventDefault();
         e.stopPropagation();
         return;
@@ -819,18 +864,24 @@ albumViewer.addEventListener('click', (e) => {
             handleSwipe();
         }, { passive: true });
         
-        function handleSwipe() {
-            const swipeThreshold = 50;
-            const diff = touchStartX - touchEndX;
-            
-            if (Math.abs(diff) > swipeThreshold) {
-                if (diff > 0) {
-                    nextBtn.click();
-                } else {
-                    prevBtn.click();
-                }
-            }
+function handleSwipe() {
+    // ← ADICIONAR: Bloquear swipe se houver zoom ou bloqueio ativo
+    if (zoomLevel > 1 || blockNavigation) {
+        console.log('🚫 Navegação bloqueada - zoom ativo');
+        return;
+    }
+    
+    const swipeThreshold = 50;
+    const diff = touchStartX - touchEndX;
+    
+    if (Math.abs(diff) > swipeThreshold) {
+        if (diff > 0) {
+            nextBtn.click();
+        } else {
+            prevBtn.click();
         }
+    }
+}
         
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
