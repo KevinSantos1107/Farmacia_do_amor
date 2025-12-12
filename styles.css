@@ -1087,6 +1087,10 @@ body {
     max-height: 100%;
     object-fit: contain;
     border-radius: 10px;
+    transition: transform 0.2s ease-out; /* ← ADICIONAR */
+    transform-origin: center; /* ← ADICIONAR */
+    user-select: none; /* ← ADICIONAR */
+    -webkit-user-drag: none; /* ← ADICIONAR */
 }
 
 .album-controls {
