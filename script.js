@@ -483,6 +483,7 @@
     let initialPinchDistance = 0;
     let lastGestureTime = 0;
     let blockNavigation = false;
+    let wasPinching = false;
 
     function initAlbums() {
         const container = document.getElementById('albumsContainer');
@@ -716,17 +717,21 @@ nextBtn.addEventListener('click', () => {
 
 albumViewer.addEventListener('touchstart', (e) => {
     lastGestureTime = Date.now();
+    wasPinching = false; // ← ADICIONAR: Reset no início
     
     if (e.touches.length === 2) {
         // MODO PINCH
         e.preventDefault();
         e.stopPropagation();
         isPinching = true;
+        wasPinching = true; // ← ADICIONAR: Marcar que está fazendo pinch
         isDragging = false;
         blockNavigation = true;
         
         initialPinchDistance = getTouchDistance(e.touches[0], e.touches[1]);
         lastTouchDistance = initialPinchDistance;
+        
+        console.log('🔍 Pinch iniciado');
         
     } else if (e.touches.length === 1 && zoomLevel > 1) {
         // MODO DRAG (apenas com 1 dedo e zoom ativo)
@@ -738,8 +743,11 @@ albumViewer.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX - translateX;
         startY = e.touches[0].clientY - translateY;
         modalPhoto.style.cursor = 'grabbing';
+        
+        console.log('✋ Drag iniciado');
+        
     } else if (e.touches.length === 1 && zoomLevel === 1) {
-        // ← ADICIONAR: Permitir navegação se não há zoom
+        // Permitir navegação se não há zoom e não foi pinch
         blockNavigation = false;
     }
 }, { passive: false });
@@ -779,31 +787,56 @@ albumViewer.addEventListener('touchmove', (e) => {
 albumViewer.addEventListener('touchend', (e) => {
     if (e.touches.length === 0) {
         // ← TODOS os dedos foram retirados
-        const wasInteracting = isPinching || isDragging;
         
-        isPinching = false;
-        isDragging = false;
-        modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-        
-        // ← LÓGICA MELHORADA: Só bloquear se estava interagindo E ainda tem zoom
-        if (wasInteracting && zoomLevel > 1) {
+        // ← LÓGICA NOVA: Se acabou de fazer pinch, SEMPRE bloquear
+        if (wasPinching) {
+            console.log('🔒 Pinch finalizado - bloqueando navegação por 400ms');
             blockNavigation = true;
-            console.log('🔒 Bloqueio ativado - ainda com zoom');
+            isPinching = false;
+            isDragging = false;
+            wasPinching = false;
+            modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+            
             setTimeout(() => {
                 blockNavigation = false;
-                console.log('🔓 Bloqueio removido');
-            }, 250); // ← REDUZIDO: 400ms → 250ms
-        } else if (zoomLevel === 1) {
-            // ← Se não tem zoom, desbloquear imediatamente
-            blockNavigation = false;
-            console.log('✅ Sem zoom - navegação liberada');
+                console.log('🔓 Navegação liberada após pinch');
+            }, 400); // ← Tempo suficiente para evitar swipe acidental
+            
+            lastGestureTime = Date.now();
+            return; // ← IMPORTANTE: Sair aqui
         }
         
+        // ← Se era drag (não pinch)
+        if (isDragging) {
+            console.log('✋ Drag finalizado');
+            isDragging = false;
+            
+            if (zoomLevel > 1) {
+                blockNavigation = true;
+                console.log('🔒 Bloqueio ativado - ainda com zoom');
+                setTimeout(() => {
+                    blockNavigation = false;
+                    console.log('🔓 Bloqueio removido');
+                }, 250);
+            } else {
+                blockNavigation = false;
+                console.log('✅ Sem zoom - navegação liberada');
+            }
+        } else {
+            // ← Toque simples sem drag/pinch
+            blockNavigation = false;
+            console.log('✅ Toque simples - navegação livre');
+        }
+        
+        isPinching = false;
+        modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
         lastGestureTime = Date.now();
         
     } else if (e.touches.length === 1 && isPinching) {
         // Transição de 2 dedos para 1 dedo
+        console.log('🔄 Transição: 2 dedos → 1 dedo');
         isPinching = false;
+        wasPinching = true; // ← MANTER: Ainda considera como pinch
         
         if (zoomLevel > 1) {
             isDragging = true;
@@ -863,22 +896,39 @@ albumViewer.addEventListener('click', (e) => {
             }, { passive: true });
         }
         
-        let touchStartX = 0;
-        let touchEndX = 0;
+let touchStartX = 0;
+let touchEndX = 0;
+let touchStartTime = 0; // ← ADICIONAR
+
+modal.addEventListener('touchstart', e => {
+    // ← SÓ CAPTURAR se não estiver fazendo pinch/drag
+    if (!isPinching && !isDragging && zoomLevel === 1) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartTime = Date.now(); // ← ADICIONAR
+    }
+}, { passive: true });
+
+modal.addEventListener('touchend', e => {
+    // ← SÓ PROCESSAR se não estiver fazendo pinch/drag
+    if (!isPinching && !isDragging && !wasPinching && zoomLevel === 1) {
+        touchEndX = e.changedTouches[0].screenX;
+        const touchDuration = Date.now() - touchStartTime; // ← ADICIONAR
         
-        modal.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-        
-        modal.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
+        // ← SÓ NAVEGAR se foi um swipe rápido (não um drag lento)
+        if (touchDuration < 300) {
             handleSwipe();
-        }, { passive: true });
-        
+        }
+    }
+}, { passive: true });
 function handleSwipe() {
-    // ← VERIFICAÇÃO SIMPLIFICADA
+    // ← VERIFICAÇÕES EXPANDIDAS
     if (zoomLevel > 1) {
         console.log('🚫 Swipe bloqueado - zoom ativo');
+        return;
+    }
+    
+    if (wasPinching) {
+        console.log('🚫 Swipe bloqueado - acabou de fazer pinch');
         return;
     }
     
