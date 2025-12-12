@@ -560,12 +560,23 @@
     }
 
     // ===== FUNÇÕES DE ZOOM =====
-    function resetZoom() {
-        zoomLevel = 1;
-        translateX = 0;
-        translateY = 0;
-        updateImageTransform();
-    }
+function resetZoom() {
+    const modalPhoto = document.getElementById('modalPhoto');
+    
+    // Adicionar transição suave apenas no reset
+    modalPhoto.classList.add('zoom-transition');
+    
+    zoomLevel = 1;
+    translateX = 0;
+    translateY = 0;
+    isDragging = false;
+    updateImageTransform();
+    
+    // Remover transição depois
+    setTimeout(() => {
+        modalPhoto.classList.remove('zoom-transition');
+    }, 300);
+}
 
     function updateImageTransform() {
         const modalPhoto = document.getElementById('modalPhoto');
@@ -575,34 +586,37 @@
         modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
     }
 
-    function handleZoom(delta, centerX, centerY) {
-        const oldZoom = zoomLevel;
-        
-        // Ajustar zoom
-        if (delta > 0) {
-            zoomLevel = Math.min(zoomLevel * 1.1, 4); // Máximo 4x
-        } else {
-            zoomLevel = Math.max(zoomLevel * 0.9, 1); // Mínimo 1x
-        }
-        
-        // Se voltou ao zoom 1x, centralizar
-        if (zoomLevel === 1) {
-            translateX = 0;
-            translateY = 0;
-        } else if (centerX !== undefined && centerY !== undefined) {
-            // Ajustar posição baseado no ponto de zoom
-            const modalPhoto = document.getElementById('modalPhoto');
-            const rect = modalPhoto.getBoundingClientRect();
-            
-            const offsetX = centerX - rect.left - rect.width / 2;
-            const offsetY = centerY - rect.top - rect.height / 2;
-            
-            translateX -= offsetX * (zoomLevel - oldZoom) / oldZoom;
-            translateY -= offsetY * (zoomLevel - oldZoom) / oldZoom;
-        }
-        
-        updateImageTransform();
+function handleZoom(delta, centerX, centerY) {
+    const oldZoom = zoomLevel;
+    
+    // Ajustar zoom de forma mais suave
+    if (delta > 0) {
+        zoomLevel = Math.min(zoomLevel * 1.05, 4); // Máximo 4x, mais suave
+    } else {
+        zoomLevel = Math.max(zoomLevel * 0.95, 1); // Mínimo 1x, mais suave
     }
+    
+    // Se voltou ao zoom 1x, centralizar
+    if (zoomLevel === 1) {
+        translateX = 0;
+        translateY = 0;
+        isDragging = false; // ← ADICIONAR: resetar drag
+    } else if (centerX !== undefined && centerY !== undefined) {
+        // Ajustar posição baseado no ponto de zoom
+        const modalPhoto = document.getElementById('modalPhoto');
+        const rect = modalPhoto.getBoundingClientRect();
+        
+        const offsetX = centerX - rect.left - rect.width / 2;
+        const offsetY = centerY - rect.top - rect.height / 2;
+        
+        // ===== MELHORADO: Cálculo mais preciso =====
+        const zoomRatio = zoomLevel / oldZoom - 1;
+        translateX -= offsetX * zoomRatio;
+        translateY -= offsetY * zoomRatio;
+    }
+    
+    updateImageTransform();
+}
 
     function getTouchDistance(touch1, touch2) {
         const dx = touch1.clientX - touch2.clientX;
@@ -675,37 +689,63 @@
         }, { passive: false });
         
         // ===== PINCH TO ZOOM (MOBILE) =====
-        albumViewer.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                lastTouchDistance = getTouchDistance(e.touches[0], e.touches[1]);
-            } else if (e.touches.length === 1 && zoomLevel > 1) {
-                // Iniciar drag
-                isDragging = true;
-                startX = e.touches[0].clientX - translateX;
-                startY = e.touches[0].clientY - translateY;
-                modalPhoto.style.cursor = 'grabbing';
-            }
-        }, { passive: false });
+       albumViewer.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+        e.preventDefault();
+        lastTouchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        
+        // ===== NOVIDADE: Preparar para drag durante pinch =====
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        
+        if (zoomLevel > 1) {
+            isDragging = false; // Resetar, vai ativar no touchmove se necessário
+        }
+    } else if (e.touches.length === 1 && zoomLevel > 1) {
+        // Iniciar drag com um dedo
+        isDragging = true;
+        startX = e.touches[0].clientX - translateX;
+        startY = e.touches[0].clientY - translateY;
+        modalPhoto.style.cursor = 'grabbing';
+    }
+}, { passive: false });
         
         albumViewer.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const distance = getTouchDistance(e.touches[0], e.touches[1]);
-                const delta = distance - lastTouchDistance;
-                
-                const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                
-                handleZoom(delta, centerX, centerY);
-                lastTouchDistance = distance;
-            } else if (isDragging && e.touches.length === 1) {
-                e.preventDefault();
-                translateX = e.touches[0].clientX - startX;
-                translateY = e.touches[0].clientY - startY;
+    if (e.touches.length === 2) {
+        e.preventDefault();
+        
+        // Calcular zoom
+        const distance = getTouchDistance(e.touches[0], e.touches[1]);
+        const delta = distance - lastTouchDistance;
+        
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        
+        handleZoom(delta, centerX, centerY);
+        lastTouchDistance = distance;
+        
+        // ===== NOVIDADE: ARRASTAR ENQUANTO FAZ PINCH =====
+        // Se já está com zoom, permitir arrastar simultaneamente
+        if (zoomLevel > 1) {
+            if (!isDragging) {
+                // Iniciar drag no centro dos dois dedos
+                isDragging = true;
+                startX = centerX - translateX;
+                startY = centerY - translateY;
+            } else {
+                // Continuar arrastando enquanto faz pinch
+                translateX = centerX - startX;
+                translateY = centerY - startY;
                 updateImageTransform();
             }
-        }, { passive: false });
+        }
+    } else if (isDragging && e.touches.length === 1) {
+        e.preventDefault();
+        translateX = e.touches[0].clientX - startX;
+        translateY = e.touches[0].clientY - startY;
+        updateImageTransform();
+    }
+}, { passive: false });
         
         albumViewer.addEventListener('touchend', (e) => {
             if (e.touches.length === 0) {
