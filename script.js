@@ -479,6 +479,9 @@
     let translateX = 0;
     let translateY = 0;
     let lastTouchDistance = 0;
+    let isPinching = false;
+    let initialPinchDistance = 0;
+    let lastGestureTime = 0;
 
     function initAlbums() {
         const container = document.getElementById('albumsContainer');
@@ -689,111 +692,101 @@ function handleZoom(delta, centerX, centerY) {
         }, { passive: false });
         
         // ===== PINCH TO ZOOM (MOBILE) =====
-       albumViewer.addEventListener('touchstart', (e) => {
+
+albumViewer.addEventListener('touchstart', (e) => {
+    lastGestureTime = Date.now(); // Atualizar tempo do último gesto
+    
     if (e.touches.length === 2) {
+        // MODO PINCH
         e.preventDefault();
-        lastTouchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        isPinching = true;
+        isDragging = false; // Desabilitar drag durante pinch
         
-        // ===== NOVIDADE: Preparar para drag durante pinch =====
-        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        initialPinchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        lastTouchDistance = initialPinchDistance;
         
-        if (zoomLevel > 1) {
-            isDragging = false; // Resetar, vai ativar no touchmove se necessário
-        }
+        // NÃO iniciar drag aqui
+        
     } else if (e.touches.length === 1 && zoomLevel > 1) {
-        // Iniciar drag com um dedo
+        // MODO DRAG (apenas com 1 dedo e zoom ativo)
+        e.preventDefault();
+        isPinching = false;
         isDragging = true;
         startX = e.touches[0].clientX - translateX;
         startY = e.touches[0].clientY - translateY;
         modalPhoto.style.cursor = 'grabbing';
     }
 }, { passive: false });
-        
-        albumViewer.addEventListener('touchmove', (e) => {
-    if (e.touches.length === 2) {
+
+albumViewer.addEventListener('touchmove', (e) => {
+    lastGestureTime = Date.now(); // Atualizar tempo do último gesto
+    
+    if (e.touches.length === 2 && isPinching) {
+        // ===== MODO PINCH PURO (SEM DRAG SIMULTÂNEO) =====
         e.preventDefault();
         
-        // Calcular zoom
-        const distance = getTouchDistance(e.touches[0], e.touches[1]);
-        const delta = distance - lastTouchDistance;
+        const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        const delta = currentDistance - lastTouchDistance;
         
+        // Calcular centro do pinch para zoom focal
         const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
         
-        handleZoom(delta, centerX, centerY);
-        lastTouchDistance = distance;
+        // Aplicar zoom
+        handleZoom(delta * 2, centerX, centerY); // *2 para sensibilidade melhor
         
-        // ===== NOVIDADE: ARRASTAR ENQUANTO FAZ PINCH =====
-        // Se já está com zoom, permitir arrastar simultaneamente
-        if (zoomLevel > 1) {
-            if (!isDragging) {
-                // Iniciar drag no centro dos dois dedos
-                isDragging = true;
-                startX = centerX - translateX;
-                startY = centerY - translateY;
-            } else {
-                // Continuar arrastando enquanto faz pinch
-                translateX = centerX - startX;
-                translateY = centerY - startY;
-                updateImageTransform();
-            }
-        }
-    } else if (isDragging && e.touches.length === 1) {
+        lastTouchDistance = currentDistance;
+        
+    } else if (e.touches.length === 1 && isDragging && zoomLevel > 1) {
+        // ===== MODO DRAG PURO (APENAS COM 1 DEDO) =====
         e.preventDefault();
+        
         translateX = e.touches[0].clientX - startX;
         translateY = e.touches[0].clientY - startY;
         updateImageTransform();
     }
 }, { passive: false });
         
-        albumViewer.addEventListener('touchend', (e) => {
-            if (e.touches.length === 0) {
-                isDragging = false;
-                modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-            }
-        });
+albumViewer.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) {
+        // Todos os dedos foram retirados
+        isPinching = false;
+        isDragging = false;
+        modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+        lastGestureTime = Date.now(); // Atualizar ao soltar
         
-        // ===== DRAG COM MOUSE (DESKTOP) =====
-        modalPhoto.addEventListener('mousedown', (e) => {
-            if (zoomLevel > 1) {
-                e.preventDefault();
-                isDragging = true;
-                startX = e.clientX - translateX;
-                startY = e.clientY - translateY;
-                modalPhoto.style.cursor = 'grabbing';
-            }
-        });
+    } else if (e.touches.length === 1 && isPinching) {
+        // Transição de 2 dedos para 1 dedo (pinch -> possível drag)
+        isPinching = false;
         
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                translateX = e.clientX - startX;
-                translateY = e.clientY - startY;
-                updateImageTransform();
-            }
-        });
-        
-        document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-            }
-        });
-        
-        // Manter funcionalidade de navegação por clique nas laterais
-        albumViewer.addEventListener('click', (e) => {
-            if (zoomLevel === 1) {
-                const rect = albumViewer.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                const width = rect.width;
-                
-                if (clickX < width / 2) {
-                    prevBtn.click();
-                } else {
-                    nextBtn.click();
-                }
-            }
-        });
+        if (zoomLevel > 1) {
+            // Preparar para drag se ainda tiver zoom
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+        }
+    }
+});
+
+albumViewer.addEventListener('click', (e) => {
+    // Bloquear clique se acabou de fazer zoom/drag ou se está com zoom
+    const timeSinceGesture = Date.now() - lastGestureTime;
+    if (zoomLevel > 1 || timeSinceGesture < 300) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
+    
+    const rect = albumViewer.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    
+    if (clickX < width / 2) {
+        prevBtn.click();
+    } else {
+        nextBtn.click();
+    }
+});
             
             albumViewer.style.cursor = 'pointer';
             
