@@ -897,7 +897,7 @@ function createMainSnowflake() {
         type: 'mainSnow',
         snowType: types[Math.floor(Math.random() * types.length)],
         x: Math.random() * canvas.width,
-        y: Math.random() * -canvas.height,
+        y: Math.random() * canvas.height, // ← MUDANÇA: Começar em posições aleatórias na tela inteira
         size: Math.random() * 8 + 6,
         speedY: Math.random() * config.snowSpeed + 0.4,
         speedX: (Math.random() - 0.5) * config.windStrength,
