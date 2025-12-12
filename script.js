@@ -683,30 +683,33 @@ nextBtn.addEventListener('click', () => {
     const modalPhoto = document.getElementById('modalPhoto');
 
     if (albumViewer && modalPhoto) {
-        // ===== DUPLO CLIQUE PARA ZOOM =====
-        let lastTap = 0;
-        modalPhoto.addEventListener('click', (e) => {
-            const now = Date.now();
-            const timeSince = now - lastTap;
-            
-            if (timeSince < 300 && timeSince > 0) {
-                // Duplo clique detectado
-                e.stopPropagation();
-                
-                if (zoomLevel === 1) {
-                    // Zoom in no ponto clicado
-                    handleZoom(1, e.clientX, e.clientY);
-                    zoomLevel = 2;
-                    updateImageTransform();
-                } else {
-                    // Zoom out
-                    resetZoom();
-                }
-            }
-            
-            lastTap = now;
-        });
+// ===== DUPLO CLIQUE PARA ZOOM IN/OUT =====
+let lastTap = 0;
+modalPhoto.addEventListener('click', (e) => {
+    const now = Date.now();
+    const timeSince = now - lastTap;
+    
+    if (timeSince < 300 && timeSince > 0) {
+        // Duplo clique detectado
+        e.preventDefault();
+        e.stopPropagation();
         
+        if (zoomLevel === 1) {
+            // ← ZOOM IN: Fazer zoom no ponto clicado
+            console.log('🔍 Duplo clique - Zoom IN');
+            handleZoom(1, e.clientX, e.clientY);
+            zoomLevel = 2;
+            updateImageTransform();
+            blockNavigation = true; // ← ADICIONAR: Bloquear navegação
+        } else {
+            // ← ZOOM OUT: Resetar zoom
+            console.log('🔍 Duplo clique - Zoom OUT');
+            resetZoom();
+        }
+    }
+    
+    lastTap = now;
+});
         // ===== SCROLL DO MOUSE PARA ZOOM (DESKTOP) =====
         albumViewer.addEventListener('wheel', (e) => {
             e.preventDefault();
