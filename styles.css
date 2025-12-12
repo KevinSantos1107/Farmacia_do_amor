@@ -115,52 +115,6 @@
     z-index: 1;
 }
 
-/* Cristais decorativos nos cantos */
-.theme-winter .header {
-    overflow: visible;
-}
-
-.theme-winter .header .names-container::before,
-.theme-winter .header .names-container::after {
-    content: '❄';
-    position: absolute;
-    font-size: 2rem;
-    color: rgba(227, 242, 253, 0.4);
-    animation: sparkleRotate 8s linear infinite;
-    text-shadow: 0 0 10px rgba(227, 242, 253, 0.8);
-    z-index: 2;
-}
-
-.theme-winter .header .names-container::before {
-    top: -15px;
-    left: -15px;
-}
-
-.theme-winter .header .names-container::after {
-    bottom: -15px;
-    right: -15px;
-    animation-delay: 4s;
-}
-
-@keyframes sparkleRotate {
-    0%, 100% { 
-        transform: rotate(0deg) scale(1);
-        opacity: 0.6;
-    }
-    25% {
-        transform: rotate(90deg) scale(1.2);
-        opacity: 1;
-    }
-    50% { 
-        transform: rotate(180deg) scale(1);
-        opacity: 0.6;
-    }
-    75% {
-        transform: rotate(270deg) scale(1.2);
-        opacity: 1;
-    }
-} 
-
 /* Neve acumulada na barra de progresso */
 .theme-winter .progress-bar-bg {
     background: linear-gradient(to right,
@@ -234,23 +188,64 @@
         inset 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
-/* Footer com neve acumulada */
+/* Footer com neve acumulada - VERSÃO PROFISSIONAL */
 .theme-winter .footer {
-    border-top: 3px solid rgba(227, 242, 253, 0.4);
+    position: relative;
+    border-top: none; /* Remove borda simples */
     box-shadow: 
-        0 -2px 20px rgba(227, 242, 253, 0.3),
-        inset 0 0 30px rgba(255, 255, 255, 0.1);
+        0 -4px 30px rgba(227, 242, 253, 0.4),
+        inset 0 0 40px rgba(255, 255, 255, 0.15);
 }
 
+/* Camada de neve realista com curvas */
 .theme-winter .footer::before {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: 0;
+    width: 100%;
+    height: 25px;
+    background: 
+        radial-gradient(ellipse 80px 20px at 10% 0%, rgba(255, 255, 255, 0.95), transparent),
+        radial-gradient(ellipse 100px 22px at 30% 0%, rgba(248, 249, 250, 0.9), transparent),
+        radial-gradient(ellipse 90px 18px at 50% 0%, rgba(255, 255, 255, 0.92), transparent),
+        radial-gradient(ellipse 110px 24px at 70% 0%, rgba(248, 249, 250, 0.88), transparent),
+        radial-gradient(ellipse 85px 20px at 90% 0%, rgba(255, 255, 255, 0.9), transparent),
+        linear-gradient(to bottom,
+            rgba(255, 255, 255, 0.98) 0%,
+            rgba(248, 249, 250, 0.95) 20%,
+            rgba(240, 248, 255, 0.9) 40%,
+            rgba(227, 242, 253, 0.7) 60%,
+            rgba(227, 242, 253, 0.4) 80%,
+            transparent 100%
+        );
+    filter: blur(0.5px);
+    z-index: 2;
+}
+
+/* Brilhos de cristais de gelo na neve */
+.theme-winter .footer::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: 0;
+    width: 100%;
     height: 20px;
-    background: linear-gradient(to bottom,
-        rgba(255, 255, 255, 1) 0%,
-        rgba(240, 248, 255, 0.9) 30%,
-        rgba(227, 242, 253, 0.7) 60%,
-        transparent 100%
-    );
-}  */
+    background-image: 
+        radial-gradient(circle 2px at 15% 30%, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(circle 1.5px at 25% 50%, rgba(227, 242, 253, 0.8), transparent),
+        radial-gradient(circle 2px at 45% 20%, rgba(255, 255, 255, 0.85), transparent),
+        radial-gradient(circle 1.5px at 60% 40%, rgba(227, 242, 253, 0.75), transparent),
+        radial-gradient(circle 2px at 75% 35%, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(circle 1.5px at 85% 55%, rgba(227, 242, 253, 0.8), transparent);
+    animation: winterSparkle 4s ease-in-out infinite;
+    z-index: 3;
+}
+
+@keyframes winterSparkle {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
 
 /* Adicionar textura de gelo sutil */
 .theme-winter .main-card,
