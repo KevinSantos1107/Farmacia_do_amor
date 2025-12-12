@@ -697,10 +697,20 @@ modalPhoto.addEventListener('click', (e) => {
         if (zoomLevel === 1) {
             // ← ZOOM IN: Fazer zoom no ponto clicado
             console.log('🔍 Duplo clique - Zoom IN');
-            handleZoom(1, e.clientX, e.clientY);
             zoomLevel = 2;
+            
+            // Calcular posição relativa ao centro da imagem
+            const rect = modalPhoto.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left - rect.width / 2;
+            const offsetY = e.clientY - rect.top - rect.height / 2;
+            
+            // Centralizar no ponto clicado
+            translateX = -offsetX * (zoomLevel - 1);
+            translateY = -offsetY * (zoomLevel - 1);
+            
             updateImageTransform();
-            blockNavigation = true; // ← ADICIONAR: Bloquear navegação
+            blockNavigation = true;
+            lastGestureTime = Date.now();
         } else {
             // ← ZOOM OUT: Resetar zoom
             console.log('🔍 Duplo clique - Zoom OUT');
