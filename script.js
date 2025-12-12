@@ -1,5 +1,8 @@
 // ===== CONFIGURAÇÕES INICIAIS =====
 document.addEventListener('DOMContentLoaded', function() {
+    // Carregar tema salvo ANTES de inicializar tudo
+    const savedTheme = loadSavedTheme();
+    
     // Inicializar tudo
     initThemeMenu();
     initThemeSelector();
@@ -12,10 +15,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('💖 Site Kevin & Iara carregado com sucesso!');
     
-    // Inicializar animações depois de um delay
+    // Inicializar animações COM O TEMA CORRETO depois de um delay
     setTimeout(() => {
         if (typeof initAnimations === 'function') {
-            initAnimations();
+            initAnimations(savedTheme || 'meteors'); // Passa o tema salvo para as animações
         }
     }, 500);
 });
@@ -59,20 +62,61 @@ const themes = {
             textSecondary: '#a8dadc'
         }
     },
-winter: {
-    name: 'Inverno Mágico',
-    colors: {
-        bg: '#1a2332',
-        primary: '#e3f2fd',
-        secondary: '#81d4fa',
-        accent: '#b3e5fc',
-        text: '#ffffff',
-        textSecondary: '#e1f5fe'
+    winter: {
+        name: 'Inverno Mágico',
+        colors: {
+            bg: '#1a2332',
+            primary: '#e3f2fd',
+            secondary: '#81d4fa',
+            accent: '#b3e5fc',
+            text: '#ffffff',
+            textSecondary: '#e1f5fe'
+        }
     }
-}
 };
 
 let currentTheme = 'meteors';
+
+// ===== PERSISTÊNCIA DE TEMA =====
+function saveTheme(themeName) {
+    try {
+        localStorage.setItem('kevinIaraTheme', themeName);
+        console.log(`💾 Tema "${themes[themeName].name}" salvo no navegador`);
+    } catch (error) {
+        console.warn('⚠️ Não foi possível salvar o tema:', error);
+    }
+}
+
+function loadSavedTheme() {
+    try {
+        const savedTheme = localStorage.getItem('kevinIaraTheme');
+        
+        if (savedTheme && themes[savedTheme]) {
+            currentTheme = savedTheme;
+            changeTheme(savedTheme, false); // false = não salvar novamente
+            
+            // Marcar o botão correto como ativo
+            setTimeout(() => {
+                const themeButtons = document.querySelectorAll('.theme-btn');
+                themeButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.theme === savedTheme) {
+                        btn.classList.add('active');
+                    }
+                });
+            }, 100);
+            
+            console.log(`✅ Tema "${themes[savedTheme].name}" carregado do navegador`);
+            return savedTheme; // Retorna o tema para usar nas animações
+        } else {
+            console.log('📌 Nenhum tema salvo encontrado, usando tema padrão');
+            return 'meteors';
+        }
+    } catch (error) {
+        console.warn('⚠️ Erro ao carregar tema salvo:', error);
+        return 'meteors';
+    }
+}
 
 function initThemeSelector() {
     const themeButtons = document.querySelectorAll('.theme-btn');
@@ -84,8 +128,9 @@ function initThemeSelector() {
             themeButtons.forEach(btn => btn.classList.remove('active'));
             this.classList.add('active');
             
-            changeTheme(theme);
+            changeTheme(theme, true); // true = salvar no localStorage
             
+            // Mudar animação também
             if (window.Animations && typeof window.Animations.changeTheme === 'function') {
                 window.Animations.changeTheme(theme);
             }
@@ -93,7 +138,7 @@ function initThemeSelector() {
     });
 }
 
-function changeTheme(themeName) {
+function changeTheme(themeName, shouldSave = true) {
     if (!themes[themeName]) return;
     
     currentTheme = themeName;
@@ -109,6 +154,11 @@ function changeTheme(themeName) {
     root.style.setProperty('--theme-accent', theme.colors.accent);
     root.style.setProperty('--theme-text', theme.colors.text);
     root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
+    
+    // Salvar tema se solicitado
+    if (shouldSave) {
+        saveTheme(themeName);
+    }
     
     console.log(`🎨 Tema alterado para: ${theme.name}`);
 }
@@ -656,7 +706,6 @@ function showMessage() {
 }
 
 function showNextMessage() {
-    // Avança para próxima mensagem (circular)
     currentMessageIndex = (currentMessageIndex + 1) % messages.length;
     showMessage();
 }
@@ -687,6 +736,7 @@ console.log(`
 ║   🎵 Player original restaurado     ║
 ║   📸 ${albums.length} álbuns organizados ║
 ║   🎨 ${Object.keys(themes).length} temas disponíveis ║
+║   💾 Tema persistente com localStorage ║
 ╚══════════════════════════════════════╝
 `);
 
