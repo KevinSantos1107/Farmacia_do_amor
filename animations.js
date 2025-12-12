@@ -79,9 +79,25 @@ winter: {
     }
 };
 
-// ===== INICIALIZAÇÃO =====
-function initAnimations() {
+// ===== INICIALIZAÇÃO COM PERSISTÊNCIA DE TEMA =====
+function initAnimations(forcedTheme) {
     console.log('🎨 Iniciando animações premium...');
+    
+    // NOVO: Carregar tema salvo do localStorage
+    if (!forcedTheme) {
+        try {
+            const savedTheme = localStorage.getItem('kevinIaraTheme');
+            if (savedTheme && settings[savedTheme]) {
+                currentAnimation = savedTheme;
+                console.log(`💾 Animação do tema salvo carregada: ${settings[savedTheme].name}`);
+            }
+        } catch (error) {
+            console.warn('⚠️ Erro ao carregar tema da animação:', error);
+        }
+    } else {
+        currentAnimation = forcedTheme;
+        console.log(`🎯 Animação forçada para: ${settings[forcedTheme].name}`);
+    }
     
     if (!document.getElementById('backgroundCanvas')) {
         createCanvas();
@@ -105,7 +121,7 @@ function initAnimations() {
     createElements();
     startAnimation();
     
-    console.log(`✅ ${settings[currentAnimation].name} iniciado`);
+    console.log(`✅ ${settings[currentAnimation].name} iniciado com sucesso!`);
 }
 
 function createCanvas() {
