@@ -471,6 +471,15 @@ albums.forEach(album => {
 let currentAlbum = null;
 let currentPhotoIndex = 0;
 
+// ===== VARIÁVEIS DE CONTROLE DO ZOOM =====
+let zoomLevel = 1;
+let isDragging = false;
+let startX = 0;
+let startY = 0;
+let translateX = 0;
+let translateY = 0;
+let lastTouchDistance = 0;
+
 function initAlbums() {
     const container = document.getElementById('albumsContainer');
     
@@ -541,10 +550,64 @@ function updateAlbumViewer() {
     if (modalPhoto) {
         modalPhoto.src = photo.src;
         modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+        
+        // Resetar zoom ao trocar de foto
+        resetZoom();
     }
     
     document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
     document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
+}
+
+// ===== FUNÇÕES DE ZOOM =====
+function resetZoom() {
+    zoomLevel = 1;
+    translateX = 0;
+    translateY = 0;
+    updateImageTransform();
+}
+
+function updateImageTransform() {
+    const modalPhoto = document.getElementById('modalPhoto');
+    if (!modalPhoto) return;
+    
+    modalPhoto.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+    modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+}
+
+function handleZoom(delta, centerX, centerY) {
+    const oldZoom = zoomLevel;
+    
+    // Ajustar zoom
+    if (delta > 0) {
+        zoomLevel = Math.min(zoomLevel * 1.1, 4); // Máximo 4x
+    } else {
+        zoomLevel = Math.max(zoomLevel * 0.9, 1); // Mínimo 1x
+    }
+    
+    // Se voltou ao zoom 1x, centralizar
+    if (zoomLevel === 1) {
+        translateX = 0;
+        translateY = 0;
+    } else if (centerX !== undefined && centerY !== undefined) {
+        // Ajustar posição baseado no ponto de zoom
+        const modalPhoto = document.getElementById('modalPhoto');
+        const rect = modalPhoto.getBoundingClientRect();
+        
+        const offsetX = centerX - rect.left - rect.width / 2;
+        const offsetY = centerY - rect.top - rect.height / 2;
+        
+        translateX -= offsetX * (zoomLevel - oldZoom) / oldZoom;
+        translateY -= offsetY * (zoomLevel - oldZoom) / oldZoom;
+    }
+    
+    updateImageTransform();
+}
+
+function getTouchDistance(touch1, touch2) {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 function initModal() {
@@ -559,8 +622,9 @@ function initModal() {
     }
     
     closeBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
+    modal.style.display = 'none';
+    resetZoom(); // ← ADICIONAR
+});
     
     prevBtn.addEventListener('click', () => {
         if (currentAlbum) {
@@ -576,11 +640,109 @@ function initModal() {
         }
     });
     
-    const albumViewer = document.querySelector('.album-viewer');
-    if (albumViewer) {
-        albumViewer.addEventListener('click', (e) => {
-            if (!currentAlbum) return;
+const albumViewer = document.querySelector('.album-viewer');
+const modalPhoto = document.getElementById('modalPhoto');
+
+if (albumViewer && modalPhoto) {
+    // ===== DUPLO CLIQUE PARA ZOOM =====
+    let lastTap = 0;
+    modalPhoto.addEventListener('click', (e) => {
+        const now = Date.now();
+        const timeSince = now - lastTap;
+        
+        if (timeSince < 300 && timeSince > 0) {
+            // Duplo clique detectado
+            e.stopPropagation();
             
+            if (zoomLevel === 1) {
+                // Zoom in no ponto clicado
+                handleZoom(1, e.clientX, e.clientY);
+                zoomLevel = 2;
+                updateImageTransform();
+            } else {
+                // Zoom out
+                resetZoom();
+            }
+        }
+        
+        lastTap = now;
+    });
+    
+    // ===== SCROLL DO MOUSE PARA ZOOM (DESKTOP) =====
+    albumViewer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        handleZoom(-e.deltaY, e.clientX, e.clientY);
+    }, { passive: false });
+    
+    // ===== PINCH TO ZOOM (MOBILE) =====
+    albumViewer.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            lastTouchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        } else if (e.touches.length === 1 && zoomLevel > 1) {
+            // Iniciar drag
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+            modalPhoto.style.cursor = 'grabbing';
+        }
+    }, { passive: false });
+    
+    albumViewer.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            const distance = getTouchDistance(e.touches[0], e.touches[1]);
+            const delta = distance - lastTouchDistance;
+            
+            const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            
+            handleZoom(delta, centerX, centerY);
+            lastTouchDistance = distance;
+        } else if (isDragging && e.touches.length === 1) {
+            e.preventDefault();
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            updateImageTransform();
+        }
+    }, { passive: false });
+    
+    albumViewer.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0) {
+            isDragging = false;
+            modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+        }
+    });
+    
+    // ===== DRAG COM MOUSE (DESKTOP) =====
+    modalPhoto.addEventListener('mousedown', (e) => {
+        if (zoomLevel > 1) {
+            e.preventDefault();
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+            modalPhoto.style.cursor = 'grabbing';
+        }
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            updateImageTransform();
+        }
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+        }
+    });
+    
+    // Manter funcionalidade de navegação por clique nas laterais
+    albumViewer.addEventListener('click', (e) => {
+        if (zoomLevel === 1) {
             const rect = albumViewer.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const width = rect.width;
@@ -590,7 +752,8 @@ function initModal() {
             } else {
                 nextBtn.click();
             }
-        });
+        }
+    });
         
         albumViewer.style.cursor = 'pointer';
         
