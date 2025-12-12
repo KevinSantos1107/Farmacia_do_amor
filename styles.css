@@ -819,18 +819,47 @@ body {
     box-shadow: 0 0 15px var(--theme-primary);
 }
 
+/* ===== BOTÃO PLAY/PAUSE - MANTÉM O GRADIENTE SEMPRE ===== */
 .play-pause-btn {
     width: 55px;
     height: 55px;
-    background: var(--gradient-primary);
+    background: var(--gradient-primary) !important; /* IMPORTANTE: força o gradiente */
     font-size: 1.2rem;
     box-shadow: 
         0 0 20px var(--theme-primary),
-        0 0 30px var(--theme-primary);
+        0 0 30px var(--theme-primary) !important; /* IMPORTANTE: força o brilho */
 }
 
+/* Hover do play/pause - mantém gradiente */
+.play-pause-btn:hover {
+    background: var(--gradient-primary) !important;
+    transform: scale(1.05);
+    box-shadow: 
+        0 0 25px var(--theme-primary),
+        0 0 35px var(--theme-primary) !important;
+}
+
+/* Active do play/pause - mantém gradiente */
 .play-pause-btn:active {
+    background: var(--gradient-primary) !important;
     transform: scale(0.95);
+    box-shadow: 
+        0 0 20px var(--theme-primary),
+        0 0 30px var(--theme-primary) !important;
+}
+
+/* Focus do play/pause - mantém gradiente (importante para mobile) */
+.play-pause-btn:focus {
+    background: var(--gradient-primary) !important;
+    box-shadow: 
+        0 0 20px var(--theme-primary),
+        0 0 30px var(--theme-primary) !important;
+    outline: none;
+}
+
+/* Garantir que o ícone dentro do botão também mantenha a cor branca */
+.play-pause-btn i {
+    color: white !important;
 }
 
 .playlist-info {
