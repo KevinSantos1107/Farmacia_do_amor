@@ -440,7 +440,6 @@ const albums = [
         title: "Primeiros Encontros",
         date: "Junho 2023",
         cover: "images/capas-albuns/primeiro-encontro.jpg",
-        photoCount: 4,
         description: "Os primeiros momentos mágicos que deram início à nossa história.",
         photos: [
             { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" },
@@ -454,7 +453,6 @@ const albums = [
         title: "Viagem Inesquecível", 
         date: "Dezembro 2023",
         cover: "images/capas-albuns/viagem.jpg",
-        photoCount: 4,
         description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
         photos: [
             { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
@@ -464,6 +462,11 @@ const albums = [
         ]
     }
 ];
+
+// ===== ATUALIZAR AUTOMATICAMENTE O photoCount =====
+albums.forEach(album => {
+    album.photoCount = album.photos.length; // Define photoCount como o tamanho real do array
+});
 
 let currentAlbum = null;
 let currentPhotoIndex = 0;
@@ -493,7 +496,7 @@ function initAlbums() {
                 <p>${album.description}</p>
                 <div class="album-stats">
                     <span>
-                        <i class="far fa-images"></i> ${album.photoCount} fotos
+                        <i class="far fa-images"></i> ${album.photoCount} ${album.photoCount === 1 ? 'foto' : 'fotos'}
                     </span>
                 </div>
             </div>
