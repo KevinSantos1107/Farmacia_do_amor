@@ -684,41 +684,36 @@ nextBtn.addEventListener('click', () => {
 
     if (albumViewer && modalPhoto) {
 // ===== DUPLO CLIQUE PARA ZOOM IN/OUT =====
-let lastTap = 0;
-modalPhoto.addEventListener('click', (e) => {
-    const now = Date.now();
-    const timeSince = now - lastTap;
+modalPhoto.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    if (timeSince < 300 && timeSince > 0) {
-        // Duplo clique detectado
-        e.preventDefault();
-        e.stopPropagation();
+    console.log('🔍 Duplo clique detectado! Zoom atual:', zoomLevel);
+    
+    if (zoomLevel === 1) {
+        // ← ZOOM IN: Fazer zoom no ponto clicado
+        console.log('🔍 Aplicando Zoom IN');
+        zoomLevel = 2;
         
-        if (zoomLevel === 1) {
-            // ← ZOOM IN: Fazer zoom no ponto clicado
-            console.log('🔍 Duplo clique - Zoom IN');
-            zoomLevel = 2;
-            
-            // Calcular posição relativa ao centro da imagem
-            const rect = modalPhoto.getBoundingClientRect();
-            const offsetX = e.clientX - rect.left - rect.width / 2;
-            const offsetY = e.clientY - rect.top - rect.height / 2;
-            
-            // Centralizar no ponto clicado
-            translateX = -offsetX * (zoomLevel - 1);
-            translateY = -offsetY * (zoomLevel - 1);
-            
-            updateImageTransform();
-            blockNavigation = true;
-            lastGestureTime = Date.now();
-        } else {
-            // ← ZOOM OUT: Resetar zoom
-            console.log('🔍 Duplo clique - Zoom OUT');
-            resetZoom();
-        }
+        // Calcular posição relativa ao centro da imagem
+        const rect = modalPhoto.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left - rect.width / 2;
+        const offsetY = e.clientY - rect.top - rect.height / 2;
+        
+        // Centralizar no ponto clicado
+        translateX = -offsetX * (zoomLevel - 1);
+        translateY = -offsetY * (zoomLevel - 1);
+        
+        updateImageTransform();
+        blockNavigation = true;
+        lastGestureTime = Date.now();
+        console.log('✅ Zoom IN aplicado, novo zoom:', zoomLevel);
+    } else {
+        // ← ZOOM OUT: Resetar zoom
+        console.log('🔍 Aplicando Zoom OUT');
+        resetZoom();
+        console.log('✅ Zoom OUT aplicado, novo zoom:', zoomLevel);
     }
-    
-    lastTap = now;
 });
         // ===== SCROLL DO MOUSE PARA ZOOM (DESKTOP) =====
         albumViewer.addEventListener('wheel', (e) => {
