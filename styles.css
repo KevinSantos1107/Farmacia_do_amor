@@ -1,1537 +1,1087 @@
-/* ===== VARIÁVEIS DE CORES POR TEMA ===== */
-:root {
-    /* Tema Meteoros (Padrão) - NEON AZUL-VIOLETA */
-    --theme-bg: #0a0a1a;
-    --theme-primary: #8a2be2; /* Neon Violeta */
-    --theme-secondary: #00ffff; /* Neon Ciano */
-    --theme-accent: #ff00ff; /* Neon Magenta */
-    --theme-text: #ffffff;
-    --theme-text-secondary: #ccccff;
-    --theme-card-bg: rgba(20, 20, 40, 0.95);
-    --theme-card-border: rgba(138, 43, 226, 0.4);
-    --theme-glow: 0 0 15px rgba(138, 43, 226, 0.7);
-    --theme-glow-strong: 0 0 25px rgba(138, 43, 226, 0.9);
+    // ===== CONFIGURAÇÕES INICIAIS =====
+    document.addEventListener('DOMContentLoaded', function() {
+        // Carregar tema salvo ANTES de inicializar tudo
+        const savedTheme = loadSavedTheme();
+        
+        // Inicializar tudo
+        initThemeMenu();
+        initThemeSelector();
+        initTimeCounter();
+        initMusicPlayer();
+        initAlbums();
+        initMessages();
+        initModal();
+        updateCurrentDate();
+        
+        console.log('💖 Site Kevin & Iara carregado com sucesso!');
+        
+        // Inicializar animações COM O TEMA CORRETO depois de um delay
+        setTimeout(() => {
+            if (typeof initAnimations === 'function') {
+                initAnimations(savedTheme || 'meteors'); // Passa o tema salvo para as animações
+            }
+        }, 500);
+    });
+
+    // ===== CONFIGURAÇÕES DE DATAS =====
+    const START_DATE = new Date('2025-10-11T00:00:00');
+    const START_DATE_DISPLAY = '11/10/2025';
+
+    // ===== SISTEMA DE TEMAS =====
+    const themes = {
+        meteors: {
+            name: 'Meteoros',
+            colors: {
+                bg: '#0a0e17',
+                primary: '#6a11cb',
+                secondary: '#2575fc',
+                accent: '#ff6b8b',
+                text: '#ffffff',
+                textSecondary: '#b8b8d1'
+            }
+        },
+        hearts: {
+            name: 'Chuva de Corações',
+            colors: {
+                bg: '#1a0b2e',
+                primary: '#ff2e63',
+                secondary: '#ff9a9e',
+                accent: '#ffd166',
+                text: '#ffffff',
+                textSecondary: '#e0c3fc'
+            }
+        },
+        aurora: {
+            name: 'Aurora Boreal',
+            colors: {
+                bg: '#0c1b33',
+                primary: '#00b4d8',
+                secondary: '#90e0ef',
+                accent: '#caf0f8',
+                text: '#ffffff',
+                textSecondary: '#a8dadc'
+            }
+        },
+winter: {
+        name: 'Inverno Mágico',
+        colors: {
+            bg: '#1a2332',
+            primary: '#e3f2fd',
+            secondary: '#81d4fa',
+            accent: '#b3e5fc',
+            text: '#ffffff',
+            textSecondary: '#e1f5fe'
+        }
+    }
+};
+
+
+
+    let currentTheme = 'meteors';
+
+    // ===== PERSISTÊNCIA DE TEMA =====
+    function saveTheme(themeName) {
+        try {
+            localStorage.setItem('kevinIaraTheme', themeName);
+            console.log(`💾 Tema "${themes[themeName].name}" salvo no navegador`);
+        } catch (error) {
+            console.warn('⚠️ Não foi possível salvar o tema:', error);
+        }
+    }
+
+    function loadSavedTheme() {
+        try {
+            const savedTheme = localStorage.getItem('kevinIaraTheme');
+            
+            if (savedTheme && themes[savedTheme]) {
+                currentTheme = savedTheme;
+                changeTheme(savedTheme, false); // false = não salvar novamente
+                
+                // Marcar o botão correto como ativo
+                setTimeout(() => {
+                    const themeButtons = document.querySelectorAll('.theme-btn');
+                    themeButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        if (btn.dataset.theme === savedTheme) {
+                            btn.classList.add('active');
+                        }
+                    });
+                }, 100);
+                
+                console.log(`✅ Tema "${themes[savedTheme].name}" carregado do navegador`);
+                return savedTheme; // Retorna o tema para usar nas animações
+            } else {
+                console.log('📌 Nenhum tema salvo encontrado, usando tema padrão');
+                return 'meteors';
+            }
+        } catch (error) {
+            console.warn('⚠️ Erro ao carregar tema salvo:', error);
+            return 'meteors';
+        }
+    }
+
+    function initThemeSelector() {
+ const themeButtons = document.querySelectorAll('.theme-btn');
+        
+        themeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const theme = this.dataset.theme;
+                
+                themeButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                changeTheme(theme, true); // true = salvar no localStorage
+                
+                // Mudar animação também
+                if (window.Animations && typeof window.Animations.changeTheme === 'function') {
+                    window.Animations.changeTheme(theme);
+                }
+            });
+        });
+    }
+       
+
+function changeTheme(themeName, shouldSave = true) {
+    if (!themes[themeName]) return;
     
-    /* Gradientes Neon */
-    --gradient-primary: linear-gradient(135deg, #8a2be2 0%, #4169e1 50%, #00ffff 100%);
-    --gradient-secondary: linear-gradient(135deg, #ff00ff 0%, #ff1493 100%);
-    --gradient-neon: linear-gradient(135deg, #8a2be2, #00ffff, #ff00ff);
-    --gradient-text: linear-gradient(90deg, #8a2be2, #00ffff, #ff00ff);
-}
-
-/* Tema Chuva de Corações - NEON ROSA-VERMELHO */
-.theme-hearts {
-    --theme-bg: #1a001a;
-    --theme-primary: #ff0055; /* Neon Rosa Vibrante */
-    --theme-secondary: #ff3366; /* Neon Rosa Suave */
-    --theme-accent: #ffcc00; /* Neon Amarelo */
-    --theme-text: #ffffff;
-    --theme-text-secondary: #ffd1dc;
-    --theme-card-bg: rgba(40, 0, 20, 0.95);
-    --theme-card-border: rgba(255, 0, 85, 0.5);
-    --theme-glow: 0 0 20px rgba(255, 0, 85, 0.8);
-    --theme-glow-strong: 0 0 30px rgba(255, 0, 85, 1);
+    currentTheme = themeName;
+    const theme = themes[themeName];
     
-    /* Gradientes Neon Coração */
-    --gradient-primary: linear-gradient(135deg, #ff0055 0%, #ff3366 50%, #ff66b2 100%);
-    --gradient-secondary: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
-    --gradient-neon: linear-gradient(135deg, #ff0055, #ff3366, #ffcc00);
-    --gradient-text: linear-gradient(90deg, #ff0055, #ff66b2, #ffcc00);
-}
-
-/* Tema Aurora - NEON VERDE-AZUL CÉU NOTURNO */
-.theme-aurora {
-    --theme-bg: #001122;
-    --theme-primary: #00ffaa; /* Neon Verde Água */
-    --theme-secondary: #00ccff; /* Neon Azul Céu */
-    --theme-accent: #aa00ff; /* Neon Violeta Aurora */
-    --theme-text: #ffffff;
-    --theme-text-secondary: #aaffff;
-    --theme-card-bg: rgba(0, 20, 40, 0.95);
-    --theme-card-border: rgba(0, 255, 170, 0.4);
-    --theme-glow: 0 0 15px rgba(0, 255, 170, 0.7);
-    --theme-glow-strong: 0 0 25px rgba(0, 255, 170, 0.9);
+    document.body.className = '';
+    document.body.classList.add(`theme-${themeName}`);
     
-    /* Gradientes Neon Aurora */
-    --gradient-primary: linear-gradient(135deg, #00ffaa 0%, #00ccff 50%, #0088ff 100%);
-    --gradient-secondary: linear-gradient(135deg, #aa00ff 0%, #ff00aa 100%);
-    --gradient-neon: linear-gradient(135deg, #00ffaa, #00ccff, #aa00ff);
-    --gradient-text: linear-gradient(90deg, #00ffaa, #00ccff, #aa00ff);
-}
-
-/* Tema Inverno Mágico - CÉU INVERNAL COM NEVE */
-.theme-winter {
-    --theme-bg: #1a2332;
-    --theme-primary: #e3f2fd;
-    --theme-secondary: #81d4fa;
-    --theme-accent: #b3e5fc;
-    --theme-text: #ffffff;
-    --theme-text-secondary: #e1f5fe;
-    --theme-card-bg: rgba(30, 40, 60, 0.92);
-    --theme-card-border: rgba(227, 242, 253, 0.3);
-    --theme-glow: 0 0 20px rgba(227, 242, 253, 0.5);
-    --theme-glow-strong: 0 0 30px rgba(227, 242, 253, 0.8);
+    const root = document.documentElement;
+    root.style.setProperty('--theme-bg', theme.colors.bg);
+    root.style.setProperty('--theme-primary', theme.colors.primary);
+    root.style.setProperty('--theme-secondary', theme.colors.secondary);
+    root.style.setProperty('--theme-accent', theme.colors.accent);
+    root.style.setProperty('--theme-text', theme.colors.text);
+    root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
     
-    /* Gradientes Inverno */
-    --gradient-primary: linear-gradient(135deg, #e3f2fd 0%, #81d4fa 50%, #4fc3f7 100%);
-    --gradient-secondary: linear-gradient(135deg, #b3e5fc 0%, #81d4fa 100%);
-    --gradient-neon: linear-gradient(135deg, #e3f2fd, #81d4fa, #b3e5fc);
-    --gradient-text: linear-gradient(90deg, #e3f2fd, #81d4fa, #ffffff);
+    
+    // Salvar tema se solicitado
+    if (shouldSave) {
+        saveTheme(themeName);
+    }
+    
+    // Mudar animação também
+    if (window.Animations && typeof window.Animations.changeTheme === 'function') {
+        window.Animations.changeTheme(themeName);
+    }
+    
+    console.log(`🎨 Tema alterado para: ${theme.name}`);
 }
 
+    // ===== CONTROLE DO MENU DE TEMA =====
+    function initThemeMenu() {
+        const themeToggle = document.getElementById('themeToggle');
+        const themeSelector = document.getElementById('themeSelector');
+        
+        if (!themeToggle || !themeSelector) {
+            console.warn('⚠️ Elementos do menu de tema não encontrados');
+            return;
+        }
+        
+        themeToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            themeSelector.classList.toggle('hidden');
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!themeSelector.contains(e.target) && e.target !== themeToggle) {
+                themeSelector.classList.add('hidden');
+            }
+        });
+        
+        const themeButtons = document.querySelectorAll('.theme-btn');
+        themeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                themeSelector.classList.add('hidden');
+            });
+        });
+    }
 
-/* Apenas cores - layout igual aos outros temas */
-.theme-winter .header,
-.theme-winter .main-card,
-.theme-winter .music-player,
-.theme-winter .message-card,
-.theme-winter .album-card {
-    border: 1px solid var(--theme-card-border); /* ← 1px IGUAL aos outros */
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1); /* ← IGUAL aos outros */
-    backdrop-filter: blur(10px); /* ← 10px IGUAL aos outros */
-    background: var(--theme-card-bg); /* ← VAR padrão IGUAL aos outros */
+    // ===== CONTADOR DE TEMPO =====
+    function initTimeCounter() {
+        document.getElementById('startDateDisplay').textContent = START_DATE_DISPLAY;
+        updateTimeCounter();
+        setInterval(updateTimeCounter, 1000);
+    }
+
+    function updateTimeCounter() {
+        const now = new Date();
+        const diff = now - START_DATE;
+        
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        
+        const years = Math.floor(days / 365.25);
+        const months = Math.floor((days % 365.25) / 30.44);
+        const remainingDays = Math.floor(days % 30.44);
+        const remainingHours = hours % 24;
+        const remainingMinutes = minutes % 60;
+        const remainingSeconds = seconds % 60;
+        
+        document.getElementById('years').textContent = years.toString().padStart(2, '0');
+        document.getElementById('months').textContent = months.toString().padStart(2, '0');
+        document.getElementById('days').textContent = remainingDays.toString().padStart(2, '0');
+        document.getElementById('hours').textContent = remainingHours.toString().padStart(2, '0');
+        document.getElementById('minutes').textContent = remainingMinutes.toString().padStart(2, '0');
+        document.getElementById('seconds').textContent = remainingSeconds.toString().padStart(2, '0');
+    }
+
+    // ===== PLAYER DE MÚSICA =====
+    const playlist = [
+        {
+            title: "Menina da Farmácia",
+            artist: "Kevin Santos / Nossa Canção",
+            src: "audio/menina-da-farmacia.mp3",
+            album: "Nossa Trilha Sonora"
+        },
+        {
+            title: "Menina da Farmácia 2",
+            artist: "Kevin Santos / Nossa Canção",
+            src: "audio/menina-da-farmacia-2.mp3",
+            album: "Nossa Trilha Sonora"
+        }
+    ];
+
+    let currentTrackIndex = 0;
+    let isPlaying = false;  
+    let isShuffled = false;
+    let repeatMode = 0;
+
+    function initMusicPlayer() {
+        const audio = document.getElementById('audioPlayer');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const repeatBtn = document.getElementById('repeatBtn');
+        const progressBarFill = document.getElementById('progressBarFill');
+        
+        if (!audio) {
+            console.warn('⚠️ Elemento de áudio não encontrado');
+            return;
+        }
+        
+        loadTrack(currentTrackIndex);
+        
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        prevBtn.addEventListener('click', () => handlePrevTrack(audio));
+        nextBtn.addEventListener('click', nextTrack);
+        shuffleBtn.addEventListener('click', toggleShuffle);
+        repeatBtn.addEventListener('click', toggleRepeat);
+        
+        progressBarFill.parentElement.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = audio.duration * percent;
+            updateProgressBar(audio);
+        });
+        
+        audio.addEventListener('timeupdate', () => updateProgressBar(audio));
+        audio.addEventListener('loadedmetadata', () => updateDuration(audio));
+        audio.addEventListener('ended', handleTrackEnd);
+        audio.addEventListener('play', () => {
+            document.querySelector('.music-player')?.classList.add('playing');
+        });
+        audio.addEventListener('pause', () => {
+            document.querySelector('.music-player')?.classList.remove('playing');
+        });
+        
+        audio.volume = 0.8;
+    }
+
+    function handlePrevTrack(audio) {
+        if (audio.currentTime > 3) {
+            audio.currentTime = 0;
+            updateProgressBar(audio);
+        } else {
+            if (isShuffled) {
+                let randomIndex;
+                do {
+                    randomIndex = Math.floor(Math.random() * playlist.length);
+                } while (randomIndex === currentTrackIndex && playlist.length > 1);
+                
+                currentTrackIndex = randomIndex;
+                console.log('🔀 Shuffle: tocando música anterior aleatória', currentTrackIndex + 1);
+            } else {
+                currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+            }
+            
+            loadTrack(currentTrackIndex);
+            if (isPlaying) {
+                setTimeout(() => audio.play(), 100);
+            }
+        }
+    }
+
+    function nextTrack() {
+        if (isShuffled) {
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * playlist.length);
+            } while (randomIndex === currentTrackIndex && playlist.length > 1);
+            
+            currentTrackIndex = randomIndex;
+            console.log('🔀 Shuffle: tocando música', currentTrackIndex + 1);
+        } else {
+            currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+        }
+        
+        loadTrack(currentTrackIndex);
+        if (isPlaying) {
+            document.getElementById('audioPlayer').play();
+        }
+    }
+
+    function loadTrack(index) {
+        const track = playlist[index];
+        const audio = document.getElementById('audioPlayer');
+        
+        if (!audio) return;
+        
+        audio.src = track.src;
+        document.getElementById('songTitle').textContent = track.title;
+        document.getElementById('songArtist').textContent = track.artist;
+        document.getElementById('currentTrack').textContent = index + 1;
+        document.getElementById('totalTracks').textContent = playlist.length;
+        
+        document.getElementById('progressBarFill').style.width = '0%';
+        document.getElementById('currentTime').textContent = '0:00';
+        
+        if (isPlaying) {
+            setTimeout(() => audio.play(), 100);
+        }
+    }
+
+    function togglePlayPause() {
+        const audio = document.getElementById('audioPlayer');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        
+        if (audio.paused) {
+            audio.play();
+            isPlaying = true;
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        } else {
+            audio.pause();
+            isPlaying = false;
+            playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        }
+    }
+
+    function toggleShuffle() {
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        isShuffled = !isShuffled;
+        
+        shuffleBtn.classList.remove('active');
+        shuffleBtn.style.color = '';
+        
+        if (isShuffled) {
+            shuffleBtn.classList.add('active');
+            console.log('🔀 Modo shuffle ATIVADO');
+        } else {
+            console.log('▶️ Modo shuffle DESATIVADO - ordem normal');
+        }
+    }
+
+    function toggleRepeat() {
+        const repeatBtn = document.getElementById('repeatBtn');
+        repeatMode = (repeatMode + 1) % 2;
+        
+        repeatBtn.classList.remove('active');
+        
+        if (repeatMode === 0) {
+            repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
+            repeatBtn.title = "Repetir desligado";
+            repeatBtn.style.color = '';
+        } else {
+            repeatBtn.classList.add('active');
+            repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
+            repeatBtn.title = "Repetir uma música";
+            repeatBtn.style.color = '';
+        }
+    }
+
+    function updateProgressBar(audio) {
+        const progressBarFill = document.getElementById('progressBarFill');
+        const currentTime = document.getElementById('currentTime');
+        const totalTime = document.getElementById('totalTime');
+        
+        if (audio.duration) {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBarFill.style.width = `${progress}%`;
+            currentTime.textContent = formatTime(audio.currentTime);
+            totalTime.textContent = formatTime(audio.duration);
+        }
+    }
+
+    function updateDuration(audio) {
+        const totalTime = document.getElementById('totalTime');
+        totalTime.textContent = formatTime(audio.duration);
+    }
+
+    function handleTrackEnd() {
+        if (repeatMode === 1) {
+            document.getElementById('audioPlayer').currentTime = 0;
+            document.getElementById('audioPlayer').play();
+        } else {
+            nextTrack();
+            if (isPlaying) {
+                document.getElementById('audioPlayer').play();
+            }
+        }
+    }
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // ===== ÁLBUNS DE FOTOS =====
+    const albums = [
+        {
+            id: 1,
+            title: "Primeiros Encontros",
+            date: "Junho 2023",
+            cover: "images/capas-albuns/primeiro-encontro.jpg",
+            description: "Os primeiros momentos mágicos que deram início à nossa história.",
+            photos: [
+                { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" },
+                { src: "images/fotos/album1/2.jpg", description: "Passeio no parque" },
+                { src: "images/fotos/album1/3.jpg", description: "Primeiro cinema" },
+                { src: "images/fotos/album1/4.jpg", description: "Jantar especial" }
+            ]
+        },
+        {
+            id: 2,
+            title: "Viagem Inesquecível", 
+            date: "Dezembro 2023",
+            cover: "images/capas-albuns/viagem.jpg",
+            description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
+            photos: [
+                { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
+                { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
+                { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" },
+                { src: "images/fotos/album2/4.jpg", description: "Comidas típicas" }
+            ]
+        }
+    ];
+
+    // ===== ATUALIZAR AUTOMATICAMENTE O photoCount =====
+    albums.forEach(album => {
+        album.photoCount = album.photos.length; // Define photoCount como o tamanho real do array
+    });
+
+    let currentAlbum = null;
+    let currentPhotoIndex = 0;
+
+    // ===== VARIÁVEIS DE CONTROLE DO ZOOM =====
+    let zoomLevel = 1;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let translateX = 0;
+    let translateY = 0;
+    let lastTouchDistance = 0;
+    let isPinching = false;
+    let initialPinchDistance = 0;
+    let lastGestureTime = 0;
+    let blockNavigation = false;
+    let wasPinching = false;
+
+    function initAlbums() {
+        const container = document.getElementById('albumsContainer');
+        
+        if (!container) {
+            console.warn('⚠️ Container de álbuns não encontrado');
+            return;
+        }
+        
+        container.innerHTML = '';
+        
+        albums.forEach(album => {
+            const albumCard = document.createElement('div');
+            albumCard.className = 'album-card';
+            albumCard.dataset.id = album.id;
+            
+            albumCard.innerHTML = `
+                <img src="${album.cover}" alt="${album.title}" class="album-cover-img">
+                <div class="album-info">
+                    <h3>${album.title}</h3>
+                    <p class="album-date">
+                        <i class="far fa-calendar-alt"></i> ${album.date}
+                    </p>
+                    <p>${album.description}</p>
+                    <div class="album-stats">
+                        <span>
+                            <i class="far fa-images"></i> ${album.photoCount} ${album.photoCount === 1 ? 'foto' : 'fotos'}
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            albumCard.addEventListener('click', () => openAlbum(album.id));
+            container.appendChild(albumCard);
+        });
+        
+        console.log(`✅ ${albums.length} álbuns carregados`);
+    }
+
+    function openAlbum(albumId) {
+        currentAlbum = albums.find(a => a.id === albumId);
+        if (!currentAlbum) {
+            console.warn('⚠️ Álbum não encontrado:', albumId);
+            return;
+        }
+        
+        currentPhotoIndex = 0;
+        updateAlbumViewer();
+        
+        const modal = document.getElementById('albumModal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+        
+        const titleElement = document.getElementById('modalAlbumTitle');
+        if (titleElement) {
+            titleElement.textContent = currentAlbum.title;
+        }
+        
+        console.log(`📸 Álbum aberto: ${currentAlbum.title}`);
+    }
+
+    function updateAlbumViewer() {
+        if (!currentAlbum) return;
+        
+        const photo = currentAlbum.photos[currentPhotoIndex];
+        const modalPhoto = document.getElementById('modalPhoto');
+        
+        if (modalPhoto) {
+            modalPhoto.src = photo.src;
+            modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+            
+            // Resetar zoom ao trocar de foto
+            resetZoom();
+        }
+        
+        document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
+        document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
+    }
+
+    // ===== FUNÇÕES DE ZOOM =====
+
+function resetZoom() {
+    const modalPhoto = document.getElementById('modalPhoto');
+    
+    // Adicionar transição suave apenas no reset
+    modalPhoto.classList.add('zoom-transition');
+    
+    zoomLevel = 1;
+    translateX = 0;
+    translateY = 0;
+    isDragging = false;
+    isPinching = false;
+    blockNavigation = false; // ← MUDAR: Desbloquear imediatamente
+    updateImageTransform();
+    
+    // Remover transição depois
+    setTimeout(() => {
+        modalPhoto.classList.remove('zoom-transition');
+    }, 300);
+    
+    // ← ADICIONAR: Atualizar tempo do gesto
+    lastGestureTime = Date.now();
 }
 
-/* Brilho gelado nos textos principais */
-.theme-winter .name {
-    text-shadow: 
-        0 0 10px rgba(227, 242, 253, 1),
-        0 0 20px rgba(129, 212, 250, 0.8),
-        0 0 30px rgba(179, 229, 252, 0.6),
-        0 2px 4px rgba(0, 0, 0, 0.3);
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
-} 
+    function updateImageTransform() {
+        const modalPhoto = document.getElementById('modalPhoto');
+        if (!modalPhoto) return;
+        
+        modalPhoto.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+        modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+    }
 
-/* Footer do tema Winter - estilo igual aos outros temas */
-.theme-winter .footer {
-    margin-top: 40px;
-    padding: 25px 15px;
-    text-align: center;
-    background: var(--theme-card-bg);
-    border-top: 1px solid var(--theme-card-border);
-    animation: fadeIn 0.8s ease-out 1.2s both;
-    position: relative;
-    overflow: hidden;
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+function handleZoom(delta, centerX, centerY) {
+    const oldZoom = zoomLevel;
+    
+    // Ajustar zoom de forma mais suave
+    if (delta > 0) {
+        zoomLevel = Math.min(zoomLevel * 1.05, 4); // Máximo 4x, mais suave
+    } else {
+        zoomLevel = Math.max(zoomLevel * 0.95, 1); // Mínimo 1x, mais suave
+    }
+    
+    // Se voltou ao zoom 1x, centralizar
+    if (zoomLevel === 1) {
+        translateX = 0;
+        translateY = 0;
+        isDragging = false; // ← ADICIONAR: resetar drag
+    } else if (centerX !== undefined && centerY !== undefined) {
+        // Ajustar posição baseado no ponto de zoom
+        const modalPhoto = document.getElementById('modalPhoto');
+        const rect = modalPhoto.getBoundingClientRect();
+        
+        const offsetX = centerX - rect.left - rect.width / 2;
+        const offsetY = centerY - rect.top - rect.height / 2;
+        
+        // ===== MELHORADO: Cálculo mais preciso =====
+        const zoomRatio = zoomLevel / oldZoom - 1;
+        translateX -= offsetX * zoomRatio;
+        translateY -= offsetY * zoomRatio;
+    }
+    
+    updateImageTransform();
 }
 
-.theme-winter .footer::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gradient-neon);
-    box-shadow: 0 0 10px var(--theme-primary);
-}
+    function getTouchDistance(touch1, touch2) {
+        const dx = touch1.clientX - touch2.clientX;
+        const dy = touch1.clientY - touch2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
 
-@keyframes winterSparkle {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-}
+    function initModal() {
+        const modal = document.getElementById('albumModal');
+        const closeBtn = document.getElementById('closeModal');
+        const prevBtn = document.getElementById('prevPhotoBtn');
+        const nextBtn = document.getElementById('nextPhotoBtn');
+        
+        if (!modal || !closeBtn || !prevBtn || !nextBtn) {
+            console.warn('⚠️ Elementos do modal não encontrados');
+            return;
+        }
+        
+        closeBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+        resetZoom(); // ← ADICIONAR
+    });
+        
+prevBtn.addEventListener('click', () => {
+    if (zoomLevel > 1) {
+        console.log('🚫 Botão prev bloqueado - zoom ativo');
+        return;
+    }
+    
+    // ← REMOVER blockNavigation daqui - não precisa
+    
+    if (currentAlbum) {
+        currentPhotoIndex = (currentPhotoIndex - 1 + currentAlbum.photos.length) % currentAlbum.photos.length;
+        updateAlbumViewer();
+    }
+});
+        
+nextBtn.addEventListener('click', () => {
+    if (zoomLevel > 1) {
+        console.log('🚫 Botão next bloqueado - zoom ativo');
+        return;
+    }
+    
+    // ← REMOVER blockNavigation daqui - não precisa
+    
+    if (currentAlbum) {
+        currentPhotoIndex = (currentPhotoIndex + 1) % currentAlbum.photos.length;
+        updateAlbumViewer();
+    }
+});
+        
+    const albumViewer = document.querySelector('.album-viewer');
+    const modalPhoto = document.getElementById('modalPhoto');
 
-/* Adicionar textura de gelo sutil */
-.theme-winter .main-card,
-.theme-winter .music-player,
-.theme-winter .message-card {
-    background-image: 
-        linear-gradient(135deg,
-            rgba(30, 40, 60, 0.95) 0%,
-            rgba(40, 55, 75, 0.9) 100%
-        ),
-        repeating-linear-gradient(
-            45deg,
-            transparent 0px,
-            transparent 2px,
-            rgba(227, 242, 253, 0.02) 2px,
-            rgba(227, 242, 253, 0.02) 4px
+    if (albumViewer && modalPhoto) {
+// ===== DUPLO CLIQUE PARA ZOOM IN/OUT =====
+modalPhoto.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('🔍 Duplo clique detectado! Zoom atual:', zoomLevel);
+    
+    if (zoomLevel === 1) {
+        // ← ZOOM IN: Fazer zoom no ponto clicado
+        console.log('🔍 Aplicando Zoom IN');
+        zoomLevel = 2;
+        
+        // Calcular posição relativa ao centro da imagem
+        const rect = modalPhoto.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left - rect.width / 2;
+        const offsetY = e.clientY - rect.top - rect.height / 2;
+        
+        // Centralizar no ponto clicado
+        translateX = -offsetX * (zoomLevel - 1);
+        translateY = -offsetY * (zoomLevel - 1);
+        
+        updateImageTransform();
+        blockNavigation = true;
+        lastGestureTime = Date.now();
+        console.log('✅ Zoom IN aplicado, novo zoom:', zoomLevel);
+    } else {
+        // ← ZOOM OUT: Resetar zoom
+        console.log('🔍 Aplicando Zoom OUT');
+        resetZoom();
+        console.log('✅ Zoom OUT aplicado, novo zoom:', zoomLevel);
+    }
+});
+        // ===== SCROLL DO MOUSE PARA ZOOM (DESKTOP) =====
+        albumViewer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            handleZoom(-e.deltaY, e.clientX, e.clientY);
+        }, { passive: false });
+        
+        // ===== PINCH TO ZOOM (MOBILE) =====
+
+// ===== DETECÇÃO DE DUPLO TOQUE (MOBILE) =====
+// ===== DETECÇÃO DE DUPLO TOQUE (MOBILE) =====
+let lastTouchTime = 0;
+let lastTouchTarget = null;
+
+albumViewer.addEventListener('touchstart', (e) => {
+    const now = Date.now();
+    const timeSinceLastTouch = now - lastTouchTime;
+    
+    // ===== DUPLO TOQUE DETECTADO =====
+    if (timeSinceLastTouch < 300 && timeSinceLastTouch > 0 && e.target === lastTouchTarget) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('👆👆 DUPLO TOQUE! Zoom atual:', zoomLevel);
+        
+        if (zoomLevel === 1) {
+            // DAR ZOOM
+            const touch = e.touches[0];
+            const rect = modalPhoto.getBoundingClientRect();
+            const offsetX = touch.clientX - rect.left - rect.width / 2;
+            const offsetY = touch.clientY - rect.top - rect.height / 2;
+            
+            zoomLevel = 2;
+            translateX = -offsetX * (zoomLevel - 1);
+            translateY = -offsetY * (zoomLevel - 1);
+            updateImageTransform();
+            blockNavigation = true;
+            console.log('✅ ZOOM IN aplicado');
+        } else {
+            // TIRAR ZOOM
+            resetZoom();
+            console.log('✅ ZOOM OUT aplicado');
+        }
+        
+        lastTouchTime = 0; // Reset para evitar triplo toque
+        return;
+    }
+    
+    lastTouchTime = now;
+    lastTouchTarget = e.target;
+    wasPinching = false;
+    
+    if (e.touches.length === 2) {
+        // MODO PINCH
+        e.preventDefault();
+        e.stopPropagation();
+        isPinching = true;
+        wasPinching = true;
+        isDragging = false;
+        blockNavigation = true;
+        
+        initialPinchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        lastTouchDistance = initialPinchDistance;
+        
+        console.log('🔍 Pinch iniciado');
+        
+    } else if (e.touches.length === 1 && zoomLevel > 1) {
+        // MODO DRAG (apenas com 1 dedo e zoom ativo)
+        isDragging = true;
+        blockNavigation = true;
+        startX = e.touches[0].clientX - translateX;
+        startY = e.touches[0].clientY - translateY;
+        modalPhoto.style.cursor = 'grabbing';
+        
+        console.log('✋ Drag iniciado');
+        
+    } else if (e.touches.length === 1 && zoomLevel === 1) {
+        blockNavigation = false;
+    }
+}, { passive: false });
+
+albumViewer.addEventListener('touchmove', (e) => {
+    lastGestureTime = Date.now();
+    
+    if (e.touches.length === 2 && isPinching) {
+        // ===== MODO PINCH PURO =====
+        e.preventDefault();
+        e.stopPropagation();
+        blockNavigation = true; // ← MANTER bloqueio
+        
+        const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        const delta = currentDistance - lastTouchDistance;
+        
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        
+        handleZoom(delta * 2, centerX, centerY);
+        
+        lastTouchDistance = currentDistance;
+        
+    } else if (e.touches.length === 1 && isDragging && zoomLevel > 1) {
+        // ===== MODO DRAG PURO =====
+        e.preventDefault();
+        e.stopPropagation();
+        blockNavigation = true; // ← MANTER bloqueio
+        
+        translateX = e.touches[0].clientX - startX;
+        translateY = e.touches[0].clientY - startY;
+        updateImageTransform();
+    }
+}, { passive: false });
+        
+albumViewer.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) {
+        // ← TODOS os dedos foram retirados
+        
+        // ← LÓGICA NOVA: Se acabou de fazer pinch, SEMPRE bloquear
+        if (wasPinching) {
+            console.log('🔒 Pinch finalizado - bloqueando navegação por 400ms');
+            blockNavigation = true;
+            isPinching = false;
+            isDragging = false;
+            wasPinching = false;
+            modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+            
+            setTimeout(() => {
+                blockNavigation = false;
+                console.log('🔓 Navegação liberada após pinch');
+            }, 400); // ← Tempo suficiente para evitar swipe acidental
+            
+            lastGestureTime = Date.now();
+            return; // ← IMPORTANTE: Sair aqui
+        }
+        
+        // ← Se era drag (não pinch)
+        if (isDragging) {
+            console.log('✋ Drag finalizado');
+            isDragging = false;
+            
+            if (zoomLevel > 1) {
+                blockNavigation = true;
+                console.log('🔒 Bloqueio ativado - ainda com zoom');
+                setTimeout(() => {
+                    blockNavigation = false;
+                    console.log('🔓 Bloqueio removido');
+                }, 250);
+            } else {
+                blockNavigation = false;
+                console.log('✅ Sem zoom - navegação liberada');
+            }
+        } else {
+            // ← Toque simples sem drag/pinch
+            blockNavigation = false;
+            console.log('✅ Toque simples - navegação livre');
+        }
+        
+        isPinching = false;
+        modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+        lastGestureTime = Date.now();
+        
+    } else if (e.touches.length === 1 && isPinching) {
+        // Transição de 2 dedos para 1 dedo
+        console.log('🔄 Transição: 2 dedos → 1 dedo');
+        isPinching = false;
+        wasPinching = true; // ← MANTER: Ainda considera como pinch
+        
+        if (zoomLevel > 1) {
+            isDragging = true;
+            blockNavigation = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+        }
+    }
+});
+
+
+
+        }
+        
+let touchStartX = 0;
+let touchEndX = 0;
+let touchStartTime = 0; // ← ADICIONAR
+
+modal.addEventListener('touchstart', e => {
+    // ← SÓ CAPTURAR se não estiver fazendo pinch/drag
+    if (!isPinching && !isDragging && zoomLevel === 1) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartTime = Date.now(); // ← ADICIONAR
+    }
+}, { passive: true });
+
+modal.addEventListener('touchend', e => {
+    // ← SÓ PROCESSAR se não estiver fazendo pinch/drag
+    if (!isPinching && !isDragging && !wasPinching && zoomLevel === 1) {
+        touchEndX = e.changedTouches[0].screenX;
+        const touchDuration = Date.now() - touchStartTime; // ← ADICIONAR
+        
+        // ← SÓ NAVEGAR se foi um swipe rápido (não um drag lento)
+        if (touchDuration < 300) {
+            handleSwipe();
+        }
+    }
+}, { passive: true });
+function handleSwipe() {
+    // ← VERIFICAÇÕES EXPANDIDAS
+    if (zoomLevel > 1) {
+        console.log('🚫 Swipe bloqueado - zoom ativo');
+        return;
+    }
+    
+    if (wasPinching) {
+        console.log('🚫 Swipe bloqueado - acabou de fazer pinch');
+        return;
+    }
+    
+    if (blockNavigation) {
+        console.log('🚫 Swipe bloqueado - interação recente');
+        return;
+    }
+    
+    const swipeThreshold = 50;
+    const diff = touchStartX - touchEndX;
+    
+    if (Math.abs(diff) > swipeThreshold) {
+        console.log('✅ Swipe detectado - navegando');
+        if (diff > 0) {
+            nextBtn.click();
+        } else {
+            prevBtn.click();
+        }
+    }
+}
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeBtn.click();
+            }
+        });
+        
+        document.addEventListener('keydown', (event) => {
+            if (modal.style.display === 'flex') {
+                if (event.key === 'Escape') {
+                    closeBtn.click();
+                } else if (event.key === 'ArrowLeft') {
+                    prevBtn.click();
+                } else if (event.key === 'ArrowRight') {
+                    nextBtn.click();
+                }
+            }
+        });
+        
+        console.log('✅ Modal inicializado com navegação Instagram');
+    }
+
+    // ===== MENSAGENS DO DIA =====
+    const messages = [
+        {
+            text: "Cada dia ao seu lado é uma página nova em nosso livro de amor, escrita com sorrisos, carinho e cumplicidade.",
+            author: "Kevin para Iara"
+        },
+        {
+            text: "Se eu pudesse escolher novamente entre todas as pessoas do mundo, escolheria você, sempre você.",
+            author: "Kevin para Iara"
+        },
+        {
+            text: "Nos seus olhos encontro meu lugar favorito no mundo, onde posso ser apenas eu e saber que sou amado.",
+            author: "Kevin para Iara"
+        },
+        {
+            text: "O amor que sinto por você não cabe em palavras, mas transborda em cada gesto, cada olhar, cada momento juntos.",
+            author: "Kevin para Iara"
+        }
+    ];
+
+    let currentMessageIndex = 0;
+
+    function initMessages() {
+        showMessage();
+        
+        const newMessageBtn = document.getElementById('newMessageBtn');
+        if (newMessageBtn) {
+            newMessageBtn.addEventListener('click', showNextMessage);
+        }
+    }
+
+    function showMessage() {
+        const message = messages[currentMessageIndex];
+        
+        const messageElement = document.getElementById('dailyMessage');
+        if (messageElement) {
+            messageElement.innerHTML = `
+                <p class="message-text">"${message.text}"</p>
+                <p class="message-author">— ${message.author}</p>
+            `;
+            
+            messageElement.style.opacity = '0';
+            setTimeout(() => {
+                messageElement.style.transition = 'opacity 0.3s ease';
+                messageElement.style.opacity = '1';
+            }, 10);
+        }
+        
+        console.log(`💌 Mensagem ${currentMessageIndex + 1}/${messages.length} exibida`);
+    }
+
+    function showNextMessage() {
+        currentMessageIndex = (currentMessageIndex + 1) % messages.length;
+        showMessage();
+    }
+
+    // ===== FUNÇÕES UTILITÁRIAS =====
+    function updateCurrentDate() {
+        const now = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        };
+        
+        const dateString = now.toLocaleDateString('pt-BR', options);
+        const dateElement = document.getElementById('currentDate');
+        if (dateElement) {
+            dateElement.textContent = `Hoje é ${dateString}`;
+        }
+    }
+
+    // ===== INICIALIZAÇÃO COMPLETA =====
+    console.log(`
+    ╔══════════════════════════════════════╗
+    ║   💖 SITE KEVIN & IARA INICIADO 💖   ║
+    ╠══════════════════════════════════════╣
+    ║   📱 Otimizado para Mobile          ║
+    ║   🎵 Player original restaurado     ║
+    ║   📸 ${albums.length} álbuns organizados ║
+    ║   🎨 ${Object.keys(themes).length} temas disponíveis ║
+    ║   💾 Tema persistente com localStorage ║
+    ╚══════════════════════════════════════╝
+    `);
+
+    // ===== FIX PARA FOCUS STATE EM MOBILE =====
+    document.addEventListener('DOMContentLoaded', function() {
+        const buttons = document.querySelectorAll(
+            '.control-btn, .album-control-btn, .theme-btn, ' +
+            '.theme-menu-toggle, .close-modal, .new-message-btn'
         );
-}
-
-/* ===== RESET MOBILE-FIRST ===== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
-
-html {
-    font-size: 16px;
-    scroll-behavior: smooth;
-}
-
-body {
-    font-family: 'Raleway', sans-serif;
-    color: var(--theme-text);
-    background-color: var(--theme-bg);
-    min-height: 100vh;
-    overflow-x: hidden;
-    position: relative;
-    transition: background-color 0.5s ease;
-    padding-bottom: 20px;
-}
-
-/* Canvas de Fundo */
-#backgroundCanvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    pointer-events: none;
-}
-
-/* ===== MENU DE TEMA MOBILE-FIRST ===== */
-.theme-menu {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column-reverse;
-    align-items: flex-end;
-    gap: 12px;
-}
-
-.theme-menu-toggle {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(20, 20, 40, 0.4);
-    backdrop-filter: blur(15px);
-    color: rgba(255, 255, 255, 0.35);
-    font-size: 0.95rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    -webkit-tap-highlight-color: transparent;
-}
-
-.theme-menu-toggle:active {
-    transform: scale(0.92);
-}
-
-.theme-menu-toggle:hover {
-    background: rgba(30, 30, 50, 0.6);
-    color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-
-.theme-selector {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: rgba(26, 26, 46, 0.95);
-    backdrop-filter: blur(20px);
-    padding: 12px;
-    border-radius: 20px;
-    border: 1px solid var(--theme-card-border);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-    transform-origin: bottom right;
-    animation: slideUpFade 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.theme-selector.hidden {
-    display: none;
-}
-
-@keyframes slideUpFade {
-    0% {
-        opacity: 0;
-        transform: translateY(20px) scale(0.9);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Botões de tema - otimizados para toque */
-.theme-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--theme-text);
-    font-size: 1.2rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    position: relative;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.theme-btn::before {
-    content: '';
-    position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    padding: 3px;
-    background: var(--gradient-neon);
-    -webkit-mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0); /* <-- ADICIONE ESTA LINHA */
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-
-.theme-btn:active {
-    transform: scale(0.9);
-}
-
-.theme-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    transform: scale(1.05);
-}
-
-.theme-btn.active {
-    background: var(--theme-primary);
-    box-shadow: 
-        0 0 20px var(--theme-primary),
-        0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.theme-btn.active::before {
-    opacity: 1;
-}
-
-/* Responsivo: Desktop */
-@media (min-width: 768px) {
-    .theme-menu {
-        bottom: 30px;
-        right: 30px;
-    }
-    
-    .theme-menu-toggle {
-        width: 45px;
-        height: 45px;
-        font-size: 1rem;
-    }
-    
-    .theme-btn {
-        width: 42px;
-        height: 42px;
-        font-size: 1.1rem;
-    }
-}
-/* ===== CONTAINER PRINCIPAL ===== */
-.container {
-    width: 100%;
-    max-width: 100%;
-    padding: 15px;
-    position: relative;
-    z-index: 1;
-}
-
-/* ===== CABEÇALHO COM NEON ===== */
-.header {
-    text-align: center;
-    margin: 20px 0 30px;
-    padding: 25px 15px;
-    background: var(--theme-card-bg);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    border: 1px solid var(--theme-card-border);
-    animation: fadeIn 0.8s ease-out;
-    position: relative;
-    overflow: hidden;
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-}
-
-/* Efeito de brilho no fundo do header */
-.header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: var(--gradient-neon);
-    opacity: 0.05;
-    animation: rotate 20s linear infinite;
-    z-index: -1;
-}
-
-.names-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-    position: relative;
-}
-
-.name {
-    font-family: 'Dancing Script', cursive;
-    font-size: 3rem;
-    font-weight: 700;
-    text-shadow: 
-        0 0 10px currentColor,
-        0 0 20px currentColor,
-        0 0 30px currentColor,
-        0 0 40px var(--theme-primary);
-    position: relative;
-    padding: 0 15px;
-    z-index: 1;
-    animation: neonPulse 3s ease-in-out infinite alternate;
-}
-
-/* Efeito neon específico para cada nome */
-.name.kevin {
-    background: var(--gradient-text);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation-delay: 0.5s;
-}
-
-.name.iara {
-    background: linear-gradient(90deg, var(--theme-accent), var(--theme-secondary), var(--theme-primary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation-delay: 1s;
-}
-
-/* Coração pulsante com neon */
-.heart-separator i {
-    color: var(--theme-accent);
-    font-size: 2.2rem;
-    animation: 
-        heartbeat 1.5s infinite,
-        floatNeon 2s ease-in-out infinite;
-    text-shadow: 
-        0 0 10px var(--theme-accent),
-        0 0 20px var(--theme-accent),
-        0 0 30px var(--theme-accent);
-}
-
-.subtitle {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1rem;
-    color: var(--theme-text-secondary);
-    margin-top: 10px;
-    font-weight: 300;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    position: relative;
-    padding: 5px 15px;
-    display: inline-block;
-}
-
-.subtitle::before, .subtitle::after {
-    content: '✦';
-    color: var(--theme-primary);
-    margin: 0 10px;
-    text-shadow: 0 0 10px var(--theme-primary);
-}
-
-/* ===== SEÇÃO PRINCIPAL ===== */
-.main-section {
-    margin-bottom: 30px;
-}
-
-.main-card {
-    background: var(--theme-card-bg);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    overflow: hidden;
-    border: 1px solid var(--theme-card-border);
-    animation: slideUp 0.8s ease-out 0.2s both;
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-/* Efeito de brilho nas bordas */
-.main-card::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: var(--gradient-neon);
-    border-radius: inherit;
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.main-card:hover::before {
-    opacity: 0.3;
-}
-
-.couple-photo {
-    width: 100%;
-    height: 250px;
-    overflow: hidden;
-}
-
-.couple-photo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.love-message {
-    padding: 20px;
-}
-
-.love-message h2 {
-    font-family: 'Dancing Script', cursive;
-    font-size: 1.8rem;
-    margin-bottom: 15px;
-    color: var(--theme-accent);
-    text-align: center;
-}
-
-.love-message h2 i {
-    color: var(--theme-primary);
-    margin: 0 8px;
-}
-
-.message-content {
-    margin-bottom: 15px;
-}
-
-.message-content p {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin-bottom: 12px;
-    color: var(--theme-text-secondary);
-}
-
-.signature {
-    text-align: right;
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid var(--theme-card-border);
-}
-
-.signature p {
-    color: var(--theme-text-secondary);
-    font-style: italic;
-    font-size: 0.9rem;
-}
-
-.signature-name {
-    font-family: 'Dancing Script', cursive;
-    font-size: 1.5rem;
-    color: var(--theme-primary);
-    margin-top: 3px;
-    text-shadow: 0 0 10px var(--theme-primary);
-}
-
-/* ===== CONTADOR DE TEMPO ===== */
-.time-counter-section {
-    margin-bottom: 30px;
-    text-align: center;
-    animation: fadeIn 0.8s ease-out 0.4s both;
-}
-
-.time-counter-section h2 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.5rem;
-    margin-bottom: 10px;
-    color: var(--theme-accent);
-    text-shadow: 0 0 10px var(--theme-accent);
-}
-
-.time-counter-section h2 i {
-    color: var(--theme-primary);
-    margin-right: 10px;
-    text-shadow: 0 0 10px var(--theme-primary);
-}
-
-.section-subtitle {
-    font-size: 0.9rem;
-    color: var(--theme-text-secondary);
-    margin-bottom: 20px;
-}
-
-.time-counter {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.time-unit {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Time boxes com neon */
-.time-box {
-    width: 70px;
-    height: 70px;
-    background: var(--gradient-primary);
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 
-        0 5px 15px rgba(0, 0, 0, 0.3),
-        0 0 10px var(--theme-primary),
-        inset 0 0 10px rgba(255, 255, 255, 0.2);
-    animation: floatNeon 3s ease-in-out infinite;
-}
-
-.time-value {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: white;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-}
-
-.time-label {
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.8rem;
-    color: var(--theme-text);
-    font-weight: 500;
-    text-transform: uppercase;
-}
-
-.start-date {
-    padding: 12px 20px;
-    background: var(--theme-card-bg);
-    border-radius: 12px;
-    display: inline-block;
-    border: 1px solid var(--theme-card-border);
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.start-date:hover {
-    box-shadow: 0 0 20px var(--theme-primary), inset 0 0 20px rgba(255, 255, 255, 0.2);
-}
-
-.start-date p {
-    font-size: 0.9rem;
-    color: var(--theme-text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.start-date i {
-    color: var(--theme-primary);
-    text-shadow: 0 0 10px var(--theme-primary);
-}
-
-#startDateDisplay {
-    color: var(--theme-accent);
-    font-weight: 600;
-    text-shadow: 0 0 10px var(--theme-accent);
-}
-
-/* ===== PLAYER DE MÚSICA ===== */
-.music-player-section {
-    margin-bottom: 30px;
-    animation: fadeIn 0.8s ease-out 0.6s both;
-}
-
-.music-player-section h2 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.5rem;
-    margin-bottom: 15px;
-    color: var(--theme-accent);
-    text-align: center;
-    text-shadow: 0 0 10px var(--theme-accent);
-}
-
-.music-player-section h2 i {
-    color: var(--theme-primary);
-    margin-right: 10px;
-    text-shadow: 0 0 10px var(--theme-primary);
-}
-
-.music-player {
-    background: var(--theme-card-bg);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 20px;
-    border: 1px solid var(--theme-card-border);
-    max-width: 400px;
-    margin: 0 auto;
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.music-player:hover {
-    box-shadow: 0 0 25px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
-}
-
-.album-cover {
-    position: relative;
-    width: 180px;
-    height: 180px;
-    border-radius: 15px;
-    overflow: hidden;
-    margin: 0 auto 20px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px var(--theme-primary);
-}
-
-.album-cover img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.vinyl-effect {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.3) 100%);
-    border-radius: 50%;
-    animation: rotate 20s linear infinite;
-    animation-play-state: paused;
-}
-
-.music-player.playing .vinyl-effect {
-    animation-play-state: running;
-}
-
-.song-info {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.song-info h3 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.3rem;
-    color: var(--theme-text);
-    margin-bottom: 5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-}
-
-.song-info p {
-    font-size: 1rem;
-    color: var(--theme-text-secondary);
-}
-
-/* Barra de Progresso Minimalista */
-.progress-container {
-    margin-bottom: 20px;
-}
-
-.progress-bar-bg {
-    width: 100%;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-    margin-bottom: 8px;
-    overflow: hidden;
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
-}
-
-.progress-bar-fill {
-    width: 0%;
-    height: 100%;
-    background: var(--gradient-primary);
-    border-radius: 2px;
-    transition: width 0.1s linear;
-    box-shadow: 0 0 10px var(--theme-primary);
-}
-
-.time-display {
-    display: flex;
-    justify-content: space-between;
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.8rem;
-    color: var(--theme-text-secondary);
-}
-
-/* Controles do Player */
-.control-buttons {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 15px;
-}
-
-.control-btn {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--theme-text);
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s ease, background 0.2s ease;
-    box-shadow: 
-        0 0 10px rgba(255, 255, 255, 0.1),
-        inset 0 0 10px rgba(255, 255, 255, 0.05);
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
-}
-
-/* Remove TODOS os estados hover e active problemáticos */
-.control-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-}
-
-.control-btn:active {
-    transform: scale(0.9);
-}
-
-/* Estado ativado (repeat/shuffle ligados) - SEM animações extras */
-.control-btn.active {
-    color: var(--theme-primary);
-    background: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 15px var(--theme-primary);
-}
-
-/* ===== BOTÃO PLAY/PAUSE - MANTÉM O GRADIENTE SEMPRE ===== */
-.play-pause-btn {
-    width: 55px;
-    height: 55px;
-    background: var(--gradient-primary) !important; /* IMPORTANTE: força o gradiente */
-    font-size: 1.2rem;
-    box-shadow: 
-        0 0 20px var(--theme-primary),
-        0 0 30px var(--theme-primary) !important; /* IMPORTANTE: força o brilho */
-}
-
-/* Hover do play/pause - mantém gradiente */
-.play-pause-btn:hover {
-    background: var(--gradient-primary) !important;
-    transform: scale(1.05);
-    box-shadow: 
-        0 0 25px var(--theme-primary),
-        0 0 35px var(--theme-primary) !important;
-}
-
-/* Active do play/pause - mantém gradiente */
-.play-pause-btn:active {
-    background: var(--gradient-primary) !important;
-    transform: scale(0.95);
-    box-shadow: 
-        0 0 20px var(--theme-primary),
-        0 0 30px var(--theme-primary) !important;
-}
-
-/* Focus do play/pause - mantém gradiente (importante para mobile) */
-.play-pause-btn:focus {
-    background: var(--gradient-primary) !important;
-    box-shadow: 
-        0 0 20px var(--theme-primary),
-        0 0 30px var(--theme-primary) !important;
-    outline: none;
-}
-
-/* Garantir que o ícone dentro do botão também mantenha a cor branca */
-.play-pause-btn i {
-    color: white !important;
-}
-
-.playlist-info {
-    text-align: center;
-    font-size: 0.9rem;
-    color: var(--theme-text-secondary);
-    font-family: 'Poppins', sans-serif;
-}
-
-/* ===== GALERIA DE ÁLBUNS ===== */
-.albums-section {
-    margin-bottom: 30px;
-    animation: fadeIn 0.8s ease-out 0.8s both;
-}
-
-.albums-section h2 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.5rem;
-    margin-bottom: 10px;
-    color: var(--theme-accent);
-    text-align: center;
-    text-shadow: 0 0 10px var(--theme-accent);
-}
-
-.albums-section h2 i {
-    color: var(--theme-primary);
-    margin-right: 10px;
-    text-shadow: 0 0 10px var(--theme-primary);
-}
-
-.albums-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.album-card {
-    background: var(--theme-card-bg);
-    border-radius: 15px;
-    overflow: hidden;
-    border: 1px solid var(--theme-card-border);
-    transition: all 0.3s ease;
-    cursor: pointer;
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-    position: relative;
-}
-
-.album-card:active {
-    transform: scale(0.98);
-}
-
-.album-card:hover {
-    box-shadow: 0 0 20px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
-}
-
-.album-cover-img {
-    width: 100%;
-    height: 150px;
-    object-fit: cover;
-}
-
-.album-info {
-    padding: 15px;
-}
-
-.album-info h3 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.2rem;
-    color: var(--theme-text);
-    margin-bottom: 8px;
-}
-
-.album-date {
-    font-size: 0.8rem;
-    color: var(--theme-text-secondary);
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.album-date i {
-    color: var(--theme-primary);
-    text-shadow: 0 0 10px var(--theme-primary);
-}
-
-.album-info > p {
-    font-size: 0.9rem;
-    color: var(--theme-text-secondary);
-    line-height: 1.4;
-    margin-bottom: 10px;
-}
-
-.album-stats {
-    display: flex;
-    justify-content: space-between;
-    color: var(--theme-text-secondary);
-    font-size: 0.8rem;
-}
-
-.album-stats span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.album-stats i {
-    color: var(--theme-accent);
-    text-shadow: 0 0 10px var(--theme-accent);
-}
-
-/* ===== MODAL DO ÁLBUM COM NEON ===== */
-.album-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    animation: fadeIn 0.3s ease;
-    overflow-y: auto;
-    padding: 20px;
-}
-
-.modal-content {
-    width: 100%;
-    max-width: 95%;
-    max-height: 80vh;
-    background: var(--theme-card-bg);
-    border-radius: 25px;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--theme-card-border);
-    box-shadow: 
-        var(--theme-glow-strong),
-        0 20px 50px rgba(0, 0, 0, 0.5),
-        inset 0 0 30px rgba(255, 255, 255, 0.1);
-    overflow: hidden;
-    margin: auto;
-}
-
-.modal-header {
-    padding: 15px 20px;
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid var(--theme-card-border);
-    background: var(--theme-card-bg);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.modal-header h3 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.2rem;
-    color: var(--theme-text);
-    margin: 0 auto;
-    font-weight: 500;
-    text-align: center;
-    flex: 1;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-}
-
-.close-modal {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: var(--theme-text);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--theme-card-border);
-    position: relative;
-    z-index: 11;
-    margin-left: auto;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-}
-
-.close-modal:hover, .close-modal:active {
-    background: var(--theme-primary);
-    transform: scale(1.1);
-    border-color: var(--theme-primary);
-    box-shadow: 
-        0 0 15px var(--theme-primary),
-        0 0 25px var(--theme-primary);
-}
-
-.modal-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 15px;
-    overflow: hidden;
-}
-
-.album-viewer {
-    flex: 1;
-    min-height: 250px;
-    max-height: 55vh;
-    border-radius: 15px;
-    overflow: hidden;
-    margin: 10px 15px 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-}
-
-.album-viewer img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    border-radius: 10px;
-    transition: transform none; /* ← ADICIONAR */
-    transform-origin: center; /* ← ADICIONAR */
-    user-select: none; /* ← ADICIONAR */
-    -webkit-user-drag: none; /* ← ADICIONAR */
-}
-
-.album-viewer img.zoom-transition {
-    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.album-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    padding: 10px 0;
-}
-
-.album-control-btn {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    border: none;
-    background: var(--theme-primary);
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    transition: background 0.3s ease;
-    box-shadow: 0 0 15px var(--theme-primary);
-}
-
-.album-control-btn:active {
-    background: var(--theme-secondary);
-    box-shadow: 0 0 25px var(--theme-secondary);
-}
-
-.photo-info {
-    flex: 1;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-
-.photo-counter {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1rem;
-    color: var(--theme-text);
-    font-weight: 500;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-}
-
-/* ===== MENSAGENS DO DIA ===== */
-.messages-section {
-    margin-bottom: 30px;
-    animation: fadeIn 0.8s ease-out 1s both;
-}
-
-.messages-section h2 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.5rem;
-    margin-bottom: 15px;
-    color: var(--theme-accent);
-    text-align: center;
-    text-shadow: 0 0 10px var(--theme-accent);
-}
-
-.messages-section h2 i {
-    color: var(--theme-primary);
-    margin-right: 10px;
-    text-shadow: 0 0 10px var(--theme-primary);
-}
-
-.message-card {
-    background: var(--theme-card-bg);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 20px;
-    border: 1px solid var(--theme-card-border);
-    text-align: center;
-    max-width: 400px;
-    margin: 0 auto;
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.message-card:hover {
-    box-shadow: 0 0 20px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
-}
-
-.message-content {
-    margin-bottom: 20px;
-}
-
-.message-text {
-    font-size: 1.1rem;
-    line-height: 1.5;
-    color: var(--theme-text);
-    font-style: italic;
-    margin-bottom: 15px;
-    position: relative;
-    padding: 0 15px;
-}
-
-.message-text::before,
-.message-text::after {
-    content: '"';
-    font-size: 2rem;
-    color: var(--theme-accent);
-    position: absolute;
-    opacity: 0.7;
-    text-shadow: 0 0 10px var(--theme-accent);
-}
-
-.message-text::before {
-    top: -10px;
-    left: 0;
-}
-
-.message-text::after {
-    bottom: -25px;
-    right: 0;
-}
-
-.message-author {
-    font-size: 1rem;
-    color: var(--theme-text-secondary);
-    font-weight: 500;
-}
-
-.new-message-btn {
-    background: var(--gradient-primary);
-    color: white;
-    border: none;
-    padding: 12px 25px;
-    border-radius: 25px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.9rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 0 auto;
-    transition: all 0.2s ease;
-    box-shadow: 0 0 15px var(--theme-primary);
-}
-
-.new-message-btn:active {
-    transform: scale(0.95);
-    box-shadow: 0 0 25px var(--theme-primary);
-}
-
-/* ===== FOOTER COM NEON ===== */
-.footer {
-    margin-top: 40px;
-    padding: 25px 15px;
-    text-align: center;
-    background: var(--theme-card-bg);
-    border-top: 1px solid var(--theme-card-border);
-    animation: fadeIn 0.8s ease-out 1.2s both;
-    position: relative;
-    overflow: hidden;
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-}
-
-.footer::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gradient-neon);
-    box-shadow: 0 0 10px var(--theme-primary);
-}
-
-.footer-heart {
-    font-size: 2.5rem;
-    color: var(--theme-accent);
-    margin-bottom: 10px;
-    animation: 
-        heartbeat 1.5s infinite,
-        floatNeon 3s ease-in-out infinite;
-    text-shadow: 
-        0 0 15px var(--theme-accent),
-        0 0 25px var(--theme-accent);
-}
-
-.footer-text {
-    font-size: 1rem;
-    color: var(--theme-text);
-    margin-bottom: 10px;
-    font-family: 'Poppins', sans-serif;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-.footer-date {
-    font-size: 0.9rem;
-    color: var(--theme-text-secondary);
-    margin-bottom: 15px;
-}
-
-.footer-names {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    font-family: 'Dancing Script', cursive;
-    font-size: 1.8rem;
-    color: var(--theme-text);
-}
-
-.footer-names i {
-    color: var(--theme-accent);
-    animation: 
-        heartbeat 1.5s infinite,
-        floatNeon 2s ease-in-out infinite;
-    text-shadow: 0 0 10px var(--theme-accent);
-}
-
-.footer-names span {
-    background: var(--gradient-text);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-}
-
-/* ===== ANIMAÇÕES ===== */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(40px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes heartbeat {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.1);
-    }
-}
-
-@keyframes rotate {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes scaleIn {
-    from {
-        opacity: 0;
-        transform: scale(0.8);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* ===== ANIMAÇÕES NEON ===== */
-@keyframes neonPulse {
-    0%, 100% {
-        text-shadow: 
-            0 0 10px currentColor,
-            0 0 20px currentColor,
-            0 0 30px currentColor,
-            0 0 40px var(--theme-primary);
-    }
-    50% {
-        text-shadow: 
-            0 0 5px currentColor,
-            0 0 10px currentColor,
-            0 0 15px currentColor,
-            0 0 20px var(--theme-primary);
-    }
-}
-
-@keyframes floatNeon {
-    0%, 100% {
-        transform: translateY(0);
-        filter: drop-shadow(0 0 10px var(--theme-primary));
-    }
-    50% {
-        transform: translateY(-5px);
-        filter: drop-shadow(0 0 20px var(--theme-primary));
-    }
-}
-
-/* ===== FEEDBACK DE CLIQUE PARA REPEAT ===== */
-
-.theme-meteors #repeatBtn.active {
-    background: rgba(138, 43, 226, 0.2);
-}
-
-.theme-hearts #repeatBtn.active {
-    background: rgba(255, 0, 85, 0.2);
-}
-
-.theme-aurora #repeatBtn.active {
-    background: rgba(0, 255, 170, 0.2);
-}
-
-/* ===== RESPONSIVIDADE DESKTOP ===== */
-@media (min-width: 768px) {
-    html {
-        font-size: 18px;
-    }
-    
-    .container {
-        max-width: 768px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-    
-    .header {
-        margin: 30px 0 40px;
-        padding: 30px;
-    }
-    
-    .name {
-        font-size: 3.8rem;
-    }
-    
-    .heart-separator i {
-        font-size: 2.5rem;
-    }
-    
-    .subtitle {
-        font-size: 1.1rem;
-    }
-    
-    .couple-photo {
-        height: 350px;
-    }
-    
-    .love-message h2 {
-        font-size: 2.2rem;
-    }
-    
-    .message-content p {
-        font-size: 1.1rem;
-    }
-    
-    .time-counter {
-        grid-template-columns: repeat(6, 1fr);
-        gap: 15px;
-    }
-    
-    .time-box {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .time-value {
-        font-size: 1.8rem;
-    }
-    
-    .albums-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .modal-content {
-        max-width: 600px;
-        max-height: 80vh;
-        height: auto;
-        border-radius: 20px;
-    }
-    
-    .album-viewer {
-        height: 400px;
-    }
-}
-
-/* ===== RESPONSIVIDADE MOBILE ===== */
-@media (max-width: 767px) {
-    .modal-content {
-        max-width: 100%;
-        max-height: 88vh;
-        border-radius: 20px 20px 0 0;
-        margin-top: auto;
-    }
-
-    
-
-    .album-viewer {
-        max-height: 55vh;
-        min-height: 220px;
-    }
-    
-    .album-control-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.3rem;
-    }
-    
-    .modal-header {
-        padding: 12px 15px;
-    }
-    
-    .modal-header h3 {
-        font-size: 1.1rem;
-        padding: 0 40px;
-    }
-}
-
-/* Animação de entrada do modal mobile */
-@media (max-width: 767px) {
-    .album-modal[style*="display: flex"] .modal-content {
-        animation: slideUp 0.3s ease-out;
-    }
-    
-    @keyframes slideUp {
-        from {
-            transform: translateY(100%);
-        }
-        to {
-            transform: translateY(0);
-        }
-    }
-}
+        
+        buttons.forEach(button => {
+            button.addEventListener('click', function() {
+                this.blur();
+            });
+            
+            button.addEventListener('touchend', function() {
+                this.blur();
+            });
+            
+            button.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+            });
+        });
+        
+        console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
+    });
