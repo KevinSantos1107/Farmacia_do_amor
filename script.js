@@ -480,100 +480,355 @@ function changeTheme(themeName, shouldSave = true) {
     let currentAlbum = null;
     let currentPhotoIndex = 0;
 
-    // ===== VARIÁVEIS DE CONTROLE DO ZOOM =====
-    let zoomLevel = 1;
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let translateX = 0;
-    let translateY = 0;
-    let lastTouchDistance = 0;
-    let isPinching = false;
-    let initialPinchDistance = 0;
-    let lastGestureTime = 0;
-    let blockNavigation = false;
-    let wasPinching = false;
+// ===== VARIÁVEIS DE CONTROLE DO ZOOM =====
+let zoomLevel = 1;
+let isDragging = false;
+let startX = 0;
+let startY = 0;
+let translateX = 0;
+let translateY = 0;
 
-    function initAlbums() {
-        const container = document.getElementById('albumsContainer');
-        
-        if (!container) {
-            console.warn('⚠️ Container de álbuns não encontrado');
+// Variáveis específicas para gestos mobile
+let lastTouchTime = 0;
+let touchStartTime = 0;
+let touchStartX = 0;
+let touchEndX = 0;
+let lastGestureTime = Date.now();
+let isPinching = false;
+let initialPinchDistance = 0;
+let lastPinchDistance = 0;
+let blockNavigation = false;
+let doubleTapTimeout = null;
+let touchCount = 0;
+
+function initModal() {
+    const modal = document.getElementById('albumModal');
+    const closeBtn = document.getElementById('closeModal');
+    const prevBtn = document.getElementById('prevPhotoBtn');
+    const nextBtn = document.getElementById('nextPhotoBtn');
+    const albumViewer = document.querySelector('.album-viewer');
+    const modalPhoto = document.getElementById('modalPhoto');
+    
+    if (!modal || !closeBtn || !prevBtn || !nextBtn || !albumViewer || !modalPhoto) {
+        console.warn('⚠️ Elementos do modal não encontrados');
+        return;
+    }
+    
+    closeBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+        resetZoom();
+    });
+    
+    prevBtn.addEventListener('click', () => {
+        if (zoomLevel > 1) {
+            console.log('🚫 Botão prev bloqueado - zoom ativo');
             return;
         }
         
-        container.innerHTML = '';
-        
-        albums.forEach(album => {
-            const albumCard = document.createElement('div');
-            albumCard.className = 'album-card';
-            albumCard.dataset.id = album.id;
-            
-            albumCard.innerHTML = `
-                <img src="${album.cover}" alt="${album.title}" class="album-cover-img">
-                <div class="album-info">
-                    <h3>${album.title}</h3>
-                    <p class="album-date">
-                        <i class="far fa-calendar-alt"></i> ${album.date}
-                    </p>
-                    <p>${album.description}</p>
-                    <div class="album-stats">
-                        <span>
-                            <i class="far fa-images"></i> ${album.photoCount} ${album.photoCount === 1 ? 'foto' : 'fotos'}
-                        </span>
-                    </div>
-                </div>
-            `;
-            
-            albumCard.addEventListener('click', () => openAlbum(album.id));
-            container.appendChild(albumCard);
-        });
-        
-        console.log(`✅ ${albums.length} álbuns carregados`);
-    }
-
-    function openAlbum(albumId) {
-        currentAlbum = albums.find(a => a.id === albumId);
-        if (!currentAlbum) {
-            console.warn('⚠️ Álbum não encontrado:', albumId);
+        if (currentAlbum) {
+            currentPhotoIndex = (currentPhotoIndex - 1 + currentAlbum.photos.length) % currentAlbum.photos.length;
+            updateAlbumViewer();
+        }
+    });
+    
+    nextBtn.addEventListener('click', () => {
+        if (zoomLevel > 1) {
+            console.log('🚫 Botão next bloqueado - zoom ativo');
             return;
         }
         
-        currentPhotoIndex = 0;
-        updateAlbumViewer();
+        if (currentAlbum) {
+            currentPhotoIndex = (currentPhotoIndex + 1) % currentAlbum.photos.length;
+            updateAlbumViewer();
+        }
+    });
+    
+    // ===== DUPLO CLIQUE (DESKTOP) =====
+    modalPhoto.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleDoubleTap(e.clientX, e.clientY);
+    });
+    
+    // ===== SCROLL DO MOUSE (DESKTOP) =====
+    albumViewer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        handleZoom(-e.deltaY, e.clientX, e.clientY);
+    }, { passive: false });
+    
+    // ===== GESTOS TOUCH (MOBILE) =====
+    let touchStart = {};
+    let touchMove = {};
+    
+    albumViewer.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         
-        const modal = document.getElementById('albumModal');
-        if (modal) {
-            modal.style.display = 'flex';
+        const now = Date.now();
+        const touches = e.touches;
+        
+        // Guardar posições iniciais
+        for (let i = 0; i < touches.length; i++) {
+            touchStart[i] = {
+                x: touches[i].clientX,
+                y: touches[i].clientY
+            };
         }
         
-        const titleElement = document.getElementById('modalAlbumTitle');
-        if (titleElement) {
-            titleElement.textContent = currentAlbum.title;
-        }
+        touchCount = touches.length;
         
-        console.log(`📸 Álbum aberto: ${currentAlbum.title}`);
-    }
-
-    function updateAlbumViewer() {
-        if (!currentAlbum) return;
-        
-        const photo = currentAlbum.photos[currentPhotoIndex];
-        const modalPhoto = document.getElementById('modalPhoto');
-        
-        if (modalPhoto) {
-            modalPhoto.src = photo.src;
-            modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+        // Se tiver 2 dedos, é PINCH
+        if (touches.length === 2) {
+            console.log('🔍 Pinch detectado (2 dedos)');
+            isPinching = true;
+            initialPinchDistance = getTouchDistance(touches[0], touches[1]);
+            lastPinchDistance = initialPinchDistance;
             
-            // Resetar zoom ao trocar de foto
+            // Cancelar qualquer duplo toque pendente
+            if (doubleTapTimeout) {
+                clearTimeout(doubleTapTimeout);
+                doubleTapTimeout = null;
+            }
+            return;
+        }
+        
+        // Se tiver 1 dedo, pode ser duplo toque ou arraste
+        if (touches.length === 1) {
+            const touch = touches[0];
+            const timeSinceLastTouch = now - lastTouchTime;
+            
+            // Verificar se é duplo toque
+            if (timeSinceLastTouch < 300 && timeSinceLastTouch > 0) {
+                console.log('👆👆 Duplo toque detectado');
+                handleDoubleTap(touch.clientX, touch.clientY);
+                
+                // Resetar timer
+                lastTouchTime = 0;
+                return;
+            }
+            
+            // Iniciar arraste se estiver com zoom
+            if (zoomLevel > 1) {
+                isDragging = true;
+                startX = touch.clientX - translateX;
+                startY = touch.clientY - translateY;
+                modalPhoto.style.cursor = 'grabbing';
+            }
+            
+            lastTouchTime = now;
+        }
+    }, { passive: false });
+    
+    albumViewer.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const touches = e.touches;
+        lastGestureTime = Date.now();
+        
+        // PINCH TO ZOOM
+        if (touches.length === 2 && isPinching) {
+            blockNavigation = true;
+            
+            const currentDistance = getTouchDistance(touches[0], touches[1]);
+            const delta = currentDistance - lastPinchDistance;
+            
+            // Calcular centro do pinch
+            const centerX = (touches[0].clientX + touches[1].clientX) / 2;
+            const centerY = (touches[0].clientY + touches[1].clientY) / 2;
+            
+            // Aplicar zoom proporcional
+            const zoomFactor = 0.01; // Fator de suavidade
+            if (delta !== 0) {
+                const oldZoom = zoomLevel;
+                
+                if (delta > 0) {
+                    zoomLevel = Math.min(zoomLevel * (1 + delta * zoomFactor), 4);
+                } else {
+                    zoomLevel = Math.max(zoomLevel / (1 - delta * zoomFactor), 1);
+                }
+                
+                // Ajustar posição baseada no centro do pinch
+                const zoomChange = zoomLevel / oldZoom;
+                const rect = modalPhoto.getBoundingClientRect();
+                const offsetX = centerX - rect.left - rect.width / 2;
+                const offsetY = centerY - rect.top - rect.height / 2;
+                
+                translateX = translateX * zoomChange - offsetX * (zoomChange - 1);
+                translateY = translateY * zoomChange - offsetY * (zoomChange - 1);
+                
+                updateImageTransform();
+            }
+            
+            lastPinchDistance = currentDistance;
+        }
+        
+        // DRAG (arrastar imagem com zoom)
+        else if (touches.length === 1 && isDragging && zoomLevel > 1) {
+            blockNavigation = true;
+            
+            const touch = touches[0];
+            translateX = touch.clientX - startX;
+            translateY = touch.clientY - startY;
+            updateImageTransform();
+        }
+        
+        // Guardar posições para possível transição
+        for (let i = 0; i < touches.length; i++) {
+            touchMove[i] = {
+                x: touches[i].clientX,
+                y: touches[i].clientY
+            };
+        }
+    }, { passive: false });
+    
+    albumViewer.addEventListener('touchend', (e) => {
+        const touches = e.touches;
+        
+        // Se todos os dedos saíram
+        if (touches.length === 0) {
+            // Finalizar pinch
+            if (isPinching) {
+                console.log('✅ Pinch finalizado');
+                isPinching = false;
+                
+                // Se ainda estiver com zoom, bloquear navegação temporariamente
+                if (zoomLevel > 1) {
+                    blockNavigation = true;
+                    setTimeout(() => {
+                        blockNavigation = false;
+                        console.log('🔓 Navegação liberada após pinch');
+                    }, 300);
+                }
+            }
+            
+            // Finalizar drag
+            if (isDragging) {
+                console.log('✅ Drag finalizado');
+                isDragging = false;
+                modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+                
+                // Se ainda estiver com zoom, manter bloqueio
+                if (zoomLevel > 1) {
+                    blockNavigation = true;
+                }
+            }
+            
+            // Se não estava fazendo gestos complexos, permitir navegação
+            if (!isPinching && !isDragging && zoomLevel === 1) {
+                blockNavigation = false;
+            }
+            
+            // Resetar contagem
+            touchCount = 0;
+        }
+        
+        // Se sobrou 1 dedo (transição de pinch para drag)
+        else if (touches.length === 1 && isPinching) {
+            console.log('🔄 Transição: pinch → drag');
+            isPinching = false;
+            isDragging = true;
+            
+            // Configurar para drag
+            const touch = touches[0];
+            startX = touch.clientX - translateX;
+            startY = touch.clientY - translateY;
+            modalPhoto.style.cursor = 'grabbing';
+        }
+    });
+    
+    // ===== SWIPE PARA NAVEGAÇÃO =====
+    albumViewer.addEventListener('touchstart', (e) => {
+        if (touchCount === 0 && !isPinching && !isDragging && zoomLevel === 1) {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartTime = Date.now();
+        }
+    }, { passive: true });
+    
+    albumViewer.addEventListener('touchend', (e) => {
+        if (!isPinching && !isDragging && !blockNavigation && zoomLevel === 1) {
+            touchEndX = e.changedTouches[0].screenX;
+            const touchDuration = Date.now() - touchStartTime;
+            
+            // Só processar swipe rápido (não gestos lentos)
+            if (touchDuration < 300) {
+                handleSwipe();
+            }
+        }
+    }, { passive: true });
+    
+    function handleSwipe() {
+        if (blockNavigation || zoomLevel > 1 || isPinching || isDragging) {
+            console.log('🚫 Swipe bloqueado');
+            return;
+        }
+        
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            console.log('✅ Swipe detectado - navegando');
+            if (diff > 0) {
+                // Swipe para a esquerda = próxima foto
+                nextBtn.click();
+            } else {
+                // Swipe para a direita = foto anterior
+                prevBtn.click();
+            }
+        }
+    }
+    
+    function handleDoubleTap(x, y) {
+        console.log('🔍 Duplo toque/clique detectado! Zoom atual:', zoomLevel);
+        
+        if (zoomLevel === 1) {
+            // ZOOM IN
+            zoomLevel = 2;
+            
+            const rect = modalPhoto.getBoundingClientRect();
+            const offsetX = x - rect.left - rect.width / 2;
+            const offsetY = y - rect.top - rect.height / 2;
+            
+            translateX = -offsetX * (zoomLevel - 1);
+            translateY = -offsetY * (zoomLevel - 1);
+            
+            updateImageTransform();
+            blockNavigation = true;
+            console.log('✅ Zoom IN aplicado');
+        } else {
+            // ZOOM OUT
             resetZoom();
+            console.log('✅ Zoom OUT aplicado');
         }
-        
-        document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
-        document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
     }
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeBtn.click();
+        }
+    });
+    
+    document.addEventListener('keydown', (event) => {
+        if (modal.style.display === 'flex') {
+            if (event.key === 'Escape') {
+                closeBtn.click();
+            } else if (event.key === 'ArrowLeft') {
+                prevBtn.click();
+            } else if (event.key === 'ArrowRight') {
+                nextBtn.click();
+            }
+        }
+    });
+    
+    console.log('✅ Modal inicializado com gestos separados');
+}
 
-    // ===== FUNÇÕES DE ZOOM =====
+// ===== FUNÇÕES AUXILIARES =====
+function getTouchDistance(touch1, touch2) {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
 
 function resetZoom() {
     const modalPhoto = document.getElementById('modalPhoto');
@@ -586,7 +841,7 @@ function resetZoom() {
     translateY = 0;
     isDragging = false;
     isPinching = false;
-    blockNavigation = false; // ← MUDAR: Desbloquear imediatamente
+    blockNavigation = false;
     updateImageTransform();
     
     // Remover transição depois
@@ -594,33 +849,32 @@ function resetZoom() {
         modalPhoto.classList.remove('zoom-transition');
     }, 300);
     
-    // ← ADICIONAR: Atualizar tempo do gesto
     lastGestureTime = Date.now();
 }
 
-    function updateImageTransform() {
-        const modalPhoto = document.getElementById('modalPhoto');
-        if (!modalPhoto) return;
-        
-        modalPhoto.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
-        modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-    }
+function updateImageTransform() {
+    const modalPhoto = document.getElementById('modalPhoto');
+    if (!modalPhoto) return;
+    
+    modalPhoto.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+    modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+}
 
 function handleZoom(delta, centerX, centerY) {
     const oldZoom = zoomLevel;
     
     // Ajustar zoom de forma mais suave
     if (delta > 0) {
-        zoomLevel = Math.min(zoomLevel * 1.05, 4); // Máximo 4x, mais suave
+        zoomLevel = Math.min(zoomLevel * 1.05, 4);
     } else {
-        zoomLevel = Math.max(zoomLevel * 0.95, 1); // Mínimo 1x, mais suave
+        zoomLevel = Math.max(zoomLevel * 0.95, 1);
     }
     
     // Se voltou ao zoom 1x, centralizar
     if (zoomLevel === 1) {
         translateX = 0;
         translateY = 0;
-        isDragging = false; // ← ADICIONAR: resetar drag
+        isDragging = false;
     } else if (centerX !== undefined && centerY !== undefined) {
         // Ajustar posição baseado no ponto de zoom
         const modalPhoto = document.getElementById('modalPhoto');
@@ -629,7 +883,6 @@ function handleZoom(delta, centerX, centerY) {
         const offsetX = centerX - rect.left - rect.width / 2;
         const offsetY = centerY - rect.top - rect.height / 2;
         
-        // ===== MELHORADO: Cálculo mais preciso =====
         const zoomRatio = zoomLevel / oldZoom - 1;
         translateX -= offsetX * zoomRatio;
         translateY -= offsetY * zoomRatio;
