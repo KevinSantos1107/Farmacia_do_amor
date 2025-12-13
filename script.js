@@ -72,19 +72,10 @@ winter: {
             text: '#ffffff',
             textSecondary: '#e1f5fe'
         }
-    },
-    cruzeiro: {
-        name: 'Cruzeiro - 5 Estrelas ⭐',
-        colors: {
-            bg: '#001a3d',
-            primary: '#003DA5',
-            secondary: '#1E4D9B',
-            accent: '#FFD700',
-            text: '#ffffff',
-            textSecondary: '#4A90E2'
-        }
     }
 };
+
+
 
     let currentTheme = 'meteors';
 
@@ -130,7 +121,7 @@ winter: {
     }
 
     function initThemeSelector() {
-        const themeButtons = document.querySelectorAll('.theme-btn');
+ const themeButtons = document.querySelectorAll('.theme-btn');
         
         themeButtons.forEach(button => {
             button.addEventListener('click', function() {
@@ -148,31 +139,38 @@ winter: {
             });
         });
     }
+       
 
-    function changeTheme(themeName, shouldSave = true) {
-        if (!themes[themeName]) return;
-        
-        currentTheme = themeName;
-        const theme = themes[themeName];
-        
-        document.body.className = '';
-        document.body.classList.add(`theme-${themeName}`);
-        
-        const root = document.documentElement;
-        root.style.setProperty('--theme-bg', theme.colors.bg);
-        root.style.setProperty('--theme-primary', theme.colors.primary);
-        root.style.setProperty('--theme-secondary', theme.colors.secondary);
-        root.style.setProperty('--theme-accent', theme.colors.accent);
-        root.style.setProperty('--theme-text', theme.colors.text);
-        root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
-        
-        // Salvar tema se solicitado
-        if (shouldSave) {
-            saveTheme(themeName);
-        }
-        
-        console.log(`🎨 Tema alterado para: ${theme.name}`);
+function changeTheme(themeName, shouldSave = true) {
+    if (!themes[themeName]) return;
+    
+    currentTheme = themeName;
+    const theme = themes[themeName];
+    
+    document.body.className = '';
+    document.body.classList.add(`theme-${themeName}`);
+    
+    const root = document.documentElement;
+    root.style.setProperty('--theme-bg', theme.colors.bg);
+    root.style.setProperty('--theme-primary', theme.colors.primary);
+    root.style.setProperty('--theme-secondary', theme.colors.secondary);
+    root.style.setProperty('--theme-accent', theme.colors.accent);
+    root.style.setProperty('--theme-text', theme.colors.text);
+    root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
+    
+    
+    // Salvar tema se solicitado
+    if (shouldSave) {
+        saveTheme(themeName);
     }
+    
+    // Mudar animação também
+    if (window.Animations && typeof window.Animations.changeTheme === 'function') {
+        window.Animations.changeTheme(themeName);
+    }
+    
+    console.log(`🎨 Tema alterado para: ${theme.name}`);
+}
 
     // ===== CONTROLE DO MENU DE TEMA =====
     function initThemeMenu() {
