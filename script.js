@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initModal();
     updateCurrentDate();
     
+    // NOVO: Inicializar animação do Cruzeiro
+    initCruzeiroAnimation();
+    
     console.log('💖 Site Kevin & Iara carregado com sucesso!');
     
     // Inicializar animações COM O TEMA CORRETO depois de um delay
@@ -71,6 +74,18 @@ const themes = {
             accent: '#b3e5fc',
             text: '#ffffff',
             textSecondary: '#e1f5fe'
+        }
+    },
+    // NOVO: Tema do Cruzeiro
+    cruzeiro: {
+        name: 'Cruzeiro Esporte Clube',
+        colors: {
+            bg: '#0a0a1a',          // Azul escuro do Cruzeiro
+            primary: '#0a2845',     // Azul principal do Cruzeiro
+            secondary: '#4a90e2',   // Azul mais claro
+            accent: '#ffd700',      // Dourado para destaques
+            text: '#ffffff',        // Branco
+            textSecondary: '#b8c7e0' // Azul claro para textos secundários
         }
     }
 };
@@ -154,6 +169,9 @@ function changeTheme(themeName, shouldSave = true) {
     root.style.setProperty('--theme-accent', theme.colors.accent);
     root.style.setProperty('--theme-text', theme.colors.text);
     root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
+    
+    // NOVO: Atualizar animação do Cruzeiro
+    updateCruzeiroColors(themeName);
     
     // Salvar tema se solicitado
     if (shouldSave) {
