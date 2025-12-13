@@ -723,16 +723,54 @@ modalPhoto.addEventListener('dblclick', (e) => {
         
         // ===== PINCH TO ZOOM (MOBILE) =====
 
+// ===== DETECÇÃO DE DUPLO TOQUE (MOBILE) =====
+// ===== DETECÇÃO DE DUPLO TOQUE (MOBILE) =====
+let lastTouchTime = 0;
+let lastTouchTarget = null;
+
 albumViewer.addEventListener('touchstart', (e) => {
-    lastGestureTime = Date.now();
-    wasPinching = false; // ← ADICIONAR: Reset no início
+    const now = Date.now();
+    const timeSinceLastTouch = now - lastTouchTime;
+    
+    // ===== DUPLO TOQUE DETECTADO =====
+    if (timeSinceLastTouch < 300 && timeSinceLastTouch > 0 && e.target === lastTouchTarget) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('👆👆 DUPLO TOQUE! Zoom atual:', zoomLevel);
+        
+        if (zoomLevel === 1) {
+            // DAR ZOOM
+            const touch = e.touches[0];
+            const rect = modalPhoto.getBoundingClientRect();
+            const offsetX = touch.clientX - rect.left - rect.width / 2;
+            const offsetY = touch.clientY - rect.top - rect.height / 2;
+            
+            zoomLevel = 2;
+            translateX = -offsetX * (zoomLevel - 1);
+            translateY = -offsetY * (zoomLevel - 1);
+            updateImageTransform();
+            blockNavigation = true;
+            console.log('✅ ZOOM IN aplicado');
+        } else {
+            // TIRAR ZOOM
+            resetZoom();
+            console.log('✅ ZOOM OUT aplicado');
+        }
+        
+        lastTouchTime = 0; // Reset para evitar triplo toque
+        return;
+    }
+    
+    lastTouchTime = now;
+    lastTouchTarget = e.target;
+    wasPinching = false;
     
     if (e.touches.length === 2) {
         // MODO PINCH
         e.preventDefault();
         e.stopPropagation();
         isPinching = true;
-        wasPinching = true; // ← ADICIONAR: Marcar que está fazendo pinch
+        wasPinching = true;
         isDragging = false;
         blockNavigation = true;
         
@@ -743,9 +781,6 @@ albumViewer.addEventListener('touchstart', (e) => {
         
     } else if (e.touches.length === 1 && zoomLevel > 1) {
         // MODO DRAG (apenas com 1 dedo e zoom ativo)
-        e.preventDefault();
-        e.stopPropagation();
-        isPinching = false;
         isDragging = true;
         blockNavigation = true;
         startX = e.touches[0].clientX - translateX;
@@ -755,11 +790,9 @@ albumViewer.addEventListener('touchstart', (e) => {
         console.log('✋ Drag iniciado');
         
     } else if (e.touches.length === 1 && zoomLevel === 1) {
-        // Permitir navegação se não há zoom e não foi pinch
         blockNavigation = false;
     }
 }, { passive: false });
-
 
 albumViewer.addEventListener('touchmove', (e) => {
     lastGestureTime = Date.now();
@@ -855,7 +888,14 @@ albumViewer.addEventListener('touchend', (e) => {
     }
 });
 
+
 albumViewer.addEventListener('click', (e) => {
+    // ← NÃO bloquear se for duplo clique
+    if (e.detail === 2) {
+        console.log('👆 Detectado duplo clique - permitindo');
+        return;
+    }
+    
     const timeSinceGesture = Date.now() - lastGestureTime;
     
     // ← SIMPLIFICADO: Apenas 2 verificações
@@ -894,14 +934,6 @@ albumViewer.addEventListener('click', (e) => {
             albumViewer.addEventListener('mouseup', () => {
                 albumViewer.style.opacity = '1';
             });
-            
-            albumViewer.addEventListener('touchstart', () => {
-                albumViewer.style.opacity = '0.9';
-            }, { passive: true });
-            
-            albumViewer.addEventListener('touchend', () => {
-                albumViewer.style.opacity = '1';
-            }, { passive: true });
         }
         
 let touchStartX = 0;
