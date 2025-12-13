@@ -49,8 +49,7 @@ const settings = {
         backgroundColor: '#001122',
         waveSpeed: 0.0008,
         particleSpeed: 0.6
-    }
-    ,
+    },
 winter: {
         name: 'Inverno Mágico',
         snowflakes: 80,
@@ -77,6 +76,14 @@ winter: {
         glowIntensity: 0.4,
         fogOpacity: 0.15
     },
+    cruzeiro: {
+        name: 'Cruzeiro Celeste',
+        stars: 100,
+        particleColors: ['#0a2845', '#4a90e2', '#ffffff', '#ffd700'],
+        backgroundColor: '#0a0a1a',
+        starSpeed: 0.5,
+        particleCount: 40
+    }
 };
 
 
@@ -186,10 +193,11 @@ function resizeCanvas() {
 }
 
 // ===== CRIAÇÃO DE ELEMENTOS =====
+// ===== CRIAÇÃO DE ELEMENTOS =====
 function createElements() {
     particles = [];
     stars = [];
-    snowAccumulation = []; // ← ADICIONAR
+    snowAccumulation = [];
     
     if (currentAnimation === 'meteors') {
         createStars();
@@ -200,9 +208,11 @@ function createElements() {
     } else if (currentAnimation === 'aurora') {
         createAurora();
         createAuroraStars();
-} else if (currentAnimation === 'winter') {
+    } else if (currentAnimation === 'winter') {
         createWinterScene();
-} 
+    } else if (currentAnimation === 'cruzeiro') {
+        createCruzeiroParticles(); // ADICIONE ESTA LINHA
+    }
 }
 
 
@@ -675,6 +685,132 @@ function darkenColor(color, percent) {
         (G > 0 ? G : 0) * 0x100 +
         (B > 0 ? B : 0)
     ).toString(16).slice(1);
+}
+
+function createCruzeiroParticles() {
+    const config = settings.cruzeiro || settings.meteors;
+    
+    // Criar estrelas azuis
+    for (let i = 0; i < config.stars; i++) {
+        stars.push({
+            type: 'cruzeiroStar',
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 0.5,
+            speedY: Math.random() * config.starSpeed + 0.3,
+            speedX: (Math.random() - 0.5) * 0.3,
+            color: config.particleColors[Math.floor(Math.random() * config.particleColors.length)],
+            brightness: Math.random() * 0.7 + 0.4,
+            twinkleSpeed: Math.random() * 0.004 + 0.001,
+            twinkleOffset: Math.random() * Math.PI * 2
+        });
+    }
+    
+    // Criar partículas douradas (representando os títulos)
+    for (let i = 0; i < config.particleCount; i++) {
+        particles.push({
+            type: 'cruzeiroParticle',
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 1,
+            speedY: Math.random() * 0.4 + 0.1,
+            speedX: (Math.random() - 0.5) * 0.2,
+            color: '#ffd700',
+            opacity: Math.random() * 0.5 + 0.3,
+            trail: [],
+            maxTrail: 8,
+            age: 0
+        });
+    }
+}
+
+// PASSO 5: Função para desenhar partículas do Cruzeiro
+function drawCruzeiroParticles() {
+    const time = Date.now();
+    
+    // Desenhar estrelas
+    stars.forEach(star => {
+        if (star.type !== 'cruzeiroStar') return;
+        
+        star.y += star.speedY;
+        star.x += star.speedX;
+        
+        const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
+        const brightness = star.brightness * twinkle;
+        
+        if (star.y > canvas.height + 20) {
+            star.y = -20;
+            star.x = Math.random() * canvas.width;
+        }
+        if (star.x < -20) star.x = canvas.width + 20;
+        if (star.x > canvas.width + 20) star.x = -20;
+        
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        
+        const gradient = ctx.createRadialGradient(
+            star.x, star.y, 0,
+            star.x, star.y, star.size * 3
+        );
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${brightness})`);
+        gradient.addColorStop(0.5, `${star.color}${Math.floor(brightness * 150).toString(16).padStart(2, '0')}`);
+        gradient.addColorStop(1, `${star.color}00`);
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+    });
+    
+    // Desenhar partículas douradas
+    particles.forEach(particle => {
+        if (particle.type !== 'cruzeiroParticle') return;
+        
+        particle.age += 0.01;
+        particle.y += particle.speedY;
+        particle.x += particle.speedX;
+        
+        particle.trail.push({ x: particle.x, y: particle.y });
+        if (particle.trail.length > particle.maxTrail) {
+            particle.trail.shift();
+        }
+        
+        // Reciclar partículas antigas
+        if (particle.age > 30 || particle.y > canvas.height + 50) {
+            particle.y = -10;
+            particle.x = Math.random() * canvas.width;
+            particle.trail = [];
+            particle.age = 0;
+        }
+        
+        // Desenhar trilha
+        if (particle.trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(particle.trail[0].x, particle.trail[0].y);
+            
+            for (let i = 1; i < particle.trail.length; i++) {
+                ctx.lineTo(particle.trail[i].x, particle.trail[i].y);
+            }
+            
+            ctx.strokeStyle = `${particle.color}30`;
+            ctx.lineWidth = 1;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+        
+        // Desenhar partícula
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        
+        const gradient = ctx.createRadialGradient(
+            particle.x, particle.y, 0,
+            particle.x, particle.y, particle.size * 2
+        );
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${particle.opacity})`);
+        gradient.addColorStop(0.7, `${particle.color}${Math.floor(particle.opacity * 180).toString(16).padStart(2, '0')}`);
+        gradient.addColorStop(1, `${particle.color}00`);
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+    });
 }
 
 // ===== TEMA: AURORA BOREAL (MANTIDO) =====
@@ -1636,6 +1772,10 @@ function animate() {
         });
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (currentAnimation === 'cruzeiro') {
+        // Fundo azul escuro para o Cruzeiro
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
         const bgColor = settings[currentAnimation].backgroundColor;
         ctx.fillStyle = bgColor;
@@ -1653,6 +1793,8 @@ function animate() {
         drawAurora();
     } else if (currentAnimation === 'winter') {
         drawWinterScene();
+    } else if (currentAnimation === 'cruzeiro') {
+        drawCruzeiroParticles(); // ADICIONE ESTA LINHA
     }
     
     animationId = requestAnimationFrame(animate);
@@ -1702,6 +1844,96 @@ function changeAnimation(animationName) {
     animate();
     
     console.log(`✅ ${settings[animationName].name} ativado`);
+}
+
+// ===== ANIMAÇÃO DO CRUZEIRO =====
+function initCruzeiroAnimation() {
+    const logo = document.querySelector('.cruzeiro-logo');
+    if (!logo) return;
+    
+    // Adicionar delay aleatório para cada estrela
+    const stars = logo.querySelectorAll('polygon');
+    stars.forEach((star, index) => {
+        star.style.setProperty('--i', index);
+    });
+    
+    // Efeito de partículas azuis (cores do Cruzeiro)
+    if (currentAnimation === 'meteors') {
+        createCruzeiroParticles();
+    }
+    
+    console.log('✅ Animação do Cruzeiro iniciada');
+}
+
+function createCruzeiroParticles() {
+    // Criar partículas celestes (azuis e brancas)
+    for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'cruzeiro-particle';
+        
+        // Posições aleatórias
+        const tx = Math.random() * 100 - 50;
+        const ty = Math.random() * 100 - 50;
+        
+        particle.style.cssText = `
+            position: absolute;
+            width: ${Math.random() * 3 + 1}px;
+            height: ${Math.random() * 3 + 1}px;
+            background: ${Math.random() > 0.5 ? '#4a90e2' : '#ffffff'};
+            border-radius: 50%;
+            top: ${Math.random() * 100}%;
+            left: ${Math.random() * 100}%;
+            opacity: ${Math.random() * 0.3 + 0.1};
+            animation: cruzeiroParticleMove ${Math.random() * 20 + 10}s linear infinite;
+            animation-delay: ${Math.random() * 5}s;
+            filter: blur(1px);
+            --tx: ${tx}px;
+            --ty: ${ty}px;
+        `;
+        
+        const background = document.querySelector('.cruzeiro-background');
+        if (background) {
+            background.appendChild(particle);
+        }
+    }
+}
+
+function updateCruzeiroColors(themeName) {
+    const logo = document.querySelector('.cruzeiro-logo');
+    if (!logo) return;
+    
+    // Cores baseadas no tema
+    const colors = {
+        meteors: { primary: '#8a2be2', secondary: '#00ffff', accent: '#ffffff' },
+        hearts: { primary: '#ff0055', secondary: '#ff3366', accent: '#ffcc00' },
+        aurora: { primary: '#00ffaa', secondary: '#00ccff', accent: '#ffffff' },
+        winter: { primary: '#e3f2fd', secondary: '#81d4fa', accent: '#ffffff' }
+    };
+    
+    const themeColors = colors[themeName] || colors.meteors;
+    
+    // Atualizar cores do SVG
+    const stars = logo.querySelectorAll('polygon');
+    const circles = logo.querySelectorAll('circle');
+    const paths = logo.querySelectorAll('path');
+    
+    // Estrelas - cor principal do tema
+    stars.forEach(star => {
+        star.style.fill = themeColors.primary;
+        star.style.stroke = themeColors.accent;
+    });
+    
+    // Círculos - cor secundária
+    circles.forEach(circle => {
+        if (circle.getAttribute('r') === '65') {
+            circle.style.stroke = themeColors.secondary;
+        }
+    });
+    
+    // Caminhos (Cruz e C) - cor de destaque
+    paths.forEach(path => {
+        path.style.stroke = themeColors.accent;
+    });
 }
 
 // ===== EXPORT PARA USO =====
