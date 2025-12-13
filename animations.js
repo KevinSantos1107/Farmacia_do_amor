@@ -1684,11 +1684,11 @@ function createCruzeiroStars() {
     const config = settings.cruzeiro;
     
     const starPositions = [
-        { x: 0.5, y: 0.25 },
-        { x: 0.3, y: 0.4 },
-        { x: 0.5, y: 0.4 },
-        { x: 0.7, y: 0.4 },
-        { x: 0.5, y: 0.55 }
+        { x: 0.5, y: 0.20 },   // ⭐ Topo (mais acima)
+        { x: 0.35, y: 0.38 },  // ⭐ Esquerda
+        { x: 0.5, y: 0.38 },   // ⭐🔵 Centro (MAIOR - azul royal)
+        { x: 0.65, y: 0.38 },  // ⭐ Direita
+        { x: 0.5, y: 0.56 }    // ⭐ Baixo
     ];
     
     starPositions.forEach((pos, index) => {
