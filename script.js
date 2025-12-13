@@ -889,51 +889,7 @@ albumViewer.addEventListener('touchend', (e) => {
 });
 
 
-albumViewer.addEventListener('click', (e) => {
-    // ← NÃO bloquear se for duplo clique
-    if (e.detail === 2) {
-        console.log('👆 Detectado duplo clique - permitindo');
-        return;
-    }
-    
-    const timeSinceGesture = Date.now() - lastGestureTime;
-    
-    // ← SIMPLIFICADO: Apenas 2 verificações
-    if (zoomLevel > 1) {
-        console.log('🚫 Click bloqueado - zoom ativo');
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-    }
-    
-    if (blockNavigation || timeSinceGesture < 300) {
-        console.log('🚫 Click bloqueado - gesto recente');
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-    }
-    
-    console.log('✅ Click permitido - navegando');
-    const rect = albumViewer.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
-    
-    if (clickX < width / 2) {
-        prevBtn.click();
-    } else {
-        nextBtn.click();
-    }
-});
-            
-            albumViewer.style.cursor = 'pointer';
-            
-            albumViewer.addEventListener('mousedown', () => {
-                albumViewer.style.opacity = '0.9';
-            });
-            
-            albumViewer.addEventListener('mouseup', () => {
-                albumViewer.style.opacity = '1';
-            });
+
         }
         
 let touchStartX = 0;
