@@ -62,18 +62,29 @@
                 textSecondary: '#a8dadc'
             }
         },
-        winter: {
-            name: 'Inverno Mágico',
-            colors: {
-                bg: '#1a2332',
-                primary: '#e3f2fd',
-                secondary: '#81d4fa',
-                accent: '#b3e5fc',
-                text: '#ffffff',
-                textSecondary: '#e1f5fe'
-            }
+winter: {
+        name: 'Inverno Mágico',
+        colors: {
+            bg: '#1a2332',
+            primary: '#e3f2fd',
+            secondary: '#81d4fa',
+            accent: '#b3e5fc',
+            text: '#ffffff',
+            textSecondary: '#e1f5fe'
         }
-    };
+    },
+    cruzeiro: {
+        name: 'Cruzeiro - 5 Estrelas ⭐',
+        colors: {
+            bg: '#001a3d',
+            primary: '#003DA5',
+            secondary: '#1E4D9B',
+            accent: '#FFD700',
+            text: '#ffffff',
+            textSecondary: '#4A90E2'
+        }
+    }
+};
 
     let currentTheme = 'meteors';
 
