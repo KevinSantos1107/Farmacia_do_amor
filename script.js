@@ -13,17 +13,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initModal();
     updateCurrentDate();
     
-    // Inicializar animação do Cruzeiro (agora só no tema cruzeiro)
-    if (savedTheme === 'cruzeiro') {
-        initCruzeiroAnimation();
-    }
-    
     console.log('💖 Site Kevin & Iara carregado com sucesso!');
     
     // Inicializar animações COM O TEMA CORRETO depois de um delay
     setTimeout(() => {
         if (typeof initAnimations === 'function') {
-            initAnimations(savedTheme || 'meteors');
+            initAnimations(savedTheme || 'meteors'); // Passa o tema salvo para as animações
         }
     }, 500);
 });
@@ -77,17 +72,6 @@ const themes = {
             text: '#ffffff',
             textSecondary: '#e1f5fe'
         }
-    },
-    cruzeiro: {
-        name: 'Cruzeiro Esporte Clube',
-        colors: {
-            bg: '#0a0a1a',
-            primary: '#0a2845',
-            secondary: '#4a90e2',
-            accent: '#ffd700',
-            text: '#ffffff',
-            textSecondary: '#b8c7e0'
-        }
     }
 };
 
@@ -109,8 +93,9 @@ function loadSavedTheme() {
         
         if (savedTheme && themes[savedTheme]) {
             currentTheme = savedTheme;
-            changeTheme(savedTheme, false);
+            changeTheme(savedTheme, false); // false = não salvar novamente
             
+            // Marcar o botão correto como ativo
             setTimeout(() => {
                 const themeButtons = document.querySelectorAll('.theme-btn');
                 themeButtons.forEach(btn => {
@@ -122,7 +107,7 @@ function loadSavedTheme() {
             }, 100);
             
             console.log(`✅ Tema "${themes[savedTheme].name}" carregado do navegador`);
-            return savedTheme;
+            return savedTheme; // Retorna o tema para usar nas animações
         } else {
             console.log('📌 Nenhum tema salvo encontrado, usando tema padrão');
             return 'meteors';
@@ -143,13 +128,9 @@ function initThemeSelector() {
             themeButtons.forEach(btn => btn.classList.remove('active'));
             this.classList.add('active');
             
-            changeTheme(theme, true);
+            changeTheme(theme, true); // true = salvar no localStorage
             
-            // Ativar animação do Cruzeiro se for o tema
-            if (theme === 'cruzeiro') {
-                initCruzeiroAnimation();
-            }
-            
+            // Mudar animação também
             if (window.Animations && typeof window.Animations.changeTheme === 'function') {
                 window.Animations.changeTheme(theme);
             }
@@ -173,9 +154,6 @@ function changeTheme(themeName, shouldSave = true) {
     root.style.setProperty('--theme-accent', theme.colors.accent);
     root.style.setProperty('--theme-text', theme.colors.text);
     root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
-    
-    // Atualizar animação do Cruzeiro
-    updateCruzeiroColors(themeName);
     
     // Salvar tema se solicitado
     if (shouldSave) {
@@ -529,6 +507,7 @@ function getTouchDistance(touch1, touch2) {
 function resetZoom() {
     const modalPhoto = document.getElementById('modalPhoto');
     
+    // Adicionar transição suave apenas no reset
     if (modalPhoto) {
         modalPhoto.classList.add('zoom-transition');
     }
@@ -541,6 +520,7 @@ function resetZoom() {
     blockNavigation = false;
     updateImageTransform();
     
+    // Remover transição depois
     setTimeout(() => {
         if (modalPhoto) {
             modalPhoto.classList.remove('zoom-transition');
@@ -561,17 +541,20 @@ function updateImageTransform() {
 function handleZoom(delta, centerX, centerY) {
     const oldZoom = zoomLevel;
     
+    // Ajustar zoom de forma mais suave
     if (delta > 0) {
         zoomLevel = Math.min(zoomLevel * 1.05, 4);
     } else {
         zoomLevel = Math.max(zoomLevel * 0.95, 1);
     }
     
+    // Se voltou ao zoom 1x, centralizar
     if (zoomLevel === 1) {
         translateX = 0;
         translateY = 0;
         isDragging = false;
     } else if (centerX !== undefined && centerY !== undefined) {
+        // Ajustar posição baseado no ponto de zoom
         const modalPhoto = document.getElementById('modalPhoto');
         const rect = modalPhoto.getBoundingClientRect();
         
@@ -593,6 +576,7 @@ function handleDoubleTap(x, y) {
     if (!modalPhoto) return;
     
     if (zoomLevel === 1) {
+        // ZOOM IN
         zoomLevel = 2;
         
         const rect = modalPhoto.getBoundingClientRect();
@@ -606,6 +590,7 @@ function handleDoubleTap(x, y) {
         blockNavigation = true;
         console.log('✅ Zoom IN aplicado');
     } else {
+        // ZOOM OUT
         resetZoom();
         console.log('✅ Zoom OUT aplicado');
     }
@@ -678,6 +663,7 @@ function initModal() {
         const now = Date.now();
         const touches = e.touches;
         
+        // Guardar posições iniciais
         for (let i = 0; i < touches.length; i++) {
             touchStart[i] = {
                 x: touches[i].clientX,
@@ -687,12 +673,14 @@ function initModal() {
         
         touchCount = touches.length;
         
+        // Se tiver 2 dedos, é PINCH
         if (touches.length === 2) {
             console.log('🔍 Pinch detectado (2 dedos)');
             isPinching = true;
             initialPinchDistance = getTouchDistance(touches[0], touches[1]);
             lastPinchDistance = initialPinchDistance;
             
+            // Cancelar qualquer duplo toque pendente
             if (doubleTapTimeout) {
                 clearTimeout(doubleTapTimeout);
                 doubleTapTimeout = null;
@@ -700,18 +688,22 @@ function initModal() {
             return;
         }
         
+        // Se tiver 1 dedo, pode ser duplo toque ou arraste
         if (touches.length === 1) {
             const touch = touches[0];
             const timeSinceLastTouch = now - lastTouchTime;
             
+            // Verificar se é duplo toque
             if (timeSinceLastTouch < 300 && timeSinceLastTouch > 0) {
                 console.log('👆👆 Duplo toque detectado');
                 handleDoubleTap(touch.clientX, touch.clientY);
                 
+                // Resetar timer
                 lastTouchTime = 0;
                 return;
             }
             
+            // Iniciar arraste se estiver com zoom
             if (zoomLevel > 1) {
                 isDragging = true;
                 startX = touch.clientX - translateX;
@@ -730,15 +722,18 @@ function initModal() {
         const touches = e.touches;
         lastGestureTime = Date.now();
         
+        // PINCH TO ZOOM
         if (touches.length === 2 && isPinching) {
             blockNavigation = true;
             
             const currentDistance = getTouchDistance(touches[0], touches[1]);
             const delta = currentDistance - lastPinchDistance;
             
+            // Calcular centro do pinch
             const centerX = (touches[0].clientX + touches[1].clientX) / 2;
             const centerY = (touches[0].clientY + touches[1].clientY) / 2;
             
+            // Aplicar zoom proporcional
             const zoomFactor = 0.01;
             if (delta !== 0) {
                 const oldZoom = zoomLevel;
@@ -749,6 +744,7 @@ function initModal() {
                     zoomLevel = Math.max(zoomLevel / (1 - delta * zoomFactor), 1);
                 }
                 
+                // Ajustar posição baseada no centro do pinch
                 const zoomChange = zoomLevel / oldZoom;
                 const rect = modalPhoto.getBoundingClientRect();
                 const offsetX = centerX - rect.left - rect.width / 2;
@@ -763,6 +759,7 @@ function initModal() {
             lastPinchDistance = currentDistance;
         }
         
+        // DRAG (arrastar imagem com zoom)
         else if (touches.length === 1 && isDragging && zoomLevel > 1) {
             blockNavigation = true;
             
@@ -776,11 +773,14 @@ function initModal() {
     albumViewer.addEventListener('touchend', (e) => {
         const touches = e.touches;
         
+        // Se todos os dedos saíram
         if (touches.length === 0) {
+            // Finalizar pinch
             if (isPinching) {
                 console.log('✅ Pinch finalizado');
                 isPinching = false;
                 
+                // Se ainda estiver com zoom, bloquear navegação temporariamente
                 if (zoomLevel > 1) {
                     blockNavigation = true;
                     setTimeout(() => {
@@ -790,28 +790,34 @@ function initModal() {
                 }
             }
             
+            // Finalizar drag
             if (isDragging) {
                 console.log('✅ Drag finalizado');
                 isDragging = false;
                 modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
                 
+                // Se ainda estiver com zoom, manter bloqueio
                 if (zoomLevel > 1) {
                     blockNavigation = true;
                 }
             }
             
+            // Se não estava fazendo gestos complexos, permitir navegação
             if (!isPinching && !isDragging && zoomLevel === 1) {
                 blockNavigation = false;
             }
             
+            // Resetar contagem
             touchCount = 0;
         }
         
+        // Se sobrou 1 dedo (transição de pinch para drag)
         else if (touches.length === 1 && isPinching) {
             console.log('🔄 Transição: pinch → drag');
             isPinching = false;
             isDragging = true;
             
+            // Configurar para drag
             const touch = touches[0];
             startX = touch.clientX - translateX;
             startY = touch.clientY - translateY;
@@ -835,6 +841,7 @@ function initModal() {
             const swipeEndX = e.changedTouches[0].screenX;
             const touchDuration = Date.now() - swipeStartTime;
             
+            // Só processar swipe rápido (não gestos lentos)
             if (touchDuration < 300) {
                 handleSwipe(swipeStartX, swipeEndX);
             }
@@ -853,8 +860,10 @@ function initModal() {
         if (Math.abs(diff) > swipeThreshold) {
             console.log('✅ Swipe detectado - navegando');
             if (diff > 0) {
+                // Swipe para a esquerda = próxima foto
                 nextBtn.click();
             } else {
+                // Swipe para a direita = foto anterior
                 prevBtn.click();
             }
         }
@@ -953,6 +962,7 @@ function updateAlbumViewer() {
         modalPhoto.src = photo.src;
         modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
         
+        // Resetar zoom ao trocar de foto
         resetZoom();
     }
     
@@ -1016,54 +1026,6 @@ function showNextMessage() {
     showMessage();
 }
 
-// ===== ANIMAÇÃO DO CRUZEIRO =====
-function initCruzeiroAnimation() {
-    const logo = document.querySelector('.cruzeiro-logo');
-    if (!logo) return;
-    
-    // Adicionar delay aleatório para cada estrela
-    const stars = logo.querySelectorAll('polygon');
-    stars.forEach((star, index) => {
-        star.style.setProperty('--i', index);
-    });
-    
-    console.log('✅ Animação do Cruzeiro iniciada');
-}
-
-function updateCruzeiroColors(themeName) {
-    const logo = document.querySelector('.cruzeiro-logo');
-    if (!logo) return;
-    
-    const colors = {
-        meteors: { primary: '#8a2be2', secondary: '#00ffff', accent: '#ffffff' },
-        hearts: { primary: '#ff0055', secondary: '#ff3366', accent: '#ffcc00' },
-        aurora: { primary: '#00ffaa', secondary: '#00ccff', accent: '#ffffff' },
-        winter: { primary: '#e3f2fd', secondary: '#81d4fa', accent: '#ffffff' },
-        cruzeiro: { primary: '#0a2845', secondary: '#4a90e2', accent: '#ffd700' }
-    };
-    
-    const themeColors = colors[themeName] || colors.meteors;
-    
-    const stars = logo.querySelectorAll('polygon');
-    const circles = logo.querySelectorAll('circle');
-    const paths = logo.querySelectorAll('path');
-    
-    stars.forEach(star => {
-        star.style.fill = themeColors.primary;
-        star.style.stroke = themeColors.accent;
-    });
-    
-    circles.forEach(circle => {
-        if (circle.getAttribute('r') === '65') {
-            circle.style.stroke = themeColors.secondary;
-        }
-    });
-    
-    paths.forEach(path => {
-        path.style.stroke = themeColors.accent;
-    });
-}
-
 // ===== FUNÇÕES UTILITÁRIAS =====
 function updateCurrentDate() {
     const now = new Date();
@@ -1080,6 +1042,19 @@ function updateCurrentDate() {
         dateElement.textContent = `Hoje é ${dateString}`;
     }
 }
+
+// ===== INICIALIZAÇÃO COMPLETA =====
+console.log(`
+╔══════════════════════════════════════╗
+║   💖 SITE KEVIN & IARA INICIADO 💖   ║
+╠══════════════════════════════════════╣
+║   📱 Otimizado para Mobile          ║
+║   🎵 Player original restaurado     ║
+║   📸 ${albums.length} álbuns organizados ║
+║   🎨 ${Object.keys(themes).length} temas disponíveis ║
+║   💾 Tema persistente com localStorage ║
+╚══════════════════════════════════════╝
+`);
 
 // ===== FIX PARA FOCUS STATE EM MOBILE =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -1104,15 +1079,3 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
 });
-
-console.log(`
-╔══════════════════════════════════════╗
-║   💖 SITE KEVIN & IARA INICIADO 💖   ║
-╠══════════════════════════════════════╣
-║   📱 Otimizado para Mobile          ║
-║   🎵 Player original restaurado     ║
-║   📸 ${albums.length} álbuns organizados ║
-║   🎨 ${Object.keys(themes).length} temas disponíveis ║
-║   💾 Tema persistente com localStorage ║
-╚══════════════════════════════════════╝
-`);
