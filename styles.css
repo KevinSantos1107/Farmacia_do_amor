@@ -2,9 +2,9 @@
 :root {
     /* Tema Meteoros (Padrão) - NEON AZUL-VIOLETA */
     --theme-bg: #0a0a1a;
-    --theme-primary: #8a2be2;
-    --theme-secondary: #00ffff;
-    --theme-accent: #ff00ff;
+    --theme-primary: #8a2be2; /* Neon Violeta */
+    --theme-secondary: #00ffff; /* Neon Ciano */
+    --theme-accent: #ff00ff; /* Neon Magenta */
     --theme-text: #ffffff;
     --theme-text-secondary: #ccccff;
     --theme-card-bg: rgba(20, 20, 40, 0.95);
@@ -22,9 +22,9 @@
 /* Tema Chuva de Corações - NEON ROSA-VERMELHO */
 .theme-hearts {
     --theme-bg: #1a001a;
-    --theme-primary: #ff0055;
-    --theme-secondary: #ff3366;
-    --theme-accent: #ffcc00;
+    --theme-primary: #ff0055; /* Neon Rosa Vibrante */
+    --theme-secondary: #ff3366; /* Neon Rosa Suave */
+    --theme-accent: #ffcc00; /* Neon Amarelo */
     --theme-text: #ffffff;
     --theme-text-secondary: #ffd1dc;
     --theme-card-bg: rgba(40, 0, 20, 0.95);
@@ -42,9 +42,9 @@
 /* Tema Aurora - NEON VERDE-AZUL CÉU NOTURNO */
 .theme-aurora {
     --theme-bg: #001122;
-    --theme-primary: #00ffaa;
-    --theme-secondary: #00ccff;
-    --theme-accent: #aa00ff;
+    --theme-primary: #00ffaa; /* Neon Verde Água */
+    --theme-secondary: #00ccff; /* Neon Azul Céu */
+    --theme-accent: #aa00ff; /* Neon Violeta Aurora */
     --theme-text: #ffffff;
     --theme-text-secondary: #aaffff;
     --theme-card-bg: rgba(0, 20, 40, 0.95);
@@ -60,43 +60,94 @@
 }
 
 /* Tema Inverno Mágico - CÉU INVERNAL COM NEVE */
+/* Tema Inverno Mágico - CÉU INVERNAL COM NEVE (VERSÃO AJUSTADA) */
 .theme-winter {
     --theme-bg: #1a2332;
-    --theme-primary: #e3f2fd;
-    --theme-secondary: #81d4fa;
-    --theme-accent: #b3e5fc;
+    --theme-primary: #0a3d62;      /* Azul gelo escuro para o símbolo */
+    --theme-secondary: #4a90e2;    /* Azul celeste */
+    --theme-accent: #b3e5fc;       /* Azul claro */
     --theme-text: #ffffff;
     --theme-text-secondary: #e1f5fe;
     --theme-card-bg: rgba(30, 40, 60, 0.92);
-    --theme-card-border: rgba(227, 242, 253, 0.3);
-    --theme-glow: 0 0 20px rgba(227, 242, 253, 0.5);
-    --theme-glow-strong: 0 0 30px rgba(227, 242, 253, 0.8);
+    --theme-card-border: rgba(10, 61, 98, 0.5); /* Azul gelo escuro */
+    --theme-glow: 0 0 20px rgba(10, 61, 98, 0.7);
+    --theme-glow-strong: 0 0 30px rgba(74, 144, 226, 0.8);
     
-    /* Gradientes Inverno */
-    --gradient-primary: linear-gradient(135deg, #e3f2fd 0%, #81d4fa 50%, #4fc3f7 100%);
+    /* Gradientes Inverno (ajustados) */
+    --gradient-primary: linear-gradient(135deg, #0a3d62 0%, #1e5799 50%, #4a90e2 100%);
     --gradient-secondary: linear-gradient(135deg, #b3e5fc 0%, #81d4fa 100%);
-    --gradient-neon: linear-gradient(135deg, #e3f2fd, #81d4fa, #b3e5fc);
+    --gradient-neon: linear-gradient(135deg, #0a3d62, #4a90e2, #b3e5fc);
     --gradient-text: linear-gradient(90deg, #e3f2fd, #81d4fa, #ffffff);
 }
 
-/* Tema Cruzeiro - AZUL CELESTE E DOURADO */
-.theme-cruzeiro {
-    --theme-bg: #0a0a1a;
-    --theme-primary: #0a2845;
-    --theme-secondary: #4a90e2;
-    --theme-accent: #ffd700;
-    --theme-text: #ffffff;
-    --theme-text-secondary: #b8c7e0;
-    --theme-card-bg: rgba(10, 40, 69, 0.85);
-    --theme-card-border: rgba(74, 144, 226, 0.5);
-    --theme-glow: 0 0 15px rgba(10, 40, 69, 0.7);
-    --theme-glow-strong: 0 0 25px rgba(74, 144, 226, 0.9);
-    
-    /* Gradientes do Cruzeiro */
-    --gradient-primary: linear-gradient(135deg, #0a2845 0%, #1e3a5f 50%, #4a90e2 100%);
-    --gradient-secondary: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-    --gradient-neon: linear-gradient(135deg, #0a2845, #4a90e2, #ffd700);
-    --gradient-text: linear-gradient(90deg, #0a2845, #4a90e2, #ffffff);
+
+/* Apenas cores - layout igual aos outros temas */
+.theme-winter .header,
+.theme-winter .main-card,
+.theme-winter .music-player,
+.theme-winter .message-card,
+.theme-winter .album-card {
+    border: 1px solid var(--theme-card-border); /* ← 1px IGUAL aos outros */
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1); /* ← IGUAL aos outros */
+    backdrop-filter: blur(10px); /* ← 10px IGUAL aos outros */
+    background: var(--theme-card-bg); /* ← VAR padrão IGUAL aos outros */
+}
+
+/* Brilho gelado nos textos principais */
+.theme-winter .name {
+    text-shadow: 
+        0 0 10px rgba(227, 242, 253, 1),
+        0 0 20px rgba(129, 212, 250, 0.8),
+        0 0 30px rgba(179, 229, 252, 0.6),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+} 
+
+/* Footer do tema Winter - estilo igual aos outros temas */
+.theme-winter .footer {
+    margin-top: 40px;
+    padding: 25px 15px;
+    text-align: center;
+    background: var(--theme-card-bg);
+    border-top: 1px solid var(--theme-card-border);
+    animation: fadeIn 0.8s ease-out 1.2s both;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.theme-winter .footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-neon);
+    box-shadow: 0 0 10px var(--theme-primary);
+}
+
+@keyframes winterSparkle {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* Adicionar textura de gelo sutil */
+.theme-winter .main-card,
+.theme-winter .music-player,
+.theme-winter .message-card {
+    background-image: 
+        linear-gradient(135deg,
+            rgba(30, 40, 60, 0.95) 0%,
+            rgba(40, 55, 75, 0.9) 100%
+        ),
+        repeating-linear-gradient(
+            45deg,
+            transparent 0px,
+            transparent 2px,
+            rgba(227, 242, 253, 0.02) 2px,
+            rgba(227, 242, 253, 0.02) 4px
+        );
 }
 
 /* ===== RESET MOBILE-FIRST ===== */
@@ -175,6 +226,7 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
+
 .theme-selector {
     display: flex;
     flex-direction: column;
@@ -219,25 +271,25 @@ body {
     justify-content: center;
     transition: all 0.3s ease;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    position: relative;
+    position: relative; /* ← IMPORTANTE: permite o pseudo-elemento */
     -webkit-tap-highlight-color: transparent;
 }
 
 .theme-btn::before {
     content: '';
     position: absolute;
-    inset: -3px;
+    inset: -3px; /* ← Cria um espaço ao redor do botão */
     border-radius: 50%;
-    padding: 3px;
-    background: var(--gradient-neon);
-    -webkit-mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0;
+    padding: 3px; /* ← Espessura da borda */
+    background: var(--gradient-neon); /* ← Gradiente do tema */
+mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+mask-composite: exclude;
+    opacity: 0; /* ← Inicialmente invisível */
     transition: opacity 0.3s ease;
 }
+
 
 .theme-btn:active {
     transform: scale(0.9);
@@ -256,7 +308,7 @@ body {
 }
 
 .theme-btn.active::before {
-    opacity: 1;
+    opacity: 1; /* ← Torna a borda visível */
 }
 
 /* Responsivo: Desktop */
@@ -278,7 +330,6 @@ body {
         font-size: 1.1rem;
     }
 }
-
 /* ===== CONTAINER PRINCIPAL ===== */
 .container {
     width: 100%;
@@ -303,6 +354,7 @@ body {
     box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
+/* Efeito de brilho no fundo do header */
 .header::before {
     content: '';
     position: absolute;
@@ -341,6 +393,7 @@ body {
     animation: neonPulse 3s ease-in-out infinite alternate;
 }
 
+/* Efeito neon específico para cada nome */
 .name.kevin {
     background: var(--gradient-text);
     -webkit-background-clip: text;
@@ -357,6 +410,7 @@ body {
     animation-delay: 1s;
 }
 
+/* Coração pulsante com neon */
 .heart-separator i {
     color: var(--theme-accent);
     font-size: 2.2rem;
@@ -406,6 +460,7 @@ body {
     transition: all 0.3s ease;
 }
 
+/* Efeito de brilho nas bordas */
 .main-card::before {
     content: '';
     position: absolute;
@@ -526,6 +581,7 @@ body {
     gap: 8px;
 }
 
+/* Time boxes com neon */
 .time-box {
     width: 70px;
     height: 70px;
@@ -745,6 +801,7 @@ body {
     outline: none;
 }
 
+/* Remove TODOS os estados hover e active problemáticos */
 .control-btn:hover {
     background: rgba(255, 255, 255, 0.15);
 }
@@ -753,22 +810,25 @@ body {
     transform: scale(0.9);
 }
 
+/* Estado ativado (repeat/shuffle ligados) - SEM animações extras */
 .control-btn.active {
     color: var(--theme-primary);
     background: rgba(255, 255, 255, 0.15);
     box-shadow: 0 0 15px var(--theme-primary);
 }
 
+/* ===== BOTÃO PLAY/PAUSE - MANTÉM O GRADIENTE SEMPRE ===== */
 .play-pause-btn {
     width: 55px;
     height: 55px;
-    background: var(--gradient-primary) !important;
+    background: var(--gradient-primary) !important; /* IMPORTANTE: força o gradiente */
     font-size: 1.2rem;
     box-shadow: 
         0 0 20px var(--theme-primary),
-        0 0 30px var(--theme-primary) !important;
+        0 0 30px var(--theme-primary) !important; /* IMPORTANTE: força o brilho */
 }
 
+/* Hover do play/pause - mantém gradiente */
 .play-pause-btn:hover {
     background: var(--gradient-primary) !important;
     transform: scale(1.05);
@@ -777,6 +837,7 @@ body {
         0 0 35px var(--theme-primary) !important;
 }
 
+/* Active do play/pause - mantém gradiente */
 .play-pause-btn:active {
     background: var(--gradient-primary) !important;
     transform: scale(0.95);
@@ -785,6 +846,7 @@ body {
         0 0 30px var(--theme-primary) !important;
 }
 
+/* Focus do play/pause - mantém gradiente (importante para mobile) */
 .play-pause-btn:focus {
     background: var(--gradient-primary) !important;
     box-shadow: 
@@ -793,6 +855,7 @@ body {
     outline: none;
 }
 
+/* Garantir que o ícone dentro do botão também mantenha a cor branca */
 .play-pause-btn i {
     color: white !important;
 }
@@ -1022,10 +1085,10 @@ body {
     max-height: 100%;
     object-fit: contain;
     border-radius: 10px;
-    transition: transform none;
-    transform-origin: center;
-    user-select: none;
-    -webkit-user-drag: none;
+    transition: transform none; /* ← ADICIONAR */
+    transform-origin: center; /* ← ADICIONAR */
+    user-select: none; /* ← ADICIONAR */
+    -webkit-user-drag: none; /* ← ADICIONAR */
 }
 
 .album-viewer img.zoom-transition {
@@ -1297,6 +1360,18 @@ body {
     }
 }
 
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ===== ANIMAÇÕES NEON ===== */
 @keyframes neonPulse {
     0%, 100% {
         text-shadow: 
@@ -1325,159 +1400,18 @@ body {
     }
 }
 
-/* ===== ANIMAÇÃO DO CRUZEIRO ===== */
-.cruzeiro-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -2;
-    opacity: 0.15;
-    pointer-events: none;
-    overflow: hidden;
+/* ===== FEEDBACK DE CLIQUE PARA REPEAT ===== */
+
+.theme-meteors #repeatBtn.active {
+    background: rgba(138, 43, 226, 0.2);
 }
 
-.cruzeiro-logo {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 600px;
-    height: 600px;
-    animation: 
-        cruzeiroFloat 20s ease-in-out infinite alternate,
-        cruzeiroGlow 10s ease-in-out infinite;
-    filter: drop-shadow(0 0 20px rgba(10, 40, 69, 0.5));
-    opacity: 0.25;
+.theme-hearts #repeatBtn.active {
+    background: rgba(255, 0, 85, 0.2);
 }
 
-.cruzeiro-effects {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at center, 
-        transparent 0%,
-        transparent 40%,
-        rgba(10, 40, 69, 0.05) 70%,
-        rgba(10, 40, 69, 0.1) 100%);
-    animation: cruzeiroPulse 15s ease-in-out infinite;
-}
-
-.cruzeiro-logo polygon {
-    animation: starTwinkle 3s ease-in-out infinite;
-    animation-delay: calc(var(--i, 0) * 0.3s);
-}
-
-.cruzeiro-logo circle:nth-of-type(1) {
-    animation: circleRotate 30s linear infinite;
-}
-
-.cruzeiro-logo path {
-    animation: crossPulse 5s ease-in-out infinite;
-}
-
-/* Efeitos de brilho intenso */
-@keyframes cruzeiroGlow {
-    0%, 100% {
-        filter: drop-shadow(0 0 20px rgba(10, 40, 69, 0.5));
-    }
-    50% {
-        filter: drop-shadow(0 0 40px rgba(74, 144, 226, 0.8)) 
-                drop-shadow(0 0 60px rgba(255, 215, 0, 0.4));
-    }
-}
-
-@keyframes cruzeiroFloat {
-    0%, 100% {
-        transform: translate(-50%, -50%) rotate(0deg) scale(1);
-    }
-    25% {
-        transform: translate(-48%, -52%) rotate(2deg) scale(1.02);
-    }
-    50% {
-        transform: translate(-52%, -48%) rotate(-2deg) scale(0.98);
-    }
-    75% {
-        transform: translate(-48%, -48%) rotate(1deg) scale(1.01);
-    }
-}
-
-@keyframes cruzeiroPulse {
-    0%, 100% {
-        opacity: 0.3;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.6;
-        transform: scale(1.1);
-    }
-}
-
-@keyframes starTwinkle {
-    0%, 100% {
-        opacity: 0.7;
-        fill: #0a2845;
-    }
-    50% {
-        opacity: 1;
-        fill: #4a90e2;
-        filter: drop-shadow(0 0 10px rgba(74, 144, 226, 0.8));
-    }
-}
-
-@keyframes circleRotate {
-    0% {
-        transform: rotate(0deg);
-        stroke: #ffffff;
-    }
-    50% {
-        stroke: #4a90e2;
-    }
-    100% {
-        transform: rotate(360deg);
-        stroke: #ffffff;
-    }
-}
-
-@keyframes crossPulse {
-    0%, 100% {
-        stroke-width: 3;
-        stroke: #ffffff;
-    }
-    50% {
-        stroke-width: 4;
-        stroke: #ffd700;
-        filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
-    }
-}
-
-/* Ajustar opacidade para melhor legibilidade */
-.container {
-    position: relative;
-    z-index: 2;
-    background: rgba(10, 10, 26, 0.7);
-    backdrop-filter: blur(5px);
-    border-radius: 20px;
-    margin: 20px auto;
-    max-width: 95%;
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-    .cruzeiro-logo {
-        width: 400px;
-        height: 400px;
-    }
-}
-
-@media (max-width: 480px) {
-    .cruzeiro-logo {
-        width: 300px;
-        height: 300px;
-    }
+.theme-aurora #repeatBtn.active {
+    background: rgba(0, 255, 170, 0.2);
 }
 
 /* ===== RESPONSIVIDADE DESKTOP ===== */
@@ -1559,6 +1493,8 @@ body {
         border-radius: 20px 20px 0 0;
         margin-top: auto;
     }
+
+    
 
     .album-viewer {
         max-height: 55vh;
