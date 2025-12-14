@@ -21,12 +21,12 @@ const settings = {
     },
     hearts: {
         name: 'Chuva de Corações',
-        hearts: 25,
-        sparkles: 40,
+        hearts: 25, // Número de corações na tela
+        sparkles: 40, // Número de brilhos na tela
         heartColors: [
-            '#ff0055', '#ff3366', '#e91e63',
-            '#ff6b8b', '#ff9a9e', '#ffccd5',
-            '#ff7676', '#ff5252', '#ff4040'
+            '#ff0055', '#ff3366', '#e91e63', // Rosa/vermelho vibrante
+            '#ff6b8b', '#ff9a9e', '#ffccd5', // Rosa suave
+            '#ff7676', '#ff5252', '#ff4040'  // Vermelho puro
         ],
         sparkleColors: ['#ffffff', '#ffe6e6', '#ffccd5', '#ffebee'],
         backgroundColor: '#1a001a',
@@ -49,8 +49,9 @@ const settings = {
         backgroundColor: '#001122',
         waveSpeed: 0.0008,
         particleSpeed: 0.6
-    },
-    winter: {
+    }
+    ,
+winter: {
         name: 'Inverno Mágico',
         snowflakes: 80,
         smallSnow: 120,
@@ -76,21 +77,15 @@ const settings = {
         glowIntensity: 0.4,
         fogOpacity: 0.15
     },
-    cruzeiro: {
-        name: 'Cruzeiro Celeste',
-        stars: 100,
-        particleColors: ['#0a2845', '#4a90e2', '#ffffff', '#ffd700'],
-        backgroundColor: '#0a0a1a',
-        starSpeed: 0.5,
-        particleCount: 40
-    }
 };
+
+
 
 // ===== INICIALIZAÇÃO COM PERSISTÊNCIA DE TEMA =====
 function initAnimations(forcedTheme) {
     console.log('🎨 Iniciando animações premium...');
     
-    // Carregar tema salvo do localStorage
+    // NOVO: Carregar tema salvo do localStorage
     if (!forcedTheme) {
         try {
             const savedTheme = localStorage.getItem('kevinIaraTheme');
@@ -104,12 +99,6 @@ function initAnimations(forcedTheme) {
     } else {
         currentAnimation = forcedTheme;
         console.log(`🎯 Animação forçada para: ${settings[forcedTheme].name}`);
-    }
-    
-    // REMOVER O CRUZEIRO-BACKGROUND ANTIGO se existir
-    const oldCruzeiroBg = document.querySelector('.cruzeiro-background');
-    if (oldCruzeiroBg) {
-        oldCruzeiroBg.remove();
     }
     
     if (!document.getElementById('backgroundCanvas')) {
@@ -163,6 +152,7 @@ function handleResize() {
     
     // Não recriar elementos, apenas ajustar posições se necessário
     if (currentAnimation === 'hearts') {
+        // Para corações que saíram da tela devido ao resize
         particles.forEach(particle => {
             if (particle.type === 'heart') {
                 if (particle.x > canvas.width + 100 || particle.x < -100) {
@@ -174,6 +164,7 @@ function handleResize() {
             }
         });
         
+        // Ajustar sparkles
         stars.forEach(star => {
             if (star.type === 'sparkle') {
                 if (star.x > canvas.width + 100 || star.x < -100) {
@@ -198,7 +189,7 @@ function resizeCanvas() {
 function createElements() {
     particles = [];
     stars = [];
-    snowAccumulation = [];
+    snowAccumulation = []; // ← ADICIONAR
     
     if (currentAnimation === 'meteors') {
         createStars();
@@ -209,14 +200,14 @@ function createElements() {
     } else if (currentAnimation === 'aurora') {
         createAurora();
         createAuroraStars();
-    } else if (currentAnimation === 'winter') {
+} else if (currentAnimation === 'winter') {
         createWinterScene();
-    } else if (currentAnimation === 'cruzeiro') {
-        createCruzeiroParticles();
-    }
+} 
 }
 
-// ===== TEMA: CHUVA DE METEOROS =====
+
+
+// ===== TEMA: CHUVA DE METEOROS (MANTIDO) =====
 function createStars() {
     const config = settings.meteors;
     
@@ -356,10 +347,10 @@ function createSingleHeart() {
     particles.push({
         type: 'heart',
         x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size: Math.random() * 20 + 15,
+        y: Math.random() * canvas.height, // Começar em posições aleatórias na tela
+        size: Math.random() * 20 + 15, // Tamanho reduzido para melhor performance
         speedY: Math.random() * config.heartSpeed + 0.6,
-        speedX: (Math.random() - 0.5) * 0.8,
+        speedX: (Math.random() - 0.5) * 0.8, // Velocidade horizontal reduzida
         rotation: Math.random() * Math.PI * 2,
         rotationSpeed: (Math.random() - 0.5) * config.rotationSpeed,
         color: config.heartColors[Math.floor(Math.random() * config.heartColors.length)],
@@ -373,7 +364,7 @@ function createSingleHeart() {
         wobbleOffset: Math.random() * Math.PI * 2,
         scale: Math.random() * 0.1 + 0.9,
         glow: Math.random() * 0.15 + 0.05,
-        age: 0
+        age: 0 // Para controlar tempo de vida
     });
 }
 
@@ -414,38 +405,48 @@ function drawHearts() {
         
         particle.age += 0.01;
         
-        particle.speedY += 0.002;
+        // Movimento com leve aceleração
+        particle.speedY += 0.002; // Gravidade muito suave
         particle.y += particle.speedY;
         
+        // Oscilação horizontal natural
         const swing = Math.sin(time * particle.swingSpeed + particle.swing) * config.floatAmplitude;
         particle.x += swing * 0.2 + particle.speedX;
         
+        // Resistência do ar no movimento horizontal
         particle.speedX *= 0.998;
         
+        // Efeito de pulsação
         const pulse = Math.sin(time * particle.pulseSpeed + particle.pulseOffset) * 0.08 + 0.92;
         const currentSize = particle.size * pulse * particle.scale;
         const currentOpacity = particle.opacity * pulse;
         
+        // Efeito de balanço natural
         particle.rotation += particle.rotationSpeed;
         particle.rotation += Math.sin(time * particle.wobble + particle.wobbleOffset) * 0.015;
         
+        // Verificar se saiu da tela
         const isOffScreen = particle.y > canvas.height + 100 || 
                            particle.y < -100 || 
                            particle.x < -100 || 
                            particle.x > canvas.width + 100;
         
+        // Reciclar corações que saíram da tela ou são muito antigos
         if (isOffScreen || particle.age > 50) {
             recycleHeart(particle);
             return;
         }
         
+        // Desenhar coração
         ctx.save();
         ctx.translate(particle.x, particle.y);
         ctx.rotate(particle.rotation);
         ctx.globalAlpha = currentOpacity;
         
+        // Efeito de profundidade baseado na posição Y
         const depthFactor = 1 - Math.min(particle.y / canvas.height, 0.5) * 0.4;
         
+        // Escolher estilo de desenho
         switch(particle.style) {
             case 'solid':
                 drawSolidHeart(currentSize * depthFactor, particle.color, particle.glow * depthFactor);
@@ -463,14 +464,17 @@ function drawHearts() {
 }
 
 function recycleHeart(heart) {
+    // Resetar para posição acima da tela
     heart.y = -30;
     heart.x = Math.random() * canvas.width;
     
+    // Resetar propriedades de movimento
     heart.speedY = Math.random() * settings.hearts.heartSpeed + 0.6;
     heart.speedX = (Math.random() - 0.5) * 0.8;
     heart.rotation = Math.random() * Math.PI * 2;
     heart.age = 0;
     
+    // 15% de chance de mudar de estilo
     if (Math.random() < 0.15) {
         heart.style = settings.hearts.heartStyles[
             Math.floor(Math.random() * settings.hearts.heartStyles.length)
@@ -500,6 +504,7 @@ function drawSparkles() {
             star.trail.shift();
         }
         
+        // Verificar se saiu da tela ou é muito antigo
         const isOffScreen = star.y > canvas.height + 50 || 
                            star.y < -50 || 
                            star.x < -50 || 
@@ -510,6 +515,7 @@ function drawSparkles() {
             return;
         }
         
+        // Desenhar trilha suave
         if (star.trail.length > 1) {
             ctx.beginPath();
             ctx.moveTo(star.trail[0].x, star.trail[0].y);
@@ -524,6 +530,7 @@ function drawSparkles() {
             ctx.stroke();
         }
         
+        // Desenhar sparkle
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         
@@ -538,6 +545,7 @@ function drawSparkles() {
         ctx.fillStyle = gradient;
         ctx.fill();
         
+        // Raios para sparkles maiores
         if (star.size > 1.3) {
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
@@ -557,17 +565,20 @@ function drawSparkles() {
 }
 
 function recycleSparkle(sparkle) {
+    // Resetar para posição acima ou na tela
     sparkle.y = Math.random() * canvas.height;
     sparkle.x = Math.random() * canvas.width;
     sparkle.trail = [];
     sparkle.age = 0;
     
+    // Resetar propriedades
     sparkle.speedY = Math.random() * 0.5 + 0.2;
     sparkle.speedX = (Math.random() - 0.5) * 0.3;
     sparkle.size = Math.random() * 2 + 0.8;
     sparkle.brightness = Math.random() * 0.8 + 0.3;
 }
 
+// Funções auxiliares para desenhar corações (MANTIDAS)
 function drawSolidHeart(size, color, glow) {
     ctx.beginPath();
     drawHeartShape(size);
@@ -666,130 +677,7 @@ function darkenColor(color, percent) {
     ).toString(16).slice(1);
 }
 
-// ===== TEMA: CRUZEIRO CELESTE =====
-function createCruzeiroParticles() {
-    const config = settings.cruzeiro;
-    
-    // Criar estrelas azuis
-    for (let i = 0; i < config.stars; i++) {
-        stars.push({
-            type: 'cruzeiroStar',
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: Math.random() * 2 + 0.5,
-            speedY: Math.random() * config.starSpeed + 0.3,
-            speedX: (Math.random() - 0.5) * 0.3,
-            color: config.particleColors[Math.floor(Math.random() * config.particleColors.length)],
-            brightness: Math.random() * 0.7 + 0.4,
-            twinkleSpeed: Math.random() * 0.004 + 0.001,
-            twinkleOffset: Math.random() * Math.PI * 2
-        });
-    }
-    
-    // Criar partículas douradas (representando os títulos)
-    for (let i = 0; i < config.particleCount; i++) {
-        particles.push({
-            type: 'cruzeiroParticle',
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: Math.random() * 2 + 1,
-            speedY: Math.random() * 0.4 + 0.1,
-            speedX: (Math.random() - 0.5) * 0.2,
-            color: '#ffd700',
-            opacity: Math.random() * 0.5 + 0.3,
-            trail: [],
-            maxTrail: 8,
-            age: 0
-        });
-    }
-}
-
-function drawCruzeiroParticles() {
-    const time = Date.now();
-    
-    // Desenhar estrelas
-    stars.forEach(star => {
-        if (star.type !== 'cruzeiroStar') return;
-        
-        star.y += star.speedY;
-        star.x += star.speedX;
-        
-        const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
-        const brightness = star.brightness * twinkle;
-        
-        if (star.y > canvas.height + 20) {
-            star.y = -20;
-            star.x = Math.random() * canvas.width;
-        }
-        if (star.x < -20) star.x = canvas.width + 20;
-        if (star.x > canvas.width + 20) star.x = -20;
-        
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        
-        const gradient = ctx.createRadialGradient(
-            star.x, star.y, 0,
-            star.x, star.y, star.size * 3
-        );
-        gradient.addColorStop(0, `rgba(255, 255, 255, ${brightness})`);
-        gradient.addColorStop(0.5, `${star.color}${Math.floor(brightness * 150).toString(16).padStart(2, '0')}`);
-        gradient.addColorStop(1, `${star.color}00`);
-        
-        ctx.fillStyle = gradient;
-        ctx.fill();
-    });
-    
-    // Desenhar partículas douradas
-    particles.forEach(particle => {
-        if (particle.type !== 'cruzeiroParticle') return;
-        
-        particle.age += 0.01;
-        particle.y += particle.speedY;
-        particle.x += particle.speedX;
-        
-        particle.trail.push({ x: particle.x, y: particle.y });
-        if (particle.trail.length > particle.maxTrail) {
-            particle.trail.shift();
-        }
-        
-        if (particle.age > 30 || particle.y > canvas.height + 50) {
-            particle.y = -10;
-            particle.x = Math.random() * canvas.width;
-            particle.trail = [];
-            particle.age = 0;
-        }
-        
-        if (particle.trail.length > 1) {
-            ctx.beginPath();
-            ctx.moveTo(particle.trail[0].x, particle.trail[0].y);
-            
-            for (let i = 1; i < particle.trail.length; i++) {
-                ctx.lineTo(particle.trail[i].x, particle.trail[i].y);
-            }
-            
-            ctx.strokeStyle = `${particle.color}30`;
-            ctx.lineWidth = 1;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-        }
-        
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        
-        const gradient = ctx.createRadialGradient(
-            particle.x, particle.y, 0,
-            particle.x, particle.y, particle.size * 2
-        );
-        gradient.addColorStop(0, `rgba(255, 255, 255, ${particle.opacity})`);
-        gradient.addColorStop(0.7, `${particle.color}${Math.floor(particle.opacity * 180).toString(16).padStart(2, '0')}`);
-        gradient.addColorStop(1, `${particle.color}00`);
-        
-        ctx.fillStyle = gradient;
-        ctx.fill();
-    });
-}
-
-// ===== TEMA: AURORA BOREAL =====
+// ===== TEMA: AURORA BOREAL (MANTIDO) =====
 function createAurora() {
     const config = settings.aurora;
     
@@ -1013,7 +901,7 @@ function createMainSnowflake() {
         type: 'mainSnow',
         snowType: types[Math.floor(Math.random() * types.length)],
         x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        y: Math.random() * canvas.height, // ← MUDANÇA: Começar em posições aleatórias na tela inteira
         size: Math.random() * 8 + 6,
         speedY: Math.random() * config.snowSpeed + 0.4,
         speedX: (Math.random() - 0.5) * config.windStrength,
@@ -1381,6 +1269,14 @@ function drawCrystalSnowflake(size, color, glow) {
         
         ctx.restore();
     }
+    
+    for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * (0.15 + i * 0.15), 0, Math.PI * 2);
+        ctx.strokeStyle = '#ffffff44';
+        ctx.lineWidth = size * 0.03;
+        ctx.stroke();
+    }
 }
 
 function drawWinterSparkles() {
@@ -1733,14 +1629,12 @@ function animate() {
     
     // Desenhar fundo
     if (currentAnimation === 'winter') {
+        // Gradiente de céu invernal
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
         settings.winter.skyGradient.forEach((color, index) => {
             gradient.addColorStop(index / (settings.winter.skyGradient.length - 1), color);
         });
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else if (currentAnimation === 'cruzeiro') {
-        ctx.fillStyle = '#0a0a1a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
         const bgColor = settings[currentAnimation].backgroundColor;
@@ -1759,8 +1653,6 @@ function animate() {
         drawAurora();
     } else if (currentAnimation === 'winter') {
         drawWinterScene();
-    } else if (currentAnimation === 'cruzeiro') {
-        drawCruzeiroParticles();
     }
     
     animationId = requestAnimationFrame(animate);
@@ -1771,12 +1663,15 @@ function startAnimation() {
         cancelAnimationFrame(animationId);
     }
     
+    // Limpar arrays
     particles = [];
     stars = [];
     snowAccumulation = [];
     
+    // Criar elementos baseado no tema atual
     createElements();
     
+    // Iniciar animação
     animate();
 }
 
@@ -1795,63 +1690,18 @@ function changeAnimation(animationName) {
         animationId = null;
     }
     
+    // Limpar arrays
     particles = [];
     stars = [];
     snowAccumulation = [];
     
+    // Recriar elementos
     createElements();
     
+    // Reiniciar animação
     animate();
     
     console.log(`✅ ${settings[animationName].name} ativado`);
-}
-
-// ===== ANIMAÇÃO DO CRUZEIRO =====
-function initCruzeiroAnimation() {
-    const logo = document.querySelector('.cruzeiro-logo');
-    if (!logo) return;
-    
-    // Adicionar delay aleatório para cada estrela
-    const stars = logo.querySelectorAll('polygon');
-    stars.forEach((star, index) => {
-        star.style.setProperty('--i', index);
-    });
-    
-    console.log('✅ Animação do Cruzeiro iniciada');
-}
-
-function updateCruzeiroColors(themeName) {
-    const logo = document.querySelector('.cruzeiro-logo');
-    if (!logo) return;
-    
-    const colors = {
-        meteors: { primary: '#8a2be2', secondary: '#00ffff', accent: '#ffffff' },
-        hearts: { primary: '#ff0055', secondary: '#ff3366', accent: '#ffcc00' },
-        aurora: { primary: '#00ffaa', secondary: '#00ccff', accent: '#ffffff' },
-        winter: { primary: '#e3f2fd', secondary: '#81d4fa', accent: '#ffffff' },
-        cruzeiro: { primary: '#0a2845', secondary: '#4a90e2', accent: '#ffd700' }
-    };
-    
-    const themeColors = colors[themeName] || colors.meteors;
-    
-    const stars = logo.querySelectorAll('polygon');
-    const circles = logo.querySelectorAll('circle');
-    const paths = logo.querySelectorAll('path');
-    
-    stars.forEach(star => {
-        star.style.fill = themeColors.primary;
-        star.style.stroke = themeColors.accent;
-    });
-    
-    circles.forEach(circle => {
-        if (circle.getAttribute('r') === '65') {
-            circle.style.stroke = themeColors.secondary;
-        }
-    });
-    
-    paths.forEach(path => {
-        path.style.stroke = themeColors.accent;
-    });
 }
 
 // ===== EXPORT PARA USO =====
@@ -1862,6 +1712,7 @@ window.Animations = {
 
 window.initAnimations = initAnimations;
 
+
 console.log('💖 animations.js com CORAÇÕES CONTÍNUOS carregado!');
 console.log('❤️ Corações agora fluem continuamente com reciclagem automática');
-console.log('✨ Animações premium carregadas!');
+console.log('✨ Animações premium carregadas!')
