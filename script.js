@@ -12,7 +12,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initMessages();
     initModal();
     updateCurrentDate();
-    
+    initTimelineModal();
+
     console.log('💖 Site Kevin & Iara carregado com sucesso!');
     
     // Inicializar animações COM O TEMA CORRETO depois de um delay
@@ -1079,3 +1080,109 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
 });
+
+// ===== ADICIONAR NO FINAL DO ARQUIVO script.js =====
+
+// ===== CONTROLE DA TIMELINE MODAL =====
+function initTimelineModal() {
+    const openBtn = document.getElementById('openTimelineBtn');
+    const closeBtn = document.getElementById('closeTimelineBtn');
+    const modal = document.getElementById('timelineModal');
+    const secretModal = document.getElementById('secretModal');
+    const closeSecretBtn = document.getElementById('closeSecretBtn');
+    const secretMessageBtns = document.querySelectorAll('.secret-message-btn');
+    
+    if (!openBtn || !modal) {
+        console.warn('⚠️ Elementos da timeline não encontrados');
+        return;
+    }
+    
+    // Abrir modal da timeline
+    openBtn.addEventListener('click', () => {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        console.log('📖 Timeline aberta');
+    });
+    
+    // Fechar modal da timeline
+    closeBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        console.log('📖 Timeline fechada');
+    });
+    
+    // Fechar ao clicar fora
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeBtn.click();
+        }
+    });
+    
+    // Fechar com ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (secretModal.style.display === 'flex') {
+                closeSecretBtn.click();
+            } else if (modal.style.display === 'block') {
+                closeBtn.click();
+            }
+        }
+    });
+    
+    // ===== BOTÕES DE MENSAGEM SECRETA =====
+    secretMessageBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const message = btn.getAttribute('data-message');
+            
+            if (message) {
+                showSecretMessage(message);
+            }
+        });
+    });
+    
+    // Fechar modal secreto
+    closeSecretBtn.addEventListener('click', () => {
+        secretModal.style.display = 'none';
+    });
+    
+    secretModal.addEventListener('click', (e) => {
+        if (e.target === secretModal) {
+            closeSecretBtn.click();
+        }
+    });
+    
+    updateTimelineProgress();
+
+    console.log('✅ Timeline modal inicializada');
+    console.log(`🔒 ${secretMessageBtns.length} mensagens secretas encontradas`);
+}
+
+function showSecretMessage(message) {
+    const secretModal = document.getElementById('secretModal');
+    const secretMessageText = document.getElementById('secretMessageText');
+    
+    if (secretModal && secretMessageText) {
+        secretMessageText.textContent = message;
+        secretModal.style.display = 'flex';
+        
+        console.log('🔓 Mensagem secreta revelada');
+    }
+}
+
+// ===== BARRA DE PROGRESSO NA TIMELINE =====
+function updateTimelineProgress() {
+    const timelineScroll = document.querySelector('.timeline-scroll');
+    const timelineContainer = document.querySelector('.timeline-container');
+    
+    if (!timelineScroll || !timelineContainer) return;
+    
+    timelineScroll.addEventListener('scroll', () => {
+        const scrollTop = timelineScroll.scrollTop;
+        const scrollHeight = timelineScroll.scrollHeight - timelineScroll.clientHeight;
+        const scrollPercent = (scrollTop / scrollHeight) * 100;
+        
+        // Atualizar a altura da barra de progresso
+        timelineContainer.style.setProperty('--progress-height', `${scrollPercent}%`);
+    });
+}
