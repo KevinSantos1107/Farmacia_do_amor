@@ -81,51 +81,52 @@ winter: {
 
 
 
-// ===== INICIALIZAÇÃO COM PERSISTÊNCIA DE TEMA =====
-function initAnimations(forcedTheme) {
-    console.log('🎨 Iniciando animações premium...');
+// ===== INICIALIZAÇÃO =====
+function initAnimations(themeName = 'meteors') {
+    console.log('🎨 Iniciando animações...');
     
-    // NOVO: Carregar tema salvo do localStorage
-    if (!forcedTheme) {
-        try {
-            const savedTheme = localStorage.getItem('kevinIaraTheme');
-            if (savedTheme && settings[savedTheme]) {
-                currentAnimation = savedTheme;
-                console.log(`💾 Animação do tema salvo carregada: ${settings[savedTheme].name}`);
-            }
-        } catch (error) {
-            console.warn('⚠️ Erro ao carregar tema da animação:', error);
-        }
-    } else {
-        currentAnimation = forcedTheme;
-        console.log(`🎯 Animação forçada para: ${settings[forcedTheme].name}`);
-    }
-    
+    // 1. Garantir que o canvas existe
     if (!document.getElementById('backgroundCanvas')) {
         createCanvas();
     }
     
     canvas = document.getElementById('backgroundCanvas');
-    
     if (!canvas) {
         console.error('❌ Canvas não encontrado');
         return;
     }
     
     ctx = canvas.getContext('2d');
-    
     if (!ctx) {
         console.error('❌ Contexto 2D não disponível');
         return;
     }
     
+    // 2. Configurar canvas
     setupCanvas();
+    
+    // 3. Usar tema fornecido ou detectar
+    if (themeName && settings[themeName]) {
+        currentAnimation = themeName;
+        console.log(`🎯 Usando tema: ${settings[themeName].name}`);
+    } else {
+        // Tentar detectar do body
+        const bodyTheme = document.body.className.match(/theme-(\w+)/);
+        if (bodyTheme && bodyTheme[1] && settings[bodyTheme[1]]) {
+            currentAnimation = bodyTheme[1];
+            console.log(`🎨 Tema detectado do body: ${settings[currentAnimation].name}`);
+        } else {
+            currentAnimation = 'meteors';
+            console.log('📌 Usando tema padrão: Meteoros');
+        }
+    }
+    
+    // 4. Criar elementos e iniciar
     createElements();
     startAnimation();
     
-    console.log(`✅ ${settings[currentAnimation].name} iniciado com sucesso!`);
+    console.log(`✅ ${settings[currentAnimation].name} iniciado!`);
 }
-
 function createCanvas() {
     canvas = document.createElement('canvas');
     canvas.id = 'backgroundCanvas';
@@ -341,16 +342,23 @@ function createBeautifulHearts() {
 
 function createSingleHeart() {
     const config = settings.hearts;
+    
+    // VERIFICAÇÃO DE SEGURANÇA - CANVAS DEVE EXISTIR
+    if (!canvas || !ctx) {
+        console.error('❌ Canvas não está pronto para criar corações');
+        return;
+    }
+    
     const style = config.heartStyles[Math.floor(Math.random() * config.heartStyles.length)];
     const isOutline = style === 'outline';
     
     particles.push({
         type: 'heart',
         x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height, // Começar em posições aleatórias na tela
-        size: Math.random() * 20 + 15, // Tamanho reduzido para melhor performance
+        y: Math.random() * canvas.height,
+        size: Math.random() * 20 + 15,
         speedY: Math.random() * config.heartSpeed + 0.6,
-        speedX: (Math.random() - 0.5) * 0.8, // Velocidade horizontal reduzida
+        speedX: (Math.random() - 0.5) * 0.8,
         rotation: Math.random() * Math.PI * 2,
         rotationSpeed: (Math.random() - 0.5) * config.rotationSpeed,
         color: config.heartColors[Math.floor(Math.random() * config.heartColors.length)],
@@ -364,7 +372,7 @@ function createSingleHeart() {
         wobbleOffset: Math.random() * Math.PI * 2,
         scale: Math.random() * 0.1 + 0.9,
         glow: Math.random() * 0.15 + 0.05,
-        age: 0 // Para controlar tempo de vida
+        age: 0
     });
 }
 
