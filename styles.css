@@ -1790,17 +1790,17 @@ body {
     position: absolute;
     left: 50%;
     top: 0;
-    bottom: 0; /* ← Mudado de 80px para 0 */
+    bottom: 0;
     width: 2px;
     background: rgba(255, 255, 255, 0.1);
     transform: translateX(-50%);
-    z-index: 0;
+    z-index: -1; /* ✨ CONFIRMAR: Fica atrás de tudo */
     
-    /* ✨ ADICIONAR: Máscara para esconder a parte que passa do infinito */
+    /* Máscara para esconder a parte que passa do infinito */
     -webkit-mask: linear-gradient(to bottom, 
         white 0%, 
-        white calc(100% - 150px), /* Começa a desaparecer 150px antes do fim */
-        transparent calc(100% - 80px) /* Desaparece completamente 80px antes do fim */
+        white calc(100% - 150px),
+        transparent calc(100% - 80px)
     );
     mask: linear-gradient(to bottom, 
         white 0%, 
@@ -1817,14 +1817,21 @@ body {
     top: 0;
     width: 2px;
     height: var(--progress-height, 0%);
-    max-height: calc(100% - 150px); /* ✨ ADICIONAR: Limita a altura máxima */
-    background: var(--gradient-neon);
+    max-height: calc(100% - 150px);
+    
+    /* ✨ GRADIENTE INVERTIDO: Começa com a cor final e termina com a inicial */
+    background: linear-gradient(to bottom,
+        var(--theme-accent) 0%,      /* Cor de destaque no topo */
+        var(--theme-secondary) 50%,   /* Cor intermediária */
+        var(--theme-primary) 100%     /* Cor principal embaixo */
+    );
+    
     transform: translateX(-50%);
     box-shadow: 0 0 15px var(--theme-primary);
-    z-index: 1;
+    z-index: -1; /* ✨ MENOR que z-index da foto (5) */
     transition: height 0.1s linear;
     
-    /* ✨ ADICIONAR: Suaviza o fim da barra */
+    /* Suaviza o fim da barra */
     -webkit-mask: linear-gradient(to bottom, 
         white 0%, 
         white calc(100% - 30px),
@@ -1949,9 +1956,10 @@ body {
     75% { transform: rotate(5deg); }
 }
 
-/* ===== FOTO ESTILO POLAROID ===== */
 .timeline-photo {
     width: 100%;
+    position: relative;
+    z-index: 10; /* ✨ AUMENTADO: Garante que fica muito acima da linha */
 }
 
 .photo-polaroid {
@@ -1964,17 +1972,35 @@ body {
     transform: rotate(2deg);
     transition: all 0.3s ease;
     cursor: pointer;
+    position: relative;
+    z-index: 10; /* ✨ AUMENTADO: Garante que fica muito acima da linha */
+}
+
+/* ✨ NOVO: Ambas as fotos com mesma animação */
+.timeline-item.left .photo-polaroid {
+    transform: rotate(2deg);
 }
 
 .timeline-item.right .photo-polaroid {
     transform: rotate(-2deg);
 }
 
-.photo-polaroid:hover {
-    transform: rotate(0deg) scale(1.05);
+/* ✨ CORREÇÃO: Hover NÃO se aplica se a foto estiver com zoom */
+.photo-polaroid:not(.zoomed):hover {
+    transform: rotate(0deg) scale(1.05) !important;
     box-shadow: 
         0 12px 35px rgba(0, 0, 0, 0.6),
         0 0 30px var(--theme-primary);
+}
+
+/* ✨ NOVO: Estado quando a foto está com zoom (clicada) */
+.photo-polaroid.zoomed {
+    transform: rotate(0deg) scale(1.1) !important;
+    box-shadow: 
+        0 15px 40px rgba(0, 0, 0, 0.7),
+        0 0 40px var(--theme-primary),
+        0 0 60px var(--theme-primary) !important;
+    z-index: 100; /* ✨ Fica no topo de tudo quando clicada */
 }
 
 .photo-polaroid img {
@@ -2026,6 +2052,7 @@ body {
     top: 50%;
     transform: translateY(-50%);
     animation: pulse 2s infinite;
+    z-index: 2; /* ✨ Um pouco acima da linha, mas abaixo das fotos */
 }
 
 .timeline-item.left .timeline-line::after {
@@ -2042,7 +2069,7 @@ body {
     padding: 40px 15px;
     margin-top: 30px;
     position: relative;
-    z-index: 10; /* ✨ ADICIONAR: Garante que fica acima da linha */
+    z-index: 20; /* ✨ ADICIONAR: Garante que fica acima da linha */
 }
 .timeline-heart {
     width: 70px;
@@ -2058,7 +2085,8 @@ body {
         0 5px 20px rgba(0, 0, 0, 0.4);
     animation: floatNeon 3s ease-in-out infinite;
     position: relative;
-    
+    z-index: 20;
+
     /* ✨ ADICIONAR: Borda extra para cobrir a linha */
     border: 3px solid var(--theme-bg);
     outline: 2px solid var(--theme-primary);
