@@ -1,26 +1,35 @@
 // ===== CONFIGURAÇÕES INICIAIS =====
 document.addEventListener('DOMContentLoaded', function() {
-    // Carregar tema salvo ANTES de inicializar tudo
-    const savedTheme = loadSavedTheme();
+    console.log('🚀 Iniciando site Kevin & Iara...');
     
-    // Inicializar tudo
-    initThemeMenu();
-    initThemeSelector();
-    initTimeCounter();
-    initMusicPlayer();
-    initAlbums();
-    initMessages();
-    initModal();
-    updateCurrentDate();
+    // 1. PRIMEIRO: Inicializar as animações (canvas, etc)
+    if (typeof initAnimations === 'function') {
+        initAnimations(); // Sem parâmetro - ela vai detectar o tema
+    }
     
-    console.log('💖 Site Kevin & Iara carregado com sucesso!');
-    
-    // Inicializar animações COM O TEMA CORRETO depois de um delay
+    // 2. DEPOIS: Carregar tema salvo
     setTimeout(() => {
-        if (typeof initAnimations === 'function') {
-            initAnimations(savedTheme || 'meteors'); // Passa o tema salvo para as animações
+        const savedTheme = loadSavedTheme();
+        if (savedTheme && themes[savedTheme]) {
+            console.log(`🎯 Aplicando tema salvo: ${themes[savedTheme].name}`);
+            currentTheme = savedTheme;
+            changeTheme(savedTheme, false);
         }
-    }, 500);
+    }, 100);
+    
+    // 3. FINALMENTE: Resto das inicializações
+    setTimeout(() => {
+        initThemeMenu();
+        initThemeSelector();
+        initTimeCounter();
+        initMusicPlayer();
+        initAlbums();
+        initMessages();
+        initModal();
+        updateCurrentDate();
+        
+        console.log('✅ Site inicializado com sucesso!');
+    }, 200);
 });
 
 // ===== CONFIGURAÇÕES DE DATAS =====
@@ -92,10 +101,7 @@ function loadSavedTheme() {
         const savedTheme = localStorage.getItem('kevinIaraTheme');
         
         if (savedTheme && themes[savedTheme]) {
-            currentTheme = savedTheme;
-            changeTheme(savedTheme, false); // false = não salvar novamente
-            
-            // Marcar o botão correto como ativo
+            // ATUALIZAR BOTÕES IMEDIATAMENTE
             setTimeout(() => {
                 const themeButtons = document.querySelectorAll('.theme-btn');
                 themeButtons.forEach(btn => {
@@ -106,14 +112,12 @@ function loadSavedTheme() {
                 });
             }, 100);
             
-            console.log(`✅ Tema "${themes[savedTheme].name}" carregado do navegador`);
-            return savedTheme; // Retorna o tema para usar nas animações
-        } else {
-            console.log('📌 Nenhum tema salvo encontrado, usando tema padrão');
-            return 'meteors';
+            console.log(`✅ Tema "${themes[savedTheme].name}" carregado`);
+            return savedTheme;
         }
+        return 'meteors';
     } catch (error) {
-        console.warn('⚠️ Erro ao carregar tema salvo:', error);
+        console.warn('⚠️ Erro ao carregar tema:', error);
         return 'meteors';
     }
 }
@@ -164,6 +168,15 @@ function changeTheme(themeName, shouldSave = true) {
     if (window.Animations && typeof window.Animations.changeTheme === 'function') {
         window.Animations.changeTheme(themeName);
     }
+    
+    // ATUALIZAR O BOTÃO ATIVO DO TEMA
+    const themeButtons = document.querySelectorAll('.theme-btn');
+    themeButtons.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.theme === themeName) {
+            btn.classList.add('active');
+        }
+    });
     
     console.log(`🎨 Tema alterado para: ${theme.name}`);
 }
@@ -1078,4 +1091,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
+});
+
+// ===== VERIFICADOR DE SINCRONIZAÇÃO =====
+function checkThemeSync() {
+    const bodyTheme = document.body.className.match(/theme-(\w+)/);
+    const canvasAnimation = currentAnimation; // de animations.js
+    
+    if (bodyTheme && bodyTheme[1] !== canvasAnimation) {
+        console.warn('⚠️ Tema dessincronizado! Corrigindo...');
+        console.log(`Body: ${bodyTheme[1]}, Canvas: ${canvasAnimation}`);
+        
+        // Forçar sincronização
+        if (window.Animations && typeof window.Animations.changeTheme === 'function') {
+            window.Animations.changeTheme(bodyTheme[1]);
+        }
+    }
+}
+
+// Executar após a página carregar
+window.addEventListener('load', () => {
+    setTimeout(checkThemeSync, 1000);
 });
