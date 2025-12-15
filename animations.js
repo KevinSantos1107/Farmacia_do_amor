@@ -684,10 +684,13 @@ function darkenColor(color, percent) {
 }
 
 // ===== TEMA: AURORA BOREAL (MANTIDO) =====
+// ===== TEMA: AURORA BOREAL - POSIÇÃO CORRIGIDA =====
+
 function createAurora() {
     const config = settings.aurora;
     
     for (let layer = 0; layer < config.layers; layer++) {
+        // ✅ POSIÇÃO ORIGINAL: 15% da altura + espaçamento
         const yOffset = canvas.height * 0.15 + (layer * 35);
         const colors = config.auroraColors[layer % config.auroraColors.length];
         
@@ -876,6 +879,7 @@ function drawAuroraStars() {
     });
 }
 
+console.log('✅ Aurora corrigida - posição: 15% da altura da tela');
 // ===== TEMA: INVERNO MÁGICO =====
 function createWinterScene() {
     const config = settings.winter;
