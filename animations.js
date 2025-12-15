@@ -147,7 +147,8 @@ function setupCanvas() {
 function handleResize() {
     if (!canvas) return;
     
-    resizeCanvas();
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     
     // Não recriar elementos, apenas ajustar posições se necessário
     if (currentAnimation === 'hearts') {
@@ -180,15 +181,8 @@ function handleResize() {
 function resizeCanvas() {
     if (!canvas) return;
     
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
-    
-    if (ctx) {
-        ctx.scale(dpr, dpr);
-    }
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 
 // ===== CRIAÇÃO DE ELEMENTOS =====
