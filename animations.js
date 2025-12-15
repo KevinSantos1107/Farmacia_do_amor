@@ -147,7 +147,8 @@ function setupCanvas() {
 function handleResize() {
     if (!canvas) return;
     
-    resizeCanvas();
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     
     // Não recriar elementos, apenas ajustar posições se necessário
     if (currentAnimation === 'hearts') {
@@ -180,15 +181,8 @@ function handleResize() {
 function resizeCanvas() {
     if (!canvas) return;
     
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
-    
-    if (ctx) {
-        ctx.scale(dpr, dpr);
-    }
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 
 // ===== CRIAÇÃO DE ELEMENTOS =====
@@ -684,13 +678,10 @@ function darkenColor(color, percent) {
 }
 
 // ===== TEMA: AURORA BOREAL (MANTIDO) =====
-// ===== TEMA: AURORA BOREAL - POSIÇÃO CORRIGIDA =====
-
 function createAurora() {
     const config = settings.aurora;
     
     for (let layer = 0; layer < config.layers; layer++) {
-        // ✅ POSIÇÃO ORIGINAL: 15% da altura + espaçamento
         const yOffset = canvas.height * 0.15 + (layer * 35);
         const colors = config.auroraColors[layer % config.auroraColors.length];
         
@@ -879,7 +870,6 @@ function drawAuroraStars() {
     });
 }
 
-console.log('✅ Aurora corrigida - posição: 15% da altura da tela');
 // ===== TEMA: INVERNO MÁGICO =====
 function createWinterScene() {
     const config = settings.winter;
