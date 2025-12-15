@@ -1790,11 +1790,23 @@ body {
     position: absolute;
     left: 50%;
     top: 0;
-    bottom: 80px;
+    bottom: 0; /* ← Mudado de 80px para 0 */
     width: 2px;
     background: rgba(255, 255, 255, 0.1);
     transform: translateX(-50%);
     z-index: 0;
+    
+    /* ✨ ADICIONAR: Máscara para esconder a parte que passa do infinito */
+    -webkit-mask: linear-gradient(to bottom, 
+        white 0%, 
+        white calc(100% - 150px), /* Começa a desaparecer 150px antes do fim */
+        transparent calc(100% - 80px) /* Desaparece completamente 80px antes do fim */
+    );
+    mask: linear-gradient(to bottom, 
+        white 0%, 
+        white calc(100% - 150px),
+        transparent calc(100% - 80px)
+    );
 }
 
 /* ===== BARRA DE PROGRESSO NA LINHA VERTICAL ===== */
@@ -1805,11 +1817,24 @@ body {
     top: 0;
     width: 2px;
     height: var(--progress-height, 0%);
+    max-height: calc(100% - 150px); /* ✨ ADICIONAR: Limita a altura máxima */
     background: var(--gradient-neon);
     transform: translateX(-50%);
     box-shadow: 0 0 15px var(--theme-primary);
     z-index: 1;
     transition: height 0.1s linear;
+    
+    /* ✨ ADICIONAR: Suaviza o fim da barra */
+    -webkit-mask: linear-gradient(to bottom, 
+        white 0%, 
+        white calc(100% - 30px),
+        transparent 100%
+    );
+    mask: linear-gradient(to bottom, 
+        white 0%, 
+        white calc(100% - 30px),
+        transparent 100%
+    );
 }
 
 /* ===== ITEM DA TIMELINE ===== */
@@ -2016,8 +2041,9 @@ body {
     text-align: center;
     padding: 40px 15px;
     margin-top: 30px;
+    position: relative;
+    z-index: 10; /* ✨ ADICIONAR: Garante que fica acima da linha */
 }
-
 .timeline-heart {
     width: 70px;
     height: 70px;
@@ -2031,6 +2057,11 @@ body {
         0 0 30px var(--theme-primary),
         0 5px 20px rgba(0, 0, 0, 0.4);
     animation: floatNeon 3s ease-in-out infinite;
+    position: relative;
+    
+    /* ✨ ADICIONAR: Borda extra para cobrir a linha */
+    border: 3px solid var(--theme-bg);
+    outline: 2px solid var(--theme-primary);
 }
 
 .timeline-heart i {
@@ -2045,6 +2076,28 @@ body {
     color: var(--theme-text);
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
 }
+
+/* ===== RESPONSIVO ===== */
+@media (min-width: 768px) {
+    .timeline-container::before,
+    .timeline-container::after {
+        -webkit-mask: linear-gradient(to bottom, 
+            white 0%, 
+            white calc(100% - 180px),
+            transparent calc(100% - 100px)
+        );
+        mask: linear-gradient(to bottom, 
+            white 0%, 
+            white calc(100% - 180px),
+            transparent calc(100% - 100px)
+        );
+    }
+    
+    .timeline-container::after {
+        max-height: calc(100% - 180px);
+    }
+}
+
 
 /* ===== MODAL MENSAGEM SECRETA ===== */
 .secret-modal {
