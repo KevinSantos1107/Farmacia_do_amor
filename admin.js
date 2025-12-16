@@ -574,7 +574,7 @@ async function loadExistingEvents() {
 
 // ===== FUNÇÕES DE EXCLUSÃO =====
 window.deleteAlbum = async function(albumId) {
-    if (!confirm('❌ Tem certeza que deseja excluir este álbum?\n\nISO NÃO DELETARÁ as imagens do ImgBB (elas ficarão lá para sempre).')) {
+    if (!confirm('❌ Tem certeza que deseja excluir este álbum?\n\nISSO NÃO DELETARÁ as imagens do ImgBB (elas ficarão lá para sempre).')) {
         return;
     }
     
@@ -640,5 +640,446 @@ document.addEventListener('DOMContentLoaded', async () => {
         await rebuildTimeline();
     }, 1000);
 });
+
+// ===== SISTEMA DE EDIÇÃO DE ÁLBUNS (DELETAR E REORGANIZAR FOTOS) =====
+
+console.log('✏️ Sistema de edição de álbuns carregado');
+
+// ===== ADICIONAR ABA DE EDIÇÃO NO PAINEL ADMIN =====
+function addEditTabToAdmin() {
+    const tabsContainer = document.querySelector('.admin-tabs');
+    const contentArea = tabsContainer.parentElement;
+    
+    // Verificar se já existe
+    if (document.querySelector('[data-tab="edit"]')) return;
+    
+    // Adicionar botão da aba
+    const editTab = document.createElement('button');
+    editTab.className = 'admin-tab';
+    editTab.setAttribute('data-tab', 'edit');
+    editTab.innerHTML = '<i class="fas fa-edit"></i> Editar Álbum';
+    tabsContainer.appendChild(editTab);
+    
+    // Adicionar conteúdo da aba
+    const editContent = document.createElement('div');
+    editContent.className = 'admin-content';
+    editContent.id = 'edit-tab';
+    editContent.innerHTML = `
+        <div class="admin-section">
+            <h3><i class="fas fa-edit"></i> Selecione um Álbum para Editar</h3>
+            <select id="editAlbumSelect" class="admin-select">
+                <option value="">Escolha um álbum...</option>
+            </select>
+            <button id="loadEditAlbumBtn" class="admin-btn" style="margin-top: 10px;">
+                <i class="fas fa-folder-open"></i> Carregar Álbum
+            </button>
+        </div>
+        
+        <div class="admin-section" id="editAlbumSection" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3><i class="fas fa-images"></i> Fotos do Álbum</h3>
+                <div>
+                    <button id="selectAllPhotos" class="admin-btn" style="margin-right: 10px;">
+                        <i class="fas fa-check-double"></i> Selecionar Todas
+                    </button>
+                    <button id="deleteSelectedPhotos" class="admin-btn" style="background: #ff4444;">
+                        <i class="fas fa-trash"></i> Deletar Selecionadas
+                    </button>
+                </div>
+            </div>
+            
+            <div id="editPhotosGrid" class="edit-photos-grid"></div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                <p style="color: var(--theme-text-secondary); margin: 0;">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Dica:</strong> Clique nas fotos para selecioná-las, depois clique em "Deletar Selecionadas". 
+                    As fotos serão removidas apenas do Firebase (não do ImgBB).
+                </p>
+            </div>
+        </div>
+    `;
+    
+    contentArea.appendChild(editContent);
+    
+    // Eventos
+    editTab.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        editTab.classList.add('active');
+        
+        document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
+        editContent.classList.add('active');
+        
+        updateEditAlbumSelect();
+    });
+    
+    document.getElementById('loadEditAlbumBtn').addEventListener('click', loadAlbumForEdit);
+    document.getElementById('selectAllPhotos').addEventListener('click', selectAllPhotos);
+    document.getElementById('deleteSelectedPhotos').addEventListener('click', deleteSelectedPhotos);
+}
+
+// ===== ATUALIZAR SELECT DE ÁLBUNS PARA EDIÇÃO =====
+async function updateEditAlbumSelect() {
+    const select = document.getElementById('editAlbumSelect');
+    
+    try {
+        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
+        
+        select.innerHTML = '<option value="">Escolha um álbum...</option>';
+        
+        snapshot.forEach(doc => {
+            const album = doc.data();
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = `${album.title} (${album.photoCount || 0} fotos)`;
+            select.appendChild(option);
+        });
+        
+        console.log(`✅ ${snapshot.size} álbuns disponíveis para edição`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar álbuns:', error);
+    }
+}
+
+// ===== CARREGAR ÁLBUM PARA EDIÇÃO =====
+async function loadAlbumForEdit() {
+    const select = document.getElementById('editAlbumSelect');
+    const albumId = select.value;
+    
+    if (!albumId) {
+        alert('⚠️ Selecione um álbum primeiro!');
+        return;
+    }
+    
+    try {
+        console.log(`📂 Carregando álbum ${albumId} para edição...`);
+        
+        const btn = document.getElementById('loadEditAlbumBtn');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+        btn.disabled = true;
+        
+        // Buscar dados do álbum
+        const albumDoc = await db.collection('albums').doc(albumId).get();
+        const albumData = albumDoc.data();
+        
+        // Buscar todas as páginas de fotos
+        const photoPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', albumId)
+            .orderBy('pageNumber', 'asc')
+            .get();
+        
+        // Juntar todas as fotos com seus IDs de página
+        const allPhotos = [];
+        photoPagesSnapshot.forEach(pageDoc => {
+            const pageData = pageDoc.data();
+            pageData.photos.forEach((photo, index) => {
+                allPhotos.push({
+                    ...photo,
+                    pageId: pageDoc.id,
+                    pageNumber: pageData.pageNumber,
+                    indexInPage: index
+                });
+            });
+        });
+        
+        // Armazenar dados globalmente
+        window.currentEditAlbum = {
+            id: albumId,
+            data: albumData,
+            photos: allPhotos
+        };
+        
+        // Renderizar fotos
+        renderPhotosForEdit(allPhotos, albumData.title);
+        
+        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
+        btn.disabled = false;
+        
+        document.getElementById('editAlbumSection').style.display = 'block';
+        
+        console.log(`✅ ${allPhotos.length} fotos carregadas para edição`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar álbum:', error);
+        alert('❌ Erro ao carregar álbum: ' + error.message);
+        
+        const btn = document.getElementById('loadEditAlbumBtn');
+        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
+        btn.disabled = false;
+    }
+}
+
+// ===== RENDERIZAR FOTOS PARA EDIÇÃO =====
+function renderPhotosForEdit(photos, albumTitle) {
+    const grid = document.getElementById('editPhotosGrid');
+    
+    grid.innerHTML = '';
+    
+    if (photos.length === 0) {
+        grid.innerHTML = '<p style="color: var(--theme-text-secondary); text-align: center; padding: 2rem;">Este álbum está vazio</p>';
+        return;
+    }
+    
+    photos.forEach((photo, index) => {
+        const photoCard = document.createElement('div');
+        photoCard.className = 'edit-photo-card';
+        photoCard.setAttribute('data-index', index);
+        
+        photoCard.innerHTML = `
+            <div class="edit-photo-checkbox">
+                <input type="checkbox" id="photo-${index}">
+            </div>
+            <img src="${photo.src}" alt="${photo.description || 'Foto'}" loading="lazy">
+            <div class="edit-photo-info">
+                <span class="photo-number">#${index + 1}</span>
+            </div>
+        `;
+        
+        // Click na imagem seleciona/deseleciona
+        photoCard.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') {
+                const checkbox = photoCard.querySelector('input[type="checkbox"]');
+                checkbox.checked = !checkbox.checked;
+                photoCard.classList.toggle('selected', checkbox.checked);
+            }
+        });
+        
+        // Checkbox
+        const checkbox = photoCard.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', (e) => {
+            photoCard.classList.toggle('selected', e.target.checked);
+        });
+        
+        grid.appendChild(photoCard);
+    });
+}
+
+// ===== SELECIONAR TODAS AS FOTOS =====
+function selectAllPhotos() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+        cb.closest('.edit-photo-card').classList.toggle('selected', !allChecked);
+    });
+    
+    const btn = document.getElementById('selectAllPhotos');
+    if (allChecked) {
+        btn.innerHTML = '<i class="fas fa-check-double"></i> Selecionar Todas';
+    } else {
+        btn.innerHTML = '<i class="fas fa-times"></i> Desmarcar Todas';
+    }
+}
+
+// ===== DELETAR FOTOS SELECIONADAS =====
+async function deleteSelectedPhotos() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('⚠️ Selecione pelo menos uma foto para deletar!');
+        return;
+    }
+    
+    const confirmMsg = checkboxes.length === 1 
+        ? '❌ Tem certeza que deseja deletar esta foto?' 
+        : `❌ Tem certeza que deseja deletar ${checkboxes.length} fotos?`;
+    
+    if (!confirm(confirmMsg + '\n\nISTO NÃO DELETARÁ as imagens do ImgBB.')) {
+        return;
+    }
+    
+    try {
+        const btn = document.getElementById('deleteSelectedPhotos');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deletando...';
+        btn.disabled = true;
+        
+        // Coletar índices das fotos selecionadas
+        const selectedIndices = Array.from(checkboxes).map(cb => {
+            return parseInt(cb.closest('.edit-photo-card').getAttribute('data-index'));
+        }).sort((a, b) => b - a); // Ordem decrescente para deletar de trás pra frente
+        
+        console.log(`🗑️ Deletando ${selectedIndices.length} fotos...`);
+        
+        // Filtrar fotos que NÃO serão deletadas
+        const remainingPhotos = window.currentEditAlbum.photos.filter((photo, index) => {
+            return !selectedIndices.includes(index);
+        });
+        
+        console.log(`📊 Fotos restantes: ${remainingPhotos.length}`);
+        
+        // Reorganizar em páginas de 200 fotos
+        const PHOTOS_PER_PAGE = 200;
+        const newPages = [];
+        
+        for (let i = 0; i < remainingPhotos.length; i += PHOTOS_PER_PAGE) {
+            newPages.push(remainingPhotos.slice(i, i + PHOTOS_PER_PAGE));
+        }
+        
+        // Deletar todas as páginas antigas
+        const oldPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', window.currentEditAlbum.id)
+            .get();
+        
+        const deletePromises = [];
+        oldPagesSnapshot.forEach(doc => {
+            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
+        });
+        
+        await Promise.all(deletePromises);
+        console.log(`✅ ${oldPagesSnapshot.size} páginas antigas deletadas`);
+        
+        // Criar novas páginas (se ainda houver fotos)
+        if (newPages.length > 0) {
+            for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
+                await db.collection('album_photos').add({
+                    albumId: window.currentEditAlbum.id,
+                    pageNumber: pageIndex,
+                    photos: newPages[pageIndex].map(p => ({
+                        src: p.src,
+                        description: p.description,
+                        timestamp: p.timestamp
+                    })),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            console.log(`✅ ${newPages.length} novas páginas criadas`);
+        }
+        
+        // Atualizar contador de fotos no álbum
+        await db.collection('albums').doc(window.currentEditAlbum.id).update({
+            photoCount: remainingPhotos.length
+        });
+        
+        alert(`✅ ${selectedIndices.length} foto(s) deletada(s) com sucesso!\n\n⚠️ As imagens continuam no ImgBB.`);
+        
+        // Recarregar álbum
+        await loadAlbumForEdit();
+        
+        // Atualizar galeria principal
+        await loadAlbumsFromFirebase();
+        
+        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
+        btn.disabled = false;
+        
+    } catch (error) {
+        console.error('❌ Erro ao deletar fotos:', error);
+        alert('❌ Erro ao deletar fotos: ' + error.message);
+        
+        const btn = document.getElementById('deleteSelectedPhotos');
+        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
+        btn.disabled = false;
+    }
+}
+
+// ===== CSS PARA O SISTEMA DE EDIÇÃO =====
+function injectEditStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Grid de edição de fotos */
+        .edit-photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 10px;
+        }
+        
+        /* Card de foto editável */
+        .edit-photo-card {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .edit-photo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .edit-photo-card.selected {
+            border-color: #ff4081;
+            box-shadow: 0 0 20px rgba(255,64,129,0.5);
+        }
+        
+        .edit-photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Checkbox de seleção */
+        .edit-photo-checkbox {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+        
+        .edit-photo-checkbox input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: #ff4081;
+        }
+        
+        /* Info da foto */
+        .edit-photo-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
+            font-size: 12px;
+        }
+        
+        .photo-number {
+            background: rgba(255,64,129,0.8);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .edit-photos-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 10px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// ===== INICIALIZAR SISTEMA DE EDIÇÃO =====
+function initEditSystem() {
+    // Aguardar admin modal estar pronto
+    const checkInterval = setInterval(() => {
+        if (document.getElementById('adminModal')) {
+            clearInterval(checkInterval);
+            
+            addEditTabToAdmin();
+            injectEditStyles();
+            
+            console.log('✅ Sistema de edição de álbuns inicializado');
+        }
+    }, 500);
+}
+
+// Inicializar quando o DOM carregar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEditSystem);
+} else {
+    initEditSystem();
+}
+
+console.log('✏️ Módulo de edição de álbuns carregado!');
 
 console.log('✅ admin.js com Firebase + ImgBB VERDADEIRAMENTE ILIMITADO carregado!');
