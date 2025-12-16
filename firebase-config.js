@@ -23,8 +23,14 @@ console.log('🔥 Firebase inicializado (sem Storage)!');
 
 // ===== CONFIGURAÇÃO DO IMGBB =====
 
-// COLE AQUI SUA API KEY DO IMGBB
-const IMGBB_API_KEY = 'ca7a2dbb851032d7d3ed05ce9e8a6d67';
+// VERIFICAR se já foi declarado em outro arquivo
+if (typeof IMGBB_API_KEY === 'undefined') {
+    // COLE AQUI SUA API KEY DO IMGBB (se não tiver imgbb-config.js)
+    var IMGBB_API_KEY = 'ca7a2dbb851032d7d3ed05ce9e8a6d67';
+    console.log('📸 API Key do ImgBB carregada do firebase-config.js');
+} else {
+    console.log('📸 API Key do ImgBB já estava carregada');
+}
 
 // ===== FUNÇÃO PARA CONVERTER E REDIMENSIONAR IMAGEM =====
 function imageToBase64(file, maxWidth = 1200) {
