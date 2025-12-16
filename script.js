@@ -453,7 +453,8 @@ function formatTime(seconds) {
 }
 
 // ===== ÁLBUNS DE FOTOS =====
-const albums = [
+// Tornar albums uma variável global mutável
+window.albums = [
     {
         id: 1,
         title: "Primeiros Encontros",
@@ -481,6 +482,11 @@ const albums = [
         ]
     }
 ];
+
+// Atualizar photoCount automaticamente
+window.albums.forEach(album => {
+    album.photoCount = album.photos.length;
+});
 
 // ===== ATUALIZAR AUTOMATICAMENTE O photoCount =====
 albums.forEach(album => {
@@ -915,7 +921,8 @@ function initAlbums() {
     
     container.innerHTML = '';
     
-    albums.forEach(album => {
+    // Usar window.albums para permitir atualização dinâmica
+    window.albums.forEach(album => {
         const albumCard = document.createElement('div');
         albumCard.className = 'album-card';
         albumCard.dataset.id = album.id;
@@ -944,7 +951,7 @@ function initAlbums() {
 }
 
 function openAlbum(albumId) {
-    currentAlbum = albums.find(a => a.id === albumId);
+    currentAlbum = window.albums.find(a => a.id === albumId);
     if (!currentAlbum) {
         console.warn('⚠️ Álbum não encontrado:', albumId);
         return;
