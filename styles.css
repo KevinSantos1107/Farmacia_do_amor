@@ -2075,7 +2075,7 @@ body {
     width: 70px;
     height: 70px;
     margin: 0 auto 20px;
-    background: var(--gradient-primary);
+    background: var(--gradient-primary);        
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2257,5 +2257,347 @@ body {
 
     .secret-message-btn {
         font-size: 0.85rem;
+    }
+}
+
+/* ===== SISTEMA DE ADMIN ===== */
+
+/* Botão Flutuante de Admin */
+.admin-toggle-btn {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gradient-primary);
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: all 0.3s ease;
+    box-shadow: 
+        0 5px 20px rgba(0, 0, 0, 0.3),
+        0 0 30px var(--theme-primary);
+}
+
+.admin-toggle-btn:hover {
+    transform: scale(1.1) rotate(10deg);
+    box-shadow: 
+        0 8px 30px rgba(0, 0, 0, 0.4),
+        0 0 40px var(--theme-primary);
+}
+
+.admin-toggle-btn.unlocked i {
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-10deg); }
+    75% { transform: rotate(10deg); }
+}
+
+/* Modal de Admin */
+.admin-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 5000;
+    animation: fadeIn 0.3s ease;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.admin-modal-content {
+    max-width: 700px;
+    margin: 20px auto;
+    background: var(--theme-card-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 25px;
+    box-shadow: 
+        0 0 50px var(--theme-primary),
+        inset 0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+.admin-header {
+    padding: 25px;
+    border-bottom: 1px solid var(--theme-card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.admin-header h2 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.5rem;
+    color: var(--theme-text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-header h2 i {
+    color: var(--theme-accent);
+    text-shadow: 0 0 15px var(--theme-accent);
+}
+
+.close-admin-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--theme-card-border);
+    color: var(--theme-text);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.close-admin-btn:hover {
+    background: var(--theme-accent);
+    transform: rotate(90deg);
+    box-shadow: 0 0 20px var(--theme-accent);
+}
+
+/* Tabs */
+.admin-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--theme-card-border);
+}
+
+.admin-tab {
+    flex: 1;
+    padding: 15px 20px;
+    background: transparent;
+    border: none;
+    color: var(--theme-text-secondary);
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.admin-tab:hover {
+    color: var(--theme-text);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.admin-tab.active {
+    color: var(--theme-primary);
+    border-bottom-color: var(--theme-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Conteúdo */
+.admin-content {
+    display: none;
+    padding: 25px;
+}
+
+.admin-content.active {
+    display: block;
+}
+
+.admin-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.admin-section h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.1rem;
+    color: var(--theme-text);
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-section h3 i {
+    color: var(--theme-primary);
+    text-shadow: 0 0 10px var(--theme-primary);
+}
+
+/* Formulários */
+.admin-section form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-section input[type="text"],
+.admin-section textarea,
+.admin-select {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 10px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.admin-section input[type="text"]:focus,
+.admin-section textarea:focus,
+.admin-select:focus {
+    outline: none;
+    border-color: var(--theme-primary);
+    box-shadow: 0 0 15px var(--theme-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.admin-section input[type="file"] {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed var(--theme-card-border);
+    border-radius: 10px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.admin-section input[type="file"]::-webkit-file-upload-button {
+    background: var(--theme-primary);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    margin-right: 10px;
+}
+
+.admin-btn {
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 10px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.admin-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.4),
+        0 0 30px var(--theme-primary);
+}
+
+.admin-btn:active {
+    transform: translateY(0);
+}
+
+/* Lista de Itens Existentes */
+.existing-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+.existing-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 10px;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.existing-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--theme-primary);
+}
+
+.existing-item-info {
+    flex: 1;
+}
+
+.existing-item-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    color: var(--theme-text);
+    margin-bottom: 3px;
+}
+
+.existing-item-meta {
+    font-size: 0.85rem;
+    color: var(--theme-text-secondary);
+}
+
+.delete-item-btn {
+    background: rgba(255, 50, 50, 0.2);
+    border: 1px solid rgba(255, 50, 50, 0.4);
+    color: #ff5050;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.delete-item-btn:hover {
+    background: rgba(255, 50, 50, 0.4);
+    border-color: #ff5050;
+    box-shadow: 0 0 15px rgba(255, 50, 50, 0.6);
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .admin-modal-content {
+        margin: 10px;
+    }
+    
+    .admin-header {
+        padding: 20px 15px;
+    }
+    
+    .admin-content {
+        padding: 15px;
+    }
+    
+    .admin-tab {
+        font-size: 0.9rem;
+        padding: 12px 10px;
     }
 }
