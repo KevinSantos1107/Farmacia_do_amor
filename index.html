@@ -375,8 +375,97 @@
         </footer>
     </div>
 
-    <!-- Scripts -->
+<!-- ===== BOTÃO FLUTUANTE DE ADMIN ===== -->
+<button class="admin-toggle-btn" id="adminToggleBtn" title="Modo Admin">
+    <i class="fas fa-lock"></i>
+</button>
+
+<!-- ===== MODAL DE ADMIN ===== -->
+<div class="admin-modal" id="adminModal">
+    <div class="admin-modal-content">
+        <div class="admin-header">
+            <h2><i class="fas fa-user-shield"></i> Painel de Admin</h2>
+            <button class="close-admin-btn" id="closeAdminBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="albums">
+                <i class="fas fa-images"></i> Álbuns
+            </button>
+            <button class="admin-tab" data-tab="timeline">
+                <i class="fas fa-clock"></i> Timeline
+            </button>
+        </div>
+        
+        <!-- TAB: Gerenciar Álbuns -->
+        <div class="admin-content active" id="albums-tab">
+            <div class="admin-section">
+                <h3><i class="fas fa-plus-circle"></i> Adicionar Novo Álbum</h3>
+                <form id="addAlbumForm">
+                    <input type="text" id="albumTitle" placeholder="Título do Álbum" required>
+                    <input type="text" id="albumDate" placeholder="Data (ex: Junho 2023)" required>
+                    <textarea id="albumDescription" placeholder="Descrição do álbum" rows="3" required></textarea>
+                    <input type="file" id="albumCover" accept="image/*" required>
+                    <button type="submit" class="admin-btn">
+                        <i class="fas fa-save"></i> Criar Álbum
+                    </button>
+                </form>
+            </div>
+            
+            <div class="admin-section">
+                <h3><i class="fas fa-photo-video"></i> Adicionar Fotos ao Álbum</h3>
+                <select id="selectAlbum" class="admin-select">
+                    <option value="">Selecione um álbum</option>
+                </select>
+                <form id="addPhotoForm">
+                    <input type="file" id="photoFile" accept="image/*" multiple required>
+                    <input type="text" id="photoDescription" placeholder="Descrição da foto">
+                    <button type="submit" class="admin-btn">
+                        <i class="fas fa-upload"></i> Adicionar Fotos
+                    </button>
+                </form>
+            </div>
+            
+            <div class="admin-section">
+                <h3><i class="fas fa-list"></i> Álbuns Existentes</h3>
+                <div id="existingAlbums" class="existing-items"></div>
+            </div>
+        </div>
+        
+        <!-- TAB: Gerenciar Timeline -->
+        <div class="admin-content" id="timeline-tab">
+            <div class="admin-section">
+                <h3><i class="fas fa-plus-circle"></i> Adicionar Evento na Timeline</h3>
+                <form id="addTimelineForm">
+                    <input type="text" id="eventDate" placeholder="Data (ex: Setembro 2022)" required>
+                    <input type="text" id="eventTitle" placeholder="Título do Evento" required>
+                    <textarea id="eventSecret" placeholder="Mensagem secreta (opcional)" rows="3"></textarea>
+                    <input type="file" id="eventPhoto" accept="image/*" required>
+                    <input type="text" id="photoCaption" placeholder="Legenda da foto">
+                    <button type="submit" class="admin-btn">
+                        <i class="fas fa-save"></i> Adicionar Evento
+                    </button>
+                </form>
+            </div>
+            
+            <div class="admin-section">
+                <h3><i class="fas fa-list"></i> Eventos Existentes</h3>
+                <div id="existingEvents" class="existing-items"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+   <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Scripts do site -->
     <script src="animations.js"></script>
     <script src="script.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="admin.js"></script>
 </body>
 </html>
