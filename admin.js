@@ -1,6 +1,6 @@
-// ===== SISTEMA DE ADMIN COM FIREBASE + IMGBB (ILIMITADO) =====
+// ===== SISTEMA DE ADMIN COM FIREBASE + IMGBB (VERDADEIRAMENTE ILIMITADO) =====
 
-console.log('🔐 Sistema de Admin com Firebase + ImgBB carregado');
+console.log('🔐 Sistema de Admin ILIMITADO carregado');
 
 let isAdminUnlocked = false;
 
@@ -91,7 +91,7 @@ async function initAdmin() {
     console.log('✅ Sistema de admin inicializado');
 }
 
-// ===== GERENCIAMENTO DE ÁLBUNS COM IMGBB =====
+// ===== GERENCIAMENTO DE ÁLBUNS COM IMGBB (ILIMITADO) =====
 function initAlbumForms() {
     const addAlbumForm = document.getElementById('addAlbumForm');
     const addPhotoForm = document.getElementById('addPhotoForm');
@@ -111,8 +111,9 @@ function initAlbumForms() {
             return;
         }
         
-        if (coverFile.size > 10 * 1024 * 1024) {
-            alert('❌ Imagem muito grande! Use uma imagem menor que 10MB.');
+        // ✅ REMOVIDO: limite de 10MB (agora aceita até 32MB do ImgBB)
+        if (coverFile.size > 32 * 1024 * 1024) {
+            alert('❌ Imagem muito grande! O ImgBB aceita até 32MB por imagem.');
             return;
         }
         
@@ -155,7 +156,7 @@ function initAlbumForms() {
         }
     });
     
-    // Adicionar fotos ao álbum
+    // ✅ ADICIONAR FOTOS AO ÁLBUM (VERDADEIRAMENTE ILIMITADO)
     addPhotoForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -173,9 +174,15 @@ function initAlbumForms() {
             return;
         }
         
-        if (photoFiles.length > 30) {
-            alert('❌ Máximo de 30 fotos por vez!');
-            return;
+        // ✅ REMOVIDO: limite de 30 fotos (agora aceita QUANTAS QUISER)
+        // Agora apenas avisa se for mais de 100 (por questão de tempo de processamento)
+        if (photoFiles.length > 100) {
+            const confirm = window.confirm(
+                `⚠️ Você selecionou ${photoFiles.length} fotos!\n\n` +
+                `Isso pode demorar vários minutos para processar.\n` +
+                `Deseja continuar?`
+            );
+            if (!confirm) return;
         }
         
         try {
@@ -185,31 +192,46 @@ function initAlbumForms() {
             
             // Upload de todas as fotos para ImgBB
             const photoUrls = [];
+            let uploadErrors = 0;
+            
             for (let i = 0; i < photoFiles.length; i++) {
-                if (photoFiles[i].size > 10 * 1024 * 1024) {
-                    alert(`❌ Foto ${i + 1} muito grande! Use imagens menores que 10MB.`);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    return;
+                // ✅ ALTERADO: Agora aceita até 32MB (limite do ImgBB)
+                if (photoFiles[i].size > 32 * 1024 * 1024) {
+                    uploadErrors++;
+                    console.warn(`⚠️ Foto ${i + 1} ignorada (maior que 32MB)`);
+                    continue;
                 }
                 
                 btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Enviando ${i + 1}/${photoFiles.length} para ImgBB...`;
                 
-                const url = await uploadToImgBB(photoFiles[i], 1600);
-                photoUrls.push({
-                    src: url,
-                    description: description || `Foto ${i + 1}`,
-                    timestamp: Date.now() + i
-                });
-                
-                // Pequeno delay para não sobrecarregar a API
-                await new Promise(resolve => setTimeout(resolve, 500));
+                try {
+                    const url = await uploadToImgBB(photoFiles[i], 1600);
+                    photoUrls.push({
+                        src: url,
+                        description: description || `Foto ${i + 1}`,
+                        timestamp: Date.now() + i
+                    });
+                    
+                    // Delay menor para ser mais rápido
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                } catch (uploadError) {
+                    uploadErrors++;
+                    console.error(`❌ Erro no upload da foto ${i + 1}:`, uploadError);
+                }
+            }
+            
+            if (photoUrls.length === 0) {
+                alert('❌ Nenhuma foto foi enviada com sucesso!');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
             }
             
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
             
-            // Dividir em páginas (agora 50 fotos por página, pois são só URLs)
-            const PHOTOS_PER_PAGE = 50;
+            // ✅ ALTERADO: Agora 200 fotos por página (Firebase aceita até 1MB por documento)
+            // Como cada URL tem ~100 bytes, 200 URLs = ~20KB (muito abaixo do limite)
+            const PHOTOS_PER_PAGE = 200;
             const pages = [];
             
             for (let i = 0; i < photoUrls.length; i += PHOTOS_PER_PAGE) {
@@ -234,7 +256,13 @@ function initAlbumForms() {
                 photoCount: currentCount + photoUrls.length
             });
             
-            alert(`✅ ${photoUrls.length} foto(s) adicionada(s) ao ImgBB e Firebase!`);
+            // Mensagem de sucesso com avisos se houver erros
+            let successMsg = `✅ ${photoUrls.length} foto(s) adicionada(s) ao ImgBB e Firebase!`;
+            if (uploadErrors > 0) {
+                successMsg += `\n\n⚠️ ${uploadErrors} foto(s) não foram enviadas (verifique o tamanho ou formato).`;
+            }
+            alert(successMsg);
+            
             addPhotoForm.reset();
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -272,8 +300,9 @@ function initTimelineForms() {
             return;
         }
         
-        if (photoFile.size > 10 * 1024 * 1024) {
-            alert('❌ Imagem muito grande! Use uma imagem menor que 10MB.');
+        // ✅ ALTERADO: Aceita até 32MB
+        if (photoFile.size > 32 * 1024 * 1024) {
+            alert('❌ Imagem muito grande! O ImgBB aceita até 32MB.');
             return;
         }
         
@@ -612,4 +641,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 1000);
 });
 
-console.log('✅ admin.js com Firebase + ImgBB totalmente carregado (ILIMITADO)');
+console.log('✅ admin.js com Firebase + ImgBB VERDADEIRAMENTE ILIMITADO carregado!');
