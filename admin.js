@@ -1,18 +1,20 @@
-// ===== SISTEMA COMPLETO COM MENU HAMBÚRGUER MODERNO =====
+// ===== SISTEMA COMPLETO COM MENU MINIMALISTA À ESQUERDA =====
 
-console.log('🍔 Sistema de menu moderno carregado');
+console.log('🍔 Sistema de menu minimalista à esquerda carregado');
 
 let isAdminUnlocked = false;
 
-// ===== CRIAR MENU HAMBÚRGUER NO TOPO =====
+// ===== CRIAR MENU MINIMALISTA À ESQUERDA =====
 function createModernMenu() {
-    // REMOVER botão antigo se existir
+    // REMOVER botões antigos
     const oldBtn = document.getElementById('adminToggleBtn');
+    const oldThemeMenu = document.querySelector('.theme-menu');
     if (oldBtn) oldBtn.remove();
+    if (oldThemeMenu) oldThemeMenu.remove();
     
     // CRIAR botão hambúrguer
     const menuBtn = document.createElement('button');
-    menuBtn.className = 'hamburger-menu';
+    menuBtn.className = 'hamburger-menu left';
     menuBtn.id = 'hamburgerMenu';
     menuBtn.setAttribute('aria-label', 'Menu');
     menuBtn.innerHTML = `
@@ -21,56 +23,77 @@ function createModernMenu() {
         <span class="hamburger-line"></span>
     `;
     
-    // CRIAR sidebar
+    // CRIAR sidebar MINIMALISTA
     const sidebar = document.createElement('div');
-    sidebar.className = 'menu-sidebar';
+    sidebar.className = 'menu-sidebar left';
     sidebar.id = 'menuSidebar';
     sidebar.innerHTML = `
         <div class="sidebar-header">
-            <h2><i class="fas fa-heart"></i> Kevin & Iara</h2>
+            <h2>Menu</h2>
             <button class="close-sidebar" id="closeSidebar">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         
         <nav class="sidebar-nav">
-            <a href="#" class="nav-item" data-scroll="main-section">
-                <i class="fas fa-home"></i>
-                <span>Início</span>
-            </a>
-            
-            <a href="#" class="nav-item" data-scroll="time-counter-section">
-                <i class="far fa-clock"></i>
-                <span>Contador</span>
-            </a>
-            
-            <a href="#" class="nav-item" data-scroll="music-player-section">
-                <i class="fas fa-music"></i>
-                <span>Músicas</span>
-            </a>
-            
-            <a href="#" class="nav-item" data-scroll="albums-section">
-                <i class="fas fa-images"></i>
-                <span>Álbuns</span>
-            </a>
-            
-            <a href="#" class="nav-item" data-scroll="messages-section">
-                <i class="fas fa-envelope"></i>
-                <span>Mensagens</span>
-            </a>
+            <div class="nav-section">
+                <p class="nav-section-title">Navegação</p>
+                <a href="#" class="nav-item" data-scroll="main-section">
+                    <i class="fas fa-home"></i>
+                    <span>Início</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-scroll="time-counter-section">
+                    <i class="far fa-clock"></i>
+                    <span>Contador</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-scroll="music-player-section">
+                    <i class="fas fa-music"></i>
+                    <span>Músicas</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-scroll="albums-section">
+                    <i class="fas fa-images"></i>
+                    <span>Álbuns</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-scroll="messages-section">
+                    <i class="fas fa-envelope"></i>
+                    <span>Mensagens</span>
+                </a>
+            </div>
             
             <div class="nav-divider"></div>
             
-            <a href="#" class="nav-item nav-item-admin" id="adminMenuItem">
-                <i class="fas fa-cog"></i>
-                <span>Admin</span>
-                <i class="fas fa-lock" style="margin-left: auto; font-size: 12px;"></i>
-            </a>
+            <div class="nav-section">
+                <p class="nav-section-title">Tema</p>
+                <div class="theme-options">
+                    <button class="theme-option active" data-theme="meteors" title="Meteoros">
+                        <i class="fas fa-meteor"></i>
+                    </button>
+                    <button class="theme-option" data-theme="hearts" title="Corações">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    <button class="theme-option" data-theme="aurora" title="Aurora">
+                        <i class="fas fa-palette"></i>
+                    </button>
+                    <button class="theme-option" data-theme="winter" title="Inverno">
+                        <i class="fas fa-snowflake"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="nav-divider"></div>
+            
+            <div class="nav-section">
+                <a href="#" class="nav-item nav-item-admin" id="adminMenuItem">
+                    <i class="fas fa-cog"></i>
+                    <span>Admin</span>
+                    <i class="fas fa-lock" style="margin-left: auto; font-size: 12px;"></i>
+                </a>
+            </div>
         </nav>
-        
-        <div class="sidebar-footer">
-            <p>Feito com 💖 por Kevin</p>
-        </div>
     `;
     
     // CRIAR overlay
@@ -103,13 +126,56 @@ function createModernMenu() {
         });
     });
     
+    // Seletor de Tema
+    document.querySelectorAll('.theme-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const theme = btn.dataset.theme;
+            
+            document.querySelectorAll('.theme-option').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            changeTheme(theme, true);
+            
+            if (window.Animations && typeof window.Animations.changeTheme === 'function') {
+                window.Animations.changeTheme(theme);
+            }
+        });
+    });
+    
     // Item Admin
     document.getElementById('adminMenuItem').addEventListener('click', (e) => {
         e.preventDefault();
         openAdminModal();
     });
     
-    console.log('✅ Menu hambúrguer criado');
+    // Ocultar menu quando modais estão abertos
+    setupModalObservers();
+    
+    console.log('✅ Menu minimalista à esquerda criado');
+}
+
+// ===== OBSERVAR MODAIS PARA OCULTAR MENU =====
+function setupModalObservers() {
+    const hamburger = document.getElementById('hamburgerMenu');
+    const modalsToWatch = ['albumModal', 'timelineModal', 'adminModal', 'secretModal'];
+    
+    const observer = new MutationObserver(() => {
+        const anyModalOpen = modalsToWatch.some(id => {
+            const modal = document.getElementById(id);
+            return modal && (modal.style.display === 'flex' || modal.style.display === 'block');
+        });
+        
+        if (hamburger) {
+            hamburger.style.display = anyModalOpen ? 'none' : 'flex';
+        }
+    });
+    
+    modalsToWatch.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
+        }
+    });
 }
 
 // ===== ABRIR/FECHAR SIDEBAR =====
@@ -145,7 +211,6 @@ function openAdminModal() {
         if (password === 'iara2023') {
             isAdminUnlocked = true;
             
-            // Atualizar ícone do menu
             const adminMenuItem = document.getElementById('adminMenuItem');
             const lockIcon = adminMenuItem.querySelector('.fa-lock');
             if (lockIcon) {
@@ -178,7 +243,7 @@ function openAdminModal() {
     }
 }
 
-// ===== ADICIONAR ABA DE EDIÇÃO NO PAINEL ADMIN =====
+// ===== ADICIONAR ABA DE EDIÇÃO NO PAINEL ADMIN (CORRIGIDO) =====
 function addEditTabToAdmin() {
     const tabsContainer = document.querySelector('.admin-tabs');
     
@@ -189,31 +254,28 @@ function addEditTabToAdmin() {
     
     const contentArea = tabsContainer.parentElement;
     
-    // Verificar se já existe
     if (document.querySelector('[data-tab="edit"]')) {
         console.log('✅ Aba de edição já existe');
         return;
     }
     
-    // Adicionar botão da aba
     const editTab = document.createElement('button');
     editTab.className = 'admin-tab';
     editTab.setAttribute('data-tab', 'edit');
-    editTab.innerHTML = '<i class="fas fa-edit"></i> Editar Álbum';
+    editTab.innerHTML = '<i class="fas fa-edit"></i> Editar';
     tabsContainer.appendChild(editTab);
     
-    // Adicionar conteúdo da aba
     const editContent = document.createElement('div');
     editContent.className = 'admin-content';
     editContent.id = 'edit-tab';
     editContent.innerHTML = `
         <div class="admin-section">
-            <h3><i class="fas fa-edit"></i> Selecione um Álbum para Editar</h3>
+            <h3><i class="fas fa-edit"></i> Selecione um Álbum</h3>
             <select id="editAlbumSelect" class="admin-select">
                 <option value="">Escolha um álbum...</option>
             </select>
             <button id="loadEditAlbumBtn" class="admin-btn" style="margin-top: 10px;">
-                <i class="fas fa-folder-open"></i> Carregar Álbum
+                <i class="fas fa-folder-open"></i> Carregar
             </button>
         </div>
         
@@ -222,13 +284,13 @@ function addEditTabToAdmin() {
                 <h3 style="margin: 0;"><i class="fas fa-images"></i> <span id="albumPhotoCount">0</span> Fotos</h3>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <button id="selectAllPhotos" class="admin-btn">
-                        <i class="fas fa-check-double"></i> Selecionar Todas
+                        <i class="fas fa-check-double"></i> Todas
                     </button>
                     <button id="deleteSelectedPhotos" class="admin-btn" style="background: #ff4444;">
-                        <i class="fas fa-trash"></i> Deletar Selecionadas
+                        <i class="fas fa-trash"></i> Deletar
                     </button>
                     <button id="saveOrderBtn" class="admin-btn" style="background: #4CAF50; display: none;">
-                        <i class="fas fa-save"></i> Salvar Ordem
+                        <i class="fas fa-save"></i> Salvar
                     </button>
                 </div>
             </div>
@@ -238,9 +300,7 @@ function addEditTabToAdmin() {
             <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
                 <p style="color: var(--theme-text-secondary); margin: 0; font-size: 14px;">
                     <i class="fas fa-info-circle"></i> 
-                    <strong>Como usar:</strong><br>
-                    • <strong>Deletar:</strong> Clique nas fotos para selecionar, depois em "Deletar Selecionadas"<br>
-                    • <strong>Reorganizar:</strong> Arraste e solte as fotos para mudar a ordem, depois clique em "Salvar Ordem"
+                    Clique nas fotos para selecionar • Arraste para reorganizar
                 </p>
             </div>
         </div>
@@ -248,17 +308,14 @@ function addEditTabToAdmin() {
     
     contentArea.appendChild(editContent);
     
-    // Eventos da aba
+    // CORREÇÃO: Eventos corretos para troca de abas
     editTab.addEventListener('click', () => {
-        // Remover active de todas as tabs
         document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
         editTab.classList.add('active');
         
-        // Remover active de todos os conteúdos
         document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
         editContent.classList.add('active');
         
-        // Resetar seção de edição
         document.getElementById('editAlbumSection').style.display = 'none';
         document.getElementById('editPhotosGrid').innerHTML = '';
         document.getElementById('saveOrderBtn').style.display = 'none';
@@ -266,7 +323,6 @@ function addEditTabToAdmin() {
         updateEditAlbumSelect();
     });
     
-    // Eventos dos botões
     const loadBtn = document.getElementById('loadEditAlbumBtn');
     const selectAllBtn = document.getElementById('selectAllPhotos');
     const deleteBtn = document.getElementById('deleteSelectedPhotos');
@@ -280,14 +336,41 @@ function addEditTabToAdmin() {
     console.log('✅ Aba de edição adicionada');
 }
 
-// ===== ATUALIZAR SELECT DE ÁLBUNS PARA EDIÇÃO =====
+// ===== CORREÇÃO: SISTEMA DE ABAS DO ADMIN =====
+function initAdminTabs() {
+    const tabs = document.querySelectorAll('.admin-tab');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+            
+            // Remover active de todas as tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Remover active de todos os conteúdos
+            document.querySelectorAll('.admin-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Ativar conteúdo correspondente
+            const targetContent = document.getElementById(`${targetTab}-tab`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+            
+            console.log(`📑 Aba "${targetTab}" ativada`);
+        });
+    });
+}
+
+// ===== FUNÇÕES DE EDIÇÃO (mantidas do código anterior) =====
 async function updateEditAlbumSelect() {
     const select = document.getElementById('editAlbumSelect');
     if (!select) return;
     
     try {
         const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
-        
         select.innerHTML = '<option value="">Escolha um álbum...</option>';
         
         snapshot.forEach(doc => {
@@ -297,15 +380,11 @@ async function updateEditAlbumSelect() {
             option.textContent = `${album.title} (${album.photoCount || 0} fotos)`;
             select.appendChild(option);
         });
-        
-        console.log(`✅ ${snapshot.size} álbuns carregados para edição`);
-        
     } catch (error) {
         console.error('❌ Erro ao carregar álbuns:', error);
     }
 }
 
-// ===== CARREGAR ÁLBUM PARA EDIÇÃO =====
 async function loadAlbumForEdit() {
     const select = document.getElementById('editAlbumSelect');
     const albumId = select.value;
@@ -320,17 +399,14 @@ async function loadAlbumForEdit() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
         btn.disabled = true;
         
-        // Buscar dados do álbum
         const albumDoc = await db.collection('albums').doc(albumId).get();
         const albumData = albumDoc.data();
         
-        // Buscar todas as páginas de fotos
         const photoPagesSnapshot = await db.collection('album_photos')
             .where('albumId', '==', albumId)
             .orderBy('pageNumber', 'asc')
             .get();
         
-        // Juntar todas as fotos
         const allPhotos = [];
         photoPagesSnapshot.forEach(pageDoc => {
             const pageData = pageDoc.data();
@@ -344,7 +420,6 @@ async function loadAlbumForEdit() {
             });
         });
         
-        // Armazenar dados globalmente
         window.currentEditAlbum = {
             id: albumId,
             data: albumData,
@@ -352,11 +427,9 @@ async function loadAlbumForEdit() {
             originalOrder: JSON.parse(JSON.stringify(allPhotos))
         };
         
-        // Renderizar fotos
         renderPhotosForEdit(allPhotos, albumData.title);
         
-        // Resetar botão
-        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
+        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar';
         btn.disabled = false;
         
         document.getElementById('editAlbumSection').style.display = 'block';
@@ -369,15 +442,13 @@ async function loadAlbumForEdit() {
         alert('❌ Erro ao carregar álbum: ' + error.message);
         
         const btn = document.getElementById('loadEditAlbumBtn');
-        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
+        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar';
         btn.disabled = false;
     }
 }
 
-// ===== RENDERIZAR FOTOS PARA EDIÇÃO COM DRAG & DROP =====
 function renderPhotosForEdit(photos, albumTitle) {
     const grid = document.getElementById('editPhotosGrid');
-    
     grid.innerHTML = '';
     
     if (photos.length === 0) {
@@ -404,7 +475,6 @@ function renderPhotosForEdit(photos, albumTitle) {
             </div>
         `;
         
-        // Click na imagem seleciona/deseleciona
         photoCard.addEventListener('click', (e) => {
             if (e.target.tagName !== 'INPUT' && !e.target.closest('.drag-handle')) {
                 const checkbox = photoCard.querySelector('input[type="checkbox"]');
@@ -413,7 +483,6 @@ function renderPhotosForEdit(photos, albumTitle) {
             }
         });
         
-        // Checkbox
         const checkbox = photoCard.querySelector('input[type="checkbox"]');
         checkbox.addEventListener('change', (e) => {
             photoCard.classList.toggle('selected', e.target.checked);
@@ -422,20 +491,16 @@ function renderPhotosForEdit(photos, albumTitle) {
         grid.appendChild(photoCard);
     });
     
-    // Inicializar Drag & Drop
     initDragAndDrop();
 }
 
-// ===== INICIALIZAR DRAG & DROP =====
 function initDragAndDrop() {
     const grid = document.getElementById('editPhotosGrid');
     
     if (typeof Sortable === 'undefined') {
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js';
-        script.onload = () => {
-            createSortable();
-        };
+        script.onload = () => createSortable();
         document.head.appendChild(script);
     } else {
         createSortable();
@@ -447,18 +512,14 @@ function initDragAndDrop() {
             handle: '.drag-handle',
             ghostClass: 'sortable-ghost',
             dragClass: 'sortable-drag',
-            
             onEnd: function() {
                 updatePhotoNumbers();
                 document.getElementById('saveOrderBtn').style.display = 'inline-flex';
             }
         });
-        
-        console.log('✅ Drag & Drop inicializado');
     }
 }
 
-// ===== ATUALIZAR NUMERAÇÃO =====
 function updatePhotoNumbers() {
     const cards = document.querySelectorAll('.edit-photo-card');
     cards.forEach((card, index) => {
@@ -468,7 +529,6 @@ function updatePhotoNumbers() {
     });
 }
 
-// ===== SALVAR NOVA ORDEM =====
 async function savePhotoOrder() {
     if (!confirm('💾 Salvar a nova ordem das fotos?')) return;
     
@@ -490,7 +550,6 @@ async function savePhotoOrder() {
             newPages.push(newOrder.slice(i, i + PHOTOS_PER_PAGE));
         }
         
-        // Deletar páginas antigas
         const oldPagesSnapshot = await db.collection('album_photos')
             .where('albumId', '==', window.currentEditAlbum.id)
             .get();
@@ -502,7 +561,6 @@ async function savePhotoOrder() {
         
         await Promise.all(deletePromises);
         
-        // Criar novas páginas
         for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
             await db.collection('album_photos').add({
                 albumId: window.currentEditAlbum.id,
@@ -518,7 +576,7 @@ async function savePhotoOrder() {
         
         alert('✅ Ordem das fotos salva com sucesso!');
         
-        btn.innerHTML = '<i class="fas fa-save"></i> Salvar Ordem';
+        btn.innerHTML = '<i class="fas fa-save"></i> Salvar';
         btn.disabled = false;
         btn.style.display = 'none';
         
@@ -529,12 +587,11 @@ async function savePhotoOrder() {
         alert('❌ Erro ao salvar ordem: ' + error.message);
         
         const btn = document.getElementById('saveOrderBtn');
-        btn.innerHTML = '<i class="fas fa-save"></i> Salvar Ordem';
+        btn.innerHTML = '<i class="fas fa-save"></i> Salvar';
         btn.disabled = false;
     }
 }
 
-// ===== SELECIONAR TODAS =====
 function selectAllPhotos() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
     const allChecked = Array.from(checkboxes).every(cb => cb.checked);
@@ -546,11 +603,10 @@ function selectAllPhotos() {
     
     const btn = document.getElementById('selectAllPhotos');
     btn.innerHTML = allChecked 
-        ? '<i class="fas fa-check-double"></i> Selecionar Todas'
-        : '<i class="fas fa-times"></i> Desmarcar Todas';
+        ? '<i class="fas fa-check-double"></i> Todas'
+        : '<i class="fas fa-times"></i> Desmarcar';
 }
 
-// ===== DELETAR SELECIONADAS =====
 async function deleteSelectedPhotos() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
     
@@ -589,7 +645,6 @@ async function deleteSelectedPhotos() {
             newPages.push(remainingPhotos.slice(i, i + PHOTOS_PER_PAGE));
         }
         
-        // Deletar páginas antigas
         const oldPagesSnapshot = await db.collection('album_photos')
             .where('albumId', '==', window.currentEditAlbum.id)
             .get();
@@ -601,7 +656,6 @@ async function deleteSelectedPhotos() {
         
         await Promise.all(deletePromises);
         
-        // Criar novas páginas
         if (newPages.length > 0) {
             for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
                 await db.collection('album_photos').add({
@@ -617,7 +671,6 @@ async function deleteSelectedPhotos() {
             }
         }
         
-        // Atualizar contador
         await db.collection('albums').doc(window.currentEditAlbum.id).update({
             photoCount: remainingPhotos.length
         });
@@ -627,7 +680,7 @@ async function deleteSelectedPhotos() {
         await loadAlbumForEdit();
         await loadAlbumsFromFirebase();
         
-        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
+        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar';
         btn.disabled = false;
         
     } catch (error) {
@@ -635,26 +688,26 @@ async function deleteSelectedPhotos() {
         alert('❌ Erro: ' + error.message);
         
         const btn = document.getElementById('deleteSelectedPhotos');
-        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
+        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar';
         btn.disabled = false;
     }
 }
 
-// ===== CSS DO MENU E SISTEMA DE EDIÇÃO =====
+// ===== CSS DO MENU MINIMALISTA =====
 function injectMenuStyles() {
     const style = document.createElement('style');
     style.textContent = `
-        /* ===== BOTÃO HAMBÚRGUER ===== */
-        .hamburger-menu {
+        /* ===== BOTÃO HAMBÚRGUER À ESQUERDA ===== */
+        .hamburger-menu.left {
             position: fixed;
             top: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.1);
+            left: 20px;
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -666,33 +719,28 @@ function injectMenuStyles() {
             padding: 0;
         }
         
-        .hamburger-menu:hover {
-            background: rgba(255, 64, 129, 0.2);
-            border-color: rgba(255, 64, 129, 0.4);
+        .hamburger-menu.left:hover {
+            background: rgba(255, 255, 255, 0.15);
             transform: scale(1.05);
         }
         
         .hamburger-line {
-            width: 24px;
+            width: 22px;
             height: 2px;
             background: rgba(255, 255, 255, 0.8);
             border-radius: 2px;
             transition: all 0.3s ease;
         }
         
-        .hamburger-menu:hover .hamburger-line {
-            background: #ff4081;
-        }
-        
-        .hamburger-menu.active .hamburger-line:nth-child(1) {
+        .hamburger-menu.left.active .hamburger-line:nth-child(1) {
             transform: translateY(7px) rotate(45deg);
         }
         
-        .hamburger-menu.active .hamburger-line:nth-child(2) {
+        .hamburger-menu.left.active .hamburger-line:nth-child(2) {
             opacity: 0;
         }
         
-        .hamburger-menu.active .hamburger-line:nth-child(3) {
+        .hamburger-menu.left.active .hamburger-line:nth-child(3) {
             transform: translateY(-7px) rotate(-45deg);
         }
         
@@ -716,30 +764,30 @@ function injectMenuStyles() {
             visibility: visible;
         }
         
-        /* ===== SIDEBAR ===== */
-        .menu-sidebar {
+        /* ===== SIDEBAR MINIMALISTA À ESQUERDA ===== */
+        .menu-sidebar.left {
             position: fixed;
             top: 0;
-            right: -350px;
-            width: 320px;
+            left: -300px;
+            width: 280px;
             height: 100%;
-            background: linear-gradient(135deg, rgba(20, 20, 30, 0.98), rgba(30, 20, 40, 0.98));
+            background: rgba(15, 15, 25, 0.98);
             backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
             z-index: 1002;
             transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             display: flex;
             flex-direction: column;
-            box-shadow: -10px 0 50px rgba(0, 0, 0, 0.5);
+            box-shadow: 10px 0 50px rgba(0, 0, 0, 0.5);
         }
         
-        .menu-sidebar.active {
-            right: 0;
+        .menu-sidebar.left.active {
+            left: 0;
         }
         
-        /* ===== HEADER DA SIDEBAR ===== */
+        /* ===== HEADER MINIMALISTA ===== */
         .sidebar-header {
-            padding: 25px 20px;
+            padding: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: space-between;
@@ -747,19 +795,17 @@ function injectMenuStyles() {
         }
         
         .sidebar-header h2 {
-            font-family: 'Dancing Script', cursive;
-            font-size: 24px;
-            color: #ff4081;
+            font-family: 'Poppins', sans-serif;
+            font-size: 18px;
+            color: white;
             margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-weight: 500;
         }
         
         .close-sidebar {
-            width: 35px;
-            height: 35px;
-            background: rgba(255, 255, 255, 0.1);
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.08);
             border: none;
             border-radius: 8px;
             color: white;
@@ -771,67 +817,99 @@ function injectMenuStyles() {
         }
         
         .close-sidebar:hover {
-            background: rgba(255, 64, 129, 0.3);
+            background: rgba(255, 64, 129, 0.2);
             transform: rotate(90deg);
         }
         
-        /* ===== NAVEGAÇÃO ===== */
+        /* ===== NAVEGAÇÃO MINIMALISTA ===== */
         .sidebar-nav {
             flex: 1;
-            padding: 20px 0;
+            padding: 15px 0;
             overflow-y: auto;
+        }
+        
+        .nav-section {
+            padding: 0 15px;
+            margin-bottom: 10px;
+        }
+        
+        .nav-section-title {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 15px 0 8px 10px;
+            font-weight: 600;
         }
         
         .nav-item {
             display: flex;
             align-items: center;
-            gap: 15px;
-            padding: 15px 25px;
+            gap: 12px;
+            padding: 10px 12px;
             color: rgba(255, 255, 255, 0.7);
             text-decoration: none;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            border-left: 3px solid transparent;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            margin-bottom: 3px;
         }
         
         .nav-item:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.08);
             color: white;
-            border-left-color: #ff4081;
         }
         
         .nav-item i {
-            font-size: 20px;
-            width: 25px;
+            font-size: 16px;
+            width: 20px;
             text-align: center;
         }
         
         .nav-item-admin {
-            margin-top: 10px;
             color: rgba(255, 200, 100, 0.8);
-        }
-        
-        .nav-item-admin:hover {
-            border-left-color: #ffc107;
         }
         
         .nav-divider {
             height: 1px;
+            background: rgba(255, 255, 255, 0.08);
+            margin: 12px 15px;
+        }
+        
+        /* ===== SELETOR DE TEMA MINIMALISTA ===== */
+        .theme-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 8px 0;
+        }
+        
+        .theme-option {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 16px;
+        }
+        
+        .theme-option:hover {
             background: rgba(255, 255, 255, 0.1);
-            margin: 15px 20px;
+            color: white;
+            transform: scale(1.05);
         }
         
-        /* ===== FOOTER DA SIDEBAR ===== */
-        .sidebar-footer {
-            padding: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-        }
-        
-        .sidebar-footer p {
-            margin: 0;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 14px;
+        .theme-option.active {
+            background: var(--theme-primary);
+            border-color: var(--theme-primary);
+            color: white;
+            box-shadow: 0 0 15px var(--theme-primary);
         }
         
         /* ===== GRID DE EDIÇÃO ===== */
@@ -942,16 +1020,16 @@ function injectMenuStyles() {
         
         /* ===== RESPONSIVO ===== */
         @media (max-width: 768px) {
-            .menu-sidebar {
-                width: 280px;
-                right: -280px;
+            .menu-sidebar.left {
+                width: 260px;
+                left: -260px;
             }
             
-            .hamburger-menu {
-                width: 45px;
-                height: 45px;
+            .hamburger-menu.left {
+                width: 42px;
+                height: 42px;
                 top: 15px;
-                right: 15px;
+                left: 15px;
             }
             
             .edit-photos-grid {
@@ -968,21 +1046,20 @@ function initCompleteSystem() {
     createModernMenu();
     injectMenuStyles();
     
-    // Aguardar admin modal estar pronto
     const checkInterval = setInterval(() => {
         if (document.getElementById('adminModal')) {
             clearInterval(checkInterval);
             addEditTabToAdmin();
+            initAdminTabs(); // IMPORTANTE: Inicializar sistema de abas
             console.log('✅ Sistema completo inicializado');
         }
     }, 500);
 }
 
-// Inicializar
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initCompleteSystem);
 } else {
     initCompleteSystem();
 }
 
-console.log('✅ Sistema com menu hambúrguer carregado!');
+console.log('✅ Sistema com menu à esquerda carregado!');
