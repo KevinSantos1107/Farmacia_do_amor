@@ -1,649 +1,76 @@
-// ===== SISTEMA DE ADMIN COM FIREBASE + IMGBB (VERDADEIRAMENTE ILIMITADO) =====
+// ===== SISTEMA COMPLETO DE EDIÇÃO COM DRAG & DROP =====
 
-console.log('🔐 Sistema de Admin ILIMITADO carregado');
+console.log('✏️ Sistema de edição avançado carregado');
 
-let isAdminUnlocked = false;
-
-// ===== AGUARDAR FIREBASE E IMGBB ESTAREM PRONTOS =====
-function waitForServices() {
-    return new Promise((resolve) => {
-        const checkInterval = setInterval(() => {
-            if (typeof firebase !== 'undefined' && 
-                firebase.apps.length > 0 && 
-                typeof IMGBB_API_KEY !== 'undefined') {
-                clearInterval(checkInterval);
-                resolve();
-            }
-        }, 100);
+// ===== BOTÃO ADMIN DISCRETO E ELEGANTE =====
+function createDiscreetAdminButton() {
+    // REMOVER botão antigo se existir
+    const oldBtn = document.getElementById('adminToggleBtn');
+    if (oldBtn) oldBtn.remove();
+    
+    // CRIAR novo botão discreto
+    const adminBtn = document.createElement('div');
+    adminBtn.id = 'adminToggleBtn';
+    adminBtn.className = 'discreet-admin-btn';
+    adminBtn.title = 'Admin (clique 3x)';
+    adminBtn.innerHTML = '<i class="fas fa-heart"></i>';
+    
+    document.body.appendChild(adminBtn);
+    
+    // Sistema de cliques triplos para ativar
+    let clickCount = 0;
+    let clickTimer = null;
+    
+    adminBtn.addEventListener('click', () => {
+        clickCount++;
+        
+        // Animação de feedback
+        adminBtn.style.transform = 'scale(1.2)';
+        setTimeout(() => {
+            adminBtn.style.transform = 'scale(1)';
+        }, 200);
+        
+        // Reset após 2 segundos
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => {
+            clickCount = 0;
+        }, 2000);
+        
+        // 3 cliques = abrir admin
+        if (clickCount === 3) {
+            clickCount = 0;
+            openAdminModal();
+        }
     });
+    
+    console.log('💖 Botão admin discreto criado (clique 3x no coração)');
 }
 
-// ===== CONTROLE DO MODAL =====
-async function initAdmin() {
-    await waitForServices();
-    
-    const adminToggleBtn = document.getElementById('adminToggleBtn');
+// ===== ABRIR MODAL DE ADMIN (CORRIGIDO) =====
+function openAdminModal() {
     const adminModal = document.getElementById('adminModal');
-    const closeAdminBtn = document.getElementById('closeAdminBtn');
-    const adminTabs = document.querySelectorAll('.admin-tab');
     
-    if (!adminToggleBtn || !adminModal) {
-        console.warn('⚠️ Elementos de admin não encontrados');
-        return;
-    }
-    
-    // Abrir modal (com senha)
-    adminToggleBtn.addEventListener('click', () => {
-        if (!isAdminUnlocked) {
-            const password = prompt('🔐 Digite a senha de admin:');
-            
-            // ALTERE AQUI A SUA SENHA
-            if (password === 'iara2023') {
-                isAdminUnlocked = true;
-                adminToggleBtn.classList.add('unlocked');
-                adminToggleBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
-                adminModal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-                loadExistingContent();
-                console.log('✅ Admin desbloqueado');
-            } else {
-                alert('❌ Senha incorreta!');
-            }
-        } else {
+    if (!isAdminUnlocked) {
+        const password = prompt('🔐 Digite a senha de admin:');
+        
+        if (password === 'iara2023') {
+            isAdminUnlocked = true;
+            const adminBtn = document.getElementById('adminToggleBtn');
+            adminBtn.classList.add('unlocked');
+            adminBtn.innerHTML = '<i class="fas fa-unlock"></i>';
             adminModal.style.display = 'block';
             document.body.style.overflow = 'hidden';
             loadExistingContent();
+            console.log('✅ Admin desbloqueado');
+        } else {
+            alert('❌ Senha incorreta!');
         }
-    });
-    
-    // Fechar modal
-    closeAdminBtn.addEventListener('click', () => {
-        adminModal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    });
-    
-    adminModal.addEventListener('click', (e) => {
-        if (e.target === adminModal) {
-            closeAdminBtn.click();
-        }
-    });
-    
-    // Sistema de tabs
-    adminTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const targetTab = tab.dataset.tab;
-            
-            adminTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            
-            document.querySelectorAll('.admin-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            document.getElementById(`${targetTab}-tab`).classList.add('active');
-        });
-    });
-    
-    // Inicializar formulários
-    initAlbumForms();
-    initTimelineForms();
-    
-    console.log('✅ Sistema de admin inicializado');
-}
-
-// ===== GERENCIAMENTO DE ÁLBUNS COM IMGBB (ILIMITADO) =====
-function initAlbumForms() {
-    const addAlbumForm = document.getElementById('addAlbumForm');
-    const addPhotoForm = document.getElementById('addPhotoForm');
-    const selectAlbum = document.getElementById('selectAlbum');
-    
-    // Criar novo álbum
-    addAlbumForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const title = document.getElementById('albumTitle').value;
-        const date = document.getElementById('albumDate').value;
-        const description = document.getElementById('albumDescription').value;
-        const coverFile = document.getElementById('albumCover').files[0];
-        
-        if (!coverFile) {
-            alert('❌ Selecione uma imagem de capa!');
-            return;
-        }
-        
-        // ✅ REMOVIDO: limite de 10MB (agora aceita até 32MB do ImgBB)
-        if (coverFile.size > 32 * 1024 * 1024) {
-            alert('❌ Imagem muito grande! O ImgBB aceita até 32MB por imagem.');
-            return;
-        }
-        
-        try {
-            const btn = addAlbumForm.querySelector('button');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando para ImgBB...';
-            btn.disabled = true;
-            
-            // Upload para ImgBB
-            const coverUrl = await uploadToImgBB(coverFile, 800);
-            
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
-            
-            // Criar documento no Firebase (apenas URL)
-            await db.collection('albums').add({
-                title: title,
-                date: date,
-                cover: coverUrl,
-                description: description,
-                photoCount: 0,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            alert(`✅ Álbum "${title}" criado com sucesso!`);
-            addAlbumForm.reset();
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            
-            loadExistingContent();
-            updateAlbumSelect();
-            await loadAlbumsFromFirebase();
-            
-        } catch (error) {
-            console.error('❌ Erro ao criar álbum:', error);
-            alert('❌ Erro ao criar álbum: ' + error.message);
-            const btn = addAlbumForm.querySelector('button');
-            btn.innerHTML = '<i class="fas fa-save"></i> Criar Álbum';
-            btn.disabled = false;
-        }
-    });
-    
-    // ✅ ADICIONAR FOTOS AO ÁLBUM (VERDADEIRAMENTE ILIMITADO)
-    addPhotoForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const albumId = selectAlbum.value;
-        const photoFiles = document.getElementById('photoFile').files;
-        const description = document.getElementById('photoDescription').value;
-        
-        if (!albumId) {
-            alert('❌ Selecione um álbum primeiro!');
-            return;
-        }
-        
-        if (photoFiles.length === 0) {
-            alert('❌ Selecione pelo menos uma foto!');
-            return;
-        }
-        
-        // ✅ REMOVIDO: limite de 30 fotos (agora aceita QUANTAS QUISER)
-        // Agora apenas avisa se for mais de 100 (por questão de tempo de processamento)
-        if (photoFiles.length > 100) {
-            const confirm = window.confirm(
-                `⚠️ Você selecionou ${photoFiles.length} fotos!\n\n` +
-                `Isso pode demorar vários minutos para processar.\n` +
-                `Deseja continuar?`
-            );
-            if (!confirm) return;
-        }
-        
-        try {
-            const btn = addPhotoForm.querySelector('button');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            
-            // Upload de todas as fotos para ImgBB
-            const photoUrls = [];
-            let uploadErrors = 0;
-            
-            for (let i = 0; i < photoFiles.length; i++) {
-                // ✅ ALTERADO: Agora aceita até 32MB (limite do ImgBB)
-                if (photoFiles[i].size > 32 * 1024 * 1024) {
-                    uploadErrors++;
-                    console.warn(`⚠️ Foto ${i + 1} ignorada (maior que 32MB)`);
-                    continue;
-                }
-                
-                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Enviando ${i + 1}/${photoFiles.length} para ImgBB...`;
-                
-                try {
-                    const url = await uploadToImgBB(photoFiles[i], 1600);
-                    photoUrls.push({
-                        src: url,
-                        description: description || `Foto ${i + 1}`,
-                        timestamp: Date.now() + i
-                    });
-                    
-                    // Delay menor para ser mais rápido
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                } catch (uploadError) {
-                    uploadErrors++;
-                    console.error(`❌ Erro no upload da foto ${i + 1}:`, uploadError);
-                }
-            }
-            
-            if (photoUrls.length === 0) {
-                alert('❌ Nenhuma foto foi enviada com sucesso!');
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                return;
-            }
-            
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
-            
-            // ✅ ALTERADO: Agora 200 fotos por página (Firebase aceita até 1MB por documento)
-            // Como cada URL tem ~100 bytes, 200 URLs = ~20KB (muito abaixo do limite)
-            const PHOTOS_PER_PAGE = 200;
-            const pages = [];
-            
-            for (let i = 0; i < photoUrls.length; i += PHOTOS_PER_PAGE) {
-                pages.push(photoUrls.slice(i, i + PHOTOS_PER_PAGE));
-            }
-            
-            // Salvar cada página
-            for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-                await db.collection('album_photos').add({
-                    albumId: albumId,
-                    pageNumber: pageIndex,
-                    photos: pages[pageIndex],
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-            
-            // Atualizar contador
-            const albumDoc = await db.collection('albums').doc(albumId).get();
-            const currentCount = albumDoc.data().photoCount || 0;
-            
-            await db.collection('albums').doc(albumId).update({
-                photoCount: currentCount + photoUrls.length
-            });
-            
-            // Mensagem de sucesso com avisos se houver erros
-            let successMsg = `✅ ${photoUrls.length} foto(s) adicionada(s) ao ImgBB e Firebase!`;
-            if (uploadErrors > 0) {
-                successMsg += `\n\n⚠️ ${uploadErrors} foto(s) não foram enviadas (verifique o tamanho ou formato).`;
-            }
-            alert(successMsg);
-            
-            addPhotoForm.reset();
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            
-            loadExistingContent();
-            await loadAlbumsFromFirebase();
-            
-        } catch (error) {
-            console.error('❌ Erro ao adicionar fotos:', error);
-            alert('❌ Erro ao adicionar fotos: ' + error.message);
-            const btn = addPhotoForm.querySelector('button');
-            btn.innerHTML = '<i class="fas fa-upload"></i> Adicionar Fotos';
-            btn.disabled = false;
-        }
-    });
-    
-    updateAlbumSelect();
-}
-
-// ===== GERENCIAMENTO DE TIMELINE COM IMGBB =====
-function initTimelineForms() {
-    const addTimelineForm = document.getElementById('addTimelineForm');
-    
-    addTimelineForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const eventDate = document.getElementById('eventDate').value;
-        const eventTitle = document.getElementById('eventTitle').value;
-        const eventSecret = document.getElementById('eventSecret').value;
-        const photoFile = document.getElementById('eventPhoto').files[0];
-        const photoCaption = document.getElementById('photoCaption').value;
-        
-        if (!photoFile) {
-            alert('❌ Selecione uma foto para o evento!');
-            return;
-        }
-        
-        // ✅ ALTERADO: Aceita até 32MB
-        if (photoFile.size > 32 * 1024 * 1024) {
-            alert('❌ Imagem muito grande! O ImgBB aceita até 32MB.');
-            return;
-        }
-        
-        try {
-            const btn = addTimelineForm.querySelector('button');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando para ImgBB...';
-            btn.disabled = true;
-            
-            // Upload para ImgBB
-            const photoUrl = await uploadToImgBB(photoFile, 1200);
-            
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando posição...';
-            
-            // DETERMINAR LADO AUTOMATICAMENTE (sempre começa ESQUERDA)
-            let eventSide = 'left';
-            try {
-                const allEvents = await db.collection('timeline').get();
-                const totalEvents = allEvents.size;
-                eventSide = totalEvents % 2 === 0 ? 'left' : 'right';
-                console.log(`📍 Evento ${totalEvents + 1} será adicionado no lado: ${eventSide}`);
-            } catch (error) {
-                console.log('Primeiro evento - usando lado esquerdo');
-            }
-            
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
-            
-            // Criar evento no Firebase
-            await db.collection('timeline').add({
-                date: eventDate,
-                title: eventTitle,
-                secret: eventSecret || null,
-                photo: photoUrl,
-                caption: photoCaption || '',
-                side: eventSide,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            alert(`✅ Evento "${eventTitle}" adicionado (lado ${eventSide === 'left' ? 'esquerdo' : 'direito'})!`);
-            addTimelineForm.reset();
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            
-            loadExistingContent();
-            await rebuildTimeline();
-            
-        } catch (error) {
-            console.error('❌ Erro ao criar evento:', error);
-            alert('❌ Erro ao criar evento: ' + error.message);
-            const btn = addTimelineForm.querySelector('button');
-            btn.innerHTML = '<i class="fas fa-save"></i> Adicionar Evento';
-            btn.disabled = false;
-        }
-    });
-}
-
-// ===== CARREGAR ÁLBUNS DO FIREBASE =====
-async function loadAlbumsFromFirebase() {
-    try {
-        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
-        const firebaseAlbums = [];
-        
-        for (const doc of snapshot.docs) {
-            const albumData = doc.data();
-            
-            // Buscar todas as páginas de fotos
-            const photoPagesSnapshot = await db.collection('album_photos')
-                .where('albumId', '==', doc.id)
-                .orderBy('pageNumber', 'asc')
-                .get();
-            
-            // Juntar todas as fotos
-            const allPhotos = [];
-            photoPagesSnapshot.forEach(pageDoc => {
-                const pageData = pageDoc.data();
-                allPhotos.push(...pageData.photos);
-            });
-            
-            firebaseAlbums.push({
-                id: doc.id,
-                ...albumData,
-                photos: allPhotos
-            });
-        }
-        
-        // Mesclar com álbuns originais
-        if (typeof window.albums !== 'undefined') {
-            window.albums = [...window.originalAlbums, ...firebaseAlbums];
-        }
-        
-        // Recarregar galeria
-        if (typeof initAlbums === 'function') {
-            initAlbums();
-        }
-        
-        console.log(`✅ ${firebaseAlbums.length} álbuns carregados (ImgBB + Firebase)`);
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar álbuns:', error);
-    }
-}
-
-// ===== RECONSTRUIR TIMELINE =====
-async function rebuildTimeline() {
-    const container = document.querySelector('.timeline-container');
-    if (!container) return;
-    
-    try {
-        const snapshot = await db.collection('timeline').orderBy('createdAt', 'asc').get();
-        
-        // Remover eventos customizados anteriores
-        const customItems = container.querySelectorAll('.timeline-item[data-custom="true"]');
-        customItems.forEach(item => item.remove());
-        
-        const timelineEnd = container.querySelector('.timeline-end');
-        
-        snapshot.forEach((doc, index) => {
-            const event = doc.data();
-            
-            const item = document.createElement('div');
-            item.className = `timeline-item ${event.side}`;
-            item.setAttribute('data-custom', 'true');
-            item.setAttribute('data-id', doc.id);
-            item.style.animationDelay = `${(index + 1) * 0.1}s`;
-            
-            item.innerHTML = `
-                <div class="timeline-content">
-                    <div class="timeline-text">
-                        <div class="timeline-date">
-                            <i class="far fa-calendar"></i>
-                            <span>${event.date}</span>
-                        </div>
-                        <h3>${event.title}</h3>
-                        ${event.secret ? `
-                            <button class="secret-message-btn" data-message="${event.secret}">
-                                <i class="fas fa-lock"></i> Mensagem Secreta
-                            </button>
-                        ` : ''}
-                    </div>
-                    <div class="timeline-photo">
-                        <div class="photo-polaroid">
-                            <img src="${event.photo}" alt="${event.title}">
-                            <p class="polaroid-caption">${event.caption}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="timeline-line"></div>
-            `;
-            
-            container.insertBefore(item, timelineEnd);
-        });
-        
-        // Reinicializar botões de mensagem secreta
-        const secretBtns = document.querySelectorAll('.secret-message-btn');
-        secretBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const message = btn.getAttribute('data-message');
-                if (message && typeof showSecretMessage === 'function') {
-                    showSecretMessage(message);
-                }
-            });
-        });
-        
-        console.log(`✅ Timeline reconstruída com ${snapshot.size} eventos`);
-        
-    } catch (error) {
-        console.error('❌ Erro ao reconstruir timeline:', error);
-    }
-}
-
-// ===== ATUALIZAR SELECT DE ÁLBUNS =====
-async function updateAlbumSelect() {
-    const selectAlbum = document.getElementById('selectAlbum');
-    
-    try {
-        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
-        
-        selectAlbum.innerHTML = '<option value="">Selecione um álbum</option>';
-        
-        snapshot.forEach(doc => {
-            const album = doc.data();
-            const option = document.createElement('option');
-            option.value = doc.id;
-            option.textContent = `${album.title} (${album.photoCount || 0} fotos)`;
-            selectAlbum.appendChild(option);
-        });
-        
-    } catch (error) {
-        console.error('❌ Erro ao atualizar select:', error);
-    }
-}
-
-// ===== CARREGAR CONTEÚDO EXISTENTE =====
-async function loadExistingContent() {
-    await loadExistingAlbums();
-    await loadExistingEvents();
-}
-
-async function loadExistingAlbums() {
-    const container = document.getElementById('existingAlbums');
-    
-    try {
-        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
-        
-        container.innerHTML = '';
-        
-        if (snapshot.empty) {
-            container.innerHTML = '<p style="color: var(--theme-text-secondary); text-align: center;">Nenhum álbum criado ainda</p>';
-            return;
-        }
-        
-        snapshot.forEach(doc => {
-            const album = doc.data();
-            const item = document.createElement('div');
-            item.className = 'existing-item';
-            item.innerHTML = `
-                <div class="existing-item-info">
-                    <div class="existing-item-title">${album.title}</div>
-                    <div class="existing-item-meta">${album.date} • ${album.photoCount || 0} fotos</div>
-                </div>
-                <button class="delete-item-btn" onclick="deleteAlbum('${doc.id}')">
-                    <i class="fas fa-trash"></i> Excluir
-                </button>
-            `;
-            container.appendChild(item);
-        });
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar álbuns:', error);
-        container.innerHTML = '<p style="color: #ff5050;">Erro ao carregar álbuns</p>';
-    }
-}
-
-async function loadExistingEvents() {
-    const container = document.getElementById('existingEvents');
-    
-    try {
-        const snapshot = await db.collection('timeline').orderBy('createdAt', 'desc').get();
-        
-        container.innerHTML = '';
-        
-        if (snapshot.empty) {
-            container.innerHTML = '<p style="color: var(--theme-text-secondary); text-align: center;">Nenhum evento criado ainda</p>';
-            return;
-        }
-        
-        snapshot.forEach(doc => {
-            const event = doc.data();
-            const item = document.createElement('div');
-            item.className = 'existing-item';
-            item.innerHTML = `
-                <div class="existing-item-info">
-                    <div class="existing-item-title">${event.title}</div>
-                    <div class="existing-item-meta">${event.date} • Lado ${event.side === 'left' ? 'esquerdo' : 'direito'}</div>
-                </div>
-                <button class="delete-item-btn" onclick="deleteEvent('${doc.id}')">
-                    <i class="fas fa-trash"></i> Excluir
-                </button>
-            `;
-            container.appendChild(item);
-        });
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar eventos:', error);
-        container.innerHTML = '<p style="color: #ff5050;">Erro ao carregar eventos</p>';
-    }
-}
-
-// ===== FUNÇÕES DE EXCLUSÃO =====
-window.deleteAlbum = async function(albumId) {
-    if (!confirm('❌ Tem certeza que deseja excluir este álbum?\n\nISSO NÃO DELETARÁ as imagens do ImgBB (elas ficarão lá para sempre).')) {
-        return;
-    }
-    
-    try {
-        // Deletar documento principal
-        await db.collection('albums').doc(albumId).delete();
-        
-        // Deletar todas as páginas de fotos
-        const photoPagesSnapshot = await db.collection('album_photos')
-            .where('albumId', '==', albumId)
-            .get();
-        
-        const deletePromises = [];
-        photoPagesSnapshot.forEach(doc => {
-            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
-        });
-        
-        await Promise.all(deletePromises);
-        
-        alert('✅ Álbum excluído do Firebase!\n\n⚠️ As imagens continuam no ImgBB.');
+    } else {
+        adminModal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
         loadExistingContent();
-        updateAlbumSelect();
-        await loadAlbumsFromFirebase();
-        
-    } catch (error) {
-        console.error('❌ Erro ao excluir álbum:', error);
-        alert('❌ Erro ao excluir: ' + error.message);
     }
-};
-
-window.deleteEvent = async function(eventId) {
-    if (!confirm('❌ Tem certeza que deseja excluir este evento?\n\nISO NÃO DELETARÁ a imagem do ImgBB.')) {
-        return;
-    }
-    
-    try {
-        await db.collection('timeline').doc(eventId).delete();
-        
-        alert('✅ Evento excluído do Firebase!\n\n⚠️ A imagem continua no ImgBB.');
-        loadExistingContent();
-        await rebuildTimeline();
-        
-    } catch (error) {
-        console.error('❌ Erro ao excluir evento:', error);
-        alert('❌ Erro ao excluir: ' + error.message);
-    }
-};
-
-// ===== INICIALIZAR NO CARREGAMENTO =====
-document.addEventListener('DOMContentLoaded', async () => {
-    await waitForServices();
-    
-    // Salvar álbuns originais
-    if (typeof albums !== 'undefined') {
-        window.originalAlbums = JSON.parse(JSON.stringify(albums));
-    }
-    
-    initAdmin();
-    
-    // Carregar conteúdo do Firebase
-    setTimeout(async () => {
-        await loadAlbumsFromFirebase();
-        await rebuildTimeline();
-    }, 1000);
-});
-
-// ===== SISTEMA DE EDIÇÃO DE ÁLBUNS (DELETAR E REORGANIZAR FOTOS) =====
-
-console.log('✏️ Sistema de edição de álbuns carregado');
+}
 
 // ===== ADICIONAR ABA DE EDIÇÃO NO PAINEL ADMIN =====
 function addEditTabToAdmin() {
@@ -676,25 +103,29 @@ function addEditTabToAdmin() {
         </div>
         
         <div class="admin-section" id="editAlbumSection" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3><i class="fas fa-images"></i> Fotos do Álbum</h3>
-                <div>
-                    <button id="selectAllPhotos" class="admin-btn" style="margin-right: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0;"><i class="fas fa-images"></i> <span id="albumPhotoCount">0</span> Fotos</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="selectAllPhotos" class="admin-btn">
                         <i class="fas fa-check-double"></i> Selecionar Todas
                     </button>
                     <button id="deleteSelectedPhotos" class="admin-btn" style="background: #ff4444;">
                         <i class="fas fa-trash"></i> Deletar Selecionadas
                     </button>
+                    <button id="saveOrderBtn" class="admin-btn" style="background: #4CAF50; display: none;">
+                        <i class="fas fa-save"></i> Salvar Ordem
+                    </button>
                 </div>
             </div>
             
-            <div id="editPhotosGrid" class="edit-photos-grid"></div>
+            <div id="editPhotosGrid" class="edit-photos-grid sortable-grid"></div>
             
             <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
-                <p style="color: var(--theme-text-secondary); margin: 0;">
+                <p style="color: var(--theme-text-secondary); margin: 0; font-size: 14px;">
                     <i class="fas fa-info-circle"></i> 
-                    <strong>Dica:</strong> Clique nas fotos para selecioná-las, depois clique em "Deletar Selecionadas". 
-                    As fotos serão removidas apenas do Firebase (não do ImgBB).
+                    <strong>Como usar:</strong><br>
+                    • <strong>Deletar:</strong> Clique nas fotos para selecionar, depois em "Deletar Selecionadas"<br>
+                    • <strong>Reorganizar:</strong> Arraste e solte as fotos para mudar a ordem, depois clique em "Salvar Ordem"
                 </p>
             </div>
         </div>
@@ -702,13 +133,19 @@ function addEditTabToAdmin() {
     
     contentArea.appendChild(editContent);
     
-    // Eventos
+    // Eventos da aba (CORRIGIDO)
     editTab.addEventListener('click', () => {
+        // Remover active de todas as tabs
         document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
         editTab.classList.add('active');
         
+        // Remover active de todos os conteúdos
         document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
         editContent.classList.add('active');
+        
+        // Resetar seção de edição quando mudar de aba
+        document.getElementById('editAlbumSection').style.display = 'none';
+        document.getElementById('editPhotosGrid').innerHTML = '';
         
         updateEditAlbumSelect();
     });
@@ -716,6 +153,7 @@ function addEditTabToAdmin() {
     document.getElementById('loadEditAlbumBtn').addEventListener('click', loadAlbumForEdit);
     document.getElementById('selectAllPhotos').addEventListener('click', selectAllPhotos);
     document.getElementById('deleteSelectedPhotos').addEventListener('click', deleteSelectedPhotos);
+    document.getElementById('saveOrderBtn').addEventListener('click', savePhotoOrder);
 }
 
 // ===== ATUALIZAR SELECT DE ÁLBUNS PARA EDIÇÃO =====
@@ -735,14 +173,12 @@ async function updateEditAlbumSelect() {
             select.appendChild(option);
         });
         
-        console.log(`✅ ${snapshot.size} álbuns disponíveis para edição`);
-        
     } catch (error) {
         console.error('❌ Erro ao carregar álbuns:', error);
     }
 }
 
-// ===== CARREGAR ÁLBUM PARA EDIÇÃO =====
+// ===== CARREGAR ÁLBUM PARA EDIÇÃO (CORRIGIDO) =====
 async function loadAlbumForEdit() {
     const select = document.getElementById('editAlbumSelect');
     const albumId = select.value;
@@ -753,8 +189,6 @@ async function loadAlbumForEdit() {
     }
     
     try {
-        console.log(`📂 Carregando álbum ${albumId} para edição...`);
-        
         const btn = document.getElementById('loadEditAlbumBtn');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
         btn.disabled = true;
@@ -769,7 +203,7 @@ async function loadAlbumForEdit() {
             .orderBy('pageNumber', 'asc')
             .get();
         
-        // Juntar todas as fotos com seus IDs de página
+        // Juntar todas as fotos
         const allPhotos = [];
         photoPagesSnapshot.forEach(pageDoc => {
             const pageData = pageDoc.data();
@@ -787,16 +221,19 @@ async function loadAlbumForEdit() {
         window.currentEditAlbum = {
             id: albumId,
             data: albumData,
-            photos: allPhotos
+            photos: allPhotos,
+            originalOrder: JSON.parse(JSON.stringify(allPhotos))
         };
         
         // Renderizar fotos
         renderPhotosForEdit(allPhotos, albumData.title);
         
+        // CORREÇÃO: Resetar botão corretamente
         btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
         btn.disabled = false;
         
         document.getElementById('editAlbumSection').style.display = 'block';
+        document.getElementById('albumPhotoCount').textContent = allPhotos.length;
         
         console.log(`✅ ${allPhotos.length} fotos carregadas para edição`);
         
@@ -810,7 +247,7 @@ async function loadAlbumForEdit() {
     }
 }
 
-// ===== RENDERIZAR FOTOS PARA EDIÇÃO =====
+// ===== RENDERIZAR FOTOS PARA EDIÇÃO COM DRAG & DROP =====
 function renderPhotosForEdit(photos, albumTitle) {
     const grid = document.getElementById('editPhotosGrid');
     
@@ -825,8 +262,12 @@ function renderPhotosForEdit(photos, albumTitle) {
         const photoCard = document.createElement('div');
         photoCard.className = 'edit-photo-card';
         photoCard.setAttribute('data-index', index);
+        photoCard.setAttribute('data-photo-id', photo.src); // ID único para drag & drop
         
         photoCard.innerHTML = `
+            <div class="drag-handle">
+                <i class="fas fa-grip-vertical"></i>
+            </div>
             <div class="edit-photo-checkbox">
                 <input type="checkbox" id="photo-${index}">
             </div>
@@ -838,7 +279,7 @@ function renderPhotosForEdit(photos, albumTitle) {
         
         // Click na imagem seleciona/deseleciona
         photoCard.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'INPUT') {
+            if (e.target.tagName !== 'INPUT' && !e.target.closest('.drag-handle')) {
                 const checkbox = photoCard.querySelector('input[type="checkbox"]');
                 checkbox.checked = !checkbox.checked;
                 photoCard.classList.toggle('selected', checkbox.checked);
@@ -853,6 +294,139 @@ function renderPhotosForEdit(photos, albumTitle) {
         
         grid.appendChild(photoCard);
     });
+    
+    // Inicializar Drag & Drop
+    initDragAndDrop();
+}
+
+// ===== INICIALIZAR DRAG & DROP (USANDO SORTABLEJS VIA CDN) =====
+function initDragAndDrop() {
+    const grid = document.getElementById('editPhotosGrid');
+    
+    // Carregar SortableJS do CDN
+    if (typeof Sortable === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js';
+        script.onload = () => {
+            createSortable();
+        };
+        document.head.appendChild(script);
+    } else {
+        createSortable();
+    }
+    
+    function createSortable() {
+        new Sortable(grid, {
+            animation: 200,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            chosenClass: 'sortable-chosen',
+            
+            onStart: function() {
+                grid.classList.add('is-dragging');
+            },
+            
+            onEnd: function(evt) {
+                grid.classList.remove('is-dragging');
+                
+                // Atualizar numeração
+                updatePhotoNumbers();
+                
+                // Mostrar botão "Salvar Ordem"
+                document.getElementById('saveOrderBtn').style.display = 'inline-flex';
+                
+                console.log(`📦 Foto movida de #${evt.oldIndex + 1} para #${evt.newIndex + 1}`);
+            }
+        });
+        
+        console.log('✅ Drag & Drop inicializado (arraste pela alça)');
+    }
+}
+
+// ===== ATUALIZAR NUMERAÇÃO DAS FOTOS =====
+function updatePhotoNumbers() {
+    const cards = document.querySelectorAll('.edit-photo-card');
+    cards.forEach((card, index) => {
+        const numberSpan = card.querySelector('.photo-number');
+        numberSpan.textContent = `#${index + 1}`;
+        card.setAttribute('data-index', index);
+    });
+}
+
+// ===== SALVAR NOVA ORDEM DAS FOTOS =====
+async function savePhotoOrder() {
+    if (!confirm('💾 Salvar a nova ordem das fotos?')) {
+        return;
+    }
+    
+    try {
+        const btn = document.getElementById('saveOrderBtn');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        btn.disabled = true;
+        
+        // Coletar nova ordem das fotos
+        const cards = document.querySelectorAll('.edit-photo-card');
+        const newOrder = Array.from(cards).map(card => {
+            const photoSrc = card.getAttribute('data-photo-id');
+            return window.currentEditAlbum.photos.find(p => p.src === photoSrc);
+        });
+        
+        console.log(`💾 Salvando nova ordem (${newOrder.length} fotos)...`);
+        
+        // Reorganizar em páginas
+        const PHOTOS_PER_PAGE = 200;
+        const newPages = [];
+        
+        for (let i = 0; i < newOrder.length; i += PHOTOS_PER_PAGE) {
+            newPages.push(newOrder.slice(i, i + PHOTOS_PER_PAGE));
+        }
+        
+        // Deletar páginas antigas
+        const oldPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', window.currentEditAlbum.id)
+            .get();
+        
+        const deletePromises = [];
+        oldPagesSnapshot.forEach(doc => {
+            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
+        });
+        
+        await Promise.all(deletePromises);
+        
+        // Criar novas páginas com ordem atualizada
+        for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
+            await db.collection('album_photos').add({
+                albumId: window.currentEditAlbum.id,
+                pageNumber: pageIndex,
+                photos: newPages[pageIndex].map(p => ({
+                    src: p.src,
+                    description: p.description,
+                    timestamp: p.timestamp
+                })),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        alert('✅ Ordem das fotos salva com sucesso!');
+        
+        btn.innerHTML = '<i class="fas fa-save"></i> Salvar Ordem';
+        btn.disabled = false;
+        btn.style.display = 'none';
+        
+        // Atualizar galeria principal
+        await loadAlbumsFromFirebase();
+        
+        console.log('✅ Nova ordem salva no Firebase');
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar ordem:', error);
+        alert('❌ Erro ao salvar ordem: ' + error.message);
+        
+        const btn = document.getElementById('saveOrderBtn');
+        btn.innerHTML = '<i class="fas fa-save"></i> Salvar Ordem';
+        btn.disabled = false;
+    }
 }
 
 // ===== SELECIONAR TODAS AS FOTOS =====
@@ -895,21 +469,22 @@ async function deleteSelectedPhotos() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deletando...';
         btn.disabled = true;
         
-        // Coletar índices das fotos selecionadas
-        const selectedIndices = Array.from(checkboxes).map(cb => {
-            return parseInt(cb.closest('.edit-photo-card').getAttribute('data-index'));
-        }).sort((a, b) => b - a); // Ordem decrescente para deletar de trás pra frente
+        // Coletar fotos a serem mantidas
+        const remainingPhotos = [];
+        const cards = document.querySelectorAll('.edit-photo-card');
         
-        console.log(`🗑️ Deletando ${selectedIndices.length} fotos...`);
-        
-        // Filtrar fotos que NÃO serão deletadas
-        const remainingPhotos = window.currentEditAlbum.photos.filter((photo, index) => {
-            return !selectedIndices.includes(index);
+        cards.forEach(card => {
+            const checkbox = card.querySelector('input[type="checkbox"]');
+            if (!checkbox.checked) {
+                const photoSrc = card.getAttribute('data-photo-id');
+                const photo = window.currentEditAlbum.photos.find(p => p.src === photoSrc);
+                if (photo) remainingPhotos.push(photo);
+            }
         });
         
-        console.log(`📊 Fotos restantes: ${remainingPhotos.length}`);
+        console.log(`🗑️ Deletando ${checkboxes.length} fotos, restam ${remainingPhotos.length}`);
         
-        // Reorganizar em páginas de 200 fotos
+        // Reorganizar em páginas
         const PHOTOS_PER_PAGE = 200;
         const newPages = [];
         
@@ -917,7 +492,7 @@ async function deleteSelectedPhotos() {
             newPages.push(remainingPhotos.slice(i, i + PHOTOS_PER_PAGE));
         }
         
-        // Deletar todas as páginas antigas
+        // Deletar páginas antigas
         const oldPagesSnapshot = await db.collection('album_photos')
             .where('albumId', '==', window.currentEditAlbum.id)
             .get();
@@ -928,7 +503,6 @@ async function deleteSelectedPhotos() {
         });
         
         await Promise.all(deletePromises);
-        console.log(`✅ ${oldPagesSnapshot.size} páginas antigas deletadas`);
         
         // Criar novas páginas (se ainda houver fotos)
         if (newPages.length > 0) {
@@ -944,20 +518,17 @@ async function deleteSelectedPhotos() {
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
-            console.log(`✅ ${newPages.length} novas páginas criadas`);
         }
         
-        // Atualizar contador de fotos no álbum
+        // Atualizar contador
         await db.collection('albums').doc(window.currentEditAlbum.id).update({
             photoCount: remainingPhotos.length
         });
         
-        alert(`✅ ${selectedIndices.length} foto(s) deletada(s) com sucesso!\n\n⚠️ As imagens continuam no ImgBB.`);
+        alert(`✅ ${checkboxes.length} foto(s) deletada(s)!\n\n⚠️ As imagens continuam no ImgBB.`);
         
         // Recarregar álbum
         await loadAlbumForEdit();
-        
-        // Atualizar galeria principal
         await loadAlbumsFromFirebase();
         
         btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
@@ -973,19 +544,72 @@ async function deleteSelectedPhotos() {
     }
 }
 
-// ===== CSS PARA O SISTEMA DE EDIÇÃO =====
+// ===== CSS PARA O SISTEMA (BOTÃO DISCRETO + DRAG & DROP) =====
 function injectEditStyles() {
     const style = document.createElement('style');
     style.textContent = `
-        /* Grid de edição de fotos */
+        /* ===== BOTÃO ADMIN DISCRETO ===== */
+        .discreet-admin-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, rgba(255,64,129,0.1), rgba(255,105,180,0.1));
+            border: 1px solid rgba(255,64,129,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0.3;
+            z-index: 998;
+            backdrop-filter: blur(10px);
+        }
+        
+        .discreet-admin-btn:hover {
+            opacity: 0.8;
+            transform: scale(1.1);
+            background: linear-gradient(135deg, rgba(255,64,129,0.2), rgba(255,105,180,0.2));
+            box-shadow: 0 0 20px rgba(255,64,129,0.3);
+        }
+        
+        .discreet-admin-btn i {
+            color: rgba(255,64,129,0.6);
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        
+        .discreet-admin-btn:hover i {
+            color: rgba(255,64,129,1);
+        }
+        
+        .discreet-admin-btn.unlocked {
+            background: linear-gradient(135deg, rgba(76,175,80,0.2), rgba(139,195,74,0.2));
+            border-color: rgba(76,175,80,0.3);
+        }
+        
+        .discreet-admin-btn.unlocked i {
+            color: rgba(76,175,80,0.8);
+        }
+        
+        /* ===== GRID DE EDIÇÃO ===== */
         .edit-photos-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 15px;
             padding: 10px;
+            min-height: 200px;
         }
         
-        /* Card de foto editável */
+        .edit-photos-grid.is-dragging {
+            background: rgba(255,255,255,0.02);
+            border: 2px dashed rgba(255,64,129,0.3);
+            border-radius: 10px;
+        }
+        
+        /* ===== CARD DE FOTO ===== */
         .edit-photo-card {
             position: relative;
             aspect-ratio: 1;
@@ -1011,9 +635,41 @@ function injectEditStyles() {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            pointer-events: none;
         }
         
-        /* Checkbox de seleção */
+        /* ===== ALÇA DE DRAG ===== */
+        .drag-handle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            z-index: 10;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .edit-photo-card:hover .drag-handle {
+            opacity: 1;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        
+        .drag-handle i {
+            color: white;
+            font-size: 14px;
+        }
+        
+        /* ===== CHECKBOX ===== */
         .edit-photo-checkbox {
             position: absolute;
             top: 10px;
@@ -1028,7 +684,7 @@ function injectEditStyles() {
             accent-color: #ff4081;
         }
         
-        /* Info da foto */
+        /* ===== INFO DA FOTO ===== */
         .edit-photo-info {
             position: absolute;
             bottom: 0;
@@ -1047,11 +703,38 @@ function injectEditStyles() {
             font-weight: bold;
         }
         
-        /* Responsivo */
+        /* ===== ESTADOS DO SORTABLE ===== */
+        .sortable-ghost {
+            opacity: 0.3;
+            background: rgba(255,64,129,0.2);
+        }
+        
+        .sortable-drag {
+            opacity: 1;
+            transform: rotate(5deg);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+        }
+        
+        .sortable-chosen {
+            cursor: grabbing;
+        }
+        
+        /* ===== RESPONSIVO ===== */
         @media (max-width: 768px) {
             .edit-photos-grid {
                 grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
                 gap: 10px;
+            }
+            
+            .discreet-admin-btn {
+                width: 35px;
+                height: 35px;
+                bottom: 15px;
+                right: 15px;
+            }
+            
+            .discreet-admin-btn i {
+                font-size: 16px;
             }
         }
     `;
@@ -1060,6 +743,9 @@ function injectEditStyles() {
 
 // ===== INICIALIZAR SISTEMA DE EDIÇÃO =====
 function initEditSystem() {
+    // Criar botão discreto
+    createDiscreetAdminButton();
+    
     // Aguardar admin modal estar pronto
     const checkInterval = setInterval(() => {
         if (document.getElementById('adminModal')) {
@@ -1068,7 +754,7 @@ function initEditSystem() {
             addEditTabToAdmin();
             injectEditStyles();
             
-            console.log('✅ Sistema de edição de álbuns inicializado');
+            console.log('✅ Sistema de edição completo inicializado');
         }
     }, 500);
 }
@@ -1080,6 +766,4 @@ if (document.readyState === 'loading') {
     initEditSystem();
 }
 
-console.log('✏️ Módulo de edição de álbuns carregado!');
-
-console.log('✅ admin.js com Firebase + ImgBB VERDADEIRAMENTE ILIMITADO carregado!');
+console.log('✏️ Módulo completo de edição carregado!');
