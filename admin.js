@@ -1,52 +1,141 @@
-// ===== SISTEMA COMPLETO DE EDIÇÃO COM DRAG & DROP =====
+// ===== SISTEMA COMPLETO COM MENU HAMBÚRGUER MODERNO =====
 
-console.log('✏️ Sistema de edição avançado carregado');
+console.log('🍔 Sistema de menu moderno carregado');
 
-// ===== BOTÃO ADMIN DISCRETO E ELEGANTE =====
-function createDiscreetAdminButton() {
+let isAdminUnlocked = false;
+
+// ===== CRIAR MENU HAMBÚRGUER NO TOPO =====
+function createModernMenu() {
     // REMOVER botão antigo se existir
     const oldBtn = document.getElementById('adminToggleBtn');
     if (oldBtn) oldBtn.remove();
     
-    // CRIAR novo botão discreto
-    const adminBtn = document.createElement('div');
-    adminBtn.id = 'adminToggleBtn';
-    adminBtn.className = 'discreet-admin-btn';
-    adminBtn.title = 'Admin (clique 3x)';
-    adminBtn.innerHTML = '<i class="fas fa-heart"></i>';
+    // CRIAR botão hambúrguer
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'hamburger-menu';
+    menuBtn.id = 'hamburgerMenu';
+    menuBtn.setAttribute('aria-label', 'Menu');
+    menuBtn.innerHTML = `
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+    `;
     
-    document.body.appendChild(adminBtn);
+    // CRIAR sidebar
+    const sidebar = document.createElement('div');
+    sidebar.className = 'menu-sidebar';
+    sidebar.id = 'menuSidebar';
+    sidebar.innerHTML = `
+        <div class="sidebar-header">
+            <h2><i class="fas fa-heart"></i> Kevin & Iara</h2>
+            <button class="close-sidebar" id="closeSidebar">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item" data-scroll="main-section">
+                <i class="fas fa-home"></i>
+                <span>Início</span>
+            </a>
+            
+            <a href="#" class="nav-item" data-scroll="time-counter-section">
+                <i class="far fa-clock"></i>
+                <span>Contador</span>
+            </a>
+            
+            <a href="#" class="nav-item" data-scroll="music-player-section">
+                <i class="fas fa-music"></i>
+                <span>Músicas</span>
+            </a>
+            
+            <a href="#" class="nav-item" data-scroll="albums-section">
+                <i class="fas fa-images"></i>
+                <span>Álbuns</span>
+            </a>
+            
+            <a href="#" class="nav-item" data-scroll="messages-section">
+                <i class="fas fa-envelope"></i>
+                <span>Mensagens</span>
+            </a>
+            
+            <div class="nav-divider"></div>
+            
+            <a href="#" class="nav-item nav-item-admin" id="adminMenuItem">
+                <i class="fas fa-cog"></i>
+                <span>Admin</span>
+                <i class="fas fa-lock" style="margin-left: auto; font-size: 12px;"></i>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <p>Feito com 💖 por Kevin</p>
+        </div>
+    `;
     
-    // Sistema de cliques triplos para ativar
-    let clickCount = 0;
-    let clickTimer = null;
+    // CRIAR overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'menu-overlay';
+    overlay.id = 'menuOverlay';
     
-    adminBtn.addEventListener('click', () => {
-        clickCount++;
-        
-        // Animação de feedback
-        adminBtn.style.transform = 'scale(1.2)';
-        setTimeout(() => {
-            adminBtn.style.transform = 'scale(1)';
-        }, 200);
-        
-        // Reset após 2 segundos
-        clearTimeout(clickTimer);
-        clickTimer = setTimeout(() => {
-            clickCount = 0;
-        }, 2000);
-        
-        // 3 cliques = abrir admin
-        if (clickCount === 3) {
-            clickCount = 0;
-            openAdminModal();
-        }
+    document.body.appendChild(menuBtn);
+    document.body.appendChild(sidebar);
+    document.body.appendChild(overlay);
+    
+    // EVENTOS
+    menuBtn.addEventListener('click', openSidebar);
+    document.getElementById('closeSidebar').addEventListener('click', closeSidebar);
+    overlay.addEventListener('click', closeSidebar);
+    
+    // Navegação por scroll
+    document.querySelectorAll('.nav-item[data-scroll]').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const sectionClass = item.getAttribute('data-scroll');
+            const section = document.querySelector(`.${sectionClass}`);
+            
+            if (section) {
+                closeSidebar();
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+            }
+        });
     });
     
-    console.log('💖 Botão admin discreto criado (clique 3x no coração)');
+    // Item Admin
+    document.getElementById('adminMenuItem').addEventListener('click', (e) => {
+        e.preventDefault();
+        openAdminModal();
+    });
+    
+    console.log('✅ Menu hambúrguer criado');
 }
 
-// ===== ABRIR MODAL DE ADMIN (CORRIGIDO) =====
+// ===== ABRIR/FECHAR SIDEBAR =====
+function openSidebar() {
+    const sidebar = document.getElementById('menuSidebar');
+    const overlay = document.getElementById('menuOverlay');
+    const hamburger = document.getElementById('hamburgerMenu');
+    
+    sidebar.classList.add('active');
+    overlay.classList.add('active');
+    hamburger.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('menuSidebar');
+    const overlay = document.getElementById('menuOverlay');
+    const hamburger = document.getElementById('hamburgerMenu');
+    
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+    hamburger.classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+// ===== ABRIR MODAL DE ADMIN =====
 function openAdminModal() {
     const adminModal = document.getElementById('adminModal');
     
@@ -55,30 +144,56 @@ function openAdminModal() {
         
         if (password === 'iara2023') {
             isAdminUnlocked = true;
-            const adminBtn = document.getElementById('adminToggleBtn');
-            adminBtn.classList.add('unlocked');
-            adminBtn.innerHTML = '<i class="fas fa-unlock"></i>';
-            adminModal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-            loadExistingContent();
+            
+            // Atualizar ícone do menu
+            const adminMenuItem = document.getElementById('adminMenuItem');
+            const lockIcon = adminMenuItem.querySelector('.fa-lock');
+            if (lockIcon) {
+                lockIcon.className = 'fas fa-unlock';
+                lockIcon.style.color = '#4CAF50';
+            }
+            
+            closeSidebar();
+            setTimeout(() => {
+                adminModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                if (typeof loadExistingContent === 'function') {
+                    loadExistingContent();
+                }
+            }, 300);
+            
             console.log('✅ Admin desbloqueado');
         } else {
             alert('❌ Senha incorreta!');
         }
     } else {
-        adminModal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
-        loadExistingContent();
+        closeSidebar();
+        setTimeout(() => {
+            adminModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            if (typeof loadExistingContent === 'function') {
+                loadExistingContent();
+            }
+        }, 300);
     }
 }
 
 // ===== ADICIONAR ABA DE EDIÇÃO NO PAINEL ADMIN =====
 function addEditTabToAdmin() {
     const tabsContainer = document.querySelector('.admin-tabs');
+    
+    if (!tabsContainer) {
+        console.warn('⚠️ Tabs container não encontrado');
+        return;
+    }
+    
     const contentArea = tabsContainer.parentElement;
     
     // Verificar se já existe
-    if (document.querySelector('[data-tab="edit"]')) return;
+    if (document.querySelector('[data-tab="edit"]')) {
+        console.log('✅ Aba de edição já existe');
+        return;
+    }
     
     // Adicionar botão da aba
     const editTab = document.createElement('button');
@@ -133,7 +248,7 @@ function addEditTabToAdmin() {
     
     contentArea.appendChild(editContent);
     
-    // Eventos da aba (CORRIGIDO)
+    // Eventos da aba
     editTab.addEventListener('click', () => {
         // Remover active de todas as tabs
         document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -143,22 +258,32 @@ function addEditTabToAdmin() {
         document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
         editContent.classList.add('active');
         
-        // Resetar seção de edição quando mudar de aba
+        // Resetar seção de edição
         document.getElementById('editAlbumSection').style.display = 'none';
         document.getElementById('editPhotosGrid').innerHTML = '';
+        document.getElementById('saveOrderBtn').style.display = 'none';
         
         updateEditAlbumSelect();
     });
     
-    document.getElementById('loadEditAlbumBtn').addEventListener('click', loadAlbumForEdit);
-    document.getElementById('selectAllPhotos').addEventListener('click', selectAllPhotos);
-    document.getElementById('deleteSelectedPhotos').addEventListener('click', deleteSelectedPhotos);
-    document.getElementById('saveOrderBtn').addEventListener('click', savePhotoOrder);
+    // Eventos dos botões
+    const loadBtn = document.getElementById('loadEditAlbumBtn');
+    const selectAllBtn = document.getElementById('selectAllPhotos');
+    const deleteBtn = document.getElementById('deleteSelectedPhotos');
+    const saveBtn = document.getElementById('saveOrderBtn');
+    
+    if (loadBtn) loadBtn.addEventListener('click', loadAlbumForEdit);
+    if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllPhotos);
+    if (deleteBtn) deleteBtn.addEventListener('click', deleteSelectedPhotos);
+    if (saveBtn) saveBtn.addEventListener('click', savePhotoOrder);
+    
+    console.log('✅ Aba de edição adicionada');
 }
 
 // ===== ATUALIZAR SELECT DE ÁLBUNS PARA EDIÇÃO =====
 async function updateEditAlbumSelect() {
     const select = document.getElementById('editAlbumSelect');
+    if (!select) return;
     
     try {
         const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
@@ -173,12 +298,14 @@ async function updateEditAlbumSelect() {
             select.appendChild(option);
         });
         
+        console.log(`✅ ${snapshot.size} álbuns carregados para edição`);
+        
     } catch (error) {
         console.error('❌ Erro ao carregar álbuns:', error);
     }
 }
 
-// ===== CARREGAR ÁLBUM PARA EDIÇÃO (CORRIGIDO) =====
+// ===== CARREGAR ÁLBUM PARA EDIÇÃO =====
 async function loadAlbumForEdit() {
     const select = document.getElementById('editAlbumSelect');
     const albumId = select.value;
@@ -228,7 +355,7 @@ async function loadAlbumForEdit() {
         // Renderizar fotos
         renderPhotosForEdit(allPhotos, albumData.title);
         
-        // CORREÇÃO: Resetar botão corretamente
+        // Resetar botão
         btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
         btn.disabled = false;
         
@@ -262,7 +389,7 @@ function renderPhotosForEdit(photos, albumTitle) {
         const photoCard = document.createElement('div');
         photoCard.className = 'edit-photo-card';
         photoCard.setAttribute('data-index', index);
-        photoCard.setAttribute('data-photo-id', photo.src); // ID único para drag & drop
+        photoCard.setAttribute('data-photo-id', photo.src);
         
         photoCard.innerHTML = `
             <div class="drag-handle">
@@ -299,11 +426,10 @@ function renderPhotosForEdit(photos, albumTitle) {
     initDragAndDrop();
 }
 
-// ===== INICIALIZAR DRAG & DROP (USANDO SORTABLEJS VIA CDN) =====
+// ===== INICIALIZAR DRAG & DROP =====
 function initDragAndDrop() {
     const grid = document.getElementById('editPhotosGrid');
     
-    // Carregar SortableJS do CDN
     if (typeof Sortable === 'undefined') {
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js';
@@ -321,30 +447,18 @@ function initDragAndDrop() {
             handle: '.drag-handle',
             ghostClass: 'sortable-ghost',
             dragClass: 'sortable-drag',
-            chosenClass: 'sortable-chosen',
             
-            onStart: function() {
-                grid.classList.add('is-dragging');
-            },
-            
-            onEnd: function(evt) {
-                grid.classList.remove('is-dragging');
-                
-                // Atualizar numeração
+            onEnd: function() {
                 updatePhotoNumbers();
-                
-                // Mostrar botão "Salvar Ordem"
                 document.getElementById('saveOrderBtn').style.display = 'inline-flex';
-                
-                console.log(`📦 Foto movida de #${evt.oldIndex + 1} para #${evt.newIndex + 1}`);
             }
         });
         
-        console.log('✅ Drag & Drop inicializado (arraste pela alça)');
+        console.log('✅ Drag & Drop inicializado');
     }
 }
 
-// ===== ATUALIZAR NUMERAÇÃO DAS FOTOS =====
+// ===== ATUALIZAR NUMERAÇÃO =====
 function updatePhotoNumbers() {
     const cards = document.querySelectorAll('.edit-photo-card');
     cards.forEach((card, index) => {
@@ -354,27 +468,21 @@ function updatePhotoNumbers() {
     });
 }
 
-// ===== SALVAR NOVA ORDEM DAS FOTOS =====
+// ===== SALVAR NOVA ORDEM =====
 async function savePhotoOrder() {
-    if (!confirm('💾 Salvar a nova ordem das fotos?')) {
-        return;
-    }
+    if (!confirm('💾 Salvar a nova ordem das fotos?')) return;
     
     try {
         const btn = document.getElementById('saveOrderBtn');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
         btn.disabled = true;
         
-        // Coletar nova ordem das fotos
         const cards = document.querySelectorAll('.edit-photo-card');
         const newOrder = Array.from(cards).map(card => {
             const photoSrc = card.getAttribute('data-photo-id');
             return window.currentEditAlbum.photos.find(p => p.src === photoSrc);
         });
         
-        console.log(`💾 Salvando nova ordem (${newOrder.length} fotos)...`);
-        
-        // Reorganizar em páginas
         const PHOTOS_PER_PAGE = 200;
         const newPages = [];
         
@@ -394,7 +502,7 @@ async function savePhotoOrder() {
         
         await Promise.all(deletePromises);
         
-        // Criar novas páginas com ordem atualizada
+        // Criar novas páginas
         for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
             await db.collection('album_photos').add({
                 albumId: window.currentEditAlbum.id,
@@ -414,10 +522,7 @@ async function savePhotoOrder() {
         btn.disabled = false;
         btn.style.display = 'none';
         
-        // Atualizar galeria principal
         await loadAlbumsFromFirebase();
-        
-        console.log('✅ Nova ordem salva no Firebase');
         
     } catch (error) {
         console.error('❌ Erro ao salvar ordem:', error);
@@ -429,7 +534,7 @@ async function savePhotoOrder() {
     }
 }
 
-// ===== SELECIONAR TODAS AS FOTOS =====
+// ===== SELECIONAR TODAS =====
 function selectAllPhotos() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
     const allChecked = Array.from(checkboxes).every(cb => cb.checked);
@@ -440,14 +545,12 @@ function selectAllPhotos() {
     });
     
     const btn = document.getElementById('selectAllPhotos');
-    if (allChecked) {
-        btn.innerHTML = '<i class="fas fa-check-double"></i> Selecionar Todas';
-    } else {
-        btn.innerHTML = '<i class="fas fa-times"></i> Desmarcar Todas';
-    }
+    btn.innerHTML = allChecked 
+        ? '<i class="fas fa-check-double"></i> Selecionar Todas'
+        : '<i class="fas fa-times"></i> Desmarcar Todas';
 }
 
-// ===== DELETAR FOTOS SELECIONADAS =====
+// ===== DELETAR SELECIONADAS =====
 async function deleteSelectedPhotos() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
     
@@ -457,19 +560,16 @@ async function deleteSelectedPhotos() {
     }
     
     const confirmMsg = checkboxes.length === 1 
-        ? '❌ Tem certeza que deseja deletar esta foto?' 
-        : `❌ Tem certeza que deseja deletar ${checkboxes.length} fotos?`;
+        ? '❌ Deletar esta foto?' 
+        : `❌ Deletar ${checkboxes.length} fotos?`;
     
-    if (!confirm(confirmMsg + '\n\nISTO NÃO DELETARÁ as imagens do ImgBB.')) {
-        return;
-    }
+    if (!confirm(confirmMsg)) return;
     
     try {
         const btn = document.getElementById('deleteSelectedPhotos');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deletando...';
         btn.disabled = true;
         
-        // Coletar fotos a serem mantidas
         const remainingPhotos = [];
         const cards = document.querySelectorAll('.edit-photo-card');
         
@@ -482,9 +582,6 @@ async function deleteSelectedPhotos() {
             }
         });
         
-        console.log(`🗑️ Deletando ${checkboxes.length} fotos, restam ${remainingPhotos.length}`);
-        
-        // Reorganizar em páginas
         const PHOTOS_PER_PAGE = 200;
         const newPages = [];
         
@@ -504,7 +601,7 @@ async function deleteSelectedPhotos() {
         
         await Promise.all(deletePromises);
         
-        // Criar novas páginas (se ainda houver fotos)
+        // Criar novas páginas
         if (newPages.length > 0) {
             for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
                 await db.collection('album_photos').add({
@@ -525,9 +622,8 @@ async function deleteSelectedPhotos() {
             photoCount: remainingPhotos.length
         });
         
-        alert(`✅ ${checkboxes.length} foto(s) deletada(s)!\n\n⚠️ As imagens continuam no ImgBB.`);
+        alert(`✅ ${checkboxes.length} foto(s) deletada(s)!`);
         
-        // Recarregar álbum
         await loadAlbumForEdit();
         await loadAlbumsFromFirebase();
         
@@ -536,7 +632,7 @@ async function deleteSelectedPhotos() {
         
     } catch (error) {
         console.error('❌ Erro ao deletar fotos:', error);
-        alert('❌ Erro ao deletar fotos: ' + error.message);
+        alert('❌ Erro: ' + error.message);
         
         const btn = document.getElementById('deleteSelectedPhotos');
         btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
@@ -544,54 +640,198 @@ async function deleteSelectedPhotos() {
     }
 }
 
-// ===== CSS PARA O SISTEMA (BOTÃO DISCRETO + DRAG & DROP) =====
-function injectEditStyles() {
+// ===== CSS DO MENU E SISTEMA DE EDIÇÃO =====
+function injectMenuStyles() {
     const style = document.createElement('style');
     style.textContent = `
-        /* ===== BOTÃO ADMIN DISCRETO ===== */
-        .discreet-admin-btn {
+        /* ===== BOTÃO HAMBÚRGUER ===== */
+        .hamburger-menu {
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, rgba(255,64,129,0.1), rgba(255,105,180,0.1));
-            border: 1px solid rgba(255,64,129,0.2);
-            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            padding: 0;
+        }
+        
+        .hamburger-menu:hover {
+            background: rgba(255, 64, 129, 0.2);
+            border-color: rgba(255, 64, 129, 0.4);
+            transform: scale(1.05);
+        }
+        
+        .hamburger-line {
+            width: 24px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .hamburger-menu:hover .hamburger-line {
+            background: #ff4081;
+        }
+        
+        .hamburger-menu.active .hamburger-line:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+        
+        .hamburger-menu.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger-menu.active .hamburger-line:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+        
+        /* ===== OVERLAY ===== */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* ===== SIDEBAR ===== */
+        .menu-sidebar {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 320px;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(20, 20, 30, 0.98), rgba(30, 20, 40, 0.98));
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1002;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 50px rgba(0, 0, 0, 0.5);
+        }
+        
+        .menu-sidebar.active {
+            right: 0;
+        }
+        
+        /* ===== HEADER DA SIDEBAR ===== */
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .sidebar-header h2 {
+            font-family: 'Dancing Script', cursive;
+            font-size: 24px;
+            color: #ff4081;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .close-sidebar {
+            width: 35px;
+            height: 35px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+        }
+        
+        .close-sidebar:hover {
+            background: rgba(255, 64, 129, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        /* ===== NAVEGAÇÃO ===== */
+        .sidebar-nav {
+            flex: 1;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 25px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 16px;
             transition: all 0.3s ease;
-            opacity: 0.3;
-            z-index: 998;
-            backdrop-filter: blur(10px);
+            border-left: 3px solid transparent;
         }
         
-        .discreet-admin-btn:hover {
-            opacity: 0.8;
-            transform: scale(1.1);
-            background: linear-gradient(135deg, rgba(255,64,129,0.2), rgba(255,105,180,0.2));
-            box-shadow: 0 0 20px rgba(255,64,129,0.3);
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-left-color: #ff4081;
         }
         
-        .discreet-admin-btn i {
-            color: rgba(255,64,129,0.6);
-            font-size: 18px;
-            transition: all 0.3s ease;
+        .nav-item i {
+            font-size: 20px;
+            width: 25px;
+            text-align: center;
         }
         
-        .discreet-admin-btn:hover i {
-            color: rgba(255,64,129,1);
+        .nav-item-admin {
+            margin-top: 10px;
+            color: rgba(255, 200, 100, 0.8);
         }
         
-        .discreet-admin-btn.unlocked {
-            background: linear-gradient(135deg, rgba(76,175,80,0.2), rgba(139,195,74,0.2));
-            border-color: rgba(76,175,80,0.3);
+        .nav-item-admin:hover {
+            border-left-color: #ffc107;
         }
         
-        .discreet-admin-btn.unlocked i {
-            color: rgba(76,175,80,0.8);
+        .nav-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 15px 20px;
+        }
+        
+        /* ===== FOOTER DA SIDEBAR ===== */
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+        
+        .sidebar-footer p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
         }
         
         /* ===== GRID DE EDIÇÃO ===== */
@@ -600,16 +840,8 @@ function injectEditStyles() {
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 15px;
             padding: 10px;
-            min-height: 200px;
         }
         
-        .edit-photos-grid.is-dragging {
-            background: rgba(255,255,255,0.02);
-            border: 2px dashed rgba(255,64,129,0.3);
-            border-radius: 10px;
-        }
-        
-        /* ===== CARD DE FOTO ===== */
         .edit-photo-card {
             position: relative;
             aspect-ratio: 1;
@@ -635,10 +867,8 @@ function injectEditStyles() {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            pointer-events: none;
         }
         
-        /* ===== ALÇA DE DRAG ===== */
         .drag-handle {
             position: absolute;
             top: 10px;
@@ -669,7 +899,6 @@ function injectEditStyles() {
             font-size: 14px;
         }
         
-        /* ===== CHECKBOX ===== */
         .edit-photo-checkbox {
             position: absolute;
             top: 10px;
@@ -684,7 +913,6 @@ function injectEditStyles() {
             accent-color: #ff4081;
         }
         
-        /* ===== INFO DA FOTO ===== */
         .edit-photo-info {
             position: absolute;
             bottom: 0;
@@ -703,67 +931,58 @@ function injectEditStyles() {
             font-weight: bold;
         }
         
-        /* ===== ESTADOS DO SORTABLE ===== */
         .sortable-ghost {
             opacity: 0.3;
-            background: rgba(255,64,129,0.2);
         }
         
         .sortable-drag {
             opacity: 1;
             transform: rotate(5deg);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-        }
-        
-        .sortable-chosen {
-            cursor: grabbing;
         }
         
         /* ===== RESPONSIVO ===== */
         @media (max-width: 768px) {
-            .edit-photos-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-                gap: 10px;
+            .menu-sidebar {
+                width: 280px;
+                right: -280px;
             }
             
-            .discreet-admin-btn {
-                width: 35px;
-                height: 35px;
-                bottom: 15px;
+            .hamburger-menu {
+                width: 45px;
+                height: 45px;
+                top: 15px;
                 right: 15px;
             }
             
-            .discreet-admin-btn i {
-                font-size: 16px;
+            .edit-photos-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 10px;
             }
         }
     `;
     document.head.appendChild(style);
 }
 
-// ===== INICIALIZAR SISTEMA DE EDIÇÃO =====
-function initEditSystem() {
-    // Criar botão discreto
-    createDiscreetAdminButton();
+// ===== INICIALIZAR SISTEMA =====
+function initCompleteSystem() {
+    createModernMenu();
+    injectMenuStyles();
     
     // Aguardar admin modal estar pronto
     const checkInterval = setInterval(() => {
         if (document.getElementById('adminModal')) {
             clearInterval(checkInterval);
-            
             addEditTabToAdmin();
-            injectEditStyles();
-            
-            console.log('✅ Sistema de edição completo inicializado');
+            console.log('✅ Sistema completo inicializado');
         }
     }, 500);
 }
 
-// Inicializar quando o DOM carregar
+// Inicializar
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initEditSystem);
+    document.addEventListener('DOMContentLoaded', initCompleteSystem);
 } else {
-    initEditSystem();
+    initCompleteSystem();
 }
 
-console.log('✏️ Módulo completo de edição carregado!');
+console.log('✅ Sistema com menu hambúrguer carregado!');
