@@ -13,29 +13,86 @@
 </head>
 <body>
 
-    <!-- Menu de Tema Lateral -->
-    <div class="theme-menu">
-        <button class="theme-menu-toggle" id="themeToggle" title="Configurar tema">
-            <i class="fas fa-palette"></i>
-        </button>
-        
-        <div class="theme-selector hidden" id="themeSelector">
-            <button class="theme-btn active" data-theme="meteors" title="Meteoros">
-                <i class="fas fa-meteor"></i>
-            </button>
-            <button class="theme-btn" data-theme="hearts" title="Corações">
-                <i class="fas fa-heart"></i>
-            </button>
-            <button class="theme-btn" data-theme="aurora" title="Aurora">
-                <i class="fas fa-palette"></i>
-            </button>
-            <button class="theme-btn" data-theme="winter" title="Inverno Mágico">
-                <i class="fas fa-snowflake"></i>
+<!-- ===== MENU HAMBÚRGUER MINIMALISTA ===== -->
+<div class="hamburger-menu">
+    <!-- Botão Hambúrguer -->
+    <button class="hamburger-button" id="hamburgerBtn">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- Overlay -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- Menu Lateral -->
+    <nav class="side-menu" id="sideMenu">
+        <!-- Header do Menu -->
+        <div class="menu-header">
+            <h2>Menu</h2>
+            <button class="menu-close-btn">
+                <i class="fas fa-times"></i>
             </button>
         </div>
-    </div>
 
-    <!-- Conteúdo Principal -->
+        <!-- Navegação -->
+        <div class="menu-section">
+            <h3>NAVEGAÇÃO</h3>
+            <ul class="menu-nav">
+                <li><a href="#home">
+                    <i class="fas fa-home"></i>
+                    <span>Início</span>
+                </a></li>
+                <li><a href="#contador">
+                    <i class="fas fa-clock"></i>
+                    <span>Contador</span>
+                </a></li>
+                <li><a href="#musicas">
+                    <i class="fas fa-music"></i>
+                    <span>Músicas</span>
+                </a></li>
+                <li><a href="#albuns">
+                    <i class="fas fa-images"></i>
+                    <span>Álbuns</span>
+                </a></li>
+                <li><a href="#mensagens">
+                    <i class="fas fa-envelope"></i>
+                    <span>Mensagens</span>
+                </a></li>
+            </ul>
+        </div>
+
+        <!-- Temas -->
+        <div class="menu-section">
+            <h3>TEMA</h3>
+            <div class="theme-grid">
+                <button class="theme-card active" data-theme="meteors">
+                    <i class="fas fa-meteor"></i>
+                </button>
+                <button class="theme-card" data-theme="hearts">
+                    <i class="fas fa-heart"></i>
+                </button>
+                <button class="theme-card" data-theme="aurora">
+                    <i class="fas fa-spa"></i>
+                </button>
+                <button class="theme-card" data-theme="winter">
+                    <i class="fas fa-snowflake"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Admin -->
+        <div class="menu-section">
+            <button class="admin-menu-btn" id="adminMenuBtn">
+                <i class="fas fa-shield-alt"></i>
+                <span>Admin</span>
+                <i class="fas fa-lock admin-lock-icon"></i>
+            </button>
+        </div>
+    </nav>
+</div>
+
+<!-- Conteúdo Principal -->
     <div class="container">
         <!-- Cabeçalho com Nomes -->
         <header class="header">
@@ -462,10 +519,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
-    <!-- Scripts do site -->
     <script src="animations.js"></script>
-    <script src="script.js"></script>
     <script src="firebase-config.js"></script>
+    <script src="imgbb-config.js"></script>
     <script src="admin.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
