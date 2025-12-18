@@ -506,6 +506,14 @@ function changeTheme(themeName, shouldSave = true) {
     let startY = 0;
     let translateX = 0;
     let translateY = 0;
+    let tapStartX = 0;
+    let tapStartY = 0;
+    let tapStartTime = 0;
+    let isTapping = false;
+    let tapTimeout = null;
+    const TAP_THRESHOLD = 10; // pixels de movimento máximo para considerar tap
+    const TAP_DURATION = 300; // ms máximo para considerar tap
+    const TAP_DELAY = 250; 
 
     // Variáveis específicas para gestos mobile
     let lastTouchTime = 0;
@@ -594,6 +602,9 @@ function changeTheme(themeName, shouldSave = true) {
 
     function handleDoubleTap(x, y) {
         console.log('🔍 Duplo toque/clique detectado! Zoom atual:', zoomLevel);
+
+        isTapping = false;
+        blockNavigation = true;
         
         const modalPhoto = document.getElementById('modalPhoto');
         if (!modalPhoto) return;
@@ -612,12 +623,19 @@ function changeTheme(themeName, shouldSave = true) {
             updateImageTransform();
             blockNavigation = true;
             console.log('✅ Zoom IN aplicado');
-        } else {
-            // ZOOM OUT
-            resetZoom();
-            console.log('✅ Zoom OUT aplicado');
-        }
+} else {
+        // ZOOM OUT
+        resetZoom();
+        console.log('✅ Zoom OUT aplicado');
     }
+    
+    // Desbloquear navegação após um pequeno delay
+    setTimeout(() => {
+        if (zoomLevel === 1) {
+            blockNavigation = false;
+        }
+    }, 150);
+}
 
     // ===== FUNÇÃO ÚNICA E CORRETA initModal =====
     function initModal() {
@@ -679,64 +697,94 @@ function changeTheme(themeName, shouldSave = true) {
         // ===== GESTOS TOUCH (MOBILE) =====
         let touchStart = {};
         
-        albumViewer.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+    albumViewer.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const now = Date.now();
+        const touches = e.touches;
+        
+
+        // ===== CANCELAR QUALQUER TAP PENDENTE =====
+        if (tapTimeout) {
+            clearTimeout(tapTimeout);
+            tapTimeout = null;
+            console.log('❌ Tap anterior cancelado');
+        }
+        // ===== REGISTRO INICIAL DO TAP =====
+        if (touches.length === 1 && zoomLevel === 1) {
+            isTapping = true;
+            tapStartX = touches[0].clientX;
+            tapStartY = touches[0].clientY;
+            tapStartTime = now;
+        }
+        
+        // Guardar posições iniciais
+        for (let i = 0; i < touches.length; i++) {
+            touchStart[i] = {
+                x: touches[i].clientX,
+                y: touches[i].clientY
+            };
+        }
+        
+        touchCount = touches.length;
+        
+        // Se tiver 2 dedos, é PINCH
+        if (touches.length === 2) {
+            console.log('🔍 Pinch detectado (2 dedos)');
+            isPinching = true;
+            isTapping = false; // Cancelar tap
+            initialPinchDistance = getTouchDistance(touches[0], touches[1]);
+            lastPinchDistance = initialPinchDistance;
             
-            const now = Date.now();
-            const touches = e.touches;
+            // Cancelar qualquer duplo toque pendente
+            if (doubleTapTimeout) {
+                clearTimeout(doubleTapTimeout);
+                doubleTapTimeout = null;
+            }
+            return;
+        }
+        
+        // Se tiver 1 dedo, pode ser duplo toque ou arraste
+        if (touches.length === 1) {
+            const touch = touches[0];
+            const timeSinceLastTouch = now - lastTouchTime;
             
-            // Guardar posições iniciais
-            for (let i = 0; i < touches.length; i++) {
-                touchStart[i] = {
-                    x: touches[i].clientX,
-                    y: touches[i].clientY
-                };
+        // Verificar se é duplo toque
+        if (timeSinceLastTouch < 300 && timeSinceLastTouch > 0) {
+            console.log('👆👆 Duplo toque detectado');
+            isTapping = false; // Cancelar tap imediatamente
+            if (tapTimeout) {
+                clearTimeout(tapTimeout);
+                tapTimeout = null;
+                console.log('❌ Tap pendente cancelado pelo duplo toque');
             }
             
-            touchCount = touches.length;
+            blockNavigation = true; // Bloquear qualquer navegação
+            handleDoubleTap(touch.clientX, touch.clientY);
             
-            // Se tiver 2 dedos, é PINCH
-            if (touches.length === 2) {
-                console.log('🔍 Pinch detectado (2 dedos)');
-                isPinching = true;
-                initialPinchDistance = getTouchDistance(touches[0], touches[1]);
-                lastPinchDistance = initialPinchDistance;
-                
-                // Cancelar qualquer duplo toque pendente
-                if (doubleTapTimeout) {
-                    clearTimeout(doubleTapTimeout);
-                    doubleTapTimeout = null;
-                }
-                return;
-            }
+            // Desbloquear após um pequeno delay
+            setTimeout(() => {
+                blockNavigation = false;
+            }, 100);
             
-            // Se tiver 1 dedo, pode ser duplo toque ou arraste
-            if (touches.length === 1) {
-                const touch = touches[0];
-                const timeSinceLastTouch = now - lastTouchTime;
-                
-                // Verificar se é duplo toque
-                if (timeSinceLastTouch < 300 && timeSinceLastTouch > 0) {
-                    console.log('👆👆 Duplo toque detectado');
-                    handleDoubleTap(touch.clientX, touch.clientY);
-                    
-                    // Resetar timer
-                    lastTouchTime = 0;
-                    return;
-                }
-                
-                // Iniciar arraste se estiver com zoom
-                if (zoomLevel > 1) {
-                    isDragging = true;
-                    startX = touch.clientX - translateX;
-                    startY = touch.clientY - translateY;
-                    modalPhoto.style.cursor = 'grabbing';
-                }
-                
-                lastTouchTime = now;
-            }
-        }, { passive: false });
+            // Resetar timer
+            lastTouchTime = 0;
+            return;
+        }
+        
+        // Iniciar arraste se estiver com zoom
+        if (zoomLevel > 1) {
+            isTapping = false; // Cancelar tap
+            isDragging = true;
+            startX = touch.clientX - translateX;
+            startY = touch.clientY - translateY;
+            modalPhoto.style.cursor = 'grabbing';
+        }
+        
+        lastTouchTime = now;
+    }
+}, { passive: false });
         
         albumViewer.addEventListener('touchmove', (e) => {
             e.preventDefault();
@@ -744,10 +792,29 @@ function changeTheme(themeName, shouldSave = true) {
             
             const touches = e.touches;
             lastGestureTime = Date.now();
+
+            // ===== CANCELAR TAP SE HOUVER MOVIMENTO =====
+        if (isTapping && touches.length === 1) {
+            const moveX = Math.abs(touches[0].clientX - tapStartX);
+            const moveY = Math.abs(touches[0].clientY - tapStartY);
+            
+            if (moveX > TAP_THRESHOLD || moveY > TAP_THRESHOLD) {
+                isTapping = false;
+                
+                // CANCELAR TIMEOUT PENDENTE
+                if (tapTimeout) {
+                    clearTimeout(tapTimeout);
+                    tapTimeout = null;
+                }
+                
+                console.log('❌ Tap cancelado - movimento detectado');
+            }
+        }
             
             // PINCH TO ZOOM
             if (touches.length === 2 && isPinching) {
                 blockNavigation = true;
+                isTapping = false;
                 
                 const currentDistance = getTouchDistance(touches[0], touches[1]);
                 const delta = currentDistance - lastPinchDistance;
@@ -785,6 +852,7 @@ function changeTheme(themeName, shouldSave = true) {
             // DRAG (arrastar imagem com zoom)
             else if (touches.length === 1 && isDragging && zoomLevel > 1) {
                 blockNavigation = true;
+                isTapping = false;
                 
                 const touch = touches[0];
                 translateX = touch.clientX - startX;
@@ -793,9 +861,47 @@ function changeTheme(themeName, shouldSave = true) {
             }
         }, { passive: false });
         
-        albumViewer.addEventListener('touchend', (e) => {
+            albumViewer.addEventListener('touchend', (e) => {
             const touches = e.touches;
+            const changedTouch = e.changedTouches[0];
             
+// ===== PROCESSAR TAP PARA NAVEGAÇÃO (COM DELAY) =====
+if (isTapping && touches.length === 0 && zoomLevel === 1 && !blockNavigation) {
+    const tapDuration = Date.now() - tapStartTime;
+    const moveX = Math.abs(changedTouch.clientX - tapStartX);
+    const moveY = Math.abs(changedTouch.clientY - tapStartY);
+    
+    // Verificar se foi um tap válido
+    if (tapDuration < TAP_DURATION && 
+        moveX < TAP_THRESHOLD && 
+        moveY < TAP_THRESHOLD) {
+        
+        // Limpar timeout anterior se existir
+        if (tapTimeout) {
+            clearTimeout(tapTimeout);
+        }
+        
+        // Guardar posição do tap
+        const savedTapX = tapStartX;
+        
+        // Aguardar 250ms antes de processar (para detectar duplo toque)
+        tapTimeout = setTimeout(() => {
+            // Só executar se ainda estiver válido
+            if (zoomLevel === 1 && !blockNavigation && !isPinching && !isDragging) {
+                console.log('✅ Tap confirmado após delay');
+                handleTapNavigation(savedTapX);
+            } else {
+                console.log('❌ Tap cancelado - condições mudaram');
+            }
+            tapTimeout = null;
+        }, TAP_DELAY);
+        
+        console.log('⏳ Aguardando confirmação do tap...');
+    }
+    
+    isTapping = false;
+}
+    
             // Se todos os dedos saíram
             if (touches.length === 0) {
                 // Finalizar pinch
@@ -839,6 +945,7 @@ function changeTheme(themeName, shouldSave = true) {
                 console.log('🔄 Transição: pinch → drag');
                 isPinching = false;
                 isDragging = true;
+                isTapping = false;
                 
                 // Configurar para drag
                 const touch = touches[0];
@@ -911,6 +1018,35 @@ function changeTheme(themeName, shouldSave = true) {
         });
         
         console.log('✅ Modal inicializado com gestos separados');
+    }
+
+    // ===== FUNÇÃO PARA NAVEGAÇÃO POR TAP (ESTILO REDE SOCIAL) =====
+    function handleTapNavigation(tapX) {
+        if (blockNavigation || zoomLevel > 1 || isPinching || isDragging) {
+            console.log('🚫 Tap navigation bloqueada');
+            return;
+        }
+        
+        // Pegar largura da tela
+        const screenWidth = window.innerWidth;
+        const middlePoint = screenWidth / 2;
+        
+        // Decidir navegação baseado na posição do toque
+        if (tapX < middlePoint) {
+            // Toque na metade esquerda = foto anterior
+            console.log('👈 Tap esquerda: foto anterior');
+            const prevBtn = document.getElementById('prevPhotoBtn');
+            if (prevBtn) {
+                prevBtn.click();
+            }
+        } else {
+            // Toque na metade direita = próxima foto
+            console.log('👉 Tap direita: próxima foto');
+            const nextBtn = document.getElementById('nextPhotoBtn');
+            if (nextBtn) {
+                nextBtn.click();
+            }
+        }
     }
 
     // ===== FUNÇÕES DE ÁLBUM =====
@@ -1488,4 +1624,6 @@ function initHamburgerMenu() {
     console.log('✅ Menu hambúrguer premium inicializado!');
     console.log('✅ Auto-fechamento de menu configurado');
     return true;
+    
+    
 }
