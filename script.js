@@ -1,1491 +1,1085 @@
-// ===== CONFIGURAÇÕES INICIAIS =====
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Iniciando site Kevin & Iara...');
-    
-    // 1. PRIMEIRO: Verificar se elementos existem
-    const hamburgerBtn = document.getElementById('hamburgerBtn');
-    const sideMenu = document.getElementById('sideMenu');
-    const menuOverlay = document.getElementById('menuOverlay');
-    
-    if (!hamburgerBtn || !sideMenu || !menuOverlay) {
-        console.error('❌ ERRO CRÍTICO: Elementos do menu não encontrados!');
-        console.error('hamburgerBtn:', hamburgerBtn);
-        console.error('sideMenu:', sideMenu);
-        console.error('menuOverlay:', menuOverlay);
-        return;
-    }
-    
-    console.log('✅ Elementos do menu encontrados');
-    
-    // 2. Inicializar animações
-    setTimeout(() => {
-        if (typeof initAnimations === 'function') {
-            initAnimations();
-        } else {
-            console.warn('⚠️ initAnimations não encontrada');
-        }
-    }, 100);
-    
-    // 3. Carregar tema salvo
-    setTimeout(() => {
-        const savedTheme = loadSavedTheme();
-        if (savedTheme && themes[savedTheme]) {
-            console.log(`🎯 Aplicando tema salvo: ${themes[savedTheme].name}`);
-            currentTheme = savedTheme;
-            changeTheme(savedTheme, false);
-        }
-    }, 200);
-    
-    // 4. Inicializar componentes
-    setTimeout(() => {
-        initThemeSelector();
-        initTimeCounter();
-        initMusicPlayer();
-        initAlbums();
-        initMessages();
-        initModal();
-        initTimelineModal();
-        initHamburgerMenu(); // ← CHAMADA ÚNICA AQUI
-        updateCurrentDate();
-        
-        console.log('✅ Site inicializado com sucesso!');
-    }, 300);
-});
+// ===== SISTEMA DE ADMIN COM FIREBASE + IMGBB (VERDADEIRAMENTE ILIMITADO) =====
 
-// ===== RESTANTE DO CÓDIGO CONTINUA IGUAL... =====
+console.log('🔐 Sistema de Admin ILIMITADO carregado');
 
-    // ===== CONFIGURAÇÕES DE DATAS =====
-    const START_DATE = new Date('2025-10-11T00:00:00');
-    const START_DATE_DISPLAY = '11/10/2025';
+let isAdminUnlocked = false;
 
-    // ===== SISTEMA DE TEMAS =====
-    const themes = {
-        meteors: {
-            name: 'Meteoros',
-            colors: {
-                bg: '#0a0e17',
-                primary: '#6a11cb',
-                secondary: '#2575fc',
-                accent: '#ff6b8b',
-                text: '#ffffff',
-                textSecondary: '#b8b8d1'
+// ===== AGUARDAR FIREBASE E IMGBB ESTAREM PRONTOS =====
+function waitForServices() {
+    return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+            if (typeof firebase !== 'undefined' && 
+                firebase.apps.length > 0 && 
+                typeof IMGBB_API_KEY !== 'undefined') {
+                clearInterval(checkInterval);
+                resolve();
             }
-        },
-        hearts: {
-            name: 'Chuva de Corações',
-            colors: {
-                bg: '#1a0b2e',
-                primary: '#ff2e63',
-                secondary: '#ff9a9e',
-                accent: '#ffd166',
-                text: '#ffffff',
-                textSecondary: '#e0c3fc'
-            }
-        },
-        aurora: {
-            name: 'Aurora Boreal',
-            colors: {
-                bg: '#0c1b33',
-                primary: '#00b4d8',
-                secondary: '#90e0ef',
-                accent: '#caf0f8',
-                text: '#ffffff',
-                textSecondary: '#a8dadc'
-            }
-        },
-        winter: {
-            name: 'Inverno Mágico',
-            colors: {
-                bg: '#1a2332',
-                primary: '#e3f2fd',
-                secondary: '#81d4fa',
-                accent: '#b3e5fc',
-                text: '#ffffff',
-                textSecondary: '#e1f5fe'
-            }
-        }
-    };
-
-    let currentTheme = 'meteors';
-
-    // ===== PERSISTÊNCIA DE TEMA =====
-    function saveTheme(themeName) {
-        try {
-            localStorage.setItem('kevinIaraTheme', themeName);
-            console.log(`💾 Tema "${themes[themeName].name}" salvo no navegador`);
-        } catch (error) {
-            console.warn('⚠️ Não foi possível salvar o tema:', error);
-        }
-    }
-
-    function loadSavedTheme() {
-        try {
-            const savedTheme = localStorage.getItem('kevinIaraTheme');
-            
-            if (savedTheme && themes[savedTheme]) {
-                // ATUALIZAR BOTÕES IMEDIATAMENTE
-                setTimeout(() => {
-                    const themeButtons = document.querySelectorAll('.theme-btn');
-                    themeButtons.forEach(btn => {
-                        btn.classList.remove('active');
-                        if (btn.dataset.theme === savedTheme) {
-                            btn.classList.add('active');
-                        }
-                    });
-                }, 100);
-                
-                console.log(`✅ Tema "${themes[savedTheme].name}" carregado`);
-                return savedTheme;
-            }
-            return 'meteors';
-        } catch (error) {
-            console.warn('⚠️ Erro ao carregar tema:', error);
-            return 'meteors';
-        }
-    }
-
-    function initThemeSelector() {
-        const themeButtons = document.querySelectorAll('.theme-btn');
-        
-        themeButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const theme = this.dataset.theme;
-                
-                themeButtons.forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-                
-                changeTheme(theme, true); // true = salvar no localStorage
-                
-                // Mudar animação também
-                if (window.Animations && typeof window.Animations.changeTheme === 'function') {
-                    window.Animations.changeTheme(theme);
-                }
-            });
-        });
-    }
-
-    // ===== FUNÇÃO ATUALIZADA PARA MUDAR TEMA (SUBSTITUI A ANTIGA) =====
-function changeTheme(themeName, shouldSave = true) {
-        if (!themes[themeName]) return;
-        
-        currentTheme = themeName;
-        const theme = themes[themeName];
-        
-        document.body.className = '';
-        document.body.classList.add(`theme-${themeName}`);
-        
-        const root = document.documentElement;
-        root.style.setProperty('--theme-bg', theme.colors.bg);
-        root.style.setProperty('--theme-primary', theme.colors.primary);
-        root.style.setProperty('--theme-secondary', theme.colors.secondary);
-        root.style.setProperty('--theme-accent', theme.colors.accent);
-        root.style.setProperty('--theme-text', theme.colors.text);
-        root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
-        
-        // Salvar tema se solicitado
-        if (shouldSave) {
-            saveTheme(themeName);
-        }
-        
-        // Mudar animação também
-        if (window.Animations && typeof window.Animations.changeTheme === 'function') {
-            window.Animations.changeTheme(themeName);
-        }
-        
-        // ATUALIZAR BOTÕES ANTIGOS (.theme-btn)
-        const themeButtons = document.querySelectorAll('.theme-btn');
-        themeButtons.forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.theme === themeName) {
-                btn.classList.add('active');
-            }
-        });
-        
-        // ATUALIZAR CARDS NOVOS DO MENU HAMBÚRGUER (.theme-card)
-        const themeCards = document.querySelectorAll('.theme-card');
-        themeCards.forEach(card => {
-            card.classList.remove('active');
-            if (card.dataset.theme === themeName) {
-                card.classList.add('active');
-            }
-        });
-        
-        console.log(`🎨 Tema alterado para: ${theme.name}`);
-    }
-
-   
-    // ===== CONTADOR DE TEMPO =====
-    function initTimeCounter() {
-        document.getElementById('startDateDisplay').textContent = START_DATE_DISPLAY;
-        updateTimeCounter();
-        setInterval(updateTimeCounter, 1000);
-    }
-
-    function updateTimeCounter() {
-        const now = new Date();
-        const diff = now - START_DATE;
-        
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-        
-        const years = Math.floor(days / 365.25);
-        const months = Math.floor((days % 365.25) / 30.44);
-        const remainingDays = Math.floor(days % 30.44);
-        const remainingHours = hours % 24;
-        const remainingMinutes = minutes % 60;
-        const remainingSeconds = seconds % 60;
-        
-        document.getElementById('years').textContent = years.toString().padStart(2, '0');
-        document.getElementById('months').textContent = months.toString().padStart(2, '0');
-        document.getElementById('days').textContent = remainingDays.toString().padStart(2, '0');
-        document.getElementById('hours').textContent = remainingHours.toString().padStart(2, '0');
-        document.getElementById('minutes').textContent = remainingMinutes.toString().padStart(2, '0');
-        document.getElementById('seconds').textContent = remainingSeconds.toString().padStart(2, '0');
-    }
-
-    // ===== PLAYER DE MÚSICA =====
-    const playlist = [
-        {
-            title: "Menina da Farmácia",
-            artist: "Kevin Santos / Nossa Canção",
-            src: "audio/menina-da-farmacia.mp3",
-            album: "Nossa Trilha Sonora"
-        },
-        {
-            title: "Menina da Farmácia 2",
-            artist: "Kevin Santos / Nossa Canção",
-            src: "audio/menina-da-farmacia-2.mp3",
-            album: "Nossa Trilha Sonora"
-        }
-    ];
-
-    let currentTrackIndex = 0;
-    let isPlaying = false;  
-    let isShuffled = false;
-    let repeatMode = 0;
-
-    function initMusicPlayer() {
-        const audio = document.getElementById('audioPlayer');
-        const playPauseBtn = document.getElementById('playPauseBtn');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const shuffleBtn = document.getElementById('shuffleBtn');
-        const repeatBtn = document.getElementById('repeatBtn');
-        const progressBarFill = document.getElementById('progressBarFill');
-        
-        if (!audio) {
-            console.warn('⚠️ Elemento de áudio não encontrado');
-            return;
-        }
-        
-        loadTrack(currentTrackIndex);
-        
-        playPauseBtn.addEventListener('click', togglePlayPause);
-        prevBtn.addEventListener('click', () => handlePrevTrack(audio));
-        nextBtn.addEventListener('click', nextTrack);
-        shuffleBtn.addEventListener('click', toggleShuffle);
-        repeatBtn.addEventListener('click', toggleRepeat);
-        
-        progressBarFill.parentElement.addEventListener('click', function(e) {
-            const rect = this.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
-            audio.currentTime = audio.duration * percent;
-            updateProgressBar(audio);
-        });
-        
-        audio.addEventListener('timeupdate', () => updateProgressBar(audio));
-        audio.addEventListener('loadedmetadata', () => updateDuration(audio));
-        audio.addEventListener('ended', handleTrackEnd);
-        audio.addEventListener('play', () => {
-            document.querySelector('.music-player')?.classList.add('playing');
-        });
-        audio.addEventListener('pause', () => {
-            document.querySelector('.music-player')?.classList.remove('playing');
-        });
-        
-        audio.volume = 0.8;
-    }
-
-    function handlePrevTrack(audio) {
-        if (audio.currentTime > 3) {
-            audio.currentTime = 0;
-            updateProgressBar(audio);
-        } else {
-            if (isShuffled) {
-                let randomIndex;
-                do {
-                    randomIndex = Math.floor(Math.random() * playlist.length);
-                } while (randomIndex === currentTrackIndex && playlist.length > 1);
-                
-                currentTrackIndex = randomIndex;
-                console.log('🔀 Shuffle: tocando música anterior aleatória', currentTrackIndex + 1);
-            } else {
-                currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
-            }
-            
-            loadTrack(currentTrackIndex);
-            if (isPlaying) {
-                setTimeout(() => audio.play(), 100);
-            }
-        }
-    }
-
-    function nextTrack() {
-        if (isShuffled) {
-            let randomIndex;
-            do {
-                randomIndex = Math.floor(Math.random() * playlist.length);
-            } while (randomIndex === currentTrackIndex && playlist.length > 1);
-            
-            currentTrackIndex = randomIndex;
-            console.log('🔀 Shuffle: tocando música', currentTrackIndex + 1);
-        } else {
-            currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
-        }
-        
-        loadTrack(currentTrackIndex);
-        if (isPlaying) {
-            document.getElementById('audioPlayer').play();
-        }
-    }
-
-    function loadTrack(index) {
-        const track = playlist[index];
-        const audio = document.getElementById('audioPlayer');
-        
-        if (!audio) return;
-        
-        audio.src = track.src;
-        document.getElementById('songTitle').textContent = track.title;
-        document.getElementById('songArtist').textContent = track.artist;
-        document.getElementById('currentTrack').textContent = index + 1;
-        document.getElementById('totalTracks').textContent = playlist.length;
-        
-        document.getElementById('progressBarFill').style.width = '0%';
-        document.getElementById('currentTime').textContent = '0:00';
-        
-        if (isPlaying) {
-            setTimeout(() => audio.play(), 100);
-        }
-    }
-
-    function togglePlayPause() {
-        const audio = document.getElementById('audioPlayer');
-        const playPauseBtn = document.getElementById('playPauseBtn');
-        
-        if (audio.paused) {
-            audio.play();
-            isPlaying = true;
-            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        } else {
-            audio.pause();
-            isPlaying = false;
-            playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-        }
-    }
-
-    function toggleShuffle() {
-        const shuffleBtn = document.getElementById('shuffleBtn');
-        isShuffled = !isShuffled;
-        
-        shuffleBtn.classList.remove('active');
-        shuffleBtn.style.color = '';
-        
-        if (isShuffled) {
-            shuffleBtn.classList.add('active');
-            console.log('🔀 Modo shuffle ATIVADO');
-        } else {
-            console.log('▶️ Modo shuffle DESATIVADO - ordem normal');
-        }
-    }
-
-    function toggleRepeat() {
-        const repeatBtn = document.getElementById('repeatBtn');
-        repeatMode = (repeatMode + 1) % 2;
-        
-        repeatBtn.classList.remove('active');
-        
-        if (repeatMode === 0) {
-            repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
-            repeatBtn.title = "Repetir desligado";
-            repeatBtn.style.color = '';
-        } else {
-            repeatBtn.classList.add('active');
-            repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
-            repeatBtn.title = "Repetir uma música";
-            repeatBtn.style.color = '';
-        }
-    }
-
-    function updateProgressBar(audio) {
-        const progressBarFill = document.getElementById('progressBarFill');
-        const currentTime = document.getElementById('currentTime');
-        const totalTime = document.getElementById('totalTime');
-        
-        if (audio.duration) {
-            const progress = (audio.currentTime / audio.duration) * 100;
-            progressBarFill.style.width = `${progress}%`;
-            currentTime.textContent = formatTime(audio.currentTime);
-            totalTime.textContent = formatTime(audio.duration);
-        }
-    }
-
-    function updateDuration(audio) {
-        const totalTime = document.getElementById('totalTime');
-        totalTime.textContent = formatTime(audio.duration);
-    }
-
-    function handleTrackEnd() {
-        if (repeatMode === 1) {
-            document.getElementById('audioPlayer').currentTime = 0;
-            document.getElementById('audioPlayer').play();
-        } else {
-            nextTrack();
-            if (isPlaying) {
-                document.getElementById('audioPlayer').play();
-            }
-        }
-    }
-
-    function formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    // ===== ÁLBUNS DE FOTOS =====
-    // Tornar albums uma variável global mutável
-    window.albums = [
-        {
-            id: 1,
-            title: "Primeiros Encontros",
-            date: "Junho 2023",
-            cover: "images/capas-albuns/primeiro-encontro.jpg",
-            description: "Os primeiros momentos mágicos que deram início à nossa história.",
-            photos: [
-                { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" },
-                { src: "images/fotos/album1/2.jpg", description: "Passeio no parque" },
-                { src: "images/fotos/album1/3.jpg", description: "Primeiro cinema" },
-                { src: "images/fotos/album1/4.jpg", description: "Jantar especial" }
-            ]
-        },
-        {
-            id: 2,
-            title: "Viagem Inesquecível", 
-            date: "Dezembro 2023",
-            cover: "images/capas-albuns/viagem.jpg",
-            description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
-            photos: [
-                { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
-                { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
-                { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" },
-                { src: "images/fotos/album2/4.jpg", description: "Comidas típicas" }
-            ]
-        }
-    ];
-
-    // Atualizar photoCount automaticamente
-    window.albums.forEach(album => {
-        album.photoCount = album.photos.length;
+        }, 100);
     });
-
-    // ===== ATUALIZAR AUTOMATICAMENTE O photoCount =====
-    albums.forEach(album => {
-        album.photoCount = album.photos.length;
-    });
-
-    let currentAlbum = null;
-    let currentPhotoIndex = 0;
-
-    // ===== VARIÁVEIS DE CONTROLE DO ZOOM =====
-    let zoomLevel = 1;
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let translateX = 0;
-    let translateY = 0;
-
-    // Variáveis específicas para gestos mobile
-    let lastTouchTime = 0;
-    let touchStartTime = 0;
-    let touchStartX = 0;
-    let touchEndX = 0;
-    let lastGestureTime = Date.now();
-    let isPinching = false;
-    let initialPinchDistance = 0;
-    let lastPinchDistance = 0;
-    let blockNavigation = false;
-    let doubleTapTimeout = null;
-    let touchCount = 0;
-
-    // ===== FUNÇÕES AUXILIARES =====
-    function getTouchDistance(touch1, touch2) {
-        const dx = touch1.clientX - touch2.clientX;
-        const dy = touch1.clientY - touch2.clientY;
-        return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    function resetZoom() {
-        const modalPhoto = document.getElementById('modalPhoto');
-        
-        // Adicionar transição suave apenas no reset
-        if (modalPhoto) {
-            modalPhoto.classList.add('zoom-transition');
-        }
-        
-        zoomLevel = 1;
-        translateX = 0;
-        translateY = 0;
-        isDragging = false;
-        isPinching = false;
-        blockNavigation = false;
-        updateImageTransform();
-        
-        // Remover transição depois
-        setTimeout(() => {
-            if (modalPhoto) {
-                modalPhoto.classList.remove('zoom-transition');
-            }
-        }, 300);
-        
-        lastGestureTime = Date.now();
-    }
-
-    function updateImageTransform() {
-        const modalPhoto = document.getElementById('modalPhoto');
-        if (!modalPhoto) return;
-        
-        modalPhoto.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
-        modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-    }
-
-    function handleZoom(delta, centerX, centerY) {
-        const oldZoom = zoomLevel;
-        
-        // Ajustar zoom de forma mais suave
-        if (delta > 0) {
-            zoomLevel = Math.min(zoomLevel * 1.05, 4);
-        } else {
-            zoomLevel = Math.max(zoomLevel * 0.95, 1);
-        }
-        
-        // Se voltou ao zoom 1x, centralizar
-        if (zoomLevel === 1) {
-            translateX = 0;
-            translateY = 0;
-            isDragging = false;
-        } else if (centerX !== undefined && centerY !== undefined) {
-            // Ajustar posição baseado no ponto de zoom
-            const modalPhoto = document.getElementById('modalPhoto');
-            const rect = modalPhoto.getBoundingClientRect();
-            
-            const offsetX = centerX - rect.left - rect.width / 2;
-            const offsetY = centerY - rect.top - rect.height / 2;
-            
-            const zoomRatio = zoomLevel / oldZoom - 1;
-            translateX -= offsetX * zoomRatio;
-            translateY -= offsetY * zoomRatio;
-        }
-        
-        updateImageTransform();
-    }
-
-    function handleDoubleTap(x, y) {
-        console.log('🔍 Duplo toque/clique detectado! Zoom atual:', zoomLevel);
-        
-        const modalPhoto = document.getElementById('modalPhoto');
-        if (!modalPhoto) return;
-        
-        if (zoomLevel === 1) {
-            // ZOOM IN
-            zoomLevel = 2;
-            
-            const rect = modalPhoto.getBoundingClientRect();
-            const offsetX = x - rect.left - rect.width / 2;
-            const offsetY = y - rect.top - rect.height / 2;
-            
-            translateX = -offsetX * (zoomLevel - 1);
-            translateY = -offsetY * (zoomLevel - 1);
-            
-            updateImageTransform();
-            blockNavigation = true;
-            console.log('✅ Zoom IN aplicado');
-        } else {
-            // ZOOM OUT
-            resetZoom();
-            console.log('✅ Zoom OUT aplicado');
-        }
-    }
-
-    // ===== FUNÇÃO ÚNICA E CORRETA initModal =====
-    function initModal() {
-        const modal = document.getElementById('albumModal');
-        const closeBtn = document.getElementById('closeModal');
-        const prevBtn = document.getElementById('prevPhotoBtn');
-        const nextBtn = document.getElementById('nextPhotoBtn');
-        const albumViewer = document.querySelector('.album-viewer');
-        const modalPhoto = document.getElementById('modalPhoto');
-        
-        if (!modal || !closeBtn || !prevBtn || !nextBtn || !albumViewer || !modalPhoto) {
-            console.warn('⚠️ Elementos do modal não encontrados');
-            return;
-        }
-        
-        // ===== FUNÇÕES DE NAVEGAÇÃO =====
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-            resetZoom();
-        });
-        
-        prevBtn.addEventListener('click', () => {
-            if (zoomLevel > 1) {
-                console.log('🚫 Botão prev bloqueado - zoom ativo');
-                return;
-            }
-            
-            if (currentAlbum) {
-                currentPhotoIndex = (currentPhotoIndex - 1 + currentAlbum.photos.length) % currentAlbum.photos.length;
-                updateAlbumViewer();
-            }
-        });
-        
-        nextBtn.addEventListener('click', () => {
-            if (zoomLevel > 1) {
-                console.log('🚫 Botão next bloqueado - zoom ativo');
-                return;
-            }
-            
-            if (currentAlbum) {
-                currentPhotoIndex = (currentPhotoIndex + 1) % currentAlbum.photos.length;
-                updateAlbumViewer();
-            }
-        });
-        
-        // ===== DUPLO CLIQUE (DESKTOP) =====
-        modalPhoto.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleDoubleTap(e.clientX, e.clientY);
-        });
-        
-        // ===== SCROLL DO MOUSE (DESKTOP) =====
-        albumViewer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            handleZoom(-e.deltaY, e.clientX, e.clientY);
-        }, { passive: false });
-        
-        // ===== GESTOS TOUCH (MOBILE) =====
-        let touchStart = {};
-        
-        albumViewer.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const now = Date.now();
-            const touches = e.touches;
-            
-            // Guardar posições iniciais
-            for (let i = 0; i < touches.length; i++) {
-                touchStart[i] = {
-                    x: touches[i].clientX,
-                    y: touches[i].clientY
-                };
-            }
-            
-            touchCount = touches.length;
-            
-            // Se tiver 2 dedos, é PINCH
-            if (touches.length === 2) {
-                console.log('🔍 Pinch detectado (2 dedos)');
-                isPinching = true;
-                initialPinchDistance = getTouchDistance(touches[0], touches[1]);
-                lastPinchDistance = initialPinchDistance;
-                
-                // Cancelar qualquer duplo toque pendente
-                if (doubleTapTimeout) {
-                    clearTimeout(doubleTapTimeout);
-                    doubleTapTimeout = null;
-                }
-                return;
-            }
-            
-            // Se tiver 1 dedo, pode ser duplo toque ou arraste
-            if (touches.length === 1) {
-                const touch = touches[0];
-                const timeSinceLastTouch = now - lastTouchTime;
-                
-                // Verificar se é duplo toque
-                if (timeSinceLastTouch < 300 && timeSinceLastTouch > 0) {
-                    console.log('👆👆 Duplo toque detectado');
-                    handleDoubleTap(touch.clientX, touch.clientY);
-                    
-                    // Resetar timer
-                    lastTouchTime = 0;
-                    return;
-                }
-                
-                // Iniciar arraste se estiver com zoom
-                if (zoomLevel > 1) {
-                    isDragging = true;
-                    startX = touch.clientX - translateX;
-                    startY = touch.clientY - translateY;
-                    modalPhoto.style.cursor = 'grabbing';
-                }
-                
-                lastTouchTime = now;
-            }
-        }, { passive: false });
-        
-        albumViewer.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const touches = e.touches;
-            lastGestureTime = Date.now();
-            
-            // PINCH TO ZOOM
-            if (touches.length === 2 && isPinching) {
-                blockNavigation = true;
-                
-                const currentDistance = getTouchDistance(touches[0], touches[1]);
-                const delta = currentDistance - lastPinchDistance;
-                
-                // Calcular centro do pinch
-                const centerX = (touches[0].clientX + touches[1].clientX) / 2;
-                const centerY = (touches[0].clientY + touches[1].clientY) / 2;
-                
-                // Aplicar zoom proporcional
-                const zoomFactor = 0.01;
-                if (delta !== 0) {
-                    const oldZoom = zoomLevel;
-                    
-                    if (delta > 0) {
-                        zoomLevel = Math.min(zoomLevel * (1 + delta * zoomFactor), 4);
-                    } else {
-                        zoomLevel = Math.max(zoomLevel / (1 - delta * zoomFactor), 1);
-                    }
-                    
-                    // Ajustar posição baseada no centro do pinch
-                    const zoomChange = zoomLevel / oldZoom;
-                    const rect = modalPhoto.getBoundingClientRect();
-                    const offsetX = centerX - rect.left - rect.width / 2;
-                    const offsetY = centerY - rect.top - rect.height / 2;
-                    
-                    translateX = translateX * zoomChange - offsetX * (zoomChange - 1);
-                    translateY = translateY * zoomChange - offsetY * (zoomChange - 1);
-                    
-                    updateImageTransform();
-                }
-                
-                lastPinchDistance = currentDistance;
-            }
-            
-            // DRAG (arrastar imagem com zoom)
-            else if (touches.length === 1 && isDragging && zoomLevel > 1) {
-                blockNavigation = true;
-                
-                const touch = touches[0];
-                translateX = touch.clientX - startX;
-                translateY = touch.clientY - startY;
-                updateImageTransform();
-            }
-        }, { passive: false });
-        
-        albumViewer.addEventListener('touchend', (e) => {
-            const touches = e.touches;
-            
-            // Se todos os dedos saíram
-            if (touches.length === 0) {
-                // Finalizar pinch
-                if (isPinching) {
-                    console.log('✅ Pinch finalizado');
-                    isPinching = false;
-                    
-                    // Se ainda estiver com zoom, bloquear navegação temporariamente
-                    if (zoomLevel > 1) {
-                        blockNavigation = true;
-                        setTimeout(() => {
-                            blockNavigation = false;
-                            console.log('🔓 Navegação liberada após pinch');
-                        }, 300);
-                    }
-                }
-                
-                // Finalizar drag
-                if (isDragging) {
-                    console.log('✅ Drag finalizado');
-                    isDragging = false;
-                    modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-                    
-                    // Se ainda estiver com zoom, manter bloqueio
-                    if (zoomLevel > 1) {
-                        blockNavigation = true;
-                    }
-                }
-                
-                // Se não estava fazendo gestos complexos, permitir navegação
-                if (!isPinching && !isDragging && zoomLevel === 1) {
-                    blockNavigation = false;
-                }
-                
-                // Resetar contagem
-                touchCount = 0;
-            }
-            
-            // Se sobrou 1 dedo (transição de pinch para drag)
-            else if (touches.length === 1 && isPinching) {
-                console.log('🔄 Transição: pinch → drag');
-                isPinching = false;
-                isDragging = true;
-                
-                // Configurar para drag
-                const touch = touches[0];
-                startX = touch.clientX - translateX;
-                startY = touch.clientY - translateY;
-                modalPhoto.style.cursor = 'grabbing';
-            }
-        });
-        
-        // ===== SWIPE PARA NAVEGAÇÃO =====
-        let swipeStartX = 0;
-        let swipeStartTime = 0;
-        
-        modal.addEventListener('touchstart', (e) => {
-            if (touchCount === 0 && !isPinching && !isDragging && zoomLevel === 1) {
-                swipeStartX = e.changedTouches[0].screenX;
-                swipeStartTime = Date.now();
-            }
-        }, { passive: true });
-        
-        modal.addEventListener('touchend', (e) => {
-            if (!isPinching && !isDragging && !blockNavigation && zoomLevel === 1) {
-                const swipeEndX = e.changedTouches[0].screenX;
-                const touchDuration = Date.now() - swipeStartTime;
-                
-                // Só processar swipe rápido (não gestos lentos)
-                if (touchDuration < 300) {
-                    handleSwipe(swipeStartX, swipeEndX);
-                }
-            }
-        }, { passive: true });
-        
-        function handleSwipe(startX, endX) {
-            if (blockNavigation || zoomLevel > 1 || isPinching || isDragging) {
-                console.log('🚫 Swipe bloqueado');
-                return;
-            }
-            
-            const swipeThreshold = 50;
-            const diff = startX - endX;
-            
-            if (Math.abs(diff) > swipeThreshold) {
-                console.log('✅ Swipe detectado - navegando');
-                if (diff > 0) {
-                    // Swipe para a esquerda = próxima foto
-                    nextBtn.click();
-                } else {
-                    // Swipe para a direita = foto anterior
-                    prevBtn.click();
-                }
-            }
-        }
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeBtn.click();
-            }
-        });
-        
-        document.addEventListener('keydown', (event) => {
-            if (modal.style.display === 'flex') {
-                if (event.key === 'Escape') {
-                    closeBtn.click();
-                } else if (event.key === 'ArrowLeft') {
-                    prevBtn.click();
-                } else if (event.key === 'ArrowRight') {
-                    nextBtn.click();
-                }
-            }
-        });
-        
-        console.log('✅ Modal inicializado com gestos separados');
-    }
-
-    // ===== FUNÇÕES DE ÁLBUM =====
-    function initAlbums() {
-        const container = document.getElementById('albumsContainer');
-        
-        if (!container) {
-            console.warn('⚠️ Container de álbuns não encontrado');
-            return;
-        }
-        
-        container.innerHTML = '';
-        
-        // Usar window.albums para permitir atualização dinâmica
-        window.albums.forEach(album => {
-            const albumCard = document.createElement('div');
-            albumCard.className = 'album-card';
-            albumCard.dataset.id = album.id;
-            
-            albumCard.innerHTML = `
-                <img src="${album.cover}" alt="${album.title}" class="album-cover-img">
-                <div class="album-info">
-                    <h3>${album.title}</h3>
-                    <p class="album-date">
-                        <i class="far fa-calendar-alt"></i> ${album.date}
-                    </p>
-                    <p>${album.description}</p>
-                    <div class="album-stats">
-                        <span>
-                            <i class="far fa-images"></i> ${album.photoCount} ${album.photoCount === 1 ? 'foto' : 'fotos'}
-                        </span>
-                    </div>
-                </div>
-            `;
-            
-            albumCard.addEventListener('click', () => openAlbum(album.id));
-            container.appendChild(albumCard);
-        });
-        
-        console.log(`✅ ${albums.length} álbuns carregados`);
-    }
-
-function openAlbum(albumId) {
-    currentAlbum = window.albums.find(a => a.id === albumId);
-    if (!currentAlbum) {
-        console.warn('⚠️ Álbum não encontrado:', albumId);
-        return;
-    }
-    
-    // ✅ ADICIONE ESTAS 3 LINHAS AQUI
-    if (!currentAlbum.photos || currentAlbum.photos.length === 0) {
-        alert('📷 Este álbum ainda não possui fotos!');
-        return;
-    }
-    
-    currentPhotoIndex = 0;
-    updateAlbumViewer();
-    
-    const modal = document.getElementById('albumModal');
-    if (modal) {
-        modal.style.display = 'flex';
-    }
-    
-    const titleElement = document.getElementById('modalAlbumTitle');
-    if (titleElement) {
-        titleElement.textContent = currentAlbum.title;
-    }
-    
-    console.log(`📸 Álbum aberto: ${currentAlbum.title}`);
 }
 
-    function updateAlbumViewer() {
-        if (!currentAlbum) return;
-        
-        const photo = currentAlbum.photos[currentPhotoIndex];
-        const modalPhoto = document.getElementById('modalPhoto');
-        
-        if (modalPhoto) {
-            modalPhoto.src = photo.src;
-            modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
-            
-            // Resetar zoom ao trocar de foto
-            resetZoom();
-        }
-        
-        document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
-        document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
+// ===== CONTROLE DO MODAL =====
+async function initAdmin() {
+    await waitForServices();
+    
+    const adminToggleBtn = document.getElementById('adminToggleBtn');
+    const adminModal = document.getElementById('adminModal');
+    const closeAdminBtn = document.getElementById('closeAdminBtn');
+    const adminTabs = document.querySelectorAll('.admin-tab');
+    
+    if (!adminToggleBtn || !adminModal) {
+        console.warn('⚠️ Elementos de admin não encontrados');
+        return;
     }
-
-    // ===== MENSAGENS DO DIA =====
-    const messages = [
-        {
-            text: "Cada dia ao seu lado é uma página nova em nosso livro de amor, escrita com sorrisos, carinho e cumplicidade.",
-            author: "Kevin para Iara"
-        },
-        {
-            text: "Se eu pudesse escolher novamente entre todas as pessoas do mundo, escolheria você, sempre você.",
-            author: "Kevin para Iara"
-        },
-        {
-            text: "Nos seus olhos encontro meu lugar favorito no mundo, onde posso ser apenas eu e saber que sou amado.",
-            author: "Kevin para Iara"
-        },
-        {
-            text: "O amor que sinto por você não cabe em palavras, mas transborda em cada gesto, cada olhar, cada momento juntos.",
-            author: "Kevin para Iara"
-        }
-    ];
-
-    let currentMessageIndex = 0;
-
-    function initMessages() {
-        showMessage();
-        
-        const newMessageBtn = document.getElementById('newMessageBtn');
-        if (newMessageBtn) {
-            newMessageBtn.addEventListener('click', showNextMessage);
-        }
-    }
-
-    function showMessage() {
-        const message = messages[currentMessageIndex];
-        
-        const messageElement = document.getElementById('dailyMessage');
-        if (messageElement) {
-            messageElement.innerHTML = `
-                <p class="message-text">"${message.text}"</p>
-                <p class="message-author">— ${message.author}</p>
-            `;
+    
+    // Abrir modal (com senha)
+    adminToggleBtn.addEventListener('click', () => {
+        if (!isAdminUnlocked) {
+            const password = prompt('🔐 Digite a senha de admin:');
             
-            messageElement.style.opacity = '0';
-            setTimeout(() => {
-                messageElement.style.transition = 'opacity 0.3s ease';
-                messageElement.style.opacity = '1';
-            }, 10);
-        }
-        
-        console.log(`💌 Mensagem ${currentMessageIndex + 1}/${messages.length} exibida`);
-    }
-
-    function showNextMessage() {
-        currentMessageIndex = (currentMessageIndex + 1) % messages.length;
-        showMessage();
-    }
-
-    // ===== FUNÇÕES UTILITÁRIAS =====
-    function updateCurrentDate() {
-        const now = new Date();
-        const options = { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        };
-        
-        const dateString = now.toLocaleDateString('pt-BR', options);
-        const dateElement = document.getElementById('currentDate');
-        if (dateElement) {
-            dateElement.textContent = `Hoje é ${dateString}`;
-        }
-    }
-
-    // ===== INICIALIZAÇÃO COMPLETA =====
-    console.log(`
-    ╔══════════════════════════════════════╗
-    ║   💖 SITE KEVIN & IARA INICIADO 💖   ║
-    ╠══════════════════════════════════════╣
-    ║   📱 Otimizado para Mobile          ║
-    ║   🎵 Player original restaurado     ║
-    ║   📸 ${albums.length} álbuns organizados ║
-    ║   🎨 ${Object.keys(themes).length} temas disponíveis ║
-    ║   💾 Tema persistente com localStorage ║
-    ╚══════════════════════════════════════╝
-    `);
-
-    // ===== FIX PARA FOCUS STATE EM MOBILE =====
-    document.addEventListener('DOMContentLoaded', function() {
-        const buttons = document.querySelectorAll(
-            '.control-btn, .album-control-btn, .theme-btn, ' +
-            '.theme-menu-toggle, .close-modal, .new-message-btn'
-        );
-        
-        buttons.forEach(button => {
-            button.addEventListener('click', function() {
-                this.blur();
-            });
-            
-            button.addEventListener('touchend', function() {
-                this.blur();
-            });
-            
-            button.addEventListener('mousedown', function(e) {
-                e.preventDefault();
-            });
-        });
-        
-        console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
-    });
-
-    // ===== VERIFICADOR DE SINCRONIZAÇÃO =====
-    function checkThemeSync() {
-        const bodyTheme = document.body.className.match(/theme-(\w+)/);
-        const canvasAnimation = currentAnimation; // de animations.js
-        
-        if (bodyTheme && bodyTheme[1] !== canvasAnimation) {
-            console.warn('⚠️ Tema dessincronizado! Corrigindo...');
-            console.log(`Body: ${bodyTheme[1]}, Canvas: ${canvasAnimation}`);
-            
-            // Forçar sincronização
-            if (window.Animations && typeof window.Animations.changeTheme === 'function') {
-                window.Animations.changeTheme(bodyTheme[1]);
+            // ALTERE AQUI A SUA SENHA
+            if (password === 'iara2023') {
+                isAdminUnlocked = true;
+                adminToggleBtn.classList.add('unlocked');
+                adminToggleBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
+                adminModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                loadExistingContent();
+                console.log('✅ Admin desbloqueado');
+            } else {
+                alert('❌ Senha incorreta!');
             }
+        } else {
+            adminModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            loadExistingContent();
         }
-    }
-
-    // Executar após a página carregar
-    window.addEventListener('load', () => {
-        setTimeout(checkThemeSync, 1000);
     });
+    
+    // Fechar modal
+    closeAdminBtn.addEventListener('click', () => {
+        adminModal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    });
+    
+    adminModal.addEventListener('click', (e) => {
+        if (e.target === adminModal) {
+            closeAdminBtn.click();
+        }
+    });
+    
+    // Sistema de tabs
+    adminTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+            
+            adminTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            document.querySelectorAll('.admin-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            document.getElementById(`${targetTab}-tab`).classList.add('active');
+        });
+    });
+    
+    // Inicializar formulários
+    initAlbumForms();
+    initTimelineForms();
+    
+    console.log('✅ Sistema de admin inicializado');
+}
 
-    // ===== ADICIONAR NO FINAL DO ARQUIVO script.js =====
-
-    // ===== CONTROLE DA TIMELINE MODAL =====
-    function initTimelineModal() {
-        const openBtn = document.getElementById('openTimelineBtn');
-        const closeBtn = document.getElementById('closeTimelineBtn');
-        const modal = document.getElementById('timelineModal');
-        const secretModal = document.getElementById('secretModal');
-        const closeSecretBtn = document.getElementById('closeSecretBtn');
-        const secretMessageBtns = document.querySelectorAll('.secret-message-btn');
+// ===== GERENCIAMENTO DE ÁLBUNS COM IMGBB (ILIMITADO) =====
+function initAlbumForms() {
+    const addAlbumForm = document.getElementById('addAlbumForm');
+    const addPhotoForm = document.getElementById('addPhotoForm');
+    const selectAlbum = document.getElementById('selectAlbum');
+    
+    // Criar novo álbum
+    addAlbumForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
         
-        if (!openBtn || !modal) {
-            console.warn('⚠️ Elementos da timeline não encontrados');
+        const title = document.getElementById('albumTitle').value;
+        const date = document.getElementById('albumDate').value;
+        const description = document.getElementById('albumDescription').value;
+        const coverFile = document.getElementById('albumCover').files[0];
+        
+        if (!coverFile) {
+            alert('❌ Selecione uma imagem de capa!');
             return;
         }
         
-        // Abrir modal da timeline
-        openBtn.addEventListener('click', () => {
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-            console.log('📖 Timeline aberta');
-        });
+        // ✅ REMOVIDO: limite de 10MB (agora aceita até 32MB do ImgBB)
+        if (coverFile.size > 32 * 1024 * 1024) {
+            alert('❌ Imagem muito grande! O ImgBB aceita até 32MB por imagem.');
+            return;
+        }
         
-        // Fechar modal da timeline
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-            console.log('📖 Timeline fechada');
-        });
+        try {
+            const btn = addAlbumForm.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando para ImgBB...';
+            btn.disabled = true;
+            
+            // Upload para ImgBB
+            const coverUrl = await uploadToImgBB(coverFile, 800);
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
+            
+            // Criar documento no Firebase (apenas URL)
+            await db.collection('albums').add({
+                title: title,
+                date: date,
+                cover: coverUrl,
+                description: description,
+                photoCount: 0,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            alert(`✅ Álbum "${title}" criado com sucesso!`);
+            addAlbumForm.reset();
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            loadExistingContent();
+            updateAlbumSelect();
+            await loadAlbumsFromFirebase();
+            
+        } catch (error) {
+            console.error('❌ Erro ao criar álbum:', error);
+            alert('❌ Erro ao criar álbum: ' + error.message);
+            const btn = addAlbumForm.querySelector('button');
+            btn.innerHTML = '<i class="fas fa-save"></i> Criar Álbum';
+            btn.disabled = false;
+        }
+    });
+    
+    // ✅ ADICIONAR FOTOS AO ÁLBUM (VERDADEIRAMENTE ILIMITADO)
+    addPhotoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
         
-        // Fechar ao clicar fora
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeBtn.click();
-            }
-        });
+        const albumId = selectAlbum.value;
+        const photoFiles = document.getElementById('photoFile').files;
+        const description = document.getElementById('photoDescription').value;
         
-        // Fechar com ESC
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                if (secretModal.style.display === 'flex') {
-                    closeSecretBtn.click();
-                } else if (modal.style.display === 'block') {
-                    closeBtn.click();
+        if (!albumId) {
+            alert('❌ Selecione um álbum primeiro!');
+            return;
+        }
+        
+        if (photoFiles.length === 0) {
+            alert('❌ Selecione pelo menos uma foto!');
+            return;
+        }
+        
+        // ✅ REMOVIDO: limite de 30 fotos (agora aceita QUANTAS QUISER)
+        // Agora apenas avisa se for mais de 100 (por questão de tempo de processamento)
+        if (photoFiles.length > 100) {
+            const confirm = window.confirm(
+                `⚠️ Você selecionou ${photoFiles.length} fotos!\n\n` +
+                `Isso pode demorar vários minutos para processar.\n` +
+                `Deseja continuar?`
+            );
+            if (!confirm) return;
+        }
+        
+        try {
+            const btn = addPhotoForm.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            
+            // Upload de todas as fotos para ImgBB
+            const photoUrls = [];
+            let uploadErrors = 0;
+            
+            for (let i = 0; i < photoFiles.length; i++) {
+                // ✅ ALTERADO: Agora aceita até 32MB (limite do ImgBB)
+                if (photoFiles[i].size > 32 * 1024 * 1024) {
+                    uploadErrors++;
+                    console.warn(`⚠️ Foto ${i + 1} ignorada (maior que 32MB)`);
+                    continue;
+                }
+                
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Enviando ${i + 1}/${photoFiles.length} para ImgBB...`;
+                
+                try {
+                    const url = await uploadToImgBB(photoFiles[i], 1600);
+                    photoUrls.push({
+                        src: url,
+                        description: description || `Foto ${i + 1}`,
+                        timestamp: Date.now() + i
+                    });
+                    
+                    // Delay menor para ser mais rápido
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                } catch (uploadError) {
+                    uploadErrors++;
+                    console.error(`❌ Erro no upload da foto ${i + 1}:`, uploadError);
                 }
             }
+            
+            if (photoUrls.length === 0) {
+                alert('❌ Nenhuma foto foi enviada com sucesso!');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
+            
+            // ✅ ALTERADO: Agora 200 fotos por página (Firebase aceita até 1MB por documento)
+            // Como cada URL tem ~100 bytes, 200 URLs = ~20KB (muito abaixo do limite)
+            const PHOTOS_PER_PAGE = 200;
+            const pages = [];
+            
+            for (let i = 0; i < photoUrls.length; i += PHOTOS_PER_PAGE) {
+                pages.push(photoUrls.slice(i, i + PHOTOS_PER_PAGE));
+            }
+            
+            // Salvar cada página
+            for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+                await db.collection('album_photos').add({
+                    albumId: albumId,
+                    pageNumber: pageIndex,
+                    photos: pages[pageIndex],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            
+            // Atualizar contador
+            const albumDoc = await db.collection('albums').doc(albumId).get();
+            const currentCount = albumDoc.data().photoCount || 0;
+            
+            await db.collection('albums').doc(albumId).update({
+                photoCount: currentCount + photoUrls.length
+            });
+            
+            // Mensagem de sucesso com avisos se houver erros
+            let successMsg = `✅ ${photoUrls.length} foto(s) adicionada(s) ao ImgBB e Firebase!`;
+            if (uploadErrors > 0) {
+                successMsg += `\n\n⚠️ ${uploadErrors} foto(s) não foram enviadas (verifique o tamanho ou formato).`;
+            }
+            alert(successMsg);
+            
+            addPhotoForm.reset();
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            loadExistingContent();
+            await loadAlbumsFromFirebase();
+            
+        } catch (error) {
+            console.error('❌ Erro ao adicionar fotos:', error);
+            alert('❌ Erro ao adicionar fotos: ' + error.message);
+            const btn = addPhotoForm.querySelector('button');
+            btn.innerHTML = '<i class="fas fa-upload"></i> Adicionar Fotos';
+            btn.disabled = false;
+        }
+    });
+    
+    updateAlbumSelect();
+}
+
+// ===== GERENCIAMENTO DE TIMELINE COM IMGBB =====
+function initTimelineForms() {
+    const addTimelineForm = document.getElementById('addTimelineForm');
+    
+    addTimelineForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const eventDate = document.getElementById('eventDate').value;
+        const eventTitle = document.getElementById('eventTitle').value;
+        const eventSecret = document.getElementById('eventSecret').value;
+        const photoFile = document.getElementById('eventPhoto').files[0];
+        const photoCaption = document.getElementById('photoCaption').value;
+        
+        if (!photoFile) {
+            alert('❌ Selecione uma foto para o evento!');
+            return;
+        }
+        
+        // ✅ ALTERADO: Aceita até 32MB
+        if (photoFile.size > 32 * 1024 * 1024) {
+            alert('❌ Imagem muito grande! O ImgBB aceita até 32MB.');
+            return;
+        }
+        
+        try {
+            const btn = addTimelineForm.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando para ImgBB...';
+            btn.disabled = true;
+            
+            // Upload para ImgBB
+            const photoUrl = await uploadToImgBB(photoFile, 1200);
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando posição...';
+            
+            // DETERMINAR LADO AUTOMATICAMENTE (sempre começa ESQUERDA)
+            let eventSide = 'left';
+            try {
+                const allEvents = await db.collection('timeline').get();
+                const totalEvents = allEvents.size;
+                eventSide = totalEvents % 2 === 0 ? 'left' : 'right';
+                console.log(`📍 Evento ${totalEvents + 1} será adicionado no lado: ${eventSide}`);
+            } catch (error) {
+                console.log('Primeiro evento - usando lado esquerdo');
+            }
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
+            
+            // Criar evento no Firebase
+            await db.collection('timeline').add({
+                date: eventDate,
+                title: eventTitle,
+                secret: eventSecret || null,
+                photo: photoUrl,
+                caption: photoCaption || '',
+                side: eventSide,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            alert(`✅ Evento "${eventTitle}" adicionado (lado ${eventSide === 'left' ? 'esquerdo' : 'direito'})!`);
+            addTimelineForm.reset();
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            loadExistingContent();
+            await rebuildTimeline();
+            
+        } catch (error) {
+            console.error('❌ Erro ao criar evento:', error);
+            alert('❌ Erro ao criar evento: ' + error.message);
+            const btn = addTimelineForm.querySelector('button');
+            btn.innerHTML = '<i class="fas fa-save"></i> Adicionar Evento';
+            btn.disabled = false;
+        }
+    });
+}
+
+// ===== CARREGAR ÁLBUNS DO FIREBASE =====
+async function loadAlbumsFromFirebase() {
+    try {
+        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
+        const firebaseAlbums = [];
+        
+        for (const doc of snapshot.docs) {
+            const albumData = doc.data();
+            
+            // Buscar todas as páginas de fotos
+            const photoPagesSnapshot = await db.collection('album_photos')
+                .where('albumId', '==', doc.id)
+                .orderBy('pageNumber', 'asc')
+                .get();
+            
+            // Juntar todas as fotos
+            const allPhotos = [];
+            photoPagesSnapshot.forEach(pageDoc => {
+                const pageData = pageDoc.data();
+                allPhotos.push(...pageData.photos);
+            });
+            
+            firebaseAlbums.push({
+                id: doc.id,
+                ...albumData,
+                photos: allPhotos
+            });
+        }
+        
+        // Mesclar com álbuns originais
+        if (typeof window.albums !== 'undefined') {
+            window.albums = [...window.originalAlbums, ...firebaseAlbums];
+        }
+        
+        // Recarregar galeria
+        if (typeof initAlbums === 'function') {
+            initAlbums();
+        }
+        
+        console.log(`✅ ${firebaseAlbums.length} álbuns carregados (ImgBB + Firebase)`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar álbuns:', error);
+    }
+}
+
+// ===== RECONSTRUIR TIMELINE =====
+async function rebuildTimeline() {
+    const container = document.querySelector('.timeline-container');
+    if (!container) return;
+    
+    try {
+        const snapshot = await db.collection('timeline').orderBy('createdAt', 'asc').get();
+        
+        // Remover eventos customizados anteriores
+        const customItems = container.querySelectorAll('.timeline-item[data-custom="true"]');
+        customItems.forEach(item => item.remove());
+        
+        const timelineEnd = container.querySelector('.timeline-end');
+        
+        snapshot.forEach((doc, index) => {
+            const event = doc.data();
+            
+            const item = document.createElement('div');
+            item.className = `timeline-item ${event.side}`;
+            item.setAttribute('data-custom', 'true');
+            item.setAttribute('data-id', doc.id);
+            item.style.animationDelay = `${(index + 1) * 0.1}s`;
+            
+            item.innerHTML = `
+                <div class="timeline-content">
+                    <div class="timeline-text">
+                        <div class="timeline-date">
+                            <i class="far fa-calendar"></i>
+                            <span>${event.date}</span>
+                        </div>
+                        <h3>${event.title}</h3>
+                        ${event.secret ? `
+                            <button class="secret-message-btn" data-message="${event.secret}">
+                                <i class="fas fa-lock"></i> Mensagem Secreta
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="timeline-photo">
+                        <div class="photo-polaroid">
+                            <img src="${event.photo}" alt="${event.title}">
+                            <p class="polaroid-caption">${event.caption}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="timeline-line"></div>
+            `;
+            
+            container.insertBefore(item, timelineEnd);
         });
         
-        // ===== BOTÕES DE MENSAGEM SECRETA =====
-        secretMessageBtns.forEach(btn => {
+        // Reinicializar botões de mensagem secreta
+        const secretBtns = document.querySelectorAll('.secret-message-btn');
+        secretBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const message = btn.getAttribute('data-message');
-                
-                if (message) {
+                if (message && typeof showSecretMessage === 'function') {
                     showSecretMessage(message);
                 }
             });
         });
         
-        // Fechar modal secreto
-        closeSecretBtn.addEventListener('click', () => {
-            secretModal.style.display = 'none';
-        });
+        console.log(`✅ Timeline reconstruída com ${snapshot.size} eventos`);
         
-        secretModal.addEventListener('click', (e) => {
-            if (e.target === secretModal) {
-                closeSecretBtn.click();
-            }
-        });
-
-        updateTimelineProgress();
-        
-        console.log('✅ Timeline modal inicializada');
-        console.log(`🔒 ${secretMessageBtns.length} mensagens secretas encontradas`);
+    } catch (error) {
+        console.error('❌ Erro ao reconstruir timeline:', error);
     }
+}
 
-    function showSecretMessage(message) {
-        const secretModal = document.getElementById('secretModal');
-        const secretMessageText = document.getElementById('secretMessageText');
-        
-        if (secretModal && secretMessageText) {
-            secretMessageText.textContent = message;
-            secretModal.style.display = 'flex';
-            
-            console.log('🔓 Mensagem secreta revelada');
-        }
-    }
-
-    // ===== BARRA DE PROGRESSO NA TIMELINE =====
-    function updateTimelineProgress() {
-        const timelineScroll = document.querySelector('.timeline-scroll');
-        const timelineContainer = document.querySelector('.timeline-container');
-        
-        if (!timelineScroll || !timelineContainer) return;
-        
-        timelineScroll.addEventListener('scroll', () => {
-            const scrollTop = timelineScroll.scrollTop;
-            const scrollHeight = timelineScroll.scrollHeight - timelineScroll.clientHeight;
-            const scrollPercent = (scrollTop / scrollHeight) * 100;
-            
-            // Atualizar a altura da barra de progresso
-            timelineContainer.style.setProperty('--progress-height', `${scrollPercent}%`);
-        });
-    }
-
-// ===== MENU HAMBÚRGUER PREMIUM COM AUTO-FECHAMENTO =====
-function initHamburgerMenu() {
-    console.log('🍔 Inicializando menu hambúrguer premium...');
+// ===== ATUALIZAR SELECT DE ÁLBUNS =====
+async function updateAlbumSelect() {
+    const selectAlbum = document.getElementById('selectAlbum');
     
-    const hamburgerBtn = document.getElementById('hamburgerBtn');
-    const sideMenu = document.getElementById('sideMenu');
-    const menuOverlay = document.getElementById('menuOverlay');
-    const menuLinks = document.querySelectorAll('.menu-nav a');
-    const themeCards = document.querySelectorAll('.theme-card');
-    const adminMenuBtn = document.getElementById('adminMenuBtn');
-    const menuCloseBtn = document.querySelector('.menu-close-btn');
-
-    if (menuCloseBtn) {
-    menuCloseBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        closeMenu();
-    });
+    try {
+        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
+        
+        selectAlbum.innerHTML = '<option value="">Selecione um álbum</option>';
+        
+        snapshot.forEach(doc => {
+            const album = doc.data();
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = `${album.title} (${album.photoCount || 0} fotos)`;
+            selectAlbum.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao atualizar select:', error);
+    }
 }
 
-    // Verificação de segurança
-    if (!hamburgerBtn || !sideMenu || !menuOverlay) {
-        console.error('❌ Elementos do menu não encontrados!');
-        return false;
-    }
+// ===== CARREGAR CONTEÚDO EXISTENTE =====
+async function loadExistingContent() {
+    await loadExistingAlbums();
+    await loadExistingEvents();
+}
 
-    console.log('✅ Elementos do menu encontrados');
-
-    // ===== FUNÇÃO PARA FECHAR O MENU =====
-    function closeMenu() {
-        hamburgerBtn.classList.remove('active');
-        sideMenu.classList.remove('active');
-        menuOverlay.classList.remove('active');
-        document.body.style.overflow = 'auto';
-        console.log('🔒 Menu fechado');
-    }
-
-    // ===== FUNÇÃO PARA ABRIR O MENU =====
-    function openMenu() {
-        hamburgerBtn.classList.add('active');
-        sideMenu.classList.add('active');
-        menuOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        console.log('🔓 Menu aberto');
-    }
-
-    // ===== ALTERNAR MENU =====
-    function toggleMenu() {
-        const isActive = sideMenu.classList.contains('active');
-        if (isActive) {
-            closeMenu();
-        } else {
-            openMenu();
+async function loadExistingAlbums() {
+    const container = document.getElementById('existingAlbums');
+    
+    try {
+        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
+        
+        container.innerHTML = '';
+        
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: var(--theme-text-secondary); text-align: center;">Nenhum álbum criado ainda</p>';
+            return;
         }
+        
+        snapshot.forEach(doc => {
+            const album = doc.data();
+            const item = document.createElement('div');
+            item.className = 'existing-item';
+            item.innerHTML = `
+                <div class="existing-item-info">
+                    <div class="existing-item-title">${album.title}</div>
+                    <div class="existing-item-meta">${album.date} • ${album.photoCount || 0} fotos</div>
+                </div>
+                <button class="delete-item-btn" onclick="deleteAlbum('${doc.id}')">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            `;
+            container.appendChild(item);
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar álbuns:', error);
+        container.innerHTML = '<p style="color: #ff5050;">Erro ao carregar álbuns</p>';
     }
+}
 
-    // ===== EVENTOS DOS BOTÕES =====
-    hamburgerBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleMenu();
-    });
-
-    menuOverlay.addEventListener('click', (e) => {
-        e.preventDefault();
-        closeMenu();
-    });
-
-
-    // ===== NAVEGAÇÃO INTERNA =====
-    menuLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const targetId = link.getAttribute('href');
-            console.log('🔗 Navegação:', targetId);
-            
-            // Fechar menu imediatamente
-            closeMenu();
-            
-            // Aguardar animação de fechamento (300ms)
-            setTimeout(() => {
-                if (targetId === '#home') {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                } 
-                else if (targetId === '#contador') {
-                    const counterSection = document.querySelector('.time-counter-section');
-                    if (counterSection) {
-                        counterSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }
-                else if (targetId === '#musicas') {
-                    const musicSection = document.querySelector('.music-player-section');
-                    if (musicSection) {
-                        musicSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }
-                else if (targetId === '#albuns') {
-                    const albumsSection = document.querySelector('.albums-section');
-                    if (albumsSection) {
-                        albumsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }
-                else if (targetId === '#mensagens') {
-                    const messagesSection = document.querySelector('.messages-section');
-                    if (messagesSection) {
-                        messagesSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }
-            }, 300);
-        });
-    });
-
-    // ===== SELETOR DE TEMAS =====
-    themeCards.forEach(card => {
-        card.addEventListener('click', () => {
-            const theme = card.dataset.theme;
-            console.log('🎨 Tema selecionado:', theme);
-            
-            // Atualizar visual
-            themeCards.forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            
-            // Aplicar tema
-            if (typeof changeTheme === 'function') {
-                changeTheme(theme, true);
-            }
-            
-            // NÃO fechar o menu ao trocar de tema
-        });
-    });
-
-    // Carregar tema salvo
-    const savedTheme = localStorage.getItem('kevinIaraTheme') || 'meteors';
-    themeCards.forEach(card => {
-        if (card.dataset.theme === savedTheme) {
-            card.classList.add('active');
-        } else {
-            card.classList.remove('active');
+async function loadExistingEvents() {
+    const container = document.getElementById('existingEvents');
+    
+    try {
+        const snapshot = await db.collection('timeline').orderBy('createdAt', 'desc').get();
+        
+        container.innerHTML = '';
+        
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: var(--theme-text-secondary); text-align: center;">Nenhum evento criado ainda</p>';
+            return;
         }
-    });
-
-    // ===== INTEGRAÇÃO COM ADMIN =====
-    let isAdminUnlocked = false;
-
-    if (adminMenuBtn) {
-        adminMenuBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            console.log('🔐 Botão admin clicado');
-            
-            if (!isAdminUnlocked) {
-                // Solicitar senha
-                const password = prompt('🔐 Digite a senha de admin:');
-                
-                if (password === 'iara2023') {
-                    isAdminUnlocked = true;
-                    adminMenuBtn.classList.add('unlocked');
-                    adminMenuBtn.innerHTML = '<i class="fas fa-lock-open"></i><span>Admin</span>';
-                    
-                    // Fechar menu
-                    closeMenu();
-                    
-                    // Aguardar animação
-                    setTimeout(() => {
-                        const adminModal = document.getElementById('adminModal');
-                        const adminToggleBtn = document.getElementById('adminToggleBtn');
-                        
-                        if (adminModal) {
-                            if (adminToggleBtn) {
-                                adminToggleBtn.classList.add('unlocked');
-                                adminToggleBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
-                            }
-                            
-                            adminModal.style.display = 'block';
-                            document.body.style.overflow = 'hidden';
-                            
-                            if (typeof loadExistingContent === 'function') {
-                                loadExistingContent();
-                            }
-                        }
-                        
-                        console.log('✅ Admin desbloqueado');
-                    }, 300);
-                } else if (password !== null) {
-                    alert('❌ Senha incorreta!');
-                }
-            } else {
-                // Admin já desbloqueado
-                closeMenu();
-                
-                setTimeout(() => {
-                    const adminModal = document.getElementById('adminModal');
-                    if (adminModal) {
-                        adminModal.style.display = 'block';
-                        document.body.style.overflow = 'hidden';
-                        
-                        if (typeof loadExistingContent === 'function') {
-                            loadExistingContent();
-                        }
-                    }
-                }, 300);
-            }
+        
+        snapshot.forEach(doc => {
+            const event = doc.data();
+            const item = document.createElement('div');
+            item.className = 'existing-item';
+            item.innerHTML = `
+                <div class="existing-item-info">
+                    <div class="existing-item-title">${event.title}</div>
+                    <div class="existing-item-meta">${event.date} • Lado ${event.side === 'left' ? 'esquerdo' : 'direito'}</div>
+                </div>
+                <button class="delete-item-btn" onclick="deleteEvent('${doc.id}')">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            `;
+            container.appendChild(item);
         });
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar eventos:', error);
+        container.innerHTML = '<p style="color: #ff5050;">Erro ao carregar eventos</p>';
     }
+}
 
-    // ===== ATALHO ESC PARA FECHAR =====
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && sideMenu.classList.contains('active')) {
-            closeMenu();
-        }
-    });
-
-    // ===== AUTO-FECHAR AO ABRIR MODAIS =====
-    // Observar quando qualquer modal é aberto
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'style') {
-                const target = mutation.target;
-                
-                // Se um modal foi aberto
-                if (target.style.display === 'flex' || target.style.display === 'block') {
-                    // E o menu está aberto
-                    if (sideMenu.classList.contains('active')) {
-                        // Fechar o menu
-                        closeMenu();
-                        console.log('🔒 Menu fechado automaticamente (modal aberto)');
-                    }
-                }
-            }
+// ===== FUNÇÕES DE EXCLUSÃO =====
+window.deleteAlbum = async function(albumId) {
+    if (!confirm('❌ Tem certeza que deseja excluir este álbum?\n\nISSO NÃO DELETARÁ as imagens do ImgBB (elas ficarão lá para sempre).')) {
+        return;
+    }
+    
+    try {
+        // Deletar documento principal
+        await db.collection('albums').doc(albumId).delete();
+        
+        // Deletar todas as páginas de fotos
+        const photoPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', albumId)
+            .get();
+        
+        const deletePromises = [];
+        photoPagesSnapshot.forEach(doc => {
+            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
         });
+        
+        await Promise.all(deletePromises);
+        
+        alert('✅ Álbum excluído do Firebase!\n\n⚠️ As imagens continuam no ImgBB.');
+        loadExistingContent();
+        updateAlbumSelect();
+        await loadAlbumsFromFirebase();
+        
+    } catch (error) {
+        console.error('❌ Erro ao excluir álbum:', error);
+        alert('❌ Erro ao excluir: ' + error.message);
+    }
+};
+
+window.deleteEvent = async function(eventId) {
+    if (!confirm('❌ Tem certeza que deseja excluir este evento?\n\nISO NÃO DELETARÁ a imagem do ImgBB.')) {
+        return;
+    }
+    
+    try {
+        await db.collection('timeline').doc(eventId).delete();
+        
+        alert('✅ Evento excluído do Firebase!\n\n⚠️ A imagem continua no ImgBB.');
+        loadExistingContent();
+        await rebuildTimeline();
+        
+    } catch (error) {
+        console.error('❌ Erro ao excluir evento:', error);
+        alert('❌ Erro ao excluir: ' + error.message);
+    }
+};
+
+// ===== INICIALIZAR NO CARREGAMENTO =====
+document.addEventListener('DOMContentLoaded', async () => {
+    await waitForServices();
+    
+    // Salvar álbuns originais
+    if (typeof albums !== 'undefined') {
+        window.originalAlbums = JSON.parse(JSON.stringify(albums));
+    }
+    
+    initAdmin();
+    
+    // Carregar conteúdo do Firebase
+    setTimeout(async () => {
+        await loadAlbumsFromFirebase();
+        await rebuildTimeline();
+    }, 1000);
+});
+
+// ===== SISTEMA DE EDIÇÃO DE ÁLBUNS (DELETAR E REORGANIZAR FOTOS) =====
+
+console.log('✏️ Sistema de edição de álbuns carregado');
+
+// ===== ADICIONAR ABA DE EDIÇÃO NO PAINEL ADMIN =====
+function addEditTabToAdmin() {
+    const tabsContainer = document.querySelector('.admin-tabs');
+    const contentArea = tabsContainer.parentElement;
+    
+    // Verificar se já existe
+    if (document.querySelector('[data-tab="edit"]')) return;
+    
+    // Adicionar botão da aba
+    const editTab = document.createElement('button');
+    editTab.className = 'admin-tab';
+    editTab.setAttribute('data-tab', 'edit');
+    editTab.innerHTML = '<i class="fas fa-edit"></i> Editar Álbum';
+    tabsContainer.appendChild(editTab);
+    
+    // Adicionar conteúdo da aba
+    const editContent = document.createElement('div');
+    editContent.className = 'admin-content';
+    editContent.id = 'edit-tab';
+    editContent.innerHTML = `
+        <div class="admin-section">
+            <h3><i class="fas fa-edit"></i> Selecione um Álbum para Editar</h3>
+            <select id="editAlbumSelect" class="admin-select">
+                <option value="">Escolha um álbum...</option>
+            </select>
+            <button id="loadEditAlbumBtn" class="admin-btn" style="margin-top: 10px;">
+                <i class="fas fa-folder-open"></i> Carregar Álbum
+            </button>
+        </div>
+        
+        <div class="admin-section" id="editAlbumSection" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3><i class="fas fa-images"></i> Fotos do Álbum</h3>
+                <div>
+                    <button id="selectAllPhotos" class="admin-btn" style="margin-right: 10px;">
+                        <i class="fas fa-check-double"></i> Selecionar Todas
+                    </button>
+                    <button id="deleteSelectedPhotos" class="admin-btn" style="background: #ff4444;">
+                        <i class="fas fa-trash"></i> Deletar Selecionadas
+                    </button>
+                </div>
+            </div>
+            
+            <div id="editPhotosGrid" class="edit-photos-grid"></div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                <p style="color: var(--theme-text-secondary); margin: 0;">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Dica:</strong> Clique nas fotos para selecioná-las, depois clique em "Deletar Selecionadas". 
+                    As fotos serão removidas apenas do Firebase (não do ImgBB).
+                </p>
+            </div>
+        </div>
+    `;
+    
+    contentArea.appendChild(editContent);
+    
+    // Eventos
+    editTab.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        editTab.classList.add('active');
+        
+        document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
+        editContent.classList.add('active');
+        
+        updateEditAlbumSelect();
     });
+    
+    document.getElementById('loadEditAlbumBtn').addEventListener('click', loadAlbumForEdit);
+    document.getElementById('selectAllPhotos').addEventListener('click', selectAllPhotos);
+    document.getElementById('deleteSelectedPhotos').addEventListener('click', deleteSelectedPhotos);
+}
 
-    // Observar todos os modais
-    const modals = [
-        document.getElementById('albumModal'),
-        document.getElementById('timelineModal'),
-        document.getElementById('secretModal'),
-        document.getElementById('adminModal')
-    ];
+// ===== ATUALIZAR SELECT DE ÁLBUNS PARA EDIÇÃO =====
+async function updateEditAlbumSelect() {
+    const select = document.getElementById('editAlbumSelect');
+    
+    try {
+        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
+        
+        select.innerHTML = '<option value="">Escolha um álbum...</option>';
+        
+        snapshot.forEach(doc => {
+            const album = doc.data();
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = `${album.title} (${album.photoCount || 0} fotos)`;
+            select.appendChild(option);
+        });
+        
+        console.log(`✅ ${snapshot.size} álbuns disponíveis para edição`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar álbuns:', error);
+    }
+}
 
-    modals.forEach(modal => {
-        if (modal) {
-            observer.observe(modal, {
-                attributes: true,
-                attributeFilter: ['style']
+// ===== CARREGAR ÁLBUM PARA EDIÇÃO =====
+async function loadAlbumForEdit() {
+    const select = document.getElementById('editAlbumSelect');
+    const albumId = select.value;
+    
+    if (!albumId) {
+        alert('⚠️ Selecione um álbum primeiro!');
+        return;
+    }
+    
+    try {
+        console.log(`📂 Carregando álbum ${albumId} para edição...`);
+        
+        const btn = document.getElementById('loadEditAlbumBtn');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+        btn.disabled = true;
+        
+        // Buscar dados do álbum
+        const albumDoc = await db.collection('albums').doc(albumId).get();
+        const albumData = albumDoc.data();
+        
+        // Buscar todas as páginas de fotos
+        const photoPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', albumId)
+            .orderBy('pageNumber', 'asc')
+            .get();
+        
+        // Juntar todas as fotos com seus IDs de página
+        const allPhotos = [];
+        photoPagesSnapshot.forEach(pageDoc => {
+            const pageData = pageDoc.data();
+            pageData.photos.forEach((photo, index) => {
+                allPhotos.push({
+                    ...photo,
+                    pageId: pageDoc.id,
+                    pageNumber: pageData.pageNumber,
+                    indexInPage: index
+                });
             });
-        }
-    });
-
-    console.log('✅ Menu hambúrguer premium inicializado!');
-    console.log('✅ Auto-fechamento de menu configurado');
-    return true;
+        });
+        
+        // Armazenar dados globalmente
+        window.currentEditAlbum = {
+            id: albumId,
+            data: albumData,
+            photos: allPhotos
+        };
+        
+        // Renderizar fotos
+        renderPhotosForEdit(allPhotos, albumData.title);
+        
+        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
+        btn.disabled = false;
+        
+        document.getElementById('editAlbumSection').style.display = 'block';
+        
+        console.log(`✅ ${allPhotos.length} fotos carregadas para edição`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar álbum:', error);
+        alert('❌ Erro ao carregar álbum: ' + error.message);
+        
+        const btn = document.getElementById('loadEditAlbumBtn');
+        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
+        btn.disabled = false;
+    }
 }
+
+// ===== RENDERIZAR FOTOS PARA EDIÇÃO =====
+function renderPhotosForEdit(photos, albumTitle) {
+    const grid = document.getElementById('editPhotosGrid');
+    
+    grid.innerHTML = '';
+    
+    if (photos.length === 0) {
+        grid.innerHTML = '<p style="color: var(--theme-text-secondary); text-align: center; padding: 2rem;">Este álbum está vazio</p>';
+        return;
+    }
+    
+    photos.forEach((photo, index) => {
+        const photoCard = document.createElement('div');
+        photoCard.className = 'edit-photo-card';
+        photoCard.setAttribute('data-index', index);
+        
+        photoCard.innerHTML = `
+            <div class="edit-photo-checkbox">
+                <input type="checkbox" id="photo-${index}">
+            </div>
+            <img src="${photo.src}" alt="${photo.description || 'Foto'}" loading="lazy">
+            <div class="edit-photo-info">
+                <span class="photo-number">#${index + 1}</span>
+            </div>
+        `;
+        
+        // Click na imagem seleciona/deseleciona
+        photoCard.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') {
+                const checkbox = photoCard.querySelector('input[type="checkbox"]');
+                checkbox.checked = !checkbox.checked;
+                photoCard.classList.toggle('selected', checkbox.checked);
+            }
+        });
+        
+        // Checkbox
+        const checkbox = photoCard.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', (e) => {
+            photoCard.classList.toggle('selected', e.target.checked);
+        });
+        
+        grid.appendChild(photoCard);
+    });
+}
+
+// ===== SELECIONAR TODAS AS FOTOS =====
+function selectAllPhotos() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+        cb.closest('.edit-photo-card').classList.toggle('selected', !allChecked);
+    });
+    
+    const btn = document.getElementById('selectAllPhotos');
+    if (allChecked) {
+        btn.innerHTML = '<i class="fas fa-check-double"></i> Selecionar Todas';
+    } else {
+        btn.innerHTML = '<i class="fas fa-times"></i> Desmarcar Todas';
+    }
+}
+
+// ===== DELETAR FOTOS SELECIONADAS =====
+async function deleteSelectedPhotos() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('⚠️ Selecione pelo menos uma foto para deletar!');
+        return;
+    }
+    
+    const confirmMsg = checkboxes.length === 1 
+        ? '❌ Tem certeza que deseja deletar esta foto?' 
+        : `❌ Tem certeza que deseja deletar ${checkboxes.length} fotos?`;
+    
+    if (!confirm(confirmMsg + '\n\nISTO NÃO DELETARÁ as imagens do ImgBB.')) {
+        return;
+    }
+    
+    try {
+        const btn = document.getElementById('deleteSelectedPhotos');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deletando...';
+        btn.disabled = true;
+        
+        // Coletar índices das fotos selecionadas
+        const selectedIndices = Array.from(checkboxes).map(cb => {
+            return parseInt(cb.closest('.edit-photo-card').getAttribute('data-index'));
+        }).sort((a, b) => b - a); // Ordem decrescente para deletar de trás pra frente
+        
+        console.log(`🗑️ Deletando ${selectedIndices.length} fotos...`);
+        
+        // Filtrar fotos que NÃO serão deletadas
+        const remainingPhotos = window.currentEditAlbum.photos.filter((photo, index) => {
+            return !selectedIndices.includes(index);
+        });
+        
+        console.log(`📊 Fotos restantes: ${remainingPhotos.length}`);
+        
+        // Reorganizar em páginas de 200 fotos
+        const PHOTOS_PER_PAGE = 200;
+        const newPages = [];
+        
+        for (let i = 0; i < remainingPhotos.length; i += PHOTOS_PER_PAGE) {
+            newPages.push(remainingPhotos.slice(i, i + PHOTOS_PER_PAGE));
+        }
+        
+        // Deletar todas as páginas antigas
+        const oldPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', window.currentEditAlbum.id)
+            .get();
+        
+        const deletePromises = [];
+        oldPagesSnapshot.forEach(doc => {
+            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
+        });
+        
+        await Promise.all(deletePromises);
+        console.log(`✅ ${oldPagesSnapshot.size} páginas antigas deletadas`);
+        
+        // Criar novas páginas (se ainda houver fotos)
+        if (newPages.length > 0) {
+            for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
+                await db.collection('album_photos').add({
+                    albumId: window.currentEditAlbum.id,
+                    pageNumber: pageIndex,
+                    photos: newPages[pageIndex].map(p => ({
+                        src: p.src,
+                        description: p.description,
+                        timestamp: p.timestamp
+                    })),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            console.log(`✅ ${newPages.length} novas páginas criadas`);
+        }
+        
+        // Atualizar contador de fotos no álbum
+        await db.collection('albums').doc(window.currentEditAlbum.id).update({
+            photoCount: remainingPhotos.length
+        });
+        
+        alert(`✅ ${selectedIndices.length} foto(s) deletada(s) com sucesso!\n\n⚠️ As imagens continuam no ImgBB.`);
+        
+        // Recarregar álbum
+        await loadAlbumForEdit();
+        
+        // Atualizar galeria principal
+        await loadAlbumsFromFirebase();
+        
+        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
+        btn.disabled = false;
+        
+    } catch (error) {
+        console.error('❌ Erro ao deletar fotos:', error);
+        alert('❌ Erro ao deletar fotos: ' + error.message);
+        
+        const btn = document.getElementById('deleteSelectedPhotos');
+        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
+        btn.disabled = false;
+    }
+}
+
+// ===== CSS PARA O SISTEMA DE EDIÇÃO =====
+function injectEditStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Grid de edição de fotos */
+        .edit-photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 10px;
+        }
+        
+        /* Card de foto editável */
+        .edit-photo-card {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .edit-photo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .edit-photo-card.selected {
+            border-color: #ff4081;
+            box-shadow: 0 0 20px rgba(255,64,129,0.5);
+        }
+        
+        .edit-photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Checkbox de seleção */
+        .edit-photo-checkbox {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+        
+        .edit-photo-checkbox input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: #ff4081;
+        }
+        
+        /* Info da foto */
+        .edit-photo-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
+            font-size: 12px;
+        }
+        
+        .photo-number {
+            background: rgba(255,64,129,0.8);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .edit-photos-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 10px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// ===== INICIALIZAR SISTEMA DE EDIÇÃO =====
+function initEditSystem() {
+    // Aguardar admin modal estar pronto
+    const checkInterval = setInterval(() => {
+        if (document.getElementById('adminModal')) {
+            clearInterval(checkInterval);
+            
+            addEditTabToAdmin();
+            injectEditStyles();
+            
+            console.log('✅ Sistema de edição de álbuns inicializado');
+        }
+    }, 500);
+}
+
+// Inicializar quando o DOM carregar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEditSystem);
+} else {
+    initEditSystem();
+}
+
+console.log('✏️ Módulo de edição de álbuns carregado!');
+
+console.log('✅ admin.js com Firebase + ImgBB VERDADEIRAMENTE ILIMITADO carregado!');
