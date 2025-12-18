@@ -1121,79 +1121,90 @@ function openAlbum(albumId) {
     // Variável global para controlar direção do swipe
     let lastPhotoIndex = 0;
 
-    function updateAlbumViewer() {
-        if (!currentAlbum) return;
+function updateAlbumViewer() {
+    if (!currentAlbum) return;
+    
+    const photo = currentAlbum.photos[currentPhotoIndex];
+    const modalPhoto = document.getElementById('modalPhoto');
+    
+    if (!modalPhoto) return;
+    
+    // ===== TRANSIÇÃO FADE SUAVE E OTIMIZADA =====
+    
+    // 1. Fade out rápido
+    modalPhoto.style.transition = 'opacity 0.15s ease-out';
+    modalPhoto.style.opacity = '0';
+    
+    // 2. Trocar imagem e fade in após pequeno delay
+    setTimeout(() => {
+        // Trocar src
+        modalPhoto.src = photo.src;
+        modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
         
-        const photo = currentAlbum.photos[currentPhotoIndex];
-        const modalPhoto = document.getElementById('modalPhoto');
-        const albumViewer = document.querySelector('.album-viewer');
+        // Fade in suave
+        modalPhoto.style.transition = 'opacity 0.25s ease-in';
+        modalPhoto.style.opacity = '1';
         
-        if (!modalPhoto || !albumViewer) return;
+        // Resetar zoom
+        resetZoom();
         
-        // Determinar direção (próxima ou anterior)
-        const goingForward = currentPhotoIndex > lastPhotoIndex || 
-                             (lastPhotoIndex === currentAlbum.photos.length - 1 && currentPhotoIndex === 0);
-        
-        // ===== CRIAR FOTO DE TRANSIÇÃO =====
-        const transitionPhoto = document.createElement('img');
-        transitionPhoto.src = photo.src;
-        transitionPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
-        transitionPhoto.className = 'photo-transition';
-        
-        // Adicionar classe de animação baseada na direção
-        if (goingForward) {
-            transitionPhoto.classList.add('wipe-left'); // Vem da direita
-        } else {
-            transitionPhoto.classList.add('wipe-right'); // Vem da esquerda
-        }
-        
-        // Adicionar foto de transição por cima
-        albumViewer.appendChild(transitionPhoto);
-        
-        // Após animação terminar (400ms)
-        setTimeout(() => {
-            // Trocar foto principal
-            modalPhoto.src = photo.src;
-            modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
-            
-            // Remover foto de transição
-            transitionPhoto.remove();
-            
-            // Resetar zoom
-            resetZoom();
-        }, 400);
-        
-        // Atualizar índice anterior
-        lastPhotoIndex = currentPhotoIndex;
-        
-        // Atualizar contador e barra
-        document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
-        document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
-        updateProgressBar();
-    }
+        // 🎁 BONUS: Pré-carregar fotos adjacentes
+        preloadAdjacentPhotos();
+    }, 150);
+    
+    // Atualizar índice anterior
+    lastPhotoIndex = currentPhotoIndex;
+    
+    // Atualizar contador e barra
+    document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
+    document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
+    updateProgressBar();
+}
 
-    // ===== BARRA DE PROGRESSO ESTILO STORIES =====
-    function updateProgressBar() {
-        const progressBar = document.getElementById('photoProgressBar');
-        if (!progressBar || !currentAlbum) return;
+
+// ===== BARRA DE PROGRESSO ESTILO STORIES =====
+function updateProgressBar() {
+    const progressBar = document.getElementById('photoProgressBar');
+    if (!progressBar || !currentAlbum) return;
+    
+    // Limpar segmentos existentes
+    progressBar.innerHTML = '';
+    
+    // Criar segmentos para cada foto
+    for (let i = 0; i < currentAlbum.photos.length; i++) {
+        const segment = document.createElement('div');
+        segment.className = 'progress-segment';
         
-        // Limpar segmentos existentes
-        progressBar.innerHTML = '';
-        
-        // Criar segmentos para cada foto
-        for (let i = 0; i < currentAlbum.photos.length; i++) {
-            const segment = document.createElement('div');
-            segment.className = 'progress-segment';
-            
-            if (i < currentPhotoIndex) {
-                segment.classList.add('passed');
-            } else if (i === currentPhotoIndex) {
-                segment.classList.add('active');
-            }
-            
-            progressBar.appendChild(segment);
+        if (i < currentPhotoIndex) {
+            segment.classList.add('passed');
+        } else if (i === currentPhotoIndex) {
+            segment.classList.add('active');
         }
+        
+        progressBar.appendChild(segment);
     }
+}
+
+// 🎁 BONUS: PRÉ-CARREGAMENTO DE IMAGENS
+function preloadAdjacentPhotos() {
+    if (!currentAlbum || !currentAlbum.photos) return;
+    
+    // Calcular índices da próxima e anterior
+    const nextIndex = (currentPhotoIndex + 1) % currentAlbum.photos.length;
+    const prevIndex = (currentPhotoIndex - 1 + currentAlbum.photos.length) % currentAlbum.photos.length;
+    
+    // Pré-carregar próxima foto
+    const nextImg = new Image();
+    nextImg.src = currentAlbum.photos[nextIndex].src;
+    
+    // Pré-carregar foto anterior
+    const prevImg = new Image();
+    prevImg.src = currentAlbum.photos[prevIndex].src;
+    
+    console.log(`🎯 Pré-carregadas: foto ${prevIndex + 1} e foto ${nextIndex + 1}`);
+}
+
+
     // ===== MENSAGENS DO DIA =====
     const messages = [
         {
@@ -1681,5 +1692,5 @@ function initHamburgerMenu() {
 
     console.log('✅ Menu hambúrguer premium inicializado!');
     console.log('✅ Auto-fechamento de menu configurado');
-    return true;
+    return true;   
 }
