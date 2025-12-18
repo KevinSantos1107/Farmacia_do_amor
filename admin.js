@@ -670,7 +670,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 console.log('✏️ Sistema de edição de álbuns carregado');
 
-// ===== ADICIONAR ABA DE EDIÇÃO NO PAINEL ADMIN =====
+// ===== ADICIONAR ABA DE EDIÇÃO - DESIGN GALERIA REAL =====
 function addEditTabToAdmin() {
     const tabsContainer = document.querySelector('.admin-tabs');
     const contentArea = tabsContainer.parentElement;
@@ -690,38 +690,39 @@ function addEditTabToAdmin() {
     editContent.className = 'admin-content';
     editContent.id = 'edit-tab';
     editContent.innerHTML = `
+        <!-- Seletor de álbum -->
         <div class="admin-section">
-            <h3><i class="fas fa-edit"></i> Selecione um Álbum para Editar</h3>
+            <h3><i class="fas fa-folder-open"></i> Selecione um Álbum</h3>
             <select id="editAlbumSelect" class="admin-select">
                 <option value="">Escolha um álbum...</option>
             </select>
-            <button id="loadEditAlbumBtn" class="admin-btn" style="margin-top: 10px;">
-                <i class="fas fa-folder-open"></i> Carregar Álbum
+            <button id="loadEditAlbumBtn" class="admin-btn" style="margin-top: 12px;">
+                <i class="fas fa-images"></i> Carregar Fotos
             </button>
         </div>
         
-        <div class="admin-section" id="editAlbumSection" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3><i class="fas fa-images"></i> Fotos do Álbum</h3>
-                <div>
-                    <button id="selectAllPhotos" class="admin-btn" style="margin-right: 10px;">
-                        <i class="fas fa-check-double"></i> Selecionar Todas
+        <!-- Área de edição -->
+        <div id="editAlbumSection" style="display: none;">
+            <!-- Barra de ações fixa -->
+            <div class="edit-toolbar">
+                <div class="edit-toolbar-left">
+                    <h3 id="editAlbumTitle"><i class="fas fa-images"></i> Álbum</h3>
+                    <span class="edit-count" id="editPhotoCount">0 fotos</span>
+                </div>
+                <div class="edit-toolbar-right">
+                    <button id="selectAllPhotos" class="toolbar-btn">
+                        <i class="fas fa-check-square"></i>
+                        <span>Selecionar</span>
                     </button>
-                    <button id="deleteSelectedPhotos" class="admin-btn" style="background: #ff4444;">
-                        <i class="fas fa-trash"></i> Deletar Selecionadas
+                    <button id="deleteSelectedPhotos" class="toolbar-btn delete-btn" style="display: none;">
+                        <i class="fas fa-trash"></i>
+                        <span id="deleteCount">Deletar</span>
                     </button>
                 </div>
             </div>
             
+            <!-- Grid de fotos (estilo galeria real) -->
             <div id="editPhotosGrid" class="edit-photos-grid"></div>
-            
-            <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
-                <p style="color: var(--theme-text-secondary); margin: 0;">
-                    <i class="fas fa-info-circle"></i> 
-                    <strong>Dica:</strong> Clique nas fotos para selecioná-las, depois clique em "Deletar Selecionadas". 
-                    As fotos serão removidas apenas do Firebase (não do ImgBB).
-                </p>
-            </div>
         </div>
     `;
     
@@ -730,12 +731,12 @@ function addEditTabToAdmin() {
     // Re-inicializar listeners de todas as tabs
     setupTabListeners();
     
-    // Event listeners específicos da aba de edição
+    // Event listeners
     document.getElementById('loadEditAlbumBtn').addEventListener('click', loadAlbumForEdit);
     document.getElementById('selectAllPhotos').addEventListener('click', selectAllPhotos);
     document.getElementById('deleteSelectedPhotos').addEventListener('click', deleteSelectedPhotos);
     
-    console.log('✅ Aba de edição adicionada e tabs reconfiguradas');
+    console.log('✅ Aba de edição com design galeria real criada');
 }
 
 // ===== ATUALIZAR SELECT DE ÁLBUNS PARA EDIÇÃO =====
@@ -830,66 +831,100 @@ async function loadAlbumForEdit() {
     }
 }
 
-// ===== RENDERIZAR FOTOS PARA EDIÇÃO =====
+// ===== RENDERIZAR FOTOS - ESTILO GALERIA REAL 3 COLUNAS =====
 function renderPhotosForEdit(photos, albumTitle) {
     const grid = document.getElementById('editPhotosGrid');
+    const countElement = document.getElementById('editPhotoCount');
+    const titleElement = document.getElementById('editAlbumTitle');
+    
+    if (titleElement) {
+        titleElement.innerHTML = `<i class="fas fa-images"></i> ${albumTitle}`;
+    }
+    
+    if (countElement) {
+        countElement.textContent = `${photos.length} foto${photos.length !== 1 ? 's' : ''}`;
+    }
     
     grid.innerHTML = '';
     
     if (photos.length === 0) {
-        grid.innerHTML = '<p style="color: var(--theme-text-secondary); text-align: center; padding: 2rem;">Este álbum está vazio</p>';
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: var(--theme-text-secondary);">
+                <i class="fas fa-images" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                <p>Este álbum está vazio</p>
+            </div>
+        `;
         return;
     }
     
     photos.forEach((photo, index) => {
         const photoCard = document.createElement('div');
-        photoCard.className = 'edit-photo-card';
+        photoCard.className = 'gallery-photo';
         photoCard.setAttribute('data-index', index);
         
         photoCard.innerHTML = `
-            <div class="edit-photo-checkbox">
-                <input type="checkbox" id="photo-${index}">
-            </div>
-            <img src="${photo.src}" alt="${photo.description || 'Foto'}" loading="lazy">
-            <div class="edit-photo-info">
-                <span class="photo-number">#${index + 1}</span>
-            </div>
+            <input type="checkbox" class="photo-checkbox" id="photo-${index}">
+            <label for="photo-${index}" class="photo-label">
+                <img src="${photo.src}" alt="Foto ${index + 1}" loading="lazy">
+                <div class="photo-checkmark">
+                    <i class="fas fa-check"></i>
+                </div>
+            </label>
         `;
         
-        // Click na imagem seleciona/deseleciona
-        photoCard.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'INPUT') {
-                const checkbox = photoCard.querySelector('input[type="checkbox"]');
-                checkbox.checked = !checkbox.checked;
-                photoCard.classList.toggle('selected', checkbox.checked);
-            }
-        });
-        
-        // Checkbox
+        // Checkbox change
         const checkbox = photoCard.querySelector('input[type="checkbox"]');
-        checkbox.addEventListener('change', (e) => {
-            photoCard.classList.toggle('selected', e.target.checked);
+        checkbox.addEventListener('change', () => {
+            photoCard.classList.toggle('selected', checkbox.checked);
+            updateSelectionCount();
         });
         
         grid.appendChild(photoCard);
     });
+    
+    updateSelectionCount();
 }
 
-// ===== SELECIONAR TODAS AS FOTOS =====
+// ===== SELECIONAR/DESMARCAR TODAS =====
 function selectAllPhotos() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
     const allChecked = Array.from(checkboxes).every(cb => cb.checked);
     
     checkboxes.forEach(cb => {
         cb.checked = !allChecked;
-        cb.closest('.edit-photo-card').classList.toggle('selected', !allChecked);
+        cb.closest('.gallery-photo').classList.toggle('selected', !allChecked);
     });
     
-    const btn = document.getElementById('selectAllPhotos');
-    if (allChecked) {
-        btn.innerHTML = '<i class="fas fa-check-double"></i> Selecionar Todas';
+    updateSelectionCount();
+}
+
+// ===== ATUALIZAR CONTADOR DE SELEÇÃO =====
+function updateSelectionCount() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+    const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    const totalCount = checkboxes.length;
+    
+    const deleteBtn = document.getElementById('deleteSelectedPhotos');
+    const selectAllBtn = document.getElementById('selectAllPhotos');
+    const deleteCountSpan = document.getElementById('deleteCount');
+    
+    // Atualizar botão de deletar
+    if (selectedCount > 0) {
+        deleteBtn.style.display = 'flex';
+        deleteCountSpan.textContent = `Deletar (${selectedCount})`;
     } else {
-        btn.innerHTML = '<i class="fas fa-times"></i> Desmarcar Todas';
+        deleteBtn.style.display = 'none';
+    }
+    
+    // Atualizar botão de selecionar
+    const allChecked = selectedCount === totalCount && totalCount > 0;
+    
+    if (allChecked) {
+        selectAllBtn.innerHTML = '<i class="fas fa-times"></i><span>Desmarcar</span>';
+    } else if (selectedCount > 0) {
+        selectAllBtn.innerHTML = `<i class="fas fa-check-square"></i><span>Selecionar (${selectedCount}/${totalCount})</span>`;
+    } else {
+        selectAllBtn.innerHTML = '<i class="fas fa-check-square"></i><span>Selecionar</span>';
     }
 }
 
@@ -993,91 +1028,243 @@ async function deleteSelectedPhotos() {
     }
 }
 
-// ===== CSS PARA O SISTEMA DE EDIÇÃO =====
+// ===== CSS GALERIA REAL - 3 COLUNAS MINIMALISTA =====
 function injectEditStyles() {
     const style = document.createElement('style');
     style.textContent = `
-        /* Grid de edição de fotos */
+        /* ===== TOOLBAR FIXA NO TOPO ===== */
+        .edit-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--theme-card-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--theme-card-border);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin: 0 -25px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .edit-toolbar-left {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        
+        .edit-toolbar-left h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--theme-text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .edit-count {
+            font-size: 0.85rem;
+            color: var(--theme-text-secondary);
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .edit-toolbar-right {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* ===== BOTÕES DA TOOLBAR ===== */
+        .toolbar-btn {
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--theme-card-border);
+            border-radius: 8px;
+            color: var(--theme-text);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .toolbar-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-1px);
+        }
+        
+        .toolbar-btn:active {
+            transform: translateY(0);
+        }
+        
+        .toolbar-btn.delete-btn {
+            background: rgba(255, 70, 70, 0.15);
+            border-color: rgba(255, 70, 70, 0.3);
+            color: #ff6b6b;
+        }
+        
+        .toolbar-btn.delete-btn:hover {
+            background: rgba(255, 70, 70, 0.25);
+            border-color: rgba(255, 70, 70, 0.5);
+        }
+        
+        /* ===== GRID GALERIA REAL - 3 COLUNAS ===== */
         .edit-photos-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            padding: 10px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
         }
         
-        /* Card de foto editável */
-        .edit-photo-card {
+        /* ===== CARD DE FOTO - MINIMALISTA ===== */
+        .gallery-photo {
             position: relative;
             aspect-ratio: 1;
-            border-radius: 10px;
             overflow: hidden;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 3px solid transparent;
-            background: rgba(255,255,255,0.05);
+            background: rgba(0, 0, 0, 0.5);
         }
         
-        .edit-photo-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        
-        .edit-photo-card.selected {
-            border-color: #ff4081;
-            box-shadow: 0 0 20px rgba(255,64,129,0.5);
-        }
-        
-        .edit-photo-card img {
+        .gallery-photo img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
+            transition: all 0.3s ease;
         }
         
-        /* Checkbox de seleção */
-        .edit-photo-checkbox {
+        /* Checkbox escondido */
+        .photo-checkbox {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Label clicável */
+        .photo-label {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        /* Checkmark */
+        .photo-checkmark {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s ease;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .photo-checkmark i {
+            color: white;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        /* Hover - mostrar checkmark */
+        .gallery-photo:hover .photo-checkmark {
+            opacity: 1;
+        }
+        
+        /* Estado selecionado */
+        .gallery-photo.selected .photo-checkmark {
+            opacity: 1;
+            background: var(--theme-primary);
+            border-color: var(--theme-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+        
+        .gallery-photo.selected .photo-checkmark i {
+            opacity: 1;
+        }
+        
+        .gallery-photo.selected img {
+            opacity: 0.7;
+        }
+        
+        .gallery-photo.selected::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 3px solid var(--theme-primary);
+            pointer-events: none;
             z-index: 10;
         }
         
-        .edit-photo-checkbox input[type="checkbox"] {
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            accent-color: #ff4081;
-        }
-        
-        /* Info da foto */
-        .edit-photo-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 10px;
-            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-            color: white;
-            font-size: 12px;
-        }
-        
-        .photo-number {
-            background: rgba(255,64,129,0.8);
-            padding: 3px 8px;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        
-        /* Responsivo */
+        /* ===== RESPONSIVO ===== */
         @media (max-width: 768px) {
+            .edit-toolbar {
+                padding: 12px 15px;
+                margin: 0 -15px 15px;
+                flex-wrap: wrap;
+            }
+            
+            .edit-toolbar-right {
+                width: 100%;
+                order: 3;
+            }
+            
+            .toolbar-btn {
+                flex: 1;
+                justify-content: center;
+                padding: 12px 14px;
+                font-size: 0.85rem;
+            }
+            
+            .toolbar-btn span {
+                display: none;
+            }
+            
+            .toolbar-btn i {
+                margin: 0;
+            }
+            
             .edit-photos-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-                gap: 10px;
+                gap: 1px;
+                border-radius: 4px;
+            }
+            
+            .photo-checkmark {
+                width: 28px;
+                height: 28px;
+            }
+            
+            .photo-checkmark i {
+                font-size: 14px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .edit-toolbar-left h3 {
+                font-size: 1rem;
+            }
+            
+            .edit-count {
+                font-size: 0.8rem;
             }
         }
     `;
     document.head.appendChild(style);
 }
-
 // ===== INICIALIZAR SISTEMA DE EDIÇÃO =====
 function initEditSystem() {
     // Aguardar admin modal estar pronto
