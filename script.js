@@ -1121,6 +1121,7 @@ function openAlbum(albumId) {
     // Variável global para controlar direção do swipe
     let lastPhotoIndex = 0;
 
+// ===== TRANSIÇÃO STORIES - MÁXIMA PERFORMANCE =====
 function updateAlbumViewer() {
     if (!currentAlbum) return;
     
@@ -1129,28 +1130,46 @@ function updateAlbumViewer() {
     
     if (!modalPhoto) return;
     
-    // ===== TRANSIÇÃO FADE SUAVE E OTIMIZADA =====
+    // 🎯 Detectar direção (próxima = esquerda, anterior = direita)
+    const direction = currentPhotoIndex > lastPhotoIndex ? 'left' : 'right';
+    const isWrapping = Math.abs(currentPhotoIndex - lastPhotoIndex) > 1;
     
-    // 1. Fade out rápido
-    modalPhoto.style.transition = 'opacity 0.15s ease-out';
-    modalPhoto.style.opacity = '0';
+    // Se voltou do final pro início (ou vice-versa), inverter
+    const slideDirection = isWrapping ? 
+        (direction === 'left' ? 'right' : 'left') : direction;
     
-    // 2. Trocar imagem e fade in após pequeno delay
+    // 🚀 ETAPA 1: Slide out (imagem atual sai)
+    modalPhoto.classList.remove('active', 'slide-in-left', 'slide-in-right');
+    modalPhoto.classList.add(`slide-out-${slideDirection}`);
+    
+    // 🚀 ETAPA 2: Trocar imagem e slide in (130ms = tempo da transição)
     setTimeout(() => {
+        // Preparar nova imagem (fora da tela no lado oposto)
+        const enterDirection = slideDirection === 'left' ? 'right' : 'left';
+        modalPhoto.classList.remove(`slide-out-${slideDirection}`);
+        modalPhoto.classList.add(`slide-in-${enterDirection}`);
+        
         // Trocar src
         modalPhoto.src = photo.src;
         modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
         
-        // Fade in suave
-        modalPhoto.style.transition = 'opacity 0.25s ease-in';
-        modalPhoto.style.opacity = '1';
+        // ⚡ SUPER OTIMIZAÇÃO: Force repaint antes da animação
+        void modalPhoto.offsetWidth;
         
-        // Resetar zoom
-        resetZoom();
-        
-        // 🎁 BONUS: Pré-carregar fotos adjacentes
-        preloadAdjacentPhotos();
-    }, 150);
+        // Animar entrada (próximo frame)
+        requestAnimationFrame(() => {
+            modalPhoto.classList.remove(`slide-in-${enterDirection}`);
+            modalPhoto.classList.add('active');
+            
+            // Resetar zoom após transição
+            setTimeout(() => {
+                resetZoom();
+            }, 50);
+        });
+    }, 130);
+    
+    // 🎁 Pré-carregar próximas fotos (otimizado)
+    preloadAdjacentPhotos();
     
     // Atualizar índice anterior
     lastPhotoIndex = currentPhotoIndex;
@@ -1160,7 +1179,6 @@ function updateAlbumViewer() {
     document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
     updateProgressBar();
 }
-
 
 // ===== BARRA DE PROGRESSO ESTILO STORIES =====
 function updateProgressBar() {
@@ -1692,5 +1710,7 @@ function initHamburgerMenu() {
 
     console.log('✅ Menu hambúrguer premium inicializado!');
     console.log('✅ Auto-fechamento de menu configurado');
-    return true;   
+    return true;
+    
+    
 }
