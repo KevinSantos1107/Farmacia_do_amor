@@ -1251,6 +1251,27 @@ body {
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
+
+    /* Estados de transição */
+.album-viewer img.slide-out-left {
+    transform: translateX(-100%) translateZ(0);
+}
+
+.album-viewer img.slide-out-right {
+    transform: translateX(100%) translateZ(0);
+}
+
+.album-viewer img.slide-in-left {
+    transform: translateX(-100%) translateZ(0);
+}
+
+.album-viewer img.slide-in-right {
+    transform: translateX(100%) translateZ(0);
+}
+
+.album-viewer img.active {
+    transform: translateX(0) translateZ(0);
+}
     
     /* ===== OTIMIZAÇÕES GPU ===== */
     will-change: opacity, transform;
@@ -1261,6 +1282,7 @@ body {
     
     /* Suavização de imagem */
     image-rendering: -webkit-optimize-contrast;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);   
 }
 
 /* Indicadores de posição (estilo Instagram Stories) */
