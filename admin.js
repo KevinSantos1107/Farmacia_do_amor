@@ -188,7 +188,6 @@ function initAlbumForms() {
         
         const albumId = selectAlbum.value;
         const photoFiles = document.getElementById('photoFile').files;
-        const description = document.getElementById('photoDescription').value;
         
         if (!albumId) {
             alert('❌ Selecione um álbum primeiro!');
@@ -231,12 +230,12 @@ function initAlbumForms() {
                 btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Enviando ${i + 1}/${photoFiles.length} para ImgBB...`;
                 
                 try {
-                    const url = await uploadToImgBB(photoFiles[i], 1600);
-                    photoUrls.push({
-                        src: url,
-                        description: description || `Foto ${i + 1}`,
-                        timestamp: Date.now() + i
-                    });
+                const url = await uploadToImgBB(photoFiles[i], 1600);
+                photoUrls.push({
+                    src: url,
+                    description: '',
+                    timestamp: Date.now() + i
+                });
                     
                     // Delay menor para ser mais rápido
                     await new Promise(resolve => setTimeout(resolve, 300));
