@@ -670,7 +670,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 console.log('✏️ Sistema de edição de álbuns carregado');
 
-// ===== ADICIONAR ABA DE EDIÇÃO - DESIGN GALERIA REAL =====
+// ===== ADICIONAR ABA DE EDIÇÃO - DESIGN GALERIA NATIVA =====
 function addEditTabToAdmin() {
     const tabsContainer = document.querySelector('.admin-tabs');
     const contentArea = tabsContainer.parentElement;
@@ -703,26 +703,30 @@ function addEditTabToAdmin() {
         
         <!-- Área de edição -->
         <div id="editAlbumSection" style="display: none;">
-            <!-- Barra de ações fixa -->
-            <div class="edit-toolbar">
-                <div class="edit-toolbar-left">
-                    <h3 id="editAlbumTitle"><i class="fas fa-images"></i> Álbum</h3>
-                    <span class="edit-count" id="editPhotoCount">0 fotos</span>
-                </div>
-                <div class="edit-toolbar-right">
-                    <button id="selectAllPhotos" class="toolbar-btn">
-                        <i class="fas fa-check-square"></i>
-                        <span>Selecionar</span>
-                    </button>
-                    <button id="deleteSelectedPhotos" class="toolbar-btn delete-btn" style="display: none;">
-                        <i class="fas fa-trash"></i>
-                        <span id="deleteCount">Deletar</span>
-                    </button>
-                </div>
-            </div>
-            
             <!-- Grid de fotos (estilo galeria real) -->
             <div id="editPhotosGrid" class="edit-photos-grid"></div>
+            
+            <!-- Barra de ações INFERIOR (só aparece quando seleciona fotos) -->
+            <div class="bottom-toolbar" id="bottomToolbar" style="display: none;">
+                <button id="cancelSelection" class="bottom-btn cancel-btn">
+                    <i class="fas fa-times"></i>
+                    <span>Cancelar</span>
+                </button>
+                
+                <div class="bottom-info">
+                    <span id="selectionCount">0 selecionadas</span>
+                </div>
+                
+                <button id="reorganizePhotos" class="bottom-btn reorganize-btn">
+                    <i class="fas fa-sort"></i>
+                    <span>Reorganizar</span>
+                </button>
+                
+                <button id="deleteSelectedPhotos" class="bottom-btn delete-btn">
+                    <i class="fas fa-trash"></i>
+                    <span>Deletar</span>
+                </button>
+            </div>
         </div>
     `;
     
@@ -733,10 +737,14 @@ function addEditTabToAdmin() {
     
     // Event listeners
     document.getElementById('loadEditAlbumBtn').addEventListener('click', loadAlbumForEdit);
-    document.getElementById('selectAllPhotos').addEventListener('click', selectAllPhotos);
+    document.getElementById('cancelSelection').addEventListener('click', cancelSelection);
+    document.getElementById('reorganizePhotos').addEventListener('click', enterReorganizeMode);
     document.getElementById('deleteSelectedPhotos').addEventListener('click', deleteSelectedPhotos);
     
-    console.log('✅ Aba de edição com design galeria real criada');
+    // Listener para botão "voltar" do Android
+    setupBackButtonHandler();
+    
+    console.log('✅ Aba de edição com design galeria nativa criada');
 }
 
 // ===== ATUALIZAR SELECT DE ÁLBUNS PARA EDIÇÃO =====
@@ -831,19 +839,9 @@ async function loadAlbumForEdit() {
     }
 }
 
-// ===== RENDERIZAR FOTOS - ESTILO GALERIA REAL 3 COLUNAS =====
+// ===== RENDERIZAR FOTOS - COM LONG PRESS (SEGURAR) =====
 function renderPhotosForEdit(photos, albumTitle) {
     const grid = document.getElementById('editPhotosGrid');
-    const countElement = document.getElementById('editPhotoCount');
-    const titleElement = document.getElementById('editAlbumTitle');
-    
-    if (titleElement) {
-        titleElement.innerHTML = `<i class="fas fa-images"></i> ${albumTitle}`;
-    }
-    
-    if (countElement) {
-        countElement.textContent = `${photos.length} foto${photos.length !== 1 ? 's' : ''}`;
-    }
     
     grid.innerHTML = '';
     
@@ -864,25 +862,481 @@ function renderPhotosForEdit(photos, albumTitle) {
         
         photoCard.innerHTML = `
             <input type="checkbox" class="photo-checkbox" id="photo-${index}">
-            <label for="photo-${index}" class="photo-label">
+            <div class="photo-wrapper">
                 <img src="${photo.src}" alt="Foto ${index + 1}" loading="lazy">
                 <div class="photo-checkmark">
                     <i class="fas fa-check"></i>
                 </div>
-            </label>
+                <div class="photo-number" style="display: none;">${index + 1}</div>
+            </div>
         `;
         
-        // Checkbox change
         const checkbox = photoCard.querySelector('input[type="checkbox"]');
-        checkbox.addEventListener('change', () => {
-            photoCard.classList.toggle('selected', checkbox.checked);
-            updateSelectionCount();
+        const wrapper = photoCard.querySelector('.photo-wrapper');
+        
+        let longPressTimer;
+        let touchStartTime;
+        let touchMoved = false;
+        
+        // ===== LONG PRESS (MOBILE) =====
+        wrapper.addEventListener('touchstart', (e) => {
+            touchMoved = false;
+            touchStartTime = Date.now();
+            
+            longPressTimer = setTimeout(() => {
+                if (!touchMoved) {
+                    // Vibrar (se suportado)
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
+                    
+                    checkbox.checked = !checkbox.checked;
+                    photoCard.classList.toggle('selected', checkbox.checked);
+                    updateSelectionUI();
+                }
+            }, 500); // 500ms = meio segundo
         });
+        
+        wrapper.addEventListener('touchmove', () => {
+            touchMoved = true;
+            clearTimeout(longPressTimer);
+        });
+        
+        wrapper.addEventListener('touchend', (e) => {
+            clearTimeout(longPressTimer);
+            
+            // Se já está em modo seleção, tap normal seleciona/desseleciona
+            if (isInSelectionMode() && !touchMoved) {
+                const touchDuration = Date.now() - touchStartTime;
+                if (touchDuration < 500) {
+                    checkbox.checked = !checkbox.checked;
+                    photoCard.classList.toggle('selected', checkbox.checked);
+                    updateSelectionUI();
+                }
+            }
+        });
+        
+        // ===== CLICK (DESKTOP) =====
+        wrapper.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            
+            longPressTimer = setTimeout(() => {
+                checkbox.checked = !checkbox.checked;
+                photoCard.classList.toggle('selected', checkbox.checked);
+                updateSelectionUI();
+            }, 500);
+        });
+        
+        wrapper.addEventListener('mouseup', () => {
+            clearTimeout(longPressTimer);
+        });
+        
+        wrapper.addEventListener('mouseleave', () => {
+            clearTimeout(longPressTimer);
+        });
+        
+        // Prevenir arraste de imagem
+        wrapper.addEventListener('dragstart', (e) => e.preventDefault());
         
         grid.appendChild(photoCard);
     });
     
-    updateSelectionCount();
+    updateSelectionUI();
+}
+
+// ===== VERIFICAR SE ESTÁ EM MODO SELEÇÃO =====
+function isInSelectionMode() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
+    return checkboxes.length > 0;
+}
+
+// ===== ATUALIZAR UI DE SELEÇÃO =====
+function updateSelectionUI() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+    const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    const bottomToolbar = document.getElementById('bottomToolbar');
+    const selectionCountSpan = document.getElementById('selectionCount');
+    
+    if (selectedCount > 0) {
+        // Mostrar barra inferior
+        bottomToolbar.style.display = 'flex';
+        selectionCountSpan.textContent = `${selectedCount} selecionada${selectedCount !== 1 ? 's' : ''}`;
+        
+        // Mostrar checkmarks em TODAS as fotos
+        document.querySelectorAll('.gallery-photo').forEach(photo => {
+            photo.classList.add('selection-mode');
+        });
+    } else {
+        // Esconder barra inferior
+        bottomToolbar.style.display = 'none';
+        
+        // Esconder checkmarks
+        document.querySelectorAll('.gallery-photo').forEach(photo => {
+            photo.classList.remove('selection-mode');
+        });
+    }
+}
+
+// ===== CANCELAR SELEÇÃO =====
+function cancelSelection() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+        cb.closest('.gallery-photo').classList.remove('selected');
+    });
+    
+    updateSelectionUI();
+}
+
+// ===== HANDLER PARA BOTÃO "VOLTAR" DO ANDROID =====
+function setupBackButtonHandler() {
+    // Criar um "estado" no histórico para capturar o back
+    window.addEventListener('popstate', (e) => {
+        if (isInSelectionMode()) {
+            e.preventDefault();
+            cancelSelection();
+            
+            // Re-adicionar estado no histórico
+            history.pushState({ editMode: true }, '');
+        }
+    });
+    
+    // Adicionar estado inicial quando entrar em modo edição
+    const editSection = document.getElementById('editAlbumSection');
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.attributeName === 'style') {
+                if (editSection.style.display !== 'none') {
+                    history.pushState({ editMode: true }, '');
+                }
+            }
+        });
+    });
+    
+    observer.observe(editSection, { attributes: true });
+}
+
+// ===== MODO REORGANIZAR =====
+let isReorganizing = false;
+let draggedElement = null;
+let draggedIndex = null;
+
+function enterReorganizeMode() {
+    if (isReorganizing) {
+        exitReorganizeMode();
+        return;
+    }
+    
+    isReorganizing = true;
+    
+    const reorganizeBtn = document.getElementById('reorganizePhotos');
+    reorganizeBtn.innerHTML = '<i class="fas fa-save"></i><span>Salvar</span>';
+    reorganizeBtn.classList.add('active');
+    
+    // Esconder outros botões
+    document.getElementById('deleteSelectedPhotos').style.display = 'none';
+    document.getElementById('cancelSelection').innerHTML = '<i class="fas fa-times"></i><span>Cancelar</span>';
+    
+    // Desmarcar todas
+    cancelSelection();
+    
+    // Atualizar UI
+    const selectionCountSpan = document.getElementById('selectionCount');
+    selectionCountSpan.textContent = 'Arraste para reorganizar';
+    document.getElementById('bottomToolbar').style.display = 'flex';
+    
+    // Ativar arrastar
+    const photos = document.querySelectorAll('.gallery-photo');
+    photos.forEach((photo, index) => {
+        photo.classList.add('draggable');
+        photo.setAttribute('draggable', 'true');
+        
+        // Mostrar número
+        const numberEl = photo.querySelector('.photo-number');
+        if (numberEl) {
+            numberEl.style.display = 'flex';
+            numberEl.textContent = index + 1;
+        }
+        
+        // Desktop drag
+        photo.addEventListener('dragstart', handleDragStart);
+        photo.addEventListener('dragover', handleDragOver);
+        photo.addEventListener('drop', handleDrop);
+        photo.addEventListener('dragend', handleDragEnd);
+        
+        // Mobile touch
+        photo.addEventListener('touchstart', handleTouchStart);
+        photo.addEventListener('touchmove', handleTouchMove);
+        photo.addEventListener('touchend', handleTouchEnd);
+    });
+    
+    console.log('📝 Modo reorganizar ativado');
+}
+
+function exitReorganizeMode(save = false) {
+    isReorganizing = false;
+    
+    const reorganizeBtn = document.getElementById('reorganizePhotos');
+    reorganizeBtn.innerHTML = '<i class="fas fa-sort"></i><span>Reorganizar</span>';
+    reorganizeBtn.classList.remove('active');
+    
+    // Mostrar outros botões novamente
+    document.getElementById('deleteSelectedPhotos').style.display = 'flex';
+    document.getElementById('bottomToolbar').style.display = 'none';
+    
+    // Desativar arrastar
+    const photos = document.querySelectorAll('.gallery-photo');
+    photos.forEach(photo => {
+        photo.classList.remove('draggable');
+        photo.removeAttribute('draggable');
+        
+        // Esconder número
+        const numberEl = photo.querySelector('.photo-number');
+        if (numberEl) {
+            numberEl.style.display = 'none';
+        }
+        
+        // Remover listeners
+        photo.removeEventListener('dragstart', handleDragStart);
+        photo.removeEventListener('dragover', handleDragOver);
+        photo.removeEventListener('drop', handleDrop);
+        photo.removeEventListener('dragend', handleDragEnd);
+        photo.removeEventListener('touchstart', handleTouchStart);
+        photo.removeEventListener('touchmove', handleTouchMove);
+        photo.removeEventListener('touchend', handleTouchEnd);
+    });
+    
+    if (save) {
+        saveNewPhotoOrder();
+    }
+    
+    console.log('📝 Modo reorganizar desativado');
+}
+
+// ===== DRAG & DROP HANDLERS (DESKTOP) =====
+function handleDragStart(e) {
+    draggedElement = this;
+    draggedIndex = parseInt(this.getAttribute('data-index'));
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const targetIndex = parseInt(this.getAttribute('data-index'));
+    if (draggedIndex !== targetIndex) {
+        this.classList.add('drag-over');
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    
+    const targetIndex = parseInt(this.getAttribute('data-index'));
+    
+    if (draggedIndex !== targetIndex) {
+        swapPhotos(draggedIndex, targetIndex);
+    }
+    
+    this.classList.remove('drag-over');
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    
+    document.querySelectorAll('.gallery-photo').forEach(photo => {
+        photo.classList.remove('drag-over');
+    });
+}
+
+// ===== TOUCH HANDLERS (MOBILE) =====
+let touchedElement = null;
+let touchStartY = 0;
+let touchStartX = 0;
+let isTouchDragging = false;
+
+function handleTouchStart(e) {
+    if (!isReorganizing) return;
+    
+    touchedElement = this;
+    draggedIndex = parseInt(this.getAttribute('data-index'));
+    
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    
+    setTimeout(() => {
+        if (touchedElement) {
+            touchedElement.classList.add('dragging');
+            isTouchDragging = true;
+            
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }
+    }, 200);
+}
+
+function handleTouchMove(e) {
+    if (!isTouchDragging || !touchedElement) return;
+    
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const photoBelow = elementBelow?.closest('.gallery-photo');
+    
+    if (photoBelow && photoBelow !== touchedElement) {
+        const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
+        
+        document.querySelectorAll('.gallery-photo').forEach(p => {
+            p.classList.remove('drag-over');
+        });
+        
+        if (draggedIndex !== targetIndex) {
+            photoBelow.classList.add('drag-over');
+        }
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!isTouchDragging || !touchedElement) {
+        touchedElement = null;
+        isTouchDragging = false;
+        return;
+    }
+    
+    const touch = e.changedTouches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const photoBelow = elementBelow?.closest('.gallery-photo');
+    
+    if (photoBelow && photoBelow !== touchedElement) {
+        const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
+        
+        if (draggedIndex !== targetIndex) {
+            swapPhotos(draggedIndex, targetIndex);
+        }
+    }
+    
+    touchedElement.classList.remove('dragging');
+    document.querySelectorAll('.gallery-photo').forEach(p => {
+        p.classList.remove('drag-over');
+    });
+    
+    touchedElement = null;
+    isTouchDragging = false;
+}
+
+// ===== TROCAR POSIÇÃO DAS FOTOS =====
+function swapPhotos(fromIndex, toIndex) {
+    const photos = window.currentEditAlbum.photos;
+    
+    // Trocar no array
+    const temp = photos[fromIndex];
+    photos[fromIndex] = photos[toIndex];
+    photos[toIndex] = temp;
+    
+    // Re-renderizar
+    renderPhotosForEditInReorganizeMode(photos);
+    
+    console.log(`🔄 Foto ${fromIndex + 1} trocada com foto ${toIndex + 1}`);
+}
+
+// ===== RE-RENDERIZAR NO MODO REORGANIZAR =====
+function renderPhotosForEditInReorganizeMode(photos) {
+    const grid = document.getElementById('editPhotosGrid');
+    grid.innerHTML = '';
+    
+    photos.forEach((photo, index) => {
+        const photoCard = document.createElement('div');
+        photoCard.className = 'gallery-photo draggable';
+        photoCard.setAttribute('data-index', index);
+        photoCard.setAttribute('draggable', 'true');
+        
+        photoCard.innerHTML = `
+            <div class="photo-wrapper">
+                <img src="${photo.src}" alt="Foto ${index + 1}" loading="lazy">
+                <div class="photo-number" style="display: flex;">${index + 1}</div>
+            </div>
+        `;
+        
+        // Re-adicionar listeners
+        photoCard.addEventListener('dragstart', handleDragStart);
+        photoCard.addEventListener('dragover', handleDragOver);
+        photoCard.addEventListener('drop', handleDrop);
+        photoCard.addEventListener('dragend', handleDragEnd);
+        photoCard.addEventListener('touchstart', handleTouchStart);
+        photoCard.addEventListener('touchmove', handleTouchMove);
+        photoCard.addEventListener('touchend', handleTouchEnd);
+        
+        grid.appendChild(photoCard);
+    });
+}
+
+// ===== SALVAR NOVA ORDEM NO FIREBASE =====
+async function saveNewPhotoOrder() {
+    if (!window.currentEditAlbum) return;
+    
+    try {
+        const btn = document.getElementById('reorganizePhotos');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando...</span>';
+        btn.disabled = true;
+        
+        const photos = window.currentEditAlbum.photos;
+        
+        // Reorganizar em páginas
+        const PHOTOS_PER_PAGE = 200;
+        const newPages = [];
+        
+        for (let i = 0; i < photos.length; i += PHOTOS_PER_PAGE) {
+            newPages.push(photos.slice(i, i + PHOTOS_PER_PAGE));
+        }
+        
+        // Deletar páginas antigas
+        const oldPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', window.currentEditAlbum.id)
+            .get();
+        
+        const deletePromises = [];
+        oldPagesSnapshot.forEach(doc => {
+            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
+        });
+        
+        await Promise.all(deletePromises);
+        
+        // Criar novas páginas com nova ordem
+        for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
+            await db.collection('album_photos').add({
+                albumId: window.currentEditAlbum.id,
+                pageNumber: pageIndex,
+                photos: newPages[pageIndex].map(p => ({
+                    src: p.src,
+                    description: p.description,
+                    timestamp: p.timestamp
+                })),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        alert('✅ Nova ordem das fotos salva com sucesso!');
+        
+        // Recarregar galeria principal
+        await loadAlbumsFromFirebase();
+        
+        exitReorganizeMode(false);
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar nova ordem:', error);
+        alert('❌ Erro ao salvar: ' + error.message);
+        
+        const btn = document.getElementById('reorganizePhotos');
+        btn.innerHTML = '<i class="fas fa-save"></i><span>Salvar</span>';
+        btn.disabled = false;
+    }
 }
 
 // ===== SELECIONAR/DESMARCAR TODAS =====
@@ -952,8 +1406,8 @@ async function deleteSelectedPhotos() {
         
         // Coletar índices das fotos selecionadas
         const selectedIndices = Array.from(checkboxes).map(cb => {
-            return parseInt(cb.closest('.edit-photo-card').getAttribute('data-index'));
-        }).sort((a, b) => b - a); // Ordem decrescente para deletar de trás pra frente
+            return parseInt(cb.closest('.gallery-photo').getAttribute('data-index')); // ← CORRIGIDO
+        }).sort((a, b) => b - a);
         
         console.log(`🗑️ Deletando ${selectedIndices.length} fotos...`);
         
@@ -1028,92 +1482,11 @@ async function deleteSelectedPhotos() {
     }
 }
 
-// ===== CSS GALERIA REAL - 3 COLUNAS MINIMALISTA =====
+// ===== CSS GALERIA NATIVA COM BARRA INFERIOR =====
 function injectEditStyles() {
     const style = document.createElement('style');
     style.textContent = `
-        /* ===== TOOLBAR FIXA NO TOPO ===== */
-        .edit-toolbar {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: var(--theme-card-bg);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--theme-card-border);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            margin: 0 -25px 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-        
-        .edit-toolbar-left {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-        
-        .edit-toolbar-left h3 {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: var(--theme-text);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .edit-count {
-            font-size: 0.85rem;
-            color: var(--theme-text-secondary);
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        .edit-toolbar-right {
-            display: flex;
-            gap: 10px;
-        }
-        
-        /* ===== BOTÕES DA TOOLBAR ===== */
-        .toolbar-btn {
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--theme-card-border);
-            border-radius: 8px;
-            color: var(--theme-text);
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.9rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-        
-        .toolbar-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            transform: translateY(-1px);
-        }
-        
-        .toolbar-btn:active {
-            transform: translateY(0);
-        }
-        
-        .toolbar-btn.delete-btn {
-            background: rgba(255, 70, 70, 0.15);
-            border-color: rgba(255, 70, 70, 0.3);
-            color: #ff6b6b;
-        }
-        
-        .toolbar-btn.delete-btn:hover {
-            background: rgba(255, 70, 70, 0.25);
-            border-color: rgba(255, 70, 70, 0.5);
-        }
-        
-        /* ===== GRID GALERIA REAL - 3 COLUNAS ===== */
+        /* ===== GRID GALERIA - 3 COLUNAS ===== */
         .edit-photos-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -1121,14 +1494,24 @@ function injectEditStyles() {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
             overflow: hidden;
+            margin-bottom: 80px;
         }
         
-        /* ===== CARD DE FOTO - MINIMALISTA ===== */
+        /* ===== CARD DE FOTO ===== */
         .gallery-photo {
             position: relative;
             aspect-ratio: 1;
             overflow: hidden;
             background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .photo-wrapper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
         .gallery-photo img {
@@ -1137,6 +1520,7 @@ function injectEditStyles() {
             object-fit: cover;
             display: block;
             transition: all 0.3s ease;
+            pointer-events: none;
         }
         
         /* Checkbox escondido */
@@ -1146,16 +1530,7 @@ function injectEditStyles() {
             pointer-events: none;
         }
         
-        /* Label clicável */
-        .photo-label {
-            display: block;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        /* Checkmark */
+        /* Checkmark (SÓ APARECE EM MODO SELEÇÃO) */
         .photo-checkmark {
             position: absolute;
             top: 8px;
@@ -1171,6 +1546,7 @@ function injectEditStyles() {
             opacity: 0;
             transition: all 0.2s ease;
             border: 2px solid rgba(255, 255, 255, 0.5);
+            pointer-events: none;
         }
         
         .photo-checkmark i {
@@ -1180,12 +1556,12 @@ function injectEditStyles() {
             transition: opacity 0.2s ease;
         }
         
-        /* Hover - mostrar checkmark */
-        .gallery-photo:hover .photo-checkmark {
+        /* Mostrar checkmark quando está em modo seleção */
+        .gallery-photo.selection-mode .photo-checkmark {
             opacity: 1;
         }
         
-        /* Estado selecionado */
+        /* Checkmark ativo */
         .gallery-photo.selected .photo-checkmark {
             opacity: 1;
             background: var(--theme-primary);
@@ -1210,37 +1586,143 @@ function injectEditStyles() {
             z-index: 10;
         }
         
+        /* ===== MODO REORGANIZAR ===== */
+        .gallery-photo.draggable {
+            cursor: grab;
+        }
+        
+        .gallery-photo.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        
+        .gallery-photo.drag-over {
+            border: 3px solid var(--theme-accent);
+            box-shadow: 0 0 20px var(--theme-accent);
+        }
+        
+        /* Número da foto (modo reorganizar) */
+        .photo-number {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+        }
+        
+        /* ===== BARRA INFERIOR (ESTILO GALERIA NATIVA) ===== */
+        .bottom-toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--theme-card-bg);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--theme-card-border);
+            padding: 12px 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            z-index: 1000;
+            box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        
+        .bottom-info {
+            flex: 1;
+            text-align: center;
+            color: var(--theme-text);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        /* Botões da barra inferior */
+        .bottom-btn {
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--theme-card-border);
+            border-radius: 8px;
+            color: var(--theme-text);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .bottom-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .bottom-btn.cancel-btn {
+            background: rgba(150, 150, 150, 0.15);
+            border-color: rgba(150, 150, 150, 0.3);
+            color: #aaa;
+        }
+        
+        .bottom-btn.reorganize-btn {
+            background: rgba(100, 150, 255, 0.15);
+            border-color: rgba(100, 150, 255, 0.3);
+            color: #6b9bff;
+        }
+        
+        .bottom-btn.reorganize-btn.active {
+            background: rgba(100, 255, 100, 0.15);
+            border-color: rgba(100, 255, 100, 0.3);
+            color: #6bff6b;
+        }
+        
+        .bottom-btn.delete-btn {
+            background: rgba(255, 70, 70, 0.15);
+            border-color: rgba(255, 70, 70, 0.3);
+            color: #ff6b6b;
+        }
+        
         /* ===== RESPONSIVO ===== */
         @media (max-width: 768px) {
-            .edit-toolbar {
-                padding: 12px 15px;
-                margin: 0 -15px 15px;
-                flex-wrap: wrap;
+            .bottom-toolbar {
+                padding: 10px 12px;
             }
             
-            .edit-toolbar-right {
-                width: 100%;
-                order: 3;
-            }
-            
-            .toolbar-btn {
-                flex: 1;
-                justify-content: center;
+            .bottom-btn {
                 padding: 12px 14px;
-                font-size: 0.85rem;
+                font-size: 0.8rem;
             }
             
-            .toolbar-btn span {
+            .bottom-btn span {
                 display: none;
             }
             
-            .toolbar-btn i {
+            .bottom-btn i {
                 margin: 0;
+                font-size: 1.1rem;
             }
             
-            .edit-photos-grid {
-                gap: 1px;
-                border-radius: 4px;
+            .bottom-info {
+                font-size: 0.85rem;
             }
             
             .photo-checkmark {
@@ -1252,19 +1734,10 @@ function injectEditStyles() {
                 font-size: 14px;
             }
         }
-        
-        @media (max-width: 480px) {
-            .edit-toolbar-left h3 {
-                font-size: 1rem;
-            }
-            
-            .edit-count {
-                font-size: 0.8rem;
-            }
-        }
     `;
     document.head.appendChild(style);
 }
+
 // ===== INICIALIZAR SISTEMA DE EDIÇÃO =====
 function initEditSystem() {
     // Aguardar admin modal estar pronto
