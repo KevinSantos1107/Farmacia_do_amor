@@ -561,13 +561,16 @@ function changeTheme(themeName, shouldSave = true) {
         lastGestureTime = Date.now();
     }
 
-    function updateImageTransform() {
-        const modalPhoto = document.getElementById('modalPhoto');
-        if (!modalPhoto) return;
-        
-        modalPhoto.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
-        modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-    }
+function updateImageTransform() {
+    const modalPhoto = document.getElementById('modalPhoto');
+    if (!modalPhoto) return;
+    
+    // ✨ REMOVER classes de slide antes de aplicar zoom
+    modalPhoto.classList.remove('slide-out-left', 'slide-out-right', 'slide-in-left', 'slide-in-right', 'active');
+    
+    modalPhoto.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+    modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+}
 
     function handleZoom(delta, centerX, centerY) {
         const oldZoom = zoomLevel;
@@ -1121,7 +1124,7 @@ function openAlbum(albumId) {
     // Variável global para controlar direção do swipe
     let lastPhotoIndex = 0;
 
-// ===== TRANSIÇÃO STORIES - MÁXIMA PERFORMANCE =====
+// ===== TRANSIÇÃO INSTANTÂNEA ESTILO INSTAGRAM =====
 function updateAlbumViewer() {
     if (!currentAlbum) return;
     
@@ -1130,54 +1133,36 @@ function updateAlbumViewer() {
     
     if (!modalPhoto) return;
     
-    // 🎯 Detectar direção (próxima = esquerda, anterior = direita)
-    const direction = currentPhotoIndex > lastPhotoIndex ? 'left' : 'right';
-    const isWrapping = Math.abs(currentPhotoIndex - lastPhotoIndex) > 1;
+    // ✨ SE ESTIVER COM ZOOM, RESETAR PRIMEIRO
+    if (zoomLevel > 1) {
+        resetZoom();
+        // Aguardar reset antes de trocar foto
+        setTimeout(() => {
+            changePhoto();
+        }, 100);
+    } else {
+        changePhoto();
+    }
     
-    // Se voltou do final pro início (ou vice-versa), inverter
-    const slideDirection = isWrapping ? 
-        (direction === 'left' ? 'right' : 'left') : direction;
-    
-    // 🚀 ETAPA 1: Slide out (imagem atual sai)
-    modalPhoto.classList.remove('active', 'slide-in-left', 'slide-in-right');
-    modalPhoto.classList.add(`slide-out-${slideDirection}`);
-    
-    // 🚀 ETAPA 2: Trocar imagem e slide in (130ms = tempo da transição)
-    setTimeout(() => {
-        // Preparar nova imagem (fora da tela no lado oposto)
-        const enterDirection = slideDirection === 'left' ? 'right' : 'left';
-        modalPhoto.classList.remove(`slide-out-${slideDirection}`);
-        modalPhoto.classList.add(`slide-in-${enterDirection}`);
+    function changePhoto() {
+        // 🚀 REMOVER todas as classes de animação
+        modalPhoto.classList.remove('slide-out-left', 'slide-out-right', 'slide-in-left', 'slide-in-right', 'active');
         
-        // Trocar src
+        // ⚡ TROCAR IMAGEM IMEDIATAMENTE (pré-carregamento garante que está pronta)
         modalPhoto.src = photo.src;
         modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
         
-        // ⚡ SUPER OTIMIZAÇÃO: Force repaint antes da animação
-        void modalPhoto.offsetWidth;
+        // 🎁 Pré-carregar próximas fotos
+        preloadAdjacentPhotos();
         
-        // Animar entrada (próximo frame)
-        requestAnimationFrame(() => {
-            modalPhoto.classList.remove(`slide-in-${enterDirection}`);
-            modalPhoto.classList.add('active');
-            
-            // Resetar zoom após transição
-            setTimeout(() => {
-                resetZoom();
-            }, 50);
-        });
-    }, 130);
-    
-    // 🎁 Pré-carregar próximas fotos (otimizado)
-    preloadAdjacentPhotos();
-    
-    // Atualizar índice anterior
-    lastPhotoIndex = currentPhotoIndex;
-    
-    // Atualizar contador e barra
-    document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
-    document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
-    updateProgressBar();
+        // Atualizar índice anterior
+        lastPhotoIndex = currentPhotoIndex;
+        
+        // Atualizar contador e barra
+        document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
+        document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
+        updateProgressBar();
+    }
 }
 
 // ===== BARRA DE PROGRESSO ESTILO STORIES =====
