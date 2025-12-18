@@ -1118,6 +1118,9 @@ function openAlbum(albumId) {
     console.log(`📸 Álbum aberto: ${currentAlbum.title}`);
 }
 
+    // Variável global para controlar direção do swipe
+    let lastPhotoIndex = 0;
+
     function updateAlbumViewer() {
         if (!currentAlbum) return;
         
@@ -1125,17 +1128,75 @@ function openAlbum(albumId) {
         const modalPhoto = document.getElementById('modalPhoto');
         
         if (modalPhoto) {
-            modalPhoto.src = photo.src;
-            modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+            // Determinar direção (próxima ou anterior)
+            const goingForward = currentPhotoIndex > lastPhotoIndex || 
+                                 (lastPhotoIndex === currentAlbum.photos.length - 1 && currentPhotoIndex === 0);
             
-            // Resetar zoom ao trocar de foto
-            resetZoom();
+            // ===== ANIMAÇÃO WIPE =====
+            // 1. Slide out na direção oposta
+            if (goingForward) {
+                modalPhoto.classList.add('slide-out-left');
+            } else {
+                modalPhoto.classList.add('slide-out-right');
+            }
+            
+            // 2. Aguardar slide out completar (400ms)
+            setTimeout(() => {
+                // 3. Trocar a imagem
+                modalPhoto.src = photo.src;
+                modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+                
+                // 4. Remover slide-out e adicionar slide-in
+                modalPhoto.classList.remove('slide-out-left', 'slide-out-right');
+                
+                if (goingForward) {
+                    modalPhoto.classList.add('slide-in-right');
+                } else {
+                    modalPhoto.classList.add('slide-in-left');
+                }
+                
+                // 5. Resetar zoom ao trocar de foto
+                resetZoom();
+                
+                // 6. Remover classe slide-in após animação
+                setTimeout(() => {
+                    modalPhoto.classList.remove('slide-in-left', 'slide-in-right');
+                }, 400);
+            }, 400);
+            
+            // Atualizar índice anterior
+            lastPhotoIndex = currentPhotoIndex;
         }
         
         document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
         document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
+        
+        // Atualizar barra de progresso
+        updateProgressBar();
     }
-
+    
+    // ===== BARRA DE PROGRESSO ESTILO STORIES =====
+    function updateProgressBar() {
+        const progressBar = document.getElementById('photoProgressBar');
+        if (!progressBar || !currentAlbum) return;
+        
+        // Limpar segmentos existentes
+        progressBar.innerHTML = '';
+        
+        // Criar segmentos para cada foto
+        for (let i = 0; i < currentAlbum.photos.length; i++) {
+            const segment = document.createElement('div');
+            segment.className = 'progress-segment';
+            
+            if (i < currentPhotoIndex) {
+                segment.classList.add('passed');
+            } else if (i === currentPhotoIndex) {
+                segment.classList.add('active');
+            }
+            
+            progressBar.appendChild(segment);
+        }
+    }
     // ===== MENSAGENS DO DIA =====
     const messages = [
         {
