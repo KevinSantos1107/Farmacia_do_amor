@@ -1262,30 +1262,9 @@ body {
     -webkit-transform: translateZ(0);
     image-rendering: -webkit-optimize-contrast;
     
-    /* ✨ TRANSIÇÃO STORIES - Curva do Instagram */
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Estados de slide - FORA do seletor principal */
-.album-viewer img.slide-out-left {
-    transform: translateX(-100%) translateZ(0) !important;
-}
 
-.album-viewer img.slide-out-right {
-    transform: translateX(100%) translateZ(0) !important;
-}
-
-.album-viewer img.slide-in-left {
-    transform: translateX(-100%) translateZ(0) !important;
-}
-
-.album-viewer img.slide-in-right {
-    transform: translateX(100%) translateZ(0) !important;
-}
-
-.album-viewer img.active {
-    transform: translateX(0) translateZ(0) !important;
-}
 
 /* ⚡ Transição suave apenas no reset de zoom */
 .album-viewer img.zoom-transition {
