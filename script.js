@@ -1126,55 +1126,52 @@ function openAlbum(albumId) {
         
         const photo = currentAlbum.photos[currentPhotoIndex];
         const modalPhoto = document.getElementById('modalPhoto');
+        const albumViewer = document.querySelector('.album-viewer');
         
-        if (modalPhoto) {
-            // Determinar direção (próxima ou anterior)
-            const goingForward = currentPhotoIndex > lastPhotoIndex || 
-                                 (lastPhotoIndex === currentAlbum.photos.length - 1 && currentPhotoIndex === 0);
-            
-            // ===== ANIMAÇÃO WIPE =====
-            // 1. Slide out na direção oposta
-            if (goingForward) {
-                modalPhoto.classList.add('slide-out-left');
-            } else {
-                modalPhoto.classList.add('slide-out-right');
-            }
-            
-            // 2. Aguardar slide out completar (400ms)
-            setTimeout(() => {
-                // 3. Trocar a imagem
-                modalPhoto.src = photo.src;
-                modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
-                
-                // 4. Remover slide-out e adicionar slide-in
-                modalPhoto.classList.remove('slide-out-left', 'slide-out-right');
-                
-                if (goingForward) {
-                    modalPhoto.classList.add('slide-in-right');
-                } else {
-                    modalPhoto.classList.add('slide-in-left');
-                }
-                
-                // 5. Resetar zoom ao trocar de foto
-                resetZoom();
-                
-                // 6. Remover classe slide-in após animação
-                setTimeout(() => {
-                    modalPhoto.classList.remove('slide-in-left', 'slide-in-right');
-                }, 400);
-            }, 400);
-            
-            // Atualizar índice anterior
-            lastPhotoIndex = currentPhotoIndex;
+        if (!modalPhoto || !albumViewer) return;
+        
+        // Determinar direção (próxima ou anterior)
+        const goingForward = currentPhotoIndex > lastPhotoIndex || 
+                             (lastPhotoIndex === currentAlbum.photos.length - 1 && currentPhotoIndex === 0);
+        
+        // ===== CRIAR FOTO DE TRANSIÇÃO =====
+        const transitionPhoto = document.createElement('img');
+        transitionPhoto.src = photo.src;
+        transitionPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+        transitionPhoto.className = 'photo-transition';
+        
+        // Adicionar classe de animação baseada na direção
+        if (goingForward) {
+            transitionPhoto.classList.add('wipe-left'); // Vem da direita
+        } else {
+            transitionPhoto.classList.add('wipe-right'); // Vem da esquerda
         }
         
+        // Adicionar foto de transição por cima
+        albumViewer.appendChild(transitionPhoto);
+        
+        // Após animação terminar (400ms)
+        setTimeout(() => {
+            // Trocar foto principal
+            modalPhoto.src = photo.src;
+            modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
+            
+            // Remover foto de transição
+            transitionPhoto.remove();
+            
+            // Resetar zoom
+            resetZoom();
+        }, 400);
+        
+        // Atualizar índice anterior
+        lastPhotoIndex = currentPhotoIndex;
+        
+        // Atualizar contador e barra
         document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
         document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
-        
-        // Atualizar barra de progresso
         updateProgressBar();
     }
-    
+
     // ===== BARRA DE PROGRESSO ESTILO STORIES =====
     function updateProgressBar() {
         const progressBar = document.getElementById('photoProgressBar');
@@ -1685,6 +1682,4 @@ function initHamburgerMenu() {
     console.log('✅ Menu hambúrguer premium inicializado!');
     console.log('✅ Auto-fechamento de menu configurado');
     return true;
-    
-    
 }
