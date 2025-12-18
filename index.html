@@ -247,9 +247,15 @@
             </div>
         </section>
 
-        <!-- Modal para Fotos (Stories Style) -->
+<!-- Modal para Fotos (Stories Style Minimalista) -->
         <div class="album-modal" id="albumModal">
             <div class="modal-content">
+                <!-- Barra de progresso tipo Stories -->
+                <div class="photo-progress-bar" id="photoProgressBar">
+                    <!-- Segmentos serão criados dinamicamente -->
+                </div>
+                
+                <!-- Header flutuante -->
                 <div class="modal-header">
                     <h3 id="modalAlbumTitle">Álbum</h3>
                     <button class="close-modal" id="closeModal">
@@ -258,29 +264,31 @@
                 </div>
                 
                 <div class="modal-body">
+                    <!-- Área de visualização -->
                     <div class="album-viewer">
                         <img id="modalPhoto" src="" alt="Foto">
                     </div>
                     
+                    <!-- Botões ocultos (mantém para compatibilidade) -->
+                    <button class="album-control-btn prev-btn" id="prevPhotoBtn" style="display: none;">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="album-control-btn next-btn" id="nextPhotoBtn" style="display: none;">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    
+                    <!-- Contador no rodapé -->
                     <div class="album-controls">
-                        <button class="album-control-btn prev-btn" id="prevPhotoBtn">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        
                         <div class="photo-info">
                             <div class="photo-counter">
                                 <span id="currentPhoto">1</span> / <span id="totalPhotos">0</span>
                             </div>
                         </div>
-                        
-                        <button class="album-control-btn next-btn" id="nextPhotoBtn">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
                     </div>
                 </div>
             </div>
         </div>
-
+        
         <!-- Mensagens do Dia -->
         <section class="messages-section">
             <h2><i class="fas fa-envelope"></i> Mensagem Especial</h2>
