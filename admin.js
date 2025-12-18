@@ -18,6 +18,46 @@ function waitForServices() {
     });
 }
 
+// ===== SISTEMA DE TABS GLOBAL (SUPORTA TABS DINÂMICAS) =====
+function setupTabListeners() {
+    const allTabs = document.querySelectorAll('.admin-tab');
+    
+    allTabs.forEach(tab => {
+        // Remover listeners antigos (prevenir duplicação)
+        const newTab = tab.cloneNode(true);
+        tab.parentNode.replaceChild(newTab, tab);
+    });
+    
+    // Adicionar novos listeners
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+            
+            // Remover active de todas as tabs
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Remover active de todos os conteúdos
+            document.querySelectorAll('.admin-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Ativar conteúdo correto
+            const targetContent = document.getElementById(`${targetTab}-tab`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+                
+                // Se for a aba de edição, atualizar select
+                if (targetTab === 'edit') {
+                    updateEditAlbumSelect();
+                }
+            }
+        });
+    });
+    
+    console.log(`✅ ${document.querySelectorAll('.admin-tab').length} tabs configuradas`);
+}
+
 // ===== CONTROLE DO MODAL =====
 async function initAdmin() {
     await waitForServices();
@@ -25,7 +65,6 @@ async function initAdmin() {
     const adminToggleBtn = document.getElementById('adminToggleBtn');
     const adminModal = document.getElementById('adminModal');
     const closeAdminBtn = document.getElementById('closeAdminBtn');
-    const adminTabs = document.querySelectorAll('.admin-tab');
     
     if (!adminToggleBtn || !adminModal) {
         console.warn('⚠️ Elementos de admin não encontrados');
@@ -68,21 +107,8 @@ async function initAdmin() {
         }
     });
     
-    // Sistema de tabs
-    adminTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const targetTab = tab.dataset.tab;
-            
-            adminTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            
-            document.querySelectorAll('.admin-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            document.getElementById(`${targetTab}-tab`).classList.add('active');
-        });
-    });
+    // Configurar sistema de tabs
+    setupTabListeners();
     
     // Inicializar formulários
     initAlbumForms();
@@ -702,20 +728,15 @@ function addEditTabToAdmin() {
     
     contentArea.appendChild(editContent);
     
-    // Eventos
-    editTab.addEventListener('click', () => {
-        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-        editTab.classList.add('active');
-        
-        document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
-        editContent.classList.add('active');
-        
-        updateEditAlbumSelect();
-    });
+    // Re-inicializar listeners de todas as tabs
+    setupTabListeners();
     
+    // Event listeners específicos da aba de edição
     document.getElementById('loadEditAlbumBtn').addEventListener('click', loadAlbumForEdit);
     document.getElementById('selectAllPhotos').addEventListener('click', selectAllPhotos);
     document.getElementById('deleteSelectedPhotos').addEventListener('click', deleteSelectedPhotos);
+    
+    console.log('✅ Aba de edição adicionada e tabs reconfiguradas');
 }
 
 // ===== ATUALIZAR SELECT DE ÁLBUNS PARA EDIÇÃO =====
