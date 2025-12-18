@@ -1241,7 +1241,9 @@ body {
     background: #000; /* Fundo preto para evitar flash branco */
 }
 
-/* Foto principal - OTIMIZADA PARA PERFORMANCE */
+/* ===== ANIMAÇÃO STORIES - PERFORMANCE MÁXIMA ===== */
+
+/* Foto principal - Base + Otimizações GPU */
 .album-viewer img {
     max-width: 100%;
     max-height: 100%;
@@ -1251,40 +1253,44 @@ body {
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
-
-    /* Estados de transição */
-.album-viewer img.slide-out-left {
-    transform: translateX(-100%) translateZ(0);
-}
-
-.album-viewer img.slide-out-right {
-    transform: translateX(100%) translateZ(0);
-}
-
-.album-viewer img.slide-in-left {
-    transform: translateX(-100%) translateZ(0);
-}
-
-.album-viewer img.slide-in-right {
-    transform: translateX(100%) translateZ(0);
-}
-
-.album-viewer img.active {
-    transform: translateX(0) translateZ(0);
-}
     
-    /* ===== OTIMIZAÇÕES GPU ===== */
-    will-change: opacity, transform;
+    /* 🚀 ACELERAÇÃO GPU TOTAL */
+    will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
-    
-    /* Suavização de imagem */
     image-rendering: -webkit-optimize-contrast;
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);   
+    
+    /* ✨ TRANSIÇÃO STORIES - Curva do Instagram */
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Estados de slide - FORA do seletor principal */
+.album-viewer img.slide-out-left {
+    transform: translateX(-100%) translateZ(0) !important;
+}
+
+.album-viewer img.slide-out-right {
+    transform: translateX(100%) translateZ(0) !important;
+}
+
+.album-viewer img.slide-in-left {
+    transform: translateX(-100%) translateZ(0) !important;
+}
+
+.album-viewer img.slide-in-right {
+    transform: translateX(100%) translateZ(0) !important;
+}
+
+.album-viewer img.active {
+    transform: translateX(0) translateZ(0) !important;
+}
+
+/* ⚡ Transição suave apenas no reset de zoom */
+.album-viewer img.zoom-transition {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
 /* Indicadores de posição (estilo Instagram Stories) */
 .photo-progress-bar {
     position: absolute;
