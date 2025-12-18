@@ -705,32 +705,40 @@ function addEditTabToAdmin() {
         <div id="editAlbumSection" style="display: none;">
             <!-- Grid de fotos (estilo galeria real) -->
             <div id="editPhotosGrid" class="edit-photos-grid"></div>
-            
-            <!-- Barra de ações INFERIOR (só aparece quando seleciona fotos) -->
-            <div class="bottom-toolbar" id="bottomToolbar" style="display: none;">
-                <button id="cancelSelection" class="bottom-btn cancel-btn">
-                    <i class="fas fa-times"></i>
-                    <span>Cancelar</span>
-                </button>
-                
-                <div class="bottom-info">
-                    <span id="selectionCount">0 selecionadas</span>
-                </div>
-                
-                <button id="reorganizePhotos" class="bottom-btn reorganize-btn">
-                    <i class="fas fa-sort"></i>
-                    <span>Reorganizar</span>
-                </button>
-                
-                <button id="deleteSelectedPhotos" class="bottom-btn delete-btn">
-                    <i class="fas fa-trash"></i>
-                    <span>Deletar</span>
-                </button>
-            </div>
         </div>
     `;
     
     contentArea.appendChild(editContent);
+    
+    // 🔥 CRIAR TOOLBAR FORA DO MODAL (no body)
+    let toolbar = document.getElementById('bottomToolbar');
+    if (!toolbar) {
+        toolbar = document.createElement('div');
+        toolbar.className = 'bottom-toolbar';
+        toolbar.id = 'bottomToolbar';
+        toolbar.style.display = 'none';
+        toolbar.innerHTML = `
+            <button id="cancelSelection" class="bottom-btn cancel-btn">
+                <i class="fas fa-times"></i>
+                <span>Cancelar</span>
+            </button>
+            
+            <div class="bottom-info">
+                <span id="selectionCount">0 selecionadas</span>
+            </div>
+            
+            <button id="reorganizePhotos" class="bottom-btn reorganize-btn">
+                <i class="fas fa-sort"></i>
+                <span>Reorganizar</span>
+            </button>
+            
+            <button id="deleteSelectedPhotos" class="bottom-btn delete-btn">
+                <i class="fas fa-trash"></i>
+                <span>Deletar</span>
+            </button>
+        `;
+        document.body.appendChild(toolbar);
+    }
     
     // Re-inicializar listeners de todas as tabs
     setupTabListeners();
@@ -878,13 +886,22 @@ function renderPhotosForEdit(photos, albumTitle) {
         let touchStartTime;
         let touchMoved = false;
         
-        // ===== LONG PRESS (MOBILE) =====
+        // ===== 🔥 BLOQUEAR MENU DE CONTEXTO =====
+        wrapper.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            return false;
+        });
+        
+        // ===== LONG PRESS (MOBILE) - CORRIGIDO =====
         wrapper.addEventListener('touchstart', (e) => {
+            // 🚫 Não processar se estiver em modo reorganizar
+            if (isReorganizing) return;
+            
             touchMoved = false;
             touchStartTime = Date.now();
             
             longPressTimer = setTimeout(() => {
-                if (!touchMoved) {
+                if (!touchMoved && !isReorganizing) {
                     // Vibrar (se suportado)
                     if (navigator.vibrate) {
                         navigator.vibrate(50);
@@ -895,15 +912,18 @@ function renderPhotosForEdit(photos, albumTitle) {
                     updateSelectionUI();
                 }
             }, 500); // 500ms = meio segundo
-        });
+        }, { passive: true }); // ← Importante para performance
         
         wrapper.addEventListener('touchmove', () => {
             touchMoved = true;
             clearTimeout(longPressTimer);
-        });
+        }, { passive: true });
         
         wrapper.addEventListener('touchend', (e) => {
             clearTimeout(longPressTimer);
+            
+            // 🚫 Não processar se estiver em modo reorganizar
+            if (isReorganizing) return;
             
             // Se já está em modo seleção, tap normal seleciona/desseleciona
             if (isInSelectionMode() && !touchMoved) {
@@ -914,11 +934,14 @@ function renderPhotosForEdit(photos, albumTitle) {
                     updateSelectionUI();
                 }
             }
-        });
+        }, { passive: true });
         
         // ===== CLICK (DESKTOP) =====
         wrapper.addEventListener('mousedown', (e) => {
             e.preventDefault();
+            
+            // 🚫 Não processar se estiver em modo reorganizar
+            if (isReorganizing) return;
             
             longPressTimer = setTimeout(() => {
                 checkbox.checked = !checkbox.checked;
@@ -935,8 +958,13 @@ function renderPhotosForEdit(photos, albumTitle) {
             clearTimeout(longPressTimer);
         });
         
-        // Prevenir arraste de imagem
-        wrapper.addEventListener('dragstart', (e) => e.preventDefault());
+        // ===== 🔥 BLOQUEAR ARRASTAR IMAGEM (importante!) =====
+        wrapper.addEventListener('dragstart', (e) => {
+            if (!isReorganizing) {
+                e.preventDefault();
+                return false;
+            }
+        });
         
         grid.appendChild(photoCard);
     });
@@ -1025,7 +1053,7 @@ let draggedIndex = null;
 
 function enterReorganizeMode() {
     if (isReorganizing) {
-        exitReorganizeMode();
+        saveNewPhotoOrder();
         return;
     }
     
@@ -1066,19 +1094,25 @@ function enterReorganizeMode() {
         photo.addEventListener('drop', handleDrop);
         photo.addEventListener('dragend', handleDragEnd);
         
-        // Mobile touch
-        photo.addEventListener('touchstart', handleTouchStart);
-        photo.addEventListener('touchmove', handleTouchMove);
-        photo.addEventListener('touchend', handleTouchEnd);
+        // Mobile touch - 🔥 PASSIVE FALSE AQUI
+        photo.addEventListener('touchstart', handleTouchStart, { passive: true });
+        photo.addEventListener('touchmove', handleTouchMove, { passive: false }); // ← AQUI
+        photo.addEventListener('touchend', handleTouchEnd, { passive: true });
     });
     
     console.log('📝 Modo reorganizar ativado');
 }
-
 function exitReorganizeMode(save = false) {
     isReorganizing = false;
     
     const reorganizeBtn = document.getElementById('reorganizePhotos');
+    
+    if (save) {
+        // Salvar antes de sair
+        saveNewPhotoOrder();
+        return; // saveNewPhotoOrder já chama exitReorganizeMode(false)
+    }
+    
     reorganizeBtn.innerHTML = '<i class="fas fa-sort"></i><span>Reorganizar</span>';
     reorganizeBtn.classList.remove('active');
     
@@ -1108,12 +1142,9 @@ function exitReorganizeMode(save = false) {
         photo.removeEventListener('touchend', handleTouchEnd);
     });
     
-    if (save) {
-        saveNewPhotoOrder();
-    }
-    
     console.log('📝 Modo reorganizar desativado');
 }
+
 
 // ===== DRAG & DROP HANDLERS (DESKTOP) =====
 function handleDragStart(e) {
@@ -1153,38 +1184,57 @@ function handleDragEnd(e) {
     });
 }
 
-// ===== TOUCH HANDLERS (MOBILE) =====
+// ===== TOUCH HANDLERS (MOBILE) - CORRIGIDO =====
 let touchedElement = null;
-let touchStartY = 0;
-let touchStartX = 0;
+let touchStartYPos = 0;
+let touchStartXPos = 0;
 let isTouchDragging = false;
+let touchStartTimestamp = 0;
+const LONG_PRESS_THRESHOLD = 300; // ms para considerar long-press
 
 function handleTouchStart(e) {
     if (!isReorganizing) return;
     
+    // 🚫 NÃO preventDefault aqui - permite scroll
     touchedElement = this;
     draggedIndex = parseInt(this.getAttribute('data-index'));
     
     const touch = e.touches[0];
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
+    touchStartXPos = touch.clientX;
+    touchStartYPos = touch.clientY;
+    touchStartTimestamp = Date.now();
+    isTouchDragging = false;
     
+    // Aguardar long-press antes de ativar drag
     setTimeout(() => {
-        if (touchedElement) {
-            touchedElement.classList.add('dragging');
-            isTouchDragging = true;
+        if (touchedElement && !isTouchDragging) {
+            const timePassed = Date.now() - touchStartTimestamp;
+            const moved = Math.abs(touch.clientX - touchStartXPos) > 10 || 
+                          Math.abs(touch.clientY - touchStartYPos) > 10;
             
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
+            // Só ativar se segurou tempo suficiente E não moveu muito
+            if (timePassed >= LONG_PRESS_THRESHOLD && !moved) {
+                touchedElement.classList.add('dragging');
+                isTouchDragging = true;
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
             }
         }
-    }, 200);
+    }, LONG_PRESS_THRESHOLD);
 }
 
 function handleTouchMove(e) {
-    if (!isTouchDragging || !touchedElement) return;
+    if (!isTouchDragging || !touchedElement) {
+        // ✅ Permitir scroll normal se não estiver arrastando
+        return;
+    }
     
-    e.preventDefault();
+    // 🔥 IMPORTANTE: Verificar se pode prevenir
+    if (e.cancelable) {
+        e.preventDefault();
+    }
     
     const touch = e.touches[0];
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -1204,47 +1254,46 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd(e) {
-    if (!isTouchDragging || !touchedElement) {
-        touchedElement = null;
-        isTouchDragging = false;
-        return;
-    }
+    if (!touchedElement) return;
     
-    const touch = e.changedTouches[0];
-    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-    const photoBelow = elementBelow?.closest('.gallery-photo');
-    
-    if (photoBelow && photoBelow !== touchedElement) {
-        const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
+    // Se estava arrastando, processar troca
+    if (isTouchDragging) {
+        const touch = e.changedTouches[0];
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        const photoBelow = elementBelow?.closest('.gallery-photo');
         
-        if (draggedIndex !== targetIndex) {
-            swapPhotos(draggedIndex, targetIndex);
+        if (photoBelow && photoBelow !== touchedElement) {
+            const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
+            
+            if (draggedIndex !== targetIndex) {
+                swapPhotos(draggedIndex, targetIndex);
+            }
         }
+        
+        touchedElement.classList.remove('dragging');
+        document.querySelectorAll('.gallery-photo').forEach(p => {
+            p.classList.remove('drag-over');
+        });
     }
-    
-    touchedElement.classList.remove('dragging');
-    document.querySelectorAll('.gallery-photo').forEach(p => {
-        p.classList.remove('drag-over');
-    });
     
     touchedElement = null;
     isTouchDragging = false;
 }
 
-// ===== TROCAR POSIÇÃO DAS FOTOS =====
+// ===== TROCAR POSIÇÃO DAS FOTOS (CORRIGIDO) =====
 function swapPhotos(fromIndex, toIndex) {
     const photos = window.currentEditAlbum.photos;
     
-    // Trocar no array
-    const temp = photos[fromIndex];
-    photos[fromIndex] = photos[toIndex];
-    photos[toIndex] = temp;
+    // 🔥 Mover item (não apenas trocar)
+    const movedPhoto = photos.splice(fromIndex, 1)[0];
+    photos.splice(toIndex, 0, movedPhoto);
     
-    // Re-renderizar
+    // Re-renderizar com nova ordem
     renderPhotosForEditInReorganizeMode(photos);
     
-    console.log(`🔄 Foto ${fromIndex + 1} trocada com foto ${toIndex + 1}`);
+    console.log(`🔄 Foto ${fromIndex + 1} movida para posição ${toIndex + 1}`);
 }
+
 
 // ===== RE-RENDERIZAR NO MODO REORGANIZAR =====
 function renderPhotosForEditInReorganizeMode(photos) {
@@ -1277,16 +1326,18 @@ function renderPhotosForEditInReorganizeMode(photos) {
     });
 }
 
-// ===== SALVAR NOVA ORDEM NO FIREBASE =====
+// ===== SALVAR NOVA ORDEM NO FIREBASE (COM AUTO-RELOAD) =====
 async function saveNewPhotoOrder() {
     if (!window.currentEditAlbum) return;
     
+    const reorganizeBtn = document.getElementById('reorganizePhotos');
+    
     try {
-        const btn = document.getElementById('reorganizePhotos');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando...</span>';
-        btn.disabled = true;
+        reorganizeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando...</span>';
+        reorganizeBtn.disabled = true;
         
         const photos = window.currentEditAlbum.photos;
+        const albumId = window.currentEditAlbum.id;
         
         // Reorganizar em páginas
         const PHOTOS_PER_PAGE = 200;
@@ -1298,7 +1349,7 @@ async function saveNewPhotoOrder() {
         
         // Deletar páginas antigas
         const oldPagesSnapshot = await db.collection('album_photos')
-            .where('albumId', '==', window.currentEditAlbum.id)
+            .where('albumId', '==', albumId)
             .get();
         
         const deletePromises = [];
@@ -1307,37 +1358,60 @@ async function saveNewPhotoOrder() {
         });
         
         await Promise.all(deletePromises);
+        console.log(`✅ ${oldPagesSnapshot.size} páginas antigas deletadas`);
         
         // Criar novas páginas com nova ordem
         for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
             await db.collection('album_photos').add({
-                albumId: window.currentEditAlbum.id,
+                albumId: albumId,
                 pageNumber: pageIndex,
-                photos: newPages[pageIndex].map(p => ({
+                photos: newPages[pageIndex].map((p, idx) => ({
                     src: p.src,
-                    description: p.description,
-                    timestamp: p.timestamp
+                    description: p.description || '',
+                    timestamp: Date.now() + (pageIndex * PHOTOS_PER_PAGE) + idx
                 })),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
         
+        console.log(`✅ ${newPages.length} novas páginas criadas com ordem correta`);
+        
         alert('✅ Nova ordem das fotos salva com sucesso!');
+        
+        // 🔥 RECARREGAR ÁLBUM AUTOMATICAMENTE
+        console.log('🔄 Recarregando álbum automaticamente...');
+        
+        // Sair do modo reorganizar
+        exitReorganizeMode(false);
         
         // Recarregar galeria principal
         await loadAlbumsFromFirebase();
         
-        exitReorganizeMode(false);
+        // 🎯 RECARREGAR O ÁLBUM ATUAL (SEM TROCAR)
+        const select = document.getElementById('editAlbumSelect');
+        select.value = albumId; // Manter álbum selecionado
+        
+        // Simular clique no botão de carregar
+        const loadBtn = document.getElementById('loadEditAlbumBtn');
+        loadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recarregando...';
+        
+        // Aguardar um pouco antes de recarregar
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Carregar álbum atualizado
+        await loadAlbumForEdit();
+        
+        console.log('✅ Álbum recarregado com nova ordem!');
         
     } catch (error) {
         console.error('❌ Erro ao salvar nova ordem:', error);
         alert('❌ Erro ao salvar: ' + error.message);
         
-        const btn = document.getElementById('reorganizePhotos');
-        btn.innerHTML = '<i class="fas fa-save"></i><span>Salvar</span>';
-        btn.disabled = false;
+        reorganizeBtn.innerHTML = '<i class="fas fa-save"></i><span>Salvar</span>';
+        reorganizeBtn.disabled = false;
     }
 }
+
 
 // ===== SELECIONAR/DESMARCAR TODAS =====
 function selectAllPhotos() {
@@ -1494,7 +1568,7 @@ function injectEditStyles() {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
             overflow: hidden;
-            margin-bottom: 80px;
+            margin-bottom: 80px; /* ← Espaço para a toolbar */
         }
         
         /* ===== CARD DE FOTO ===== */
@@ -1619,12 +1693,12 @@ function injectEditStyles() {
             min-width: 32px;
         }
         
-        /* ===== BARRA INFERIOR (ESTILO GALERIA NATIVA) ===== */
+        /* ===== BARRA INFERIOR FIXA (ESTILO GALERIA NATIVA) ===== */
         .bottom-toolbar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
             background: var(--theme-card-bg);
             backdrop-filter: blur(20px);
             border-top: 1px solid var(--theme-card-border);
@@ -1633,17 +1707,26 @@ function injectEditStyles() {
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            z-index: 1000;
+            z-index: 999999 !important; /* ← Z-INDEX MÁXIMO */
             box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.3s ease-out;
+            pointer-events: auto !important; /* ← Garantir que é clicável */
+        }
+        
+        /* 🔥 IMPORTANTE: Garantir que toolbar fica visível */
+        .bottom-toolbar[style*="display: flex"] {
+            display: flex !important;
+            position: fixed !important;
         }
         
         @keyframes slideUp {
             from {
                 transform: translateY(100%);
+                opacity: 0;
             }
             to {
                 transform: translateY(0);
+                opacity: 1;
             }
         }
         
