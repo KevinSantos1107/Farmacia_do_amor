@@ -498,6 +498,7 @@ function changeTheme(themeName, shouldSave = true) {
 
     let currentAlbum = null;
     let currentPhotoIndex = 0;
+    const preloadCache = new Map();
 
     // ===== VARIÁVEIS DE CONTROLE DO ZOOM =====
     let zoomLevel = 1;
@@ -518,7 +519,6 @@ function changeTheme(themeName, shouldSave = true) {
     // Variáveis específicas para gestos mobile
     let lastTouchTime = 0;
     let touchStartTime = 0;
-    let touchStartX = 0;
     let touchEndX = 0;
     let lastGestureTime = Date.now();
     let isPinching = false;
@@ -1203,23 +1203,36 @@ function updateProgressBar() {
     }
 }
 
-// 🎁 BONUS: PRÉ-CARREGAMENTO DE IMAGENS
+// 🚀 PRÉ-CARREGAMENTO ULTRA OTIMIZADO (3 FOTOS + CACHE)
+
 function preloadAdjacentPhotos() {
     if (!currentAlbum || !currentAlbum.photos) return;
     
-    // Calcular índices da próxima e anterior
-    const nextIndex = (currentPhotoIndex + 1) % currentAlbum.photos.length;
-    const prevIndex = (currentPhotoIndex - 1 + currentAlbum.photos.length) % currentAlbum.photos.length;
+    const total = currentAlbum.photos.length;
     
-    // Pré-carregar próxima foto
-    const nextImg = new Image();
-    nextImg.src = currentAlbum.photos[nextIndex].src;
+    // Calcular índices (anterior, próxima, próxima+1)
+    const prevIndex = (currentPhotoIndex - 1 + total) % total;
+    const nextIndex = (currentPhotoIndex + 1) % total;
+    const next2Index = (currentPhotoIndex + 2) % total;
     
-    // Pré-carregar foto anterior
-    const prevImg = new Image();
-    prevImg.src = currentAlbum.photos[prevIndex].src;
+    // Pré-carregar apenas se ainda não estiver no cache
+    [prevIndex, nextIndex, next2Index].forEach(index => {
+        const src = currentAlbum.photos[index].src;
+        
+        if (!preloadCache.has(src)) {
+            const img = new Image();
+            img.src = src;
+            preloadCache.set(src, img);
+            
+            console.log(`📥 Pré-carregada: foto ${index + 1}`);
+        }
+    });
     
-    console.log(`🎯 Pré-carregadas: foto ${prevIndex + 1} e foto ${nextIndex + 1}`);
+    // Limpar cache de fotos antigas (manter apenas últimas 5)
+    if (preloadCache.size > 5) {
+        const firstKey = preloadCache.keys().next().value;
+        preloadCache.delete(firstKey);
+    }
 }
 
 
