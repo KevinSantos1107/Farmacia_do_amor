@@ -1238,20 +1238,10 @@ body {
     position: relative;
     cursor: pointer;
     overflow: hidden;
+    background: #000; /* Fundo preto para evitar flash branco */
 }
 
-/* Container para empilhar fotos */
-.album-viewer {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    cursor: pointer;
-    overflow: hidden;
-}
-
-/* Foto principal (sempre visível) */
+/* Foto principal - OTIMIZADA PARA PERFORMANCE */
 .album-viewer img {
     max-width: 100%;
     max-height: 100%;
@@ -1261,47 +1251,18 @@ body {
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
+    
+    /* ===== OTIMIZAÇÕES GPU ===== */
+    will-change: opacity, transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    
+    /* Suavização de imagem */
+    image-rendering: -webkit-optimize-contrast;
 }
 
-/* Foto em transição (sobreposta) */
-.album-viewer .photo-transition {
-    position: absolute;
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    z-index: 10;
-    pointer-events: none;
-}
-
-/* Wipe da direita para esquerda (próxima foto) */
-.photo-transition.wipe-left {
-    animation: wipeFromRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-
-/* Wipe da esquerda para direita (foto anterior) */
-.photo-transition.wipe-right {
-    animation: wipeFromLeft 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-
-@keyframes wipeFromRight {
-    from {
-        transform: translateX(100%);
-    }
-    to {
-        transform: translateX(0);
-    }
-}
-
-@keyframes wipeFromLeft {
-    from {
-        transform: translateX(-100%);
-    }
-    to {
-        transform: translateX(0);
-    }
-}
 /* Indicadores de posição (estilo Instagram Stories) */
 .photo-progress-bar {
     position: absolute;
