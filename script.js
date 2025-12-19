@@ -1,32 +1,104 @@
+// ===== SISTEMA GLOBAL DE HISTÓRICO (BACK BUTTON) =====
+const HistoryManager = {
+    stack: [],
+    
+    push(state) {
+        this.stack.push(state);
+        history.pushState({ customState: state }, '');
+        console.log('📍 Estado adicionado:', state);
+    },
+    
+    pop() {
+        if (this.stack.length > 0) {
+            const state = this.stack.pop();
+            console.log('⬅️ Voltando de:', state);
+            return state;
+        }
+        return null;
+    },
+    
+    clear() {
+        this.stack = [];
+        console.log('🗑️ Histórico limpo');
+    },
+    
+    getCurrentState() {
+        return this.stack[this.stack.length - 1] || null;
+    }
+};
+
+// Interceptar botão back global
+window.addEventListener('popstate', (e) => {
+    const currentState = HistoryManager.pop();
+    
+    if (!currentState) {
+        return;
+    }
+    
+    e.preventDefault();
+    
+    switch(currentState) {
+        case 'album-modal':
+            const albumModal = document.getElementById('albumModal');
+            if (albumModal && albumModal.style.display === 'flex') {
+                document.getElementById('closeModal')?.click();
+            }
+            break;
+            
+        case 'timeline-modal':
+            const timelineModal = document.getElementById('timelineModal');
+            if (timelineModal && timelineModal.style.display === 'block') {
+                document.getElementById('closeTimelineBtn')?.click();
+            }
+            break;
+            
+        case 'secret-modal':
+            const secretModal = document.getElementById('secretModal');
+            if (secretModal && secretModal.style.display === 'flex') {
+                document.getElementById('closeSecretBtn')?.click();
+            }
+            break;
+            
+        case 'admin-modal':
+            const adminModal = document.getElementById('adminModal');
+            if (adminModal && adminModal.style.display === 'block') {
+                document.getElementById('closeAdminBtn')?.click();
+            }
+            break;
+            
+        case 'edit-mode-selection':
+            if (typeof cancelSelection === 'function') {
+                cancelSelection();
+            }
+            break;
+    }
+    
+    if (HistoryManager.stack.length > 0) {
+        history.pushState({ customState: HistoryManager.getCurrentState() }, '');
+    }
+});
+
 // ===== CONFIGURAÇÕES INICIAIS =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Iniciando site Kevin & Iara...');
     
-    // 1. PRIMEIRO: Verificar se elementos existem
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const sideMenu = document.getElementById('sideMenu');
     const menuOverlay = document.getElementById('menuOverlay');
     
     if (!hamburgerBtn || !sideMenu || !menuOverlay) {
         console.error('❌ ERRO CRÍTICO: Elementos do menu não encontrados!');
-        console.error('hamburgerBtn:', hamburgerBtn);
-        console.error('sideMenu:', sideMenu);
-        console.error('menuOverlay:', menuOverlay);
         return;
     }
     
     console.log('✅ Elementos do menu encontrados');
     
-    // 2. Inicializar animações
     setTimeout(() => {
         if (typeof initAnimations === 'function') {
             initAnimations();
-        } else {
-            console.warn('⚠️ initAnimations não encontrada');
         }
     }, 100);
     
-    // 3. Carregar tema salvo
     setTimeout(() => {
         const savedTheme = loadSavedTheme();
         if (savedTheme && themes[savedTheme]) {
@@ -36,7 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 200);
     
-    // 4. Inicializar componentes
     setTimeout(() => {
         initThemeSelector();
         initTimeCounter();
@@ -45,594 +116,769 @@ document.addEventListener('DOMContentLoaded', function() {
         initMessages();
         initModal();
         initTimelineModal();
-        initHamburgerMenu(); // ← CHAMADA ÚNICA AQUI
+        initHamburgerMenu();
         updateCurrentDate();
         
         console.log('✅ Site inicializado com sucesso!');
     }, 300);
 });
 
-// ===== RESTANTE DO CÓDIGO CONTINUA IGUAL... =====
+// ===== CONFIGURAÇÕES DE DATAS =====
+const START_DATE = new Date('2025-10-11T00:00:00');
+const START_DATE_DISPLAY = '11/10/2025';
 
-    // ===== CONFIGURAÇÕES DE DATAS =====
-    const START_DATE = new Date('2025-10-11T00:00:00');
-    const START_DATE_DISPLAY = '11/10/2025';
-
-    // ===== SISTEMA DE TEMAS =====
-    const themes = {
-        meteors: {
-            name: 'Meteoros',
-            colors: {
-                bg: '#0a0e17',
-                primary: '#6a11cb',
-                secondary: '#2575fc',
-                accent: '#ff6b8b',
-                text: '#ffffff',
-                textSecondary: '#b8b8d1'
-            }
-        },
-        hearts: {
-            name: 'Chuva de Corações',
-            colors: {
-                bg: '#1a0b2e',
-                primary: '#ff2e63',
-                secondary: '#ff9a9e',
-                accent: '#ffd166',
-                text: '#ffffff',
-                textSecondary: '#e0c3fc'
-            }
-        },
-        aurora: {
-            name: 'Aurora Boreal',
-            colors: {
-                bg: '#0c1b33',
-                primary: '#00b4d8',
-                secondary: '#90e0ef',
-                accent: '#caf0f8',
-                text: '#ffffff',
-                textSecondary: '#a8dadc'
-            }
-        },
-        winter: {
-            name: 'Inverno Mágico',
-            colors: {
-                bg: '#1a2332',
-                primary: '#e3f2fd',
-                secondary: '#81d4fa',
-                accent: '#b3e5fc',
-                text: '#ffffff',
-                textSecondary: '#e1f5fe'
-            }
+// ===== SISTEMA DE TEMAS =====
+const themes = {
+    meteors: {
+        name: 'Meteoros',
+        colors: {
+            bg: '#0a0e17',
+            primary: '#6a11cb',
+            secondary: '#2575fc',
+            accent: '#ff6b8b',
+            text: '#ffffff',
+            textSecondary: '#b8b8d1'
         }
-    };
-
-    let currentTheme = 'meteors';
-
-    // ===== PERSISTÊNCIA DE TEMA =====
-    function saveTheme(themeName) {
-        try {
-            localStorage.setItem('kevinIaraTheme', themeName);
-            console.log(`💾 Tema "${themes[themeName].name}" salvo no navegador`);
-        } catch (error) {
-            console.warn('⚠️ Não foi possível salvar o tema:', error);
+    },
+    hearts: {
+        name: 'Chuva de Corações',
+        colors: {
+            bg: '#1a0b2e',
+            primary: '#ff2e63',
+            secondary: '#ff9a9e',
+            accent: '#ffd166',
+            text: '#ffffff',
+            textSecondary: '#e0c3fc'
+        }
+    },
+    aurora: {
+        name: 'Aurora Boreal',
+        colors: {
+            bg: '#0c1b33',
+            primary: '#00b4d8',
+            secondary: '#90e0ef',
+            accent: '#caf0f8',
+            text: '#ffffff',
+            textSecondary: '#a8dadc'
+        }
+    },
+    winter: {
+        name: 'Inverno Mágico',
+        colors: {
+            bg: '#1a2332',
+            primary: '#e3f2fd',
+            secondary: '#81d4fa',
+            accent: '#b3e5fc',
+            text: '#ffffff',
+            textSecondary: '#e1f5fe'
         }
     }
+};
 
-    function loadSavedTheme() {
-        try {
-            const savedTheme = localStorage.getItem('kevinIaraTheme');
-            
-            if (savedTheme && themes[savedTheme]) {
-                // ATUALIZAR BOTÕES IMEDIATAMENTE
-                setTimeout(() => {
-                    const themeButtons = document.querySelectorAll('.theme-btn');
-                    themeButtons.forEach(btn => {
-                        btn.classList.remove('active');
-                        if (btn.dataset.theme === savedTheme) {
-                            btn.classList.add('active');
-                        }
-                    });
-                }, 100);
-                
-                console.log(`✅ Tema "${themes[savedTheme].name}" carregado`);
-                return savedTheme;
-            }
-            return 'meteors';
-        } catch (error) {
-            console.warn('⚠️ Erro ao carregar tema:', error);
-            return 'meteors';
-        }
+let currentTheme = 'meteors';
+
+function saveTheme(themeName) {
+    try {
+        localStorage.setItem('kevinIaraTheme', themeName);
+        console.log(`💾 Tema "${themes[themeName].name}" salvo no navegador`);
+    } catch (error) {
+        console.warn('⚠️ Não foi possível salvar o tema:', error);
     }
+}
 
-    function initThemeSelector() {
-        const themeButtons = document.querySelectorAll('.theme-btn');
+function loadSavedTheme() {
+    try {
+        const savedTheme = localStorage.getItem('kevinIaraTheme');
         
-        themeButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const theme = this.dataset.theme;
-                
-                themeButtons.forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-                
-                changeTheme(theme, true); // true = salvar no localStorage
-                
-                // Mudar animação também
-                if (window.Animations && typeof window.Animations.changeTheme === 'function') {
-                    window.Animations.changeTheme(theme);
-                }
-            });
-        });
+        if (savedTheme && themes[savedTheme]) {
+            setTimeout(() => {
+                const themeButtons = document.querySelectorAll('.theme-btn');
+                themeButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.theme === savedTheme) {
+                        btn.classList.add('active');
+                    }
+                });
+            }, 100);
+            
+            console.log(`✅ Tema "${themes[savedTheme].name}" carregado`);
+            return savedTheme;
+        }
+        return 'meteors';
+    } catch (error) {
+        console.warn('⚠️ Erro ao carregar tema:', error);
+        return 'meteors';
     }
+}
 
-    // ===== FUNÇÃO ATUALIZADA PARA MUDAR TEMA (SUBSTITUI A ANTIGA) =====
+function initThemeSelector() {
+    const themeButtons = document.querySelectorAll('.theme-btn');
+    
+    themeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const theme = this.dataset.theme;
+            
+            themeButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            changeTheme(theme, true);
+            
+            if (window.Animations && typeof window.Animations.changeTheme === 'function') {
+                window.Animations.changeTheme(theme);
+            }
+        });
+    });
+}
+
 function changeTheme(themeName, shouldSave = true) {
-        if (!themes[themeName]) return;
-        
-        currentTheme = themeName;
-        const theme = themes[themeName];
-        
-        document.body.className = '';
-        document.body.classList.add(`theme-${themeName}`);
-        
-        const root = document.documentElement;
-        root.style.setProperty('--theme-bg', theme.colors.bg);
-        root.style.setProperty('--theme-primary', theme.colors.primary);
-        root.style.setProperty('--theme-secondary', theme.colors.secondary);
-        root.style.setProperty('--theme-accent', theme.colors.accent);
-        root.style.setProperty('--theme-text', theme.colors.text);
-        root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
-        
-        // Salvar tema se solicitado
-        if (shouldSave) {
-            saveTheme(themeName);
-        }
-        
-        // Mudar animação também
-        if (window.Animations && typeof window.Animations.changeTheme === 'function') {
-            window.Animations.changeTheme(themeName);
-        }
-        
-        // ATUALIZAR BOTÕES ANTIGOS (.theme-btn)
-        const themeButtons = document.querySelectorAll('.theme-btn');
-        themeButtons.forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.theme === themeName) {
-                btn.classList.add('active');
-            }
-        });
-        
-        // ATUALIZAR CARDS NOVOS DO MENU HAMBÚRGUER (.theme-card)
-        const themeCards = document.querySelectorAll('.theme-card');
-        themeCards.forEach(card => {
-            card.classList.remove('active');
-            if (card.dataset.theme === themeName) {
-                card.classList.add('active');
-            }
-        });
-        
-        console.log(`🎨 Tema alterado para: ${theme.name}`);
+    if (!themes[themeName]) return;
+    
+    currentTheme = themeName;
+    const theme = themes[themeName];
+    
+    document.body.className = '';
+    document.body.classList.add(`theme-${themeName}`);
+    
+    const root = document.documentElement;
+    root.style.setProperty('--theme-bg', theme.colors.bg);
+    root.style.setProperty('--theme-primary', theme.colors.primary);
+    root.style.setProperty('--theme-secondary', theme.colors.secondary);
+    root.style.setProperty('--theme-accent', theme.colors.accent);
+    root.style.setProperty('--theme-text', theme.colors.text);
+    root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
+    
+    if (shouldSave) {
+        saveTheme(themeName);
     }
-
-   
-    // ===== CONTADOR DE TEMPO =====
-    function initTimeCounter() {
-        document.getElementById('startDateDisplay').textContent = START_DATE_DISPLAY;
-        updateTimeCounter();
-        setInterval(updateTimeCounter, 1000);
+    
+    if (window.Animations && typeof window.Animations.changeTheme === 'function') {
+        window.Animations.changeTheme(themeName);
     }
+    
+    const themeButtons = document.querySelectorAll('.theme-btn');
+    themeButtons.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.theme === themeName) {
+            btn.classList.add('active');
+        }
+    });
+    
+    const themeCards = document.querySelectorAll('.theme-card');
+    themeCards.forEach(card => {
+        card.classList.remove('active');
+        if (card.dataset.theme === themeName) {
+            card.classList.add('active');
+        }
+    });
+    
+    console.log(`🎨 Tema alterado para: ${theme.name}`);
+}
 
-    function updateTimeCounter() {
-        const now = new Date();
-        const diff = now - START_DATE;
-        
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-        
-        const years = Math.floor(days / 365.25);
-        const months = Math.floor((days % 365.25) / 30.44);
-        const remainingDays = Math.floor(days % 30.44);
-        const remainingHours = hours % 24;
-        const remainingMinutes = minutes % 60;
-        const remainingSeconds = seconds % 60;
-        
-        document.getElementById('years').textContent = years.toString().padStart(2, '0');
-        document.getElementById('months').textContent = months.toString().padStart(2, '0');
-        document.getElementById('days').textContent = remainingDays.toString().padStart(2, '0');
-        document.getElementById('hours').textContent = remainingHours.toString().padStart(2, '0');
-        document.getElementById('minutes').textContent = remainingMinutes.toString().padStart(2, '0');
-        document.getElementById('seconds').textContent = remainingSeconds.toString().padStart(2, '0');
+// ===== CONTADOR DE TEMPO =====
+function initTimeCounter() {
+    document.getElementById('startDateDisplay').textContent = START_DATE_DISPLAY;
+    updateTimeCounter();
+    setInterval(updateTimeCounter, 1000);
+}
+
+function updateTimeCounter() {
+    const now = new Date();
+    const diff = now - START_DATE;
+    
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    const years = Math.floor(days / 365.25);
+    const months = Math.floor((days % 365.25) / 30.44);
+    const remainingDays = Math.floor(days % 30.44);
+    const remainingHours = hours % 24;
+    const remainingMinutes = minutes % 60;
+    const remainingSeconds = seconds % 60;
+    
+    document.getElementById('years').textContent = years.toString().padStart(2, '0');
+    document.getElementById('months').textContent = months.toString().padStart(2, '0');
+    document.getElementById('days').textContent = remainingDays.toString().padStart(2, '0');
+    document.getElementById('hours').textContent = remainingHours.toString().padStart(2, '0');
+    document.getElementById('minutes').textContent = remainingMinutes.toString().padStart(2, '0');
+    document.getElementById('seconds').textContent = remainingSeconds.toString().padStart(2, '0');
+}
+
+// ===== PLAYER DE MÚSICA (VERSÃO CORRIGIDA - SEM DUPLICAÇÕES) =====
+const playlist = [
+    {
+        title: "Menina da Farmácia",
+        artist: "Kevin Santos / Nossa Canção",
+        src: "audio/menina-da-farmacia.mp3",
+        album: "Nossa Trilha Sonora"
+    },
+    {
+        title: "Menina da Farmácia 2",
+        artist: "Kevin Santos / Nossa Canção",
+        src: "audio/menina-da-farmacia-2.mp3",
+        album: "Nossa Trilha Sonora"
     }
+];
 
-    // ===== PLAYER DE MÚSICA =====
-    const playlist = [
-        {
-            title: "Menina da Farmácia",
-            artist: "Kevin Santos / Nossa Canção",
-            src: "audio/menina-da-farmacia.mp3",
-            album: "Nossa Trilha Sonora"
-        },
-        {
-            title: "Menina da Farmácia 2",
-            artist: "Kevin Santos / Nossa Canção",
-            src: "audio/menina-da-farmacia-2.mp3",
-            album: "Nossa Trilha Sonora"
+let currentTrackIndex = 0;
+let isPlaying = false;  
+let isShuffled = false;
+let repeatMode = 0;
+let musicPlayerInitialized = false; // Flag para evitar inicialização duplicada
+
+// ===== INICIALIZAÇÃO DO PLAYER (SEM DUPLICAÇÕES) =====
+function initMusicPlayer() {
+    // Prevenir inicialização duplicada
+    if (musicPlayerInitialized) {
+        console.log('⚠️ Player já inicializado, pulando...');
+        return;
+    }
+    
+    console.log('🎵 Inicializando player de música...');
+    
+    const audio = document.getElementById('audioPlayer');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const repeatBtn = document.getElementById('repeatBtn');
+    const progressBarBg = document.getElementById('progressBarFill')?.parentElement;
+    
+    if (!audio) {
+        console.error('❌ Elemento de áudio não encontrado!');
+        return;
+    }
+    
+    console.log('✅ Elemento de áudio encontrado');
+    
+    // Configurar áudio
+    audio.preload = 'metadata';
+    audio.volume = 0.8;
+    
+    // ===== EVENT LISTENERS ÚNICOS (SEM DUPLICAÇÃO) =====
+    
+    // Event listener principal para atualizar barra de progresso e tempo
+    // Este é o evento mais importante - dispara continuamente durante a reprodução
+    audio.addEventListener('timeupdate', function handleTimeUpdate() {
+        // Log apenas a cada 5 segundos para não poluir o console
+        if (Math.floor(audio.currentTime) % 5 === 0 && audio.currentTime > 0) {
+            console.log('⏱️ timeupdate disparado - Tempo:', formatTime(audio.currentTime), '/', formatTime(audio.duration));
         }
-    ];
-
-    let currentTrackIndex = 0;
-    let isPlaying = false;  
-    let isShuffled = false;
-    let repeatMode = 0;
-
-    function initMusicPlayer() {
-        const audio = document.getElementById('audioPlayer');
-        const playPauseBtn = document.getElementById('playPauseBtn');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const shuffleBtn = document.getElementById('shuffleBtn');
-        const repeatBtn = document.getElementById('repeatBtn');
-        const progressBarFill = document.getElementById('progressBarFill');
-        
-        if (!audio) {
-            console.warn('⚠️ Elemento de áudio não encontrado');
-            return;
-        }
-        
-        loadTrack(currentTrackIndex);
-        
+        updateProgressBar(audio);
+    }, false);
+    
+    // Atualizar duração quando metadados carregarem
+    audio.addEventListener('loadedmetadata', function handleMetadataLoaded() {
+        console.log('✅ Metadados carregados - Duração:', formatTime(audio.duration));
+        updateDuration(audio);
+        updateProgressBar(audio); // Atualizar barra também
+    }, false);
+    
+    // Atualizar duração quando dados carregarem
+    audio.addEventListener('loadeddata', function handleDataLoaded() {
+        updateDuration(audio);
+        updateProgressBar(audio); // Atualizar barra também
+    }, false);
+    
+    // Atualizar quando puder tocar
+    audio.addEventListener('canplay', function handleCanPlay() {
+        updateDuration(audio);
+        updateProgressBar(audio);
+    }, false);
+    
+    // Fim da faixa
+    audio.addEventListener('ended', handleTrackEnd);
+    
+    // Estados de play/pause
+    audio.addEventListener('play', function() {
+        document.querySelector('.music-player')?.classList.add('playing');
+        isPlaying = true;
+        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        console.log('▶️ Reproduzindo');
+    });
+    
+    audio.addEventListener('pause', function() {
+        document.querySelector('.music-player')?.classList.remove('playing');
+        isPlaying = false;
+        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        console.log('⏸️ Pausado');
+    });
+    
+    // Erro no áudio
+    audio.addEventListener('error', function(e) {
+        console.error('❌ Erro no áudio:', e);
+    });
+    
+    // ===== BOTÕES DE CONTROLE =====
+    if (playPauseBtn) {
         playPauseBtn.addEventListener('click', togglePlayPause);
-        prevBtn.addEventListener('click', () => handlePrevTrack(audio));
-        nextBtn.addEventListener('click', nextTrack);
-        shuffleBtn.addEventListener('click', toggleShuffle);
-        repeatBtn.addEventListener('click', toggleRepeat);
-        
-        progressBarFill.parentElement.addEventListener('click', function(e) {
-            const rect = this.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
-            audio.currentTime = audio.duration * percent;
-            updateProgressBar(audio);
-        });
-        
-        audio.addEventListener('timeupdate', () => updateProgressBar(audio));
-        audio.addEventListener('loadedmetadata', () => updateDuration(audio));
-        audio.addEventListener('ended', handleTrackEnd);
-        audio.addEventListener('play', () => {
-            document.querySelector('.music-player')?.classList.add('playing');
-        });
-        audio.addEventListener('pause', () => {
-            document.querySelector('.music-player')?.classList.remove('playing');
-        });
-        
-        audio.volume = 0.8;
     }
-
-    function handlePrevTrack(audio) {
-        if (audio.currentTime > 3) {
-            audio.currentTime = 0;
-            updateProgressBar(audio);
-        } else {
-            if (isShuffled) {
-                let randomIndex;
-                do {
-                    randomIndex = Math.floor(Math.random() * playlist.length);
-                } while (randomIndex === currentTrackIndex && playlist.length > 1);
-                
-                currentTrackIndex = randomIndex;
-                console.log('🔀 Shuffle: tocando música anterior aleatória', currentTrackIndex + 1);
-            } else {
-                currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+    
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => handlePrevTrack(audio));
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', nextTrack);
+    }
+    
+    if (shuffleBtn) {
+        shuffleBtn.addEventListener('click', toggleShuffle);
+    }
+    
+    if (repeatBtn) {
+        repeatBtn.addEventListener('click', toggleRepeat);
+    }
+    
+    // ===== CLICK NA BARRA DE PROGRESSO =====
+    if (progressBarBg) {
+        progressBarBg.addEventListener('click', function(e) {
+            if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+                const rect = this.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                audio.currentTime = audio.duration * percent;
+                updateProgressBar(audio); // Atualizar imediatamente
+                console.log('⏩ Pulando para:', formatTime(audio.currentTime));
             }
-            
-            loadTrack(currentTrackIndex);
-            if (isPlaying) {
-                setTimeout(() => audio.play(), 100);
+        });
+    }
+    
+    // Verificar se os elementos da UI existem
+    const progressBarFill = document.getElementById('progressBarFill');
+    const currentTimeEl = document.getElementById('currentTime');
+    const totalTimeEl = document.getElementById('totalTime');
+    
+    if (!progressBarFill || !currentTimeEl || !totalTimeEl) {
+        console.error('❌ Elementos da UI do player não encontrados!');
+        console.log('Elementos faltando:', {
+            progressBarFill: !progressBarFill,
+            currentTime: !currentTimeEl,
+            totalTime: !totalTimeEl
+        });
+        return;
+    }
+    
+    console.log('✅ Todos os elementos da UI encontrados');
+    
+    // Carregar primeira faixa
+    loadTrack(currentTrackIndex);
+    
+    // Verificar estado inicial após um delay (para garantir que o áudio carregou)
+    setTimeout(() => {
+        if (audio.readyState >= 1) {
+            if (audio.duration && audio.duration > 0) {
+                updateDuration(audio);
+                updateProgressBar(audio);
+                console.log('✅ Estado inicial atualizado - Duração:', formatTime(audio.duration));
+            } else {
+                console.log('⏳ Aguardando duração do áudio...');
             }
         }
-    }
+    }, 500);
+    
+    // Verificar novamente após mais tempo (caso o áudio demore para carregar)
+    setTimeout(() => {
+        if (audio.duration && audio.duration > 0) {
+            updateDuration(audio);
+            updateProgressBar(audio);
+        }
+    }, 1500);
+    
+    musicPlayerInitialized = true;
+    console.log('✅ Player de música inicializado com sucesso!');
+}
 
-    function nextTrack() {
+// ===== CARREGAR FAIXA =====
+function loadTrack(index) {
+    const track = playlist[index];
+    const audio = document.getElementById('audioPlayer');
+    
+    if (!audio || !track) return;
+    
+    console.log(`🎵 Carregando faixa ${index + 1}: ${track.title}`);
+    
+    // Resetar UI
+    const progressBarFill = document.getElementById('progressBarFill');
+    const currentTime = document.getElementById('currentTime');
+    const totalTime = document.getElementById('totalTime');
+    
+    if (progressBarFill) progressBarFill.style.width = '0%';
+    if (currentTime) currentTime.textContent = '0:00';
+    if (totalTime) totalTime.textContent = '0:00';
+    
+    // Atualizar informações da faixa
+    const songTitle = document.getElementById('songTitle');
+    const songArtist = document.getElementById('songArtist');
+    const currentTrack = document.getElementById('currentTrack');
+    const totalTracks = document.getElementById('totalTracks');
+    
+    if (songTitle) songTitle.textContent = track.title;
+    if (songArtist) songArtist.textContent = track.artist;
+    if (currentTrack) currentTrack.textContent = index + 1;
+    if (totalTracks) totalTracks.textContent = playlist.length;
+    
+    // Carregar áudio
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = track.src;
+    audio.load();
+    
+    // Tentar tocar se estava tocando
+    if (isPlaying) {
+        setTimeout(() => {
+            audio.play().catch(err => {
+                console.warn('⚠️ Erro ao tocar:', err.message);
+            });
+        }, 200);
+    }
+    
+    console.log(`✅ Faixa ${track.title} carregada`);
+}
+
+// ===== PLAY/PAUSE =====
+function togglePlayPause() {
+    const audio = document.getElementById('audioPlayer');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    
+    if (!audio) return;
+    
+    if (audio.paused) {
+        audio.play().catch(err => {
+            console.error('❌ Erro ao tocar:', err);
+        });
+    } else {
+        audio.pause();
+    }
+}
+
+// ===== TRACK ANTERIOR =====
+function handlePrevTrack(audio) {
+    if (!audio) return;
+    
+    if (audio.currentTime > 3) {
+        audio.currentTime = 0;
+        updateProgressBar(audio);
+    } else {
         if (isShuffled) {
             let randomIndex;
             do {
                 randomIndex = Math.floor(Math.random() * playlist.length);
             } while (randomIndex === currentTrackIndex && playlist.length > 1);
-            
             currentTrackIndex = randomIndex;
-            console.log('🔀 Shuffle: tocando música', currentTrackIndex + 1);
         } else {
-            currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+            currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
         }
         
         loadTrack(currentTrackIndex);
         if (isPlaying) {
-            document.getElementById('audioPlayer').play();
-        }
-    }
-
-    function loadTrack(index) {
-        const track = playlist[index];
-        const audio = document.getElementById('audioPlayer');
-        
-        if (!audio) return;
-        
-        audio.src = track.src;
-        document.getElementById('songTitle').textContent = track.title;
-        document.getElementById('songArtist').textContent = track.artist;
-        document.getElementById('currentTrack').textContent = index + 1;
-        document.getElementById('totalTracks').textContent = playlist.length;
-        
-        document.getElementById('progressBarFill').style.width = '0%';
-        document.getElementById('currentTime').textContent = '0:00';
-        
-        if (isPlaying) {
             setTimeout(() => audio.play(), 100);
         }
     }
+}
 
-    function togglePlayPause() {
+// ===== PRÓXIMA FAIXA =====
+function nextTrack() {
+    if (isShuffled) {
+        let randomIndex;
+        do {
+            randomIndex = Math.floor(Math.random() * playlist.length);
+        } while (randomIndex === currentTrackIndex && playlist.length > 1);
+        currentTrackIndex = randomIndex;
+    } else {
+        currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+    }
+    
+    loadTrack(currentTrackIndex);
+    if (isPlaying) {
         const audio = document.getElementById('audioPlayer');
-        const playPauseBtn = document.getElementById('playPauseBtn');
-        
-        if (audio.paused) {
-            audio.play();
-            isPlaying = true;
-            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        } else {
-            audio.pause();
-            isPlaying = false;
-            playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        if (audio) {
+            setTimeout(() => audio.play(), 100);
         }
     }
+}
 
-    function toggleShuffle() {
-        const shuffleBtn = document.getElementById('shuffleBtn');
-        isShuffled = !isShuffled;
-        
-        shuffleBtn.classList.remove('active');
-        shuffleBtn.style.color = '';
-        
-        if (isShuffled) {
-            shuffleBtn.classList.add('active');
-            console.log('🔀 Modo shuffle ATIVADO');
-        } else {
-            console.log('▶️ Modo shuffle DESATIVADO - ordem normal');
-        }
+// ===== SHUFFLE =====
+function toggleShuffle() {
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    isShuffled = !isShuffled;
+    
+    if (shuffleBtn) {
+        shuffleBtn.classList.toggle('active', isShuffled);
     }
+    console.log(isShuffled ? '🔀 Shuffle ativado' : '➡️ Shuffle desativado');
+}
 
-    function toggleRepeat() {
-        const repeatBtn = document.getElementById('repeatBtn');
-        repeatMode = (repeatMode + 1) % 2;
-        
-        repeatBtn.classList.remove('active');
+// ===== REPEAT =====
+function toggleRepeat() {
+    const repeatBtn = document.getElementById('repeatBtn');
+    repeatMode = (repeatMode + 1) % 2;
+    
+    if (repeatBtn) {
+        repeatBtn.classList.toggle('active', repeatMode === 1);
         
         if (repeatMode === 0) {
             repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
-            repeatBtn.title = "Repetir desligado";
-            repeatBtn.style.color = '';
+            console.log('🔁 Repeat desativado');
         } else {
-            repeatBtn.classList.add('active');
             repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
-            repeatBtn.title = "Repetir uma música";
-            repeatBtn.style.color = '';
+            console.log('🔂 Repeat uma música');
         }
     }
+}
 
-    function updateProgressBar(audio) {
-        const progressBarFill = document.getElementById('progressBarFill');
-        const currentTime = document.getElementById('currentTime');
-        const totalTime = document.getElementById('totalTime');
+// ===== ATUALIZAR BARRA DE PROGRESSO E TEMPO =====
+function updateProgressBar(audio) {
+    if (!audio) {
+        console.warn('⚠️ updateProgressBar: audio não fornecido');
+        return;
+    }
+    
+    const progressBarFill = document.getElementById('progressBarFill');
+    const currentTime = document.getElementById('currentTime');
+    const totalTime = document.getElementById('totalTime');
+    
+    if (!progressBarFill) {
+        console.warn('⚠️ updateProgressBar: progressBarFill não encontrado');
+        return;
+    }
+    
+    if (!currentTime) {
+        console.warn('⚠️ updateProgressBar: currentTime não encontrado');
+        return;
+    }
+    
+    if (!totalTime) {
+        console.warn('⚠️ updateProgressBar: totalTime não encontrado');
+        return;
+    }
+    
+    // Verificar se a duração é válida
+    const hasDuration = audio.duration && 
+                       !isNaN(audio.duration) && 
+                       isFinite(audio.duration) && 
+                       audio.duration > 0;
+    
+    if (hasDuration) {
+        // Calcular progresso (garantir que está entre 0 e 100)
+        const progress = Math.max(0, Math.min((audio.currentTime / audio.duration) * 100, 100));
+        progressBarFill.style.width = `${progress}%`;
         
-        if (audio.duration) {
-            const progress = (audio.currentTime / audio.duration) * 100;
-            progressBarFill.style.width = `${progress}%`;
-            currentTime.textContent = formatTime(audio.currentTime);
-            totalTime.textContent = formatTime(audio.duration);
+        // Atualizar tempo atual
+        const formattedCurrentTime = formatTime(audio.currentTime);
+        if (currentTime.textContent !== formattedCurrentTime) {
+            currentTime.textContent = formattedCurrentTime;
+        }
+        
+        // Atualizar duração total (sempre atualizar se necessário)
+        const formattedDuration = formatTime(audio.duration);
+        if (totalTime.textContent === '0:00' || totalTime.textContent === '' || totalTime.textContent !== formattedDuration) {
+            totalTime.textContent = formattedDuration;
+        }
+    } else {
+        // Resetar se não houver duração válida
+        if (progressBarFill.style.width !== '0%') {
+            progressBarFill.style.width = '0%';
+        }
+        if (currentTime.textContent !== '0:00') {
+            currentTime.textContent = '0:00';
         }
     }
+}
 
-    function updateDuration(audio) {
-        const totalTime = document.getElementById('totalTime');
+// ===== ATUALIZAR DURAÇÃO TOTAL =====
+function updateDuration(audio) {
+    if (!audio) return;
+    
+    const totalTime = document.getElementById('totalTime');
+    if (!totalTime) return;
+    
+    if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration) && audio.duration > 0) {
         totalTime.textContent = formatTime(audio.duration);
     }
+}
 
-    function handleTrackEnd() {
-        if (repeatMode === 1) {
-            document.getElementById('audioPlayer').currentTime = 0;
-            document.getElementById('audioPlayer').play();
-        } else {
-            nextTrack();
-            if (isPlaying) {
-                document.getElementById('audioPlayer').play();
-            }
-        }
+// ===== FIM DA FAIXA =====
+function handleTrackEnd() {
+    const audio = document.getElementById('audioPlayer');
+    if (!audio) return;
+    
+    if (repeatMode === 1) {
+        audio.currentTime = 0;
+        audio.play();
+    } else {
+        nextTrack();
     }
+}
 
-    function formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
+// ===== FORMATAR TEMPO =====
+function formatTime(seconds) {
+    if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
+    
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// ===== ÁLBUNS DE FOTOS =====
+window.albums = [
+    {
+        id: 1,
+        title: "Primeiros Encontros",
+        date: "Junho 2023",
+        cover: "images/capas-albuns/primeiro-encontro.jpg",
+        description: "Os primeiros momentos mágicos que deram início à nossa história.",
+        photos: [
+            { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" },
+            { src: "images/fotos/album1/2.jpg", description: "Passeio no parque" },
+            { src: "images/fotos/album1/3.jpg", description: "Primeiro cinema" },
+            { src: "images/fotos/album1/4.jpg", description: "Jantar especial" }
+        ]
+    },
+    {
+        id: 2,
+        title: "Viagem Inesquecível", 
+        date: "Dezembro 2023",
+        cover: "images/capas-albuns/viagem.jpg",
+        description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
+        photos: [
+            { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
+            { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
+            { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" },
+            { src: "images/fotos/album2/4.jpg", description: "Comidas típicas" }
+        ]
     }
+];
 
-    // ===== ÁLBUNS DE FOTOS =====
-    // Tornar albums uma variável global mutável
-    window.albums = [
-        {
-            id: 1,
-            title: "Primeiros Encontros",
-            date: "Junho 2023",
-            cover: "images/capas-albuns/primeiro-encontro.jpg",
-            description: "Os primeiros momentos mágicos que deram início à nossa história.",
-            photos: [
-                { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" },
-                { src: "images/fotos/album1/2.jpg", description: "Passeio no parque" },
-                { src: "images/fotos/album1/3.jpg", description: "Primeiro cinema" },
-                { src: "images/fotos/album1/4.jpg", description: "Jantar especial" }
-            ]
-        },
-        {
-            id: 2,
-            title: "Viagem Inesquecível", 
-            date: "Dezembro 2023",
-            cover: "images/capas-albuns/viagem.jpg",
-            description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
-            photos: [
-                { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
-                { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
-                { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" },
-                { src: "images/fotos/album2/4.jpg", description: "Comidas típicas" }
-            ]
-        }
-    ];
+window.albums.forEach(album => {
+    album.photoCount = album.photos.length;
+});
 
-    // Atualizar photoCount automaticamente
-    window.albums.forEach(album => {
-        album.photoCount = album.photos.length;
-    });
+let currentAlbum = null;
+let currentPhotoIndex = 0;
+const preloadCache = new Map();
 
-    // ===== ATUALIZAR AUTOMATICAMENTE O photoCount =====
-    albums.forEach(album => {
-        album.photoCount = album.photos.length;
-    });
+let zoomLevel = 1;
+let isDragging = false;
+let startX = 0;
+let startY = 0;
+let translateX = 0;
+let translateY = 0;
+let tapStartX = 0;
+let tapStartY = 0;
+let tapStartTime = 0;
+let isTapping = false;
+let tapTimeout = null;
+const TAP_THRESHOLD = 10;
+const TAP_DURATION = 300;
+const TAP_DELAY = 250;
 
-    let currentAlbum = null;
-    let currentPhotoIndex = 0;
-    const preloadCache = new Map();
+let lastTouchTime = 0;
+let touchStartTime = 0;
+let touchEndX = 0;
+let lastGestureTime = Date.now();
+let isPinching = false;
+let initialPinchDistance = 0;
+let lastPinchDistance = 0;
+let blockNavigation = false;
+let doubleTapTimeout = null;
+let touchCount = 0;
 
-    // ===== VARIÁVEIS DE CONTROLE DO ZOOM =====
-    let zoomLevel = 1;
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let translateX = 0;
-    let translateY = 0;
-    let tapStartX = 0;
-    let tapStartY = 0;
-    let tapStartTime = 0;
-    let isTapping = false;
-    let tapTimeout = null;
-    const TAP_THRESHOLD = 10; // pixels de movimento máximo para considerar tap
-    const TAP_DURATION = 300; // ms máximo para considerar tap
-    const TAP_DELAY = 250; 
+function getTouchDistance(touch1, touch2) {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
 
-    // Variáveis específicas para gestos mobile
-    let lastTouchTime = 0;
-    let touchStartTime = 0;
-    let touchEndX = 0;
-    let lastGestureTime = Date.now();
-    let isPinching = false;
-    let initialPinchDistance = 0;
-    let lastPinchDistance = 0;
-    let blockNavigation = false;
-    let doubleTapTimeout = null;
-    let touchCount = 0;
-
-    // ===== FUNÇÕES AUXILIARES =====
-    function getTouchDistance(touch1, touch2) {
-        const dx = touch1.clientX - touch2.clientX;
-        const dy = touch1.clientY - touch2.clientY;
-        return Math.sqrt(dx * dx + dy * dy);
+function resetZoom() {
+    const modalPhoto = document.getElementById('modalPhoto');
+    
+    if (modalPhoto) {
+        modalPhoto.classList.add('zoom-transition');
     }
-
-    function resetZoom() {
-        const modalPhoto = document.getElementById('modalPhoto');
-        
-        // Adicionar transição suave apenas no reset
+    
+    zoomLevel = 1;
+    translateX = 0;
+    translateY = 0;
+    isDragging = false;
+    isPinching = false;
+    blockNavigation = false;
+    updateImageTransform();
+    
+    setTimeout(() => {
         if (modalPhoto) {
-            modalPhoto.classList.add('zoom-transition');
+            modalPhoto.classList.remove('zoom-transition');
         }
-        
-        zoomLevel = 1;
-        translateX = 0;
-        translateY = 0;
-        isDragging = false;
-        isPinching = false;
-        blockNavigation = false;
-        updateImageTransform();
-        
-        // Remover transição depois
-        setTimeout(() => {
-            if (modalPhoto) {
-                modalPhoto.classList.remove('zoom-transition');
-            }
-        }, 300);
-        
-        lastGestureTime = Date.now();
-    }
+    }, 300);
+    
+    lastGestureTime = Date.now();
+}
 
 function updateImageTransform() {
     const modalPhoto = document.getElementById('modalPhoto');
     if (!modalPhoto) return;
     
-    // ✨ REMOVER classes de slide antes de aplicar zoom
     modalPhoto.classList.remove('slide-out-left', 'slide-out-right', 'slide-in-left', 'slide-in-right', 'active');
     
     modalPhoto.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
     modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
 }
 
-    function handleZoom(delta, centerX, centerY) {
-        const oldZoom = zoomLevel;
+function handleZoom(delta, centerX, centerY) {
+    const oldZoom = zoomLevel;
+    
+    if (delta > 0) {
+        zoomLevel = Math.min(zoomLevel * 1.05, 4);
+    } else {
+        zoomLevel = Math.max(zoomLevel * 0.95, 1);
+    }
+    
+    if (zoomLevel === 1) {
+        translateX = 0;
+        translateY = 0;
+        isDragging = false;
+    } else if (centerX !== undefined && centerY !== undefined) {
+        const modalPhoto = document.getElementById('modalPhoto');
+        const rect = modalPhoto.getBoundingClientRect();
         
-        // Ajustar zoom de forma mais suave
-        if (delta > 0) {
-            zoomLevel = Math.min(zoomLevel * 1.05, 4);
-        } else {
-            zoomLevel = Math.max(zoomLevel * 0.95, 1);
-        }
+        const offsetX = centerX - rect.left - rect.width / 2;
+        const offsetY = centerY - rect.top - rect.height / 2;
         
-        // Se voltou ao zoom 1x, centralizar
-        if (zoomLevel === 1) {
-            translateX = 0;
-            translateY = 0;
-            isDragging = false;
-        } else if (centerX !== undefined && centerY !== undefined) {
-            // Ajustar posição baseado no ponto de zoom
-            const modalPhoto = document.getElementById('modalPhoto');
-            const rect = modalPhoto.getBoundingClientRect();
-            
-            const offsetX = centerX - rect.left - rect.width / 2;
-            const offsetY = centerY - rect.top - rect.height / 2;
-            
-            const zoomRatio = zoomLevel / oldZoom - 1;
-            translateX -= offsetX * zoomRatio;
-            translateY -= offsetY * zoomRatio;
-        }
+        const zoomRatio = zoomLevel / oldZoom - 1;
+        translateX -= offsetX * zoomRatio;
+        translateY -= offsetY * zoomRatio;
+    }
+    
+    updateImageTransform();
+}
+
+function handleDoubleTap(x, y) {
+    console.log('🔍 Duplo toque/clique detectado! Zoom atual:', zoomLevel);
+
+    isTapping = false;
+    blockNavigation = true;
+    
+    const modalPhoto = document.getElementById('modalPhoto');
+    if (!modalPhoto) return;
+    
+    if (zoomLevel === 1) {
+        zoomLevel = 2;
+        
+        const rect = modalPhoto.getBoundingClientRect();
+        const offsetX = x - rect.left - rect.width / 2;
+        const offsetY = y - rect.top - rect.height / 2;
+        
+        translateX = -offsetX * (zoomLevel - 1);
+        translateY = -offsetY * (zoomLevel - 1);
         
         updateImageTransform();
-    }
-
-    function handleDoubleTap(x, y) {
-        console.log('🔍 Duplo toque/clique detectado! Zoom atual:', zoomLevel);
-
-        isTapping = false;
         blockNavigation = true;
-        
-        const modalPhoto = document.getElementById('modalPhoto');
-        if (!modalPhoto) return;
-        
-        if (zoomLevel === 1) {
-            // ZOOM IN
-            zoomLevel = 2;
-            
-            const rect = modalPhoto.getBoundingClientRect();
-            const offsetX = x - rect.left - rect.width / 2;
-            const offsetY = y - rect.top - rect.height / 2;
-            
-            translateX = -offsetX * (zoomLevel - 1);
-            translateY = -offsetY * (zoomLevel - 1);
-            
-            updateImageTransform();
-            blockNavigation = true;
-            console.log('✅ Zoom IN aplicado');
-} else {
-        // ZOOM OUT
+        console.log('✅ Zoom IN aplicado');
+    } else {
         resetZoom();
         console.log('✅ Zoom OUT aplicado');
     }
     
-    // Desbloquear navegação após um pequeno delay
     setTimeout(() => {
         if (zoomLevel === 1) {
             blockNavigation = false;
@@ -640,66 +886,55 @@ function updateImageTransform() {
     }, 150);
 }
 
-    // ===== FUNÇÃO ÚNICA E CORRETA initModal =====
-    function initModal() {
-        const modal = document.getElementById('albumModal');
-        const closeBtn = document.getElementById('closeModal');
-        const prevBtn = document.getElementById('prevPhotoBtn');
-        const nextBtn = document.getElementById('nextPhotoBtn');
-        const albumViewer = document.querySelector('.album-viewer');
-        const modalPhoto = document.getElementById('modalPhoto');
+function initModal() {
+    const modal = document.getElementById('albumModal');
+    const closeBtn = document.getElementById('closeModal');
+    const prevBtn = document.getElementById('prevPhotoBtn');
+    const nextBtn = document.getElementById('nextPhotoBtn');
+    const albumViewer = document.querySelector('.album-viewer');
+    const modalPhoto = document.getElementById('modalPhoto');
+    
+    if (!modal || !closeBtn || !prevBtn || !nextBtn || !albumViewer || !modalPhoto) {
+        console.warn('⚠️ Elementos do modal não encontrados');
+        return;
+    }
+    
+    closeBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+        resetZoom();
+    });
+    
+    prevBtn.addEventListener('click', () => {
+        if (zoomLevel > 1) return;
         
-        if (!modal || !closeBtn || !prevBtn || !nextBtn || !albumViewer || !modalPhoto) {
-            console.warn('⚠️ Elementos do modal não encontrados');
-            return;
+        if (currentAlbum) {
+            currentPhotoIndex = (currentPhotoIndex - 1 + currentAlbum.photos.length) % currentAlbum.photos.length;
+            updateAlbumViewer();
         }
+    });
+    
+    nextBtn.addEventListener('click', () => {
+        if (zoomLevel > 1) return;
         
-        // ===== FUNÇÕES DE NAVEGAÇÃO =====
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-            resetZoom();
-        });
-        
-        prevBtn.addEventListener('click', () => {
-            if (zoomLevel > 1) {
-                console.log('🚫 Botão prev bloqueado - zoom ativo');
-                return;
-            }
-            
-            if (currentAlbum) {
-                currentPhotoIndex = (currentPhotoIndex - 1 + currentAlbum.photos.length) % currentAlbum.photos.length;
-                updateAlbumViewer();
-            }
-        });
-        
-        nextBtn.addEventListener('click', () => {
-            if (zoomLevel > 1) {
-                console.log('🚫 Botão next bloqueado - zoom ativo');
-                return;
-            }
-            
-            if (currentAlbum) {
-                currentPhotoIndex = (currentPhotoIndex + 1) % currentAlbum.photos.length;
-                updateAlbumViewer();
-            }
-        });
-        
-        // ===== DUPLO CLIQUE (DESKTOP) =====
-        modalPhoto.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleDoubleTap(e.clientX, e.clientY);
-        });
-        
-        // ===== SCROLL DO MOUSE (DESKTOP) =====
-        albumViewer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            handleZoom(-e.deltaY, e.clientX, e.clientY);
-        }, { passive: false });
-        
-        // ===== GESTOS TOUCH (MOBILE) =====
-        let touchStart = {};
-        
+        if (currentAlbum) {
+            currentPhotoIndex = (currentPhotoIndex + 1) % currentAlbum.photos.length;
+            updateAlbumViewer();
+        }
+    });
+    
+    modalPhoto.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleDoubleTap(e.clientX, e.clientY);
+    });
+    
+    albumViewer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        handleZoom(-e.deltaY, e.clientX, e.clientY);
+    }, { passive: false });
+    
+    let touchStart = {};
+    
     albumViewer.addEventListener('touchstart', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -707,14 +942,11 @@ function updateImageTransform() {
         const now = Date.now();
         const touches = e.touches;
         
-
-        // ===== CANCELAR QUALQUER TAP PENDENTE =====
         if (tapTimeout) {
             clearTimeout(tapTimeout);
             tapTimeout = null;
-            console.log('❌ Tap anterior cancelado');
         }
-        // ===== REGISTRO INICIAL DO TAP =====
+        
         if (touches.length === 1 && zoomLevel === 1) {
             isTapping = true;
             tapStartX = touches[0].clientX;
@@ -1111,6 +1343,7 @@ function openAlbum(albumId) {
     const modal = document.getElementById('albumModal');
     if (modal) {
         modal.style.display = 'flex';
+        HistoryManager.push('album-modal');
     }
     
     const titleElement = document.getElementById('modalAlbumTitle');
@@ -1161,12 +1394,12 @@ function updateAlbumViewer() {
         // Atualizar contador e barra
         document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
         document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
-        updateProgressBar();
+        updatePhotoProgressBar();
     }
 }
 
-// ===== BARRA DE PROGRESSO ESTILO STORIES =====
-function updateProgressBar() {
+// ===== BARRA DE PROGRESSO ESTILO STORIES (FOTOS) =====
+function updatePhotoProgressBar() {
     const progressBar = document.getElementById('photoProgressBar');
     if (!progressBar || !currentAlbum) return;
     
@@ -1372,6 +1605,7 @@ function preloadAdjacentPhotos() {
         openBtn.addEventListener('click', () => {
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
+            HistoryManager.push('timeline-modal'); // ← Adicionar ao histórico
             console.log('📖 Timeline aberta');
         });
         
@@ -1436,6 +1670,7 @@ function preloadAdjacentPhotos() {
         if (secretModal && secretMessageText) {
             secretMessageText.textContent = message;
             secretModal.style.display = 'flex';
+            HistoryManager.push('secret-modal');
             
             console.log('🔓 Mensagem secreta revelada');
         }
@@ -1585,7 +1820,7 @@ function initHamburgerMenu() {
                 changeTheme(theme, true);
             }
             
-            // NÃO fechar o menu ao trocar de tema
+            closeMenu();
         });
     });
 
