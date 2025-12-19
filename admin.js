@@ -83,6 +83,7 @@ async function initAdmin() {
                 adminToggleBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
                 adminModal.style.display = 'block';
                 document.body.style.overflow = 'hidden';
+                HistoryManager.push('admin-modal');
                 loadExistingContent();
                 console.log('✅ Admin desbloqueado');
             } else {
@@ -91,6 +92,7 @@ async function initAdmin() {
         } else {
             adminModal.style.display = 'block';
             document.body.style.overflow = 'hidden';
+            HistoryManager.push('admin-modal');
             loadExistingContent();
         }
     });
@@ -701,6 +703,62 @@ function addEditTabToAdmin() {
             </button>
         </div>
         
+        <!-- Área de edição de informações do álbum -->
+        <div id="editAlbumInfoSection" style="display: none;">
+            <div class="admin-section">
+                <h3><i class="fas fa-pen"></i> Editar Informações do Álbum</h3>
+                <button id="toggleAlbumInfoEdit" class="minimal-edit-btn">
+                    <i class="fas fa-edit"></i>
+                    <span>Editar Álbum</span>
+                </button>
+                
+                <!-- Form de edição (inicialmente oculto) -->
+                <div id="albumInfoEditForm" style="display: none; margin-top: 15px;">
+                    <div class="edit-form-grid">
+                        <!-- Preview da capa -->
+                        <div class="cover-preview-container">
+                            <img id="currentCoverPreview" src="" alt="Capa atual">
+                            <label for="newCoverInput" class="change-cover-label">
+                                <i class="fas fa-camera"></i>
+                                <span>Trocar Capa</span>
+                            </label>
+                            <input type="file" id="newCoverInput" accept="image/*" style="display: none;">
+                        </div>
+                        
+                        <!-- Campos de texto -->
+                        <div class="edit-fields-container">
+                            <div class="edit-field">
+                                <label>Título</label>
+                                <input type="text" id="editAlbumTitle" placeholder="Título do álbum">
+                            </div>
+                            
+                            <div class="edit-field">
+                                <label>Data</label>
+                                <input type="text" id="editAlbumDate" placeholder="Ex: Junho 2023">
+                            </div>
+                            
+                            <div class="edit-field">
+                                <label>Descrição</label>
+                                <textarea id="editAlbumDescription" rows="3" placeholder="Descrição do álbum"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botões de ação -->
+                    <div class="edit-actions">
+                        <button id="cancelAlbumEdit" class="minimal-btn cancel">
+                            <i class="fas fa-times"></i>
+                            <span>Cancelar</span>
+                        </button>
+                        <button id="saveAlbumEdit" class="minimal-btn save">
+                            <i class="fas fa-check"></i>
+                            <span>Salvar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Área de edição -->
         <div id="editAlbumSection" style="display: none;">
             <!-- Grid de fotos (estilo galeria real) -->
@@ -748,6 +806,10 @@ function addEditTabToAdmin() {
     document.getElementById('cancelSelection').addEventListener('click', cancelSelection);
     document.getElementById('reorganizePhotos').addEventListener('click', enterReorganizeMode);
     document.getElementById('deleteSelectedPhotos').addEventListener('click', deleteSelectedPhotos);
+    document.getElementById('toggleAlbumInfoEdit').addEventListener('click', toggleAlbumInfoEdit);
+    document.getElementById('cancelAlbumEdit').addEventListener('click', cancelAlbumInfoEdit);
+    document.getElementById('saveAlbumEdit').addEventListener('click', saveAlbumInfo);
+    document.getElementById('newCoverInput').addEventListener('change', previewNewCover);
     
     // Listener para botão "voltar" do Android
     setupBackButtonHandler();
@@ -833,7 +895,14 @@ async function loadAlbumForEdit() {
         btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
         btn.disabled = false;
         
+        
+        // ✅ PREENCHER CAMPOS DE EDIÇÃO
+        document.getElementById('editAlbumTitle').value = albumData.title || '';
+        document.getElementById('editAlbumDate').value = albumData.date || '';
+        document.getElementById('editAlbumDescription').value = albumData.description || '';
+        document.getElementById('currentCoverPreview').src = albumData.cover || '';
         document.getElementById('editAlbumSection').style.display = 'block';
+        document.getElementById('editAlbumInfoSection').style.display = 'block'; // ← Mostrar seção de edição
         
         console.log(`✅ ${allPhotos.length} fotos carregadas para edição`);
         
@@ -844,6 +913,123 @@ async function loadAlbumForEdit() {
         const btn = document.getElementById('loadEditAlbumBtn');
         btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
         btn.disabled = false;
+    }
+}
+
+// ===== FUNÇÕES DE EDIÇÃO DE INFORMAÇÕES DO ÁLBUM =====
+
+function toggleAlbumInfoEdit() {
+    const form = document.getElementById('albumInfoEditForm');
+    const btn = document.getElementById('toggleAlbumInfoEdit');
+    
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        btn.innerHTML = '<i class="fas fa-times"></i><span>Fechar</span>';
+    } else {
+        form.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-edit"></i><span>Editar Álbum</span>';
+    }
+}
+
+function cancelAlbumInfoEdit() {
+    // Restaurar valores originais
+    if (window.currentEditAlbum) {
+        const albumData = window.currentEditAlbum.data;
+        document.getElementById('editAlbumTitle').value = albumData.title || '';
+        document.getElementById('editAlbumDate').value = albumData.date || '';
+        document.getElementById('editAlbumDescription').value = albumData.description || '';
+        document.getElementById('currentCoverPreview').src = albumData.cover || '';
+    }
+    
+    // Fechar form
+    document.getElementById('albumInfoEditForm').style.display = 'none';
+    document.getElementById('toggleAlbumInfoEdit').innerHTML = '<i class="fas fa-edit"></i><span>Editar Álbum</span>';
+}
+
+let newCoverFile = null;
+
+function previewNewCover(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 32 * 1024 * 1024) {
+        alert('❌ Imagem muito grande! Máximo 32MB.');
+        return;
+    }
+    
+    newCoverFile = file;
+    
+    // Preview imediato
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('currentCoverPreview').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+async function saveAlbumInfo() {
+    if (!window.currentEditAlbum) return;
+    
+    const saveBtn = document.getElementById('saveAlbumEdit');
+    const originalText = saveBtn.innerHTML;
+    
+    try {
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando...</span>';
+        saveBtn.disabled = true;
+        
+        const albumId = window.currentEditAlbum.id;
+        const newTitle = document.getElementById('editAlbumTitle').value.trim();
+        const newDate = document.getElementById('editAlbumDate').value.trim();
+        const newDescription = document.getElementById('editAlbumDescription').value.trim();
+        
+        if (!newTitle || !newDate) {
+            alert('⚠️ Título e Data são obrigatórios!');
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+            return;
+        }
+        
+        const updateData = {
+            title: newTitle,
+            date: newDate,
+            description: newDescription
+        };
+        
+        // Upload nova capa se houver
+        if (newCoverFile) {
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Enviando capa...</span>';
+            const coverUrl = await uploadToImgBB(newCoverFile, 800);
+            updateData.cover = coverUrl;
+            newCoverFile = null; // Resetar
+        }
+        
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando no Firebase...</span>';
+        
+        // Atualizar no Firebase
+        await db.collection('albums').doc(albumId).update(updateData);
+        
+        // Atualizar cache local
+        window.currentEditAlbum.data = {
+            ...window.currentEditAlbum.data,
+            ...updateData
+        };
+        
+        alert('✅ Informações do álbum atualizadas com sucesso!');
+        
+        // Fechar form
+        cancelAlbumInfoEdit();
+        
+        // Recarregar galeria principal
+        await loadAlbumsFromFirebase();
+        
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        alert('❌ Erro ao salvar: ' + error.message);
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
     }
 }
 
@@ -987,6 +1173,11 @@ function updateSelectionUI() {
     const selectionCountSpan = document.getElementById('selectionCount');
     
     if (selectedCount > 0) {
+        // Adicionar ao histórico quando entrar em modo seleção
+        if (HistoryManager.getCurrentState() !== 'edit-mode-selection') {
+            HistoryManager.push('edit-mode-selection');
+        }
+        
         // Mostrar barra inferior
         bottomToolbar.style.display = 'flex';
         selectionCountSpan.textContent = `${selectedCount} selecionada${selectedCount !== 1 ? 's' : ''}`;
@@ -1815,6 +2006,169 @@ function injectEditStyles() {
             
             .photo-checkmark i {
                 font-size: 14px;
+            }
+        }
+            /* ===== EDIÇÃO DE INFORMAÇÕES DO ÁLBUM - MINIMALISTA ===== */
+        
+        .minimal-edit-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--theme-card-border);
+            border-radius: 10px;
+            color: var(--theme-text);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .minimal-edit-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--theme-primary);
+        }
+        
+        .edit-form-grid {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .cover-preview-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .cover-preview-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .change-cover-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .change-cover-label:hover {
+            background: var(--theme-primary);
+        }
+        
+        .change-cover-label i {
+            font-size: 1rem;
+        }
+        
+        .edit-fields-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .edit-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .edit-field label {
+            font-size: 0.85rem;
+            color: var(--theme-text-secondary);
+            font-weight: 500;
+        }
+        
+        .edit-field input,
+        .edit-field textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--theme-card-border);
+            border-radius: 8px;
+            color: var(--theme-text);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .edit-field input:focus,
+        .edit-field textarea:focus {
+            outline: none;
+            border-color: var(--theme-primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .edit-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .minimal-btn {
+            flex: 1;
+            padding: 10px 20px;
+            border: 1px solid var(--theme-card-border);
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .minimal-btn.cancel {
+            background: rgba(150, 150, 150, 0.1);
+            color: #aaa;
+        }
+        
+        .minimal-btn.cancel:hover {
+            background: rgba(150, 150, 150, 0.15);
+        }
+        
+        .minimal-btn.save {
+            background: var(--theme-primary);
+            color: white;
+            border-color: var(--theme-primary);
+        }
+        
+        .minimal-btn.save:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .edit-form-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .cover-preview-container {
+                width: 100%;
+                height: 200px;
+                margin: 0 auto;
             }
         }
     `;
