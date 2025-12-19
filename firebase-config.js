@@ -21,62 +21,6 @@ console.log('🔥 Firebase inicializado!');
 // ===== FUNÇÕES DE UPLOAD - AGORA USAM O IMGBB DO imgbb-config.js =====
 
 // ===== SISTEMA DE RENDERIZAÇÃO DE ÁLBUNS =====
-function renderAlbums(albums) {
-    const container = document.getElementById('albumsContainer');
-    
-    if (!container) {
-        console.error('❌ Container de álbuns não encontrado (#albumsContainer)');
-        return;
-    }
-    
-    console.log(`🖼️ Renderizando ${albums.length} álbuns...`);
-    
-    // Limpar container
-    container.innerHTML = '';
-    
-    if (albums.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 3rem; color: var(--theme-text-secondary);">
-                <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                <p>Nenhum álbum disponível ainda</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // Renderizar cada álbum
-    albums.forEach((album, index) => {
-        const albumCard = document.createElement('div');
-        albumCard.className = 'album-card';
-        albumCard.style.animationDelay = `${index * 0.1}s`;
-        albumCard.setAttribute('data-album-id', album.id || index);
-        
-        albumCard.innerHTML = `
-            <img src="${album.cover}" alt="${album.title}" class="album-cover-img">
-            <div class="album-info">
-                <h3>${album.title}</h3>
-                <p class="album-date">
-                    <i class="far fa-calendar-alt"></i> ${album.date}
-                </p>
-                <p>${album.description}</p>
-                <div class="album-stats">
-                    <span>
-                        <i class="far fa-images"></i> ${album.photos?.length || album.photoCount || 0} ${(album.photos?.length || album.photoCount || 0) === 1 ? 'foto' : 'fotos'}
-                    </span>
-                </div>
-            </div>
-        `;
-        
-        // Adicionar evento de clique
-        albumCard.addEventListener('click', () => {
-            openAlbumModal(album);
-        });
-        
-        container.appendChild(albumCard);
-    });
-    
-    console.log('✅ Álbuns renderizados com sucesso!');
-}
 
 // ===== FUNÇÃO PARA ABRIR MODAL DO ÁLBUM =====
 function openAlbumModal(album) {
