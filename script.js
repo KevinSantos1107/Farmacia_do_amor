@@ -31,41 +31,23 @@ const HistoryManager = {
 window.addEventListener('popstate', (e) => {
     const currentState = HistoryManager.pop();
     
-    if (!currentState) {
-        return;
-    }
+    if (!currentState) return;
     
     e.preventDefault();
     
     switch(currentState) {
         case 'album-modal':
-            const albumModal = document.getElementById('albumModal');
-            if (albumModal && albumModal.style.display === 'flex') {
-                document.getElementById('closeModal')?.click();
-            }
+            document.getElementById('closeModal')?.click();
             break;
-            
         case 'timeline-modal':
-            const timelineModal = document.getElementById('timelineModal');
-            if (timelineModal && timelineModal.style.display === 'block') {
-                document.getElementById('closeTimelineBtn')?.click();
-            }
+            document.getElementById('closeTimelineBtn')?.click();
             break;
-            
         case 'secret-modal':
-            const secretModal = document.getElementById('secretModal');
-            if (secretModal && secretModal.style.display === 'flex') {
-                document.getElementById('closeSecretBtn')?.click();
-            }
+            document.getElementById('closeSecretBtn')?.click();
             break;
-            
         case 'admin-modal':
-            const adminModal = document.getElementById('adminModal');
-            if (adminModal && adminModal.style.display === 'block') {
-                document.getElementById('closeAdminBtn')?.click();
-            }
+            document.getElementById('closeAdminBtn')?.click();
             break;
-            
         case 'edit-mode-selection':
             if (typeof cancelSelection === 'function') {
                 cancelSelection();
@@ -82,6 +64,7 @@ window.addEventListener('popstate', (e) => {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Iniciando site Kevin & Iara...');
     
+    // Verificar elementos essenciais
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const sideMenu = document.getElementById('sideMenu');
     const menuOverlay = document.getElementById('menuOverlay');
@@ -93,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('✅ Elementos do menu encontrados');
     
+    // Inicializar componentes em sequência
     setTimeout(() => {
         if (typeof initAnimations === 'function') {
             initAnimations();
@@ -305,7 +289,7 @@ function updateTimeCounter() {
     document.getElementById('seconds').textContent = remainingSeconds.toString().padStart(2, '0');
 }
 
-// ===== PLAYER DE MÚSICA (VERSÃO CORRIGIDA - SEM DUPLICAÇÕES) =====
+// ===== PLAYER DE MÚSICA (VERSÃO CORRIGIDA) =====
 const playlist = [
     {
         title: "Menina da Farmácia",
@@ -322,19 +306,11 @@ const playlist = [
 ];
 
 let currentTrackIndex = 0;
-let isPlaying = false;  
+let isPlaying = false;
 let isShuffled = false;
 let repeatMode = 0;
-let musicPlayerInitialized = false; // Flag para evitar inicialização duplicada
 
-// ===== INICIALIZAÇÃO DO PLAYER (SEM DUPLICAÇÕES) =====
 function initMusicPlayer() {
-    // Prevenir inicialização duplicada
-    if (musicPlayerInitialized) {
-        console.log('⚠️ Player já inicializado, pulando...');
-        return;
-    }
-    
     console.log('🎵 Inicializando player de música...');
     
     const audio = document.getElementById('audioPlayer');
@@ -343,7 +319,10 @@ function initMusicPlayer() {
     const nextBtn = document.getElementById('nextBtn');
     const shuffleBtn = document.getElementById('shuffleBtn');
     const repeatBtn = document.getElementById('repeatBtn');
-    const progressBarBg = document.getElementById('progressBarFill')?.parentElement;
+    const progressBarFill = document.getElementById('progressBarFill');
+    const progressBarBg = progressBarFill?.parentElement;
+    const currentTimeEl = document.getElementById('currentTime');
+    const totalTimeEl = document.getElementById('totalTime');
     
     if (!audio) {
         console.error('❌ Elemento de áudio não encontrado!');
@@ -352,149 +331,117 @@ function initMusicPlayer() {
     
     console.log('✅ Elemento de áudio encontrado');
     
-    // Configurar áudio
     audio.preload = 'metadata';
     audio.volume = 0.8;
     
-    // ===== EVENT LISTENERS ÚNICOS (SEM DUPLICAÇÃO) =====
+    // Carregar primeira faixa
+    loadTrack(currentTrackIndex);
     
-    // Event listener principal para atualizar barra de progresso e tempo
-    // Este é o evento mais importante - dispara continuamente durante a reprodução
-    audio.addEventListener('timeupdate', function handleTimeUpdate() {
-        // Log apenas a cada 5 segundos para não poluir o console
-        if (Math.floor(audio.currentTime) % 5 === 0 && audio.currentTime > 0) {
-            console.log('⏱️ timeupdate disparado - Tempo:', formatTime(audio.currentTime), '/', formatTime(audio.duration));
-        }
-        updateProgressBar(audio);
-    }, false);
+    // ===== EVENT LISTENERS DOS BOTÕES =====
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    prevBtn.addEventListener('click', () => handlePrevTrack(audio));
+    nextBtn.addEventListener('click', nextTrack);
+    shuffleBtn.addEventListener('click', toggleShuffle);
+    repeatBtn.addEventListener('click', toggleRepeat);
     
-    // Atualizar duração quando metadados carregarem
-    audio.addEventListener('loadedmetadata', function handleMetadataLoaded() {
-        console.log('✅ Metadados carregados - Duração:', formatTime(audio.duration));
-        updateDuration(audio);
-        updateProgressBar(audio); // Atualizar barra também
-    }, false);
-    
-    // Atualizar duração quando dados carregarem
-    audio.addEventListener('loadeddata', function handleDataLoaded() {
-        updateDuration(audio);
-        updateProgressBar(audio); // Atualizar barra também
-    }, false);
-    
-    // Atualizar quando puder tocar
-    audio.addEventListener('canplay', function handleCanPlay() {
-        updateDuration(audio);
-        updateProgressBar(audio);
-    }, false);
-    
-    // Fim da faixa
-    audio.addEventListener('ended', handleTrackEnd);
-    
-    // Estados de play/pause
-    audio.addEventListener('play', function() {
-        document.querySelector('.music-player')?.classList.add('playing');
-        isPlaying = true;
-        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        console.log('▶️ Reproduzindo');
-    });
-    
-    audio.addEventListener('pause', function() {
-        document.querySelector('.music-player')?.classList.remove('playing');
-        isPlaying = false;
-        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-        console.log('⏸️ Pausado');
-    });
-    
-    // Erro no áudio
-    audio.addEventListener('error', function(e) {
-        console.error('❌ Erro no áudio:', e);
-    });
-    
-    // ===== BOTÕES DE CONTROLE =====
-    if (playPauseBtn) {
-        playPauseBtn.addEventListener('click', togglePlayPause);
-    }
-    
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => handlePrevTrack(audio));
-    }
-    
-    if (nextBtn) {
-        nextBtn.addEventListener('click', nextTrack);
-    }
-    
-    if (shuffleBtn) {
-        shuffleBtn.addEventListener('click', toggleShuffle);
-    }
-    
-    if (repeatBtn) {
-        repeatBtn.addEventListener('click', toggleRepeat);
-    }
-    
-    // ===== CLICK NA BARRA DE PROGRESSO =====
+    // Click na barra de progresso
     if (progressBarBg) {
         progressBarBg.addEventListener('click', function(e) {
-            if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+            if (audio.duration && !isNaN(audio.duration)) {
                 const rect = this.getBoundingClientRect();
                 const percent = (e.clientX - rect.left) / rect.width;
                 audio.currentTime = audio.duration * percent;
-                updateProgressBar(audio); // Atualizar imediatamente
                 console.log('⏩ Pulando para:', formatTime(audio.currentTime));
             }
         });
     }
     
-    // Verificar se os elementos da UI existem
-    const progressBarFill = document.getElementById('progressBarFill');
-    const currentTimeEl = document.getElementById('currentTime');
-    const totalTimeEl = document.getElementById('totalTime');
-    
-    if (!progressBarFill || !currentTimeEl || !totalTimeEl) {
-        console.error('❌ Elementos da UI do player não encontrados!');
-        console.log('Elementos faltando:', {
-            progressBarFill: !progressBarFill,
-            currentTime: !currentTimeEl,
-            totalTime: !totalTimeEl
-        });
-        return;
-    }
-    
-    console.log('✅ Todos os elementos da UI encontrados');
-    
-    // Carregar primeira faixa
-    loadTrack(currentTrackIndex);
-    
-    // Verificar estado inicial após um delay (para garantir que o áudio carregou)
-    setTimeout(() => {
-        if (audio.readyState >= 1) {
-            if (audio.duration && audio.duration > 0) {
-                updateDuration(audio);
-                updateProgressBar(audio);
-                console.log('✅ Estado inicial atualizado - Duração:', formatTime(audio.duration));
-            } else {
-                console.log('⏳ Aguardando duração do áudio...');
+    // ===== EVENTO CRÍTICO: TIMEUPDATE (ATUALIZA BARRA) =====
+    audio.addEventListener('timeupdate', function() {
+        if (!progressBarFill || !currentTimeEl || !totalTimeEl) return;
+        
+        const hasDuration = audio.duration && !isNaN(audio.duration) && isFinite(audio.duration) && audio.duration > 0;
+        
+        if (hasDuration) {
+            // Atualizar barra de progresso
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBarFill.style.width = `${progress}%`;
+            
+            // Atualizar tempo atual
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+            
+            // Atualizar tempo total (só se ainda não foi definido)
+            if (totalTimeEl.textContent === '0:00' || totalTimeEl.textContent === '') {
+                totalTimeEl.textContent = formatTime(audio.duration);
             }
+        } else {
+            progressBarFill.style.width = '0%';
+            currentTimeEl.textContent = '0:00';
+        }
+    });
+    
+    // ===== QUANDO METADADOS CARREGAM =====
+    audio.addEventListener('loadedmetadata', function() {
+        console.log('✅ Metadados carregados - Duração:', formatTime(audio.duration));
+        if (totalTimeEl && audio.duration && !isNaN(audio.duration)) {
+            totalTimeEl.textContent = formatTime(audio.duration);
+        }
+    });
+    
+    // ===== QUANDO DADOS CARREGAM =====
+    audio.addEventListener('loadeddata', function() {
+        console.log('✅ Dados de áudio carregados');
+        if (totalTimeEl && audio.duration && !isNaN(audio.duration)) {
+            totalTimeEl.textContent = formatTime(audio.duration);
+        }
+    });
+    
+    // ===== QUANDO PODE TOCAR =====
+    audio.addEventListener('canplay', function() {
+        console.log('✅ Áudio pronto para reprodução');
+        if (totalTimeEl && audio.duration && !isNaN(audio.duration)) {
+            totalTimeEl.textContent = formatTime(audio.duration);
+        }
+    });
+    
+    // ===== OUTROS EVENTOS =====
+    audio.addEventListener('ended', handleTrackEnd);
+    
+    audio.addEventListener('play', () => {
+        document.querySelector('.music-player')?.classList.add('playing');
+        console.log('▶️ Reproduzindo');
+    });
+    
+    audio.addEventListener('pause', () => {
+        document.querySelector('.music-player')?.classList.remove('playing');
+        console.log('⏸️ Pausado');
+    });
+    
+    audio.addEventListener('error', (e) => {
+        console.error('❌ Erro no áudio:', e);
+    });
+    
+    // Verificar estado inicial após 500ms
+    setTimeout(() => {
+        console.log('📊 Estado do áudio:', {
+            readyState: audio.readyState,
+            duration: audio.duration,
+            src: audio.src
+        });
+        
+        if (audio.readyState >= 1 && totalTimeEl && audio.duration && !isNaN(audio.duration)) {
+            totalTimeEl.textContent = formatTime(audio.duration);
         }
     }, 500);
     
-    // Verificar novamente após mais tempo (caso o áudio demore para carregar)
-    setTimeout(() => {
-        if (audio.duration && audio.duration > 0) {
-            updateDuration(audio);
-            updateProgressBar(audio);
-        }
-    }, 1500);
-    
-    musicPlayerInitialized = true;
     console.log('✅ Player de música inicializado com sucesso!');
 }
 
-// ===== CARREGAR FAIXA =====
 function loadTrack(index) {
     const track = playlist[index];
     const audio = document.getElementById('audioPlayer');
     
-    if (!audio || !track) return;
+    if (!audio) return;
     
     console.log(`🎵 Carregando faixa ${index + 1}: ${track.title}`);
     
@@ -507,16 +454,11 @@ function loadTrack(index) {
     if (currentTime) currentTime.textContent = '0:00';
     if (totalTime) totalTime.textContent = '0:00';
     
-    // Atualizar informações da faixa
-    const songTitle = document.getElementById('songTitle');
-    const songArtist = document.getElementById('songArtist');
-    const currentTrack = document.getElementById('currentTrack');
-    const totalTracks = document.getElementById('totalTracks');
-    
-    if (songTitle) songTitle.textContent = track.title;
-    if (songArtist) songArtist.textContent = track.artist;
-    if (currentTrack) currentTrack.textContent = index + 1;
-    if (totalTracks) totalTracks.textContent = playlist.length;
+    // Atualizar informações
+    document.getElementById('songTitle').textContent = track.title;
+    document.getElementById('songArtist').textContent = track.artist;
+    document.getElementById('currentTrack').textContent = index + 1;
+    document.getElementById('totalTracks').textContent = playlist.length;
     
     // Carregar áudio
     audio.pause();
@@ -536,29 +478,29 @@ function loadTrack(index) {
     console.log(`✅ Faixa ${track.title} carregada`);
 }
 
-// ===== PLAY/PAUSE =====
 function togglePlayPause() {
     const audio = document.getElementById('audioPlayer');
     const playPauseBtn = document.getElementById('playPauseBtn');
     
-    if (!audio) return;
-    
     if (audio.paused) {
-        audio.play().catch(err => {
+        audio.play().then(() => {
+            isPlaying = true;
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            console.log('▶️ Play');
+        }).catch(err => {
             console.error('❌ Erro ao tocar:', err);
         });
     } else {
         audio.pause();
+        isPlaying = false;
+        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        console.log('⏸️ Pause');
     }
 }
 
-// ===== TRACK ANTERIOR =====
 function handlePrevTrack(audio) {
-    if (!audio) return;
-    
     if (audio.currentTime > 3) {
         audio.currentTime = 0;
-        updateProgressBar(audio);
     } else {
         if (isShuffled) {
             let randomIndex;
@@ -577,7 +519,6 @@ function handlePrevTrack(audio) {
     }
 }
 
-// ===== PRÓXIMA FAIXA =====
 function nextTrack() {
     if (isShuffled) {
         let randomIndex;
@@ -591,129 +532,47 @@ function nextTrack() {
     
     loadTrack(currentTrackIndex);
     if (isPlaying) {
-        const audio = document.getElementById('audioPlayer');
-        if (audio) {
-            setTimeout(() => audio.play(), 100);
-        }
+        document.getElementById('audioPlayer').play();
     }
 }
 
-// ===== SHUFFLE =====
 function toggleShuffle() {
     const shuffleBtn = document.getElementById('shuffleBtn');
     isShuffled = !isShuffled;
     
-    if (shuffleBtn) {
-        shuffleBtn.classList.toggle('active', isShuffled);
-    }
+    shuffleBtn.classList.toggle('active', isShuffled);
     console.log(isShuffled ? '🔀 Shuffle ativado' : '➡️ Shuffle desativado');
 }
 
-// ===== REPEAT =====
 function toggleRepeat() {
     const repeatBtn = document.getElementById('repeatBtn');
     repeatMode = (repeatMode + 1) % 2;
     
-    if (repeatBtn) {
-        repeatBtn.classList.toggle('active', repeatMode === 1);
-        
-        if (repeatMode === 0) {
-            repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
-            console.log('🔁 Repeat desativado');
-        } else {
-            repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
-            console.log('🔂 Repeat uma música');
-        }
-    }
-}
-
-// ===== ATUALIZAR BARRA DE PROGRESSO E TEMPO =====
-function updateProgressBar(audio) {
-    if (!audio) {
-        console.warn('⚠️ updateProgressBar: audio não fornecido');
-        return;
-    }
+    repeatBtn.classList.toggle('active', repeatMode === 1);
     
-    const progressBarFill = document.getElementById('progressBarFill');
-    const currentTime = document.getElementById('currentTime');
-    const totalTime = document.getElementById('totalTime');
-    
-    if (!progressBarFill) {
-        console.warn('⚠️ updateProgressBar: progressBarFill não encontrado');
-        return;
-    }
-    
-    if (!currentTime) {
-        console.warn('⚠️ updateProgressBar: currentTime não encontrado');
-        return;
-    }
-    
-    if (!totalTime) {
-        console.warn('⚠️ updateProgressBar: totalTime não encontrado');
-        return;
-    }
-    
-    // Verificar se a duração é válida
-    const hasDuration = audio.duration && 
-                       !isNaN(audio.duration) && 
-                       isFinite(audio.duration) && 
-                       audio.duration > 0;
-    
-    if (hasDuration) {
-        // Calcular progresso (garantir que está entre 0 e 100)
-        const progress = Math.max(0, Math.min((audio.currentTime / audio.duration) * 100, 100));
-        progressBarFill.style.width = `${progress}%`;
-        
-        // Atualizar tempo atual
-        const formattedCurrentTime = formatTime(audio.currentTime);
-        if (currentTime.textContent !== formattedCurrentTime) {
-            currentTime.textContent = formattedCurrentTime;
-        }
-        
-        // Atualizar duração total (sempre atualizar se necessário)
-        const formattedDuration = formatTime(audio.duration);
-        if (totalTime.textContent === '0:00' || totalTime.textContent === '' || totalTime.textContent !== formattedDuration) {
-            totalTime.textContent = formattedDuration;
-        }
+    if (repeatMode === 0) {
+        repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
+        console.log('🔁 Repeat desativado');
     } else {
-        // Resetar se não houver duração válida
-        if (progressBarFill.style.width !== '0%') {
-            progressBarFill.style.width = '0%';
-        }
-        if (currentTime.textContent !== '0:00') {
-            currentTime.textContent = '0:00';
-        }
+        repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
+        console.log('🔂 Repeat uma música');
     }
 }
 
-// ===== ATUALIZAR DURAÇÃO TOTAL =====
-function updateDuration(audio) {
-    if (!audio) return;
-    
-    const totalTime = document.getElementById('totalTime');
-    if (!totalTime) return;
-    
-    if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration) && audio.duration > 0) {
-        totalTime.textContent = formatTime(audio.duration);
-    }
-}
-
-// ===== FIM DA FAIXA =====
 function handleTrackEnd() {
-    const audio = document.getElementById('audioPlayer');
-    if (!audio) return;
-    
     if (repeatMode === 1) {
-        audio.currentTime = 0;
-        audio.play();
+        document.getElementById('audioPlayer').currentTime = 0;
+        document.getElementById('audioPlayer').play();
     } else {
         nextTrack();
+        if (isPlaying) {
+            document.getElementById('audioPlayer').play();
+        }
     }
 }
 
-// ===== FORMATAR TEMPO =====
 function formatTime(seconds) {
-    if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
+    if (!seconds || isNaN(seconds)) return '0:00';
     
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -737,7 +596,7 @@ window.albums = [
     },
     {
         id: 2,
-        title: "Viagem Inesquecível", 
+        title: "Viagem Inesquecível",
         date: "Dezembro 2023",
         cover: "images/capas-albuns/viagem.jpg",
         description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
@@ -954,7 +813,6 @@ function initModal() {
             tapStartTime = now;
         }
         
-        // Guardar posições iniciais
         for (let i = 0; i < touches.length; i++) {
             touchStart[i] = {
                 x: touches[i].clientX,
@@ -964,15 +822,13 @@ function initModal() {
         
         touchCount = touches.length;
         
-        // Se tiver 2 dedos, é PINCH
         if (touches.length === 2) {
             console.log('🔍 Pinch detectado (2 dedos)');
             isPinching = true;
-            isTapping = false; // Cancelar tap
+            isTapping = false;
             initialPinchDistance = getTouchDistance(touches[0], touches[1]);
             lastPinchDistance = initialPinchDistance;
             
-            // Cancelar qualquer duplo toque pendente
             if (doubleTapTimeout) {
                 clearTimeout(doubleTapTimeout);
                 doubleTapTimeout = null;
@@ -980,55 +836,49 @@ function initModal() {
             return;
         }
         
-        // Se tiver 1 dedo, pode ser duplo toque ou arraste
         if (touches.length === 1) {
             const touch = touches[0];
             const timeSinceLastTouch = now - lastTouchTime;
             
-        // Verificar se é duplo toque
-        if (timeSinceLastTouch < 300 && timeSinceLastTouch > 0) {
-            console.log('👆👆 Duplo toque detectado');
-            isTapping = false; // Cancelar tap imediatamente
-            if (tapTimeout) {
-                clearTimeout(tapTimeout);
-                tapTimeout = null;
-                console.log('❌ Tap pendente cancelado pelo duplo toque');
+            if (timeSinceLastTouch < 300 && timeSinceLastTouch > 0) {
+                console.log('👆👆 Duplo toque detectado');
+                isTapping = false;
+                if (tapTimeout) {
+                    clearTimeout(tapTimeout);
+                    tapTimeout = null;
+                    console.log('❌ Tap pendente cancelado pelo duplo toque');
+                }
+                
+                blockNavigation = true;
+                handleDoubleTap(touch.clientX, touch.clientY);
+                
+                setTimeout(() => {
+                    blockNavigation = false;
+                }, 100);
+                
+                lastTouchTime = 0;
+                return;
             }
             
-            blockNavigation = true; // Bloquear qualquer navegação
-            handleDoubleTap(touch.clientX, touch.clientY);
+            if (zoomLevel > 1) {
+                isTapping = false;
+                isDragging = true;
+                startX = touch.clientX - translateX;
+                startY = touch.clientY - translateY;
+                modalPhoto.style.cursor = 'grabbing';
+            }
             
-            // Desbloquear após um pequeno delay
-            setTimeout(() => {
-                blockNavigation = false;
-            }, 100);
-            
-            // Resetar timer
-            lastTouchTime = 0;
-            return;
+            lastTouchTime = now;
         }
+    }, { passive: false });
+    
+    albumViewer.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         
-        // Iniciar arraste se estiver com zoom
-        if (zoomLevel > 1) {
-            isTapping = false; // Cancelar tap
-            isDragging = true;
-            startX = touch.clientX - translateX;
-            startY = touch.clientY - translateY;
-            modalPhoto.style.cursor = 'grabbing';
-        }
-        
-        lastTouchTime = now;
-    }
-}, { passive: false });
-        
-        albumViewer.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const touches = e.touches;
-            lastGestureTime = Date.now();
+        const touches = e.touches;
+        lastGestureTime = Date.now();
 
-            // ===== CANCELAR TAP SE HOUVER MOVIMENTO =====
         if (isTapping && touches.length === 1) {
             const moveX = Math.abs(touches[0].clientX - tapStartX);
             const moveY = Math.abs(touches[0].clientY - tapStartY);
@@ -1036,7 +886,6 @@ function initModal() {
             if (moveX > TAP_THRESHOLD || moveY > TAP_THRESHOLD) {
                 isTapping = false;
                 
-                // CANCELAR TIMEOUT PENDENTE
                 if (tapTimeout) {
                     clearTimeout(tapTimeout);
                     tapTimeout = null;
@@ -1045,284 +894,253 @@ function initModal() {
                 console.log('❌ Tap cancelado - movimento detectado');
             }
         }
+        
+        if (touches.length === 2 && isPinching) {
+            blockNavigation = true;
+            isTapping = false;
             
-            // PINCH TO ZOOM
-            if (touches.length === 2 && isPinching) {
-                blockNavigation = true;
-                isTapping = false;
+            const currentDistance = getTouchDistance(touches[0], touches[1]);
+            const delta = currentDistance - lastPinchDistance;
+            
+            const centerX = (touches[0].clientX + touches[1].clientX) / 2;
+            const centerY = (touches[0].clientY + touches[1].clientY) / 2;
+            
+            const zoomFactor = 0.01;
+            if (delta !== 0) {
+                const oldZoom = zoomLevel;
                 
-                const currentDistance = getTouchDistance(touches[0], touches[1]);
-                const delta = currentDistance - lastPinchDistance;
-                
-                // Calcular centro do pinch
-                const centerX = (touches[0].clientX + touches[1].clientX) / 2;
-                const centerY = (touches[0].clientY + touches[1].clientY) / 2;
-                
-                // Aplicar zoom proporcional
-                const zoomFactor = 0.01;
-                if (delta !== 0) {
-                    const oldZoom = zoomLevel;
-                    
-                    if (delta > 0) {
-                        zoomLevel = Math.min(zoomLevel * (1 + delta * zoomFactor), 4);
-                    } else {
-                        zoomLevel = Math.max(zoomLevel / (1 - delta * zoomFactor), 1);
-                    }
-                    
-                    // Ajustar posição baseada no centro do pinch
-                    const zoomChange = zoomLevel / oldZoom;
-                    const rect = modalPhoto.getBoundingClientRect();
-                    const offsetX = centerX - rect.left - rect.width / 2;
-                    const offsetY = centerY - rect.top - rect.height / 2;
-                    
-                    translateX = translateX * zoomChange - offsetX * (zoomChange - 1);
-                    translateY = translateY * zoomChange - offsetY * (zoomChange - 1);
-                    
-                    updateImageTransform();
+                if (delta > 0) {
+                    zoomLevel = Math.min(zoomLevel * (1 + delta * zoomFactor), 4);
+                } else {
+                    zoomLevel = Math.max(zoomLevel / (1 - delta * zoomFactor), 1);
                 }
                 
-                lastPinchDistance = currentDistance;
-            }
-            
-            // DRAG (arrastar imagem com zoom)
-            else if (touches.length === 1 && isDragging && zoomLevel > 1) {
-                blockNavigation = true;
-                isTapping = false;
+                const zoomChange = zoomLevel / oldZoom;
+                const rect = modalPhoto.getBoundingClientRect();
+                const offsetX = centerX - rect.left - rect.width / 2;
+                const offsetY = centerY - rect.top - rect.height / 2;
                 
-                const touch = touches[0];
-                translateX = touch.clientX - startX;
-                translateY = touch.clientY - startY;
+                translateX = translateX * zoomChange - offsetX * (zoomChange - 1);
+                translateY = translateY * zoomChange - offsetY * (zoomChange - 1);
+                
                 updateImageTransform();
             }
-        }, { passive: false });
-        
-            albumViewer.addEventListener('touchend', (e) => {
-            const touches = e.touches;
-            const changedTouch = e.changedTouches[0];
             
-// ===== PROCESSAR TAP PARA NAVEGAÇÃO (COM DELAY) =====
-if (isTapping && touches.length === 0 && zoomLevel === 1 && !blockNavigation) {
-    const tapDuration = Date.now() - tapStartTime;
-    const moveX = Math.abs(changedTouch.clientX - tapStartX);
-    const moveY = Math.abs(changedTouch.clientY - tapStartY);
-    
-    // Verificar se foi um tap válido
-    if (tapDuration < TAP_DURATION && 
-        moveX < TAP_THRESHOLD && 
-        moveY < TAP_THRESHOLD) {
-        
-        // Limpar timeout anterior se existir
-        if (tapTimeout) {
-            clearTimeout(tapTimeout);
+            lastPinchDistance = currentDistance;
         }
         
-        // Guardar posição do tap
-        const savedTapX = tapStartX;
-        
-        // Aguardar 250ms antes de processar (para detectar duplo toque)
-        tapTimeout = setTimeout(() => {
-            // Só executar se ainda estiver válido
-            if (zoomLevel === 1 && !blockNavigation && !isPinching && !isDragging) {
-                console.log('✅ Tap confirmado após delay');
-                handleTapNavigation(savedTapX);
-            } else {
-                console.log('❌ Tap cancelado - condições mudaram');
-            }
-            tapTimeout = null;
-        }, TAP_DELAY);
-        
-        console.log('⏳ Aguardando confirmação do tap...');
-    }
+        else if (touches.length === 1 && isDragging && zoomLevel > 1) {
+            blockNavigation = true;
+            isTapping = false;
+            
+            const touch = touches[0];
+            translateX = touch.clientX - startX;
+            translateY = touch.clientY - startY;
+            updateImageTransform();
+        }
+    }, { passive: false });
     
-    isTapping = false;
-}
-    
-            // Se todos os dedos saíram
-            if (touches.length === 0) {
-                // Finalizar pinch
-                if (isPinching) {
-                    console.log('✅ Pinch finalizado');
-                    isPinching = false;
-                    
-                    // Se ainda estiver com zoom, bloquear navegação temporariamente
-                    if (zoomLevel > 1) {
-                        blockNavigation = true;
-                        setTimeout(() => {
-                            blockNavigation = false;
-                            console.log('🔓 Navegação liberada após pinch');
-                        }, 300);
+    albumViewer.addEventListener('touchend', (e) => {
+        const touches = e.touches;
+        const changedTouch = e.changedTouches[0];
+        
+        if (isTapping && touches.length === 0 && zoomLevel === 1 && !blockNavigation) {
+            const tapDuration = Date.now() - tapStartTime;
+            const moveX = Math.abs(changedTouch.clientX - tapStartX);
+            const moveY = Math.abs(changedTouch.clientY - tapStartY);
+            
+            if (tapDuration < TAP_DURATION && 
+                moveX < TAP_THRESHOLD && 
+                moveY < TAP_THRESHOLD) {
+                
+                if (tapTimeout) {
+                    clearTimeout(tapTimeout);
+                }
+                
+                const savedTapX = tapStartX;
+                
+                tapTimeout = setTimeout(() => {
+                    if (zoomLevel === 1 && !blockNavigation && !isPinching && !isDragging) {
+                        console.log('✅ Tap confirmado após delay');
+                        handleTapNavigation(savedTapX);
+                    } else {
+                        console.log('❌ Tap cancelado - condições mudaram');
                     }
-                }
+                    tapTimeout = null;
+                }, TAP_DELAY);
                 
-                // Finalizar drag
-                if (isDragging) {
-                    console.log('✅ Drag finalizado');
-                    isDragging = false;
-                    modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-                    
-                    // Se ainda estiver com zoom, manter bloqueio
-                    if (zoomLevel > 1) {
-                        blockNavigation = true;
-                    }
-                }
-                
-                // Se não estava fazendo gestos complexos, permitir navegação
-                if (!isPinching && !isDragging && zoomLevel === 1) {
-                    blockNavigation = false;
-                }
-                
-                // Resetar contagem
-                touchCount = 0;
+                console.log('⏳ Aguardando confirmação do tap...');
             }
             
-            // Se sobrou 1 dedo (transição de pinch para drag)
-            else if (touches.length === 1 && isPinching) {
-                console.log('🔄 Transição: pinch → drag');
+            isTapping = false;
+        }
+        
+        if (touches.length === 0) {
+            if (isPinching) {
+                console.log('✅ Pinch finalizado');
                 isPinching = false;
-                isDragging = true;
-                isTapping = false;
                 
-                // Configurar para drag
-                const touch = touches[0];
-                startX = touch.clientX - translateX;
-                startY = touch.clientY - translateY;
-                modalPhoto.style.cursor = 'grabbing';
-            }
-        });
-        
-        // ===== SWIPE PARA NAVEGAÇÃO =====
-        let swipeStartX = 0;
-        let swipeStartTime = 0;
-        
-        modal.addEventListener('touchstart', (e) => {
-            if (touchCount === 0 && !isPinching && !isDragging && zoomLevel === 1) {
-                swipeStartX = e.changedTouches[0].screenX;
-                swipeStartTime = Date.now();
-            }
-        }, { passive: true });
-        
-        modal.addEventListener('touchend', (e) => {
-            if (!isPinching && !isDragging && !blockNavigation && zoomLevel === 1) {
-                const swipeEndX = e.changedTouches[0].screenX;
-                const touchDuration = Date.now() - swipeStartTime;
-                
-                // Só processar swipe rápido (não gestos lentos)
-                if (touchDuration < 300) {
-                    handleSwipe(swipeStartX, swipeEndX);
+                if (zoomLevel > 1) {
+                    blockNavigation = true;
+                    setTimeout(() => {
+                        blockNavigation = false;
+                        console.log('🔓 Navegação liberada após pinch');
+                    }, 300);
                 }
             }
-        }, { passive: true });
-        
-        function handleSwipe(startX, endX) {
-            if (blockNavigation || zoomLevel > 1 || isPinching || isDragging) {
-                console.log('🚫 Swipe bloqueado');
-                return;
-            }
             
-            const swipeThreshold = 50;
-            const diff = startX - endX;
-            
-            if (Math.abs(diff) > swipeThreshold) {
-                console.log('✅ Swipe detectado - navegando');
-                if (diff > 0) {
-                    // Swipe para a esquerda = próxima foto
-                    nextBtn.click();
-                } else {
-                    // Swipe para a direita = foto anterior
-                    prevBtn.click();
+            if (isDragging) {
+                console.log('✅ Drag finalizado');
+                isDragging = false;
+                modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
+                
+                if (zoomLevel > 1) {
+                    blockNavigation = true;
                 }
             }
+            
+            if (!isPinching && !isDragging && zoomLevel === 1) {
+                blockNavigation = false;
+            }
+            
+            touchCount = 0;
         }
         
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeBtn.click();
+        else if (touches.length === 1 && isPinching) {
+            console.log('🔄 Transição: pinch → drag');
+            isPinching = false;
+            isDragging = true;
+            isTapping = false;
+            
+            const touch = touches[0];
+            startX = touch.clientX - translateX;
+            startY = touch.clientY - translateY;
+            modalPhoto.style.cursor = 'grabbing';
+        }
+    });
+    
+    let swipeStartX = 0;
+    let swipeStartTime = 0;
+    
+    modal.addEventListener('touchstart', (e) => {
+        if (touchCount === 0 && !isPinching && !isDragging && zoomLevel === 1) {
+            swipeStartX = e.changedTouches[0].screenX;
+            swipeStartTime = Date.now();
+        }
+    }, { passive: true });
+    
+    modal.addEventListener('touchend', (e) => {
+        if (!isPinching && !isDragging && !blockNavigation && zoomLevel === 1) {
+            const swipeEndX = e.changedTouches[0].screenX;
+            const touchDuration = Date.now() - swipeStartTime;
+            
+            if (touchDuration < 300) {
+                handleSwipe(swipeStartX, swipeEndX);
             }
-        });
-        
-        document.addEventListener('keydown', (event) => {
-            if (modal.style.display === 'flex') {
-                if (event.key === 'Escape') {
-                    closeBtn.click();
-                } else if (event.key === 'ArrowLeft') {
-                    prevBtn.click();
-                } else if (event.key === 'ArrowRight') {
-                    nextBtn.click();
-                }
-            }
-        });
-        
-        console.log('✅ Modal inicializado com gestos separados');
-    }
-
-    // ===== FUNÇÃO PARA NAVEGAÇÃO POR TAP (ESTILO REDE SOCIAL) =====
-    function handleTapNavigation(tapX) {
+        }
+    }, { passive: true });
+    
+    function handleSwipe(startX, endX) {
         if (blockNavigation || zoomLevel > 1 || isPinching || isDragging) {
-            console.log('🚫 Tap navigation bloqueada');
+            console.log('🚫 Swipe bloqueado');
             return;
         }
         
-        // Pegar largura da tela
-        const screenWidth = window.innerWidth;
-        const middlePoint = screenWidth / 2;
+        const swipeThreshold = 50;
+        const diff = startX - endX;
         
-        // Decidir navegação baseado na posição do toque
-        if (tapX < middlePoint) {
-            // Toque na metade esquerda = foto anterior
-            console.log('👈 Tap esquerda: foto anterior');
-            const prevBtn = document.getElementById('prevPhotoBtn');
-            if (prevBtn) {
+        if (Math.abs(diff) > swipeThreshold) {
+            console.log('✅ Swipe detectado - navegando');
+            if (diff > 0) {
+                nextBtn.click();
+            } else {
                 prevBtn.click();
             }
-        } else {
-            // Toque na metade direita = próxima foto
-            console.log('👉 Tap direita: próxima foto');
-            const nextBtn = document.getElementById('nextPhotoBtn');
-            if (nextBtn) {
+        }
+    }
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeBtn.click();
+        }
+    });
+    
+    document.addEventListener('keydown', (event) => {
+        if (modal.style.display === 'flex') {
+            if (event.key === 'Escape') {
+                closeBtn.click();
+            } else if (event.key === 'ArrowLeft') {
+                prevBtn.click();
+            } else if (event.key === 'ArrowRight') {
                 nextBtn.click();
             }
         }
-    }
+    });
+    
+    console.log('✅ Modal inicializado com gestos separados');
+}
 
-    // ===== FUNÇÕES DE ÁLBUM =====
-    function initAlbums() {
-        const container = document.getElementById('albumsContainer');
-        
-        if (!container) {
-            console.warn('⚠️ Container de álbuns não encontrado');
-            return;
-        }
-        
-        container.innerHTML = '';
-        
-        // Usar window.albums para permitir atualização dinâmica
-        window.albums.forEach(album => {
-            const albumCard = document.createElement('div');
-            albumCard.className = 'album-card';
-            albumCard.dataset.id = album.id;
-            
-            albumCard.innerHTML = `
-                <img src="${album.cover}" alt="${album.title}" class="album-cover-img">
-                <div class="album-info">
-                    <h3>${album.title}</h3>
-                    <p class="album-date">
-                        <i class="far fa-calendar-alt"></i> ${album.date}
-                    </p>
-                    <p>${album.description}</p>
-                    <div class="album-stats">
-                        <span>
-                            <i class="far fa-images"></i> ${album.photoCount} ${album.photoCount === 1 ? 'foto' : 'fotos'}
-                        </span>
-                    </div>
-                </div>
-            `;
-            
-            albumCard.addEventListener('click', () => openAlbum(album.id));
-            container.appendChild(albumCard);
-        });
-        
-        console.log(`✅ ${albums.length} álbuns carregados`);
+function handleTapNavigation(tapX) {
+    if (blockNavigation || zoomLevel > 1 || isPinching || isDragging) {
+        console.log('🚫 Tap navigation bloqueada');
+        return;
     }
+    
+    const screenWidth = window.innerWidth;
+    const middlePoint = screenWidth / 2;
+    
+    if (tapX < middlePoint) {
+        console.log('👈 Tap esquerda: foto anterior');
+        const prevBtn = document.getElementById('prevPhotoBtn');
+        if (prevBtn) {
+            prevBtn.click();
+        }
+    } else {
+        console.log('👉 Tap direita: próxima foto');
+        const nextBtn = document.getElementById('nextPhotoBtn');
+        if (nextBtn) {
+            nextBtn.click();
+        }
+    }
+}
+
+function initAlbums() {
+    const container = document.getElementById('albumsContainer');
+    
+    if (!container) {
+        console.warn('⚠️ Container de álbuns não encontrado');
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    window.albums.forEach(album => {
+        const albumCard = document.createElement('div');
+        albumCard.className = 'album-card';
+        albumCard.dataset.id = album.id;
+        
+        albumCard.innerHTML = `
+            <img src="${album.cover}" alt="${album.title}" class="album-cover-img">
+            <div class="album-info">
+                <h3>${album.title}</h3>
+                <p class="album-date">
+                    <i class="far fa-calendar-alt"></i> ${album.date}
+                </p>
+                <p>${album.description}</p>
+                <div class="album-stats">
+                    <span>
+                        <i class="far fa-images"></i> ${album.photoCount} ${album.photoCount === 1 ? 'foto' : 'fotos'}
+                    </span>
+                </div>
+            </div>
+        `;
+        
+        albumCard.addEventListener('click', () => openAlbum(album.id));
+        container.appendChild(albumCard);
+    });
+    
+    console.log(`✅ ${albums.length} álbuns carregados`);
+}
 
 function openAlbum(albumId) {
     currentAlbum = window.albums.find(a => a.id === albumId);
@@ -1331,7 +1149,6 @@ function openAlbum(albumId) {
         return;
     }
     
-    // ✅ ADICIONE ESTAS 3 LINHAS AQUI
     if (!currentAlbum.photos || currentAlbum.photos.length === 0) {
         alert('📷 Este álbum ainda não possui fotos!');
         return;
@@ -1354,10 +1171,8 @@ function openAlbum(albumId) {
     console.log(`📸 Álbum aberto: ${currentAlbum.title}`);
 }
 
-    // Variável global para controlar direção do swipe
-    let lastPhotoIndex = 0;
+let lastPhotoIndex = 0;
 
-// ===== TRANSIÇÃO INSTANTÂNEA ESTILO INSTAGRAM =====
 function updateAlbumViewer() {
     if (!currentAlbum) return;
     
@@ -1366,10 +1181,8 @@ function updateAlbumViewer() {
     
     if (!modalPhoto) return;
     
-    // ✨ SE ESTIVER COM ZOOM, RESETAR PRIMEIRO
     if (zoomLevel > 1) {
         resetZoom();
-        // Aguardar reset antes de trocar foto
         setTimeout(() => {
             changePhoto();
         }, 100);
@@ -1378,35 +1191,27 @@ function updateAlbumViewer() {
     }
     
     function changePhoto() {
-        // 🚀 REMOVER todas as classes de animação
         modalPhoto.classList.remove('slide-out-left', 'slide-out-right', 'slide-in-left', 'slide-in-right', 'active');
         
-        // ⚡ TROCAR IMAGEM IMEDIATAMENTE (pré-carregamento garante que está pronta)
         modalPhoto.src = photo.src;
         modalPhoto.alt = `Foto ${currentPhotoIndex + 1}`;
         
-        // 🎁 Pré-carregar próximas fotos
         preloadAdjacentPhotos();
         
-        // Atualizar índice anterior
         lastPhotoIndex = currentPhotoIndex;
         
-        // Atualizar contador e barra
         document.getElementById('currentPhoto').textContent = currentPhotoIndex + 1;
         document.getElementById('totalPhotos').textContent = currentAlbum.photos.length;
-        updatePhotoProgressBar();
+        updateProgressBar();
     }
 }
 
-// ===== BARRA DE PROGRESSO ESTILO STORIES (FOTOS) =====
-function updatePhotoProgressBar() {
+function updateProgressBar() {
     const progressBar = document.getElementById('photoProgressBar');
     if (!progressBar || !currentAlbum) return;
     
-    // Limpar segmentos existentes
     progressBar.innerHTML = '';
     
-    // Criar segmentos para cada foto
     for (let i = 0; i < currentAlbum.photos.length; i++) {
         const segment = document.createElement('div');
         segment.className = 'progress-segment';
@@ -1421,19 +1226,15 @@ function updatePhotoProgressBar() {
     }
 }
 
-// 🚀 PRÉ-CARREGAMENTO ULTRA OTIMIZADO (3 FOTOS + CACHE)
-
 function preloadAdjacentPhotos() {
     if (!currentAlbum || !currentAlbum.photos) return;
     
     const total = currentAlbum.photos.length;
     
-    // Calcular índices (anterior, próxima, próxima+1)
     const prevIndex = (currentPhotoIndex - 1 + total) % total;
     const nextIndex = (currentPhotoIndex + 1) % total;
     const next2Index = (currentPhotoIndex + 2) % total;
     
-    // Pré-carregar apenas se ainda não estiver no cache
     [prevIndex, nextIndex, next2Index].forEach(index => {
         const src = currentAlbum.photos[index].src;
         
@@ -1446,254 +1247,181 @@ function preloadAdjacentPhotos() {
         }
     });
     
-    // Limpar cache de fotos antigas (manter apenas últimas 5)
     if (preloadCache.size > 5) {
         const firstKey = preloadCache.keys().next().value;
         preloadCache.delete(firstKey);
     }
 }
 
-
-    // ===== MENSAGENS DO DIA =====
-    const messages = [
-        {
-            text: "Cada dia ao seu lado é uma página nova em nosso livro de amor, escrita com sorrisos, carinho e cumplicidade.",
-            author: "Kevin para Iara"
-        },
-        {
-            text: "Se eu pudesse escolher novamente entre todas as pessoas do mundo, escolheria você, sempre você.",
-            author: "Kevin para Iara"
-        },
-        {
-            text: "Nos seus olhos encontro meu lugar favorito no mundo, onde posso ser apenas eu e saber que sou amado.",
-            author: "Kevin para Iara"
-        },
-        {
-            text: "O amor que sinto por você não cabe em palavras, mas transborda em cada gesto, cada olhar, cada momento juntos.",
-            author: "Kevin para Iara"
-        }
-    ];
-
-    let currentMessageIndex = 0;
-
-    function initMessages() {
-        showMessage();
-        
-        const newMessageBtn = document.getElementById('newMessageBtn');
-        if (newMessageBtn) {
-            newMessageBtn.addEventListener('click', showNextMessage);
-        }
+// ===== MENSAGENS DO DIA =====
+const messages = [
+    {
+        text: "Cada dia ao seu lado é uma página nova em nosso livro de amor, escrita com sorrisos, carinho e cumplicidade.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Se eu pudesse escolher novamente entre todas as pessoas do mundo, escolheria você, sempre você.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Nos seus olhos encontro meu lugar favorito no mundo, onde posso ser apenas eu e saber que sou amado.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "O amor que sinto por você não cabe em palavras, mas transborda em cada gesto, cada olhar, cada momento juntos.",
+        author: "Kevin para Iara"
     }
+];
 
-    function showMessage() {
-        const message = messages[currentMessageIndex];
-        
-        const messageElement = document.getElementById('dailyMessage');
-        if (messageElement) {
-            messageElement.innerHTML = `
-                <p class="message-text">"${message.text}"</p>
-                <p class="message-author">— ${message.author}</p>
-            `;
-            
-            messageElement.style.opacity = '0';
-            setTimeout(() => {
-                messageElement.style.transition = 'opacity 0.3s ease';
-                messageElement.style.opacity = '1';
-            }, 10);
-        }
-        
-        console.log(`💌 Mensagem ${currentMessageIndex + 1}/${messages.length} exibida`);
+let currentMessageIndex = 0;
+
+function initMessages() {
+    showMessage();
+    
+    const newMessageBtn = document.getElementById('newMessageBtn');
+    if (newMessageBtn) {
+        newMessageBtn.addEventListener('click', showNextMessage);
     }
+}
 
-    function showNextMessage() {
-        currentMessageIndex = (currentMessageIndex + 1) % messages.length;
-        showMessage();
+function showMessage() {
+    const message = messages[currentMessageIndex];
+    
+    const messageElement = document.getElementById('dailyMessage');
+    if (messageElement) {
+        messageElement.innerHTML = `
+            <p class="message-text">"${message.text}"</p>
+            <p class="message-author">— ${message.author}</p>
+        `;
+        
+        messageElement.style.opacity = '0';
+        setTimeout(() => {
+            messageElement.style.transition = 'opacity 0.3s ease';
+            messageElement.style.opacity = '1';
+        }, 10);
     }
+    
+    console.log(`💌 Mensagem ${currentMessageIndex + 1}/${messages.length} exibida`);
+}
 
-    // ===== FUNÇÕES UTILITÁRIAS =====
-    function updateCurrentDate() {
-        const now = new Date();
-        const options = { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        };
-        
-        const dateString = now.toLocaleDateString('pt-BR', options);
-        const dateElement = document.getElementById('currentDate');
-        if (dateElement) {
-            dateElement.textContent = `Hoje é ${dateString}`;
-        }
+function showNextMessage() {
+    currentMessageIndex = (currentMessageIndex + 1) % messages.length;
+    showMessage();
+}
+
+function updateCurrentDate() {
+    const now = new Date();
+    const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    };
+    
+    const dateString = now.toLocaleDateString('pt-BR', options);
+    const dateElement = document.getElementById('currentDate');
+    if (dateElement) {
+        dateElement.textContent = `Hoje é ${dateString}`;
     }
+}
 
-    // ===== INICIALIZAÇÃO COMPLETA =====
-    console.log(`
-    ╔══════════════════════════════════════╗
-    ║   💖 SITE KEVIN & IARA INICIADO 💖   ║
-    ╠══════════════════════════════════════╣
-    ║   📱 Otimizado para Mobile          ║
-    ║   🎵 Player original restaurado     ║
-    ║   📸 ${albums.length} álbuns organizados ║
-    ║   🎨 ${Object.keys(themes).length} temas disponíveis ║
-    ║   💾 Tema persistente com localStorage ║
-    ╚══════════════════════════════════════╝
-    `);
-
-    // ===== FIX PARA FOCUS STATE EM MOBILE =====
-    document.addEventListener('DOMContentLoaded', function() {
-        const buttons = document.querySelectorAll(
-            '.control-btn, .album-control-btn, .theme-btn, ' +
-            '.theme-menu-toggle, .close-modal, .new-message-btn'
-        );
-        
-        buttons.forEach(button => {
-            button.addEventListener('click', function() {
-                this.blur();
-            });
-            
-            button.addEventListener('touchend', function() {
-                this.blur();
-            });
-            
-            button.addEventListener('mousedown', function(e) {
-                e.preventDefault();
-            });
-        });
-        
-        console.log('✅ Fix de focus aplicado em', buttons.length, 'botões');
+function initTimelineModal() {
+    const openBtn = document.getElementById('openTimelineBtn');
+    const closeBtn = document.getElementById('closeTimelineBtn');
+    const modal = document.getElementById('timelineModal');
+    const secretModal = document.getElementById('secretModal');
+    const closeSecretBtn = document.getElementById('closeSecretBtn');
+    const secretMessageBtns = document.querySelectorAll('.secret-message-btn');
+    
+    if (!openBtn || !modal) {
+        console.warn('⚠️ Elementos da timeline não encontrados');
+        return;
+    }
+    
+    openBtn.addEventListener('click', () => {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        HistoryManager.push('timeline-modal');
+        console.log('📖 Timeline aberta');
     });
-
-    // ===== VERIFICADOR DE SINCRONIZAÇÃO =====
-    function checkThemeSync() {
-        const bodyTheme = document.body.className.match(/theme-(\w+)/);
-        const canvasAnimation = currentAnimation; // de animations.js
-        
-        if (bodyTheme && bodyTheme[1] !== canvasAnimation) {
-            console.warn('⚠️ Tema dessincronizado! Corrigindo...');
-            console.log(`Body: ${bodyTheme[1]}, Canvas: ${canvasAnimation}`);
-            
-            // Forçar sincronização
-            if (window.Animations && typeof window.Animations.changeTheme === 'function') {
-                window.Animations.changeTheme(bodyTheme[1]);
-            }
-        }
-    }
-
-    // Executar após a página carregar
-    window.addEventListener('load', () => {
-        setTimeout(checkThemeSync, 1000);
+    
+    closeBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        console.log('📖 Timeline fechada');
     });
-
-    // ===== ADICIONAR NO FINAL DO ARQUIVO script.js =====
-
-    // ===== CONTROLE DA TIMELINE MODAL =====
-    function initTimelineModal() {
-        const openBtn = document.getElementById('openTimelineBtn');
-        const closeBtn = document.getElementById('closeTimelineBtn');
-        const modal = document.getElementById('timelineModal');
-        const secretModal = document.getElementById('secretModal');
-        const closeSecretBtn = document.getElementById('closeSecretBtn');
-        const secretMessageBtns = document.querySelectorAll('.secret-message-btn');
-        
-        if (!openBtn || !modal) {
-            console.warn('⚠️ Elementos da timeline não encontrados');
-            return;
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeBtn.click();
         }
-        
-        // Abrir modal da timeline
-        openBtn.addEventListener('click', () => {
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-            HistoryManager.push('timeline-modal'); // ← Adicionar ao histórico
-            console.log('📖 Timeline aberta');
-        });
-        
-        // Fechar modal da timeline
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-            console.log('📖 Timeline fechada');
-        });
-        
-        // Fechar ao clicar fora
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
+    });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (secretModal.style.display === 'flex') {
+                closeSecretBtn.click();
+            } else if (modal.style.display === 'block') {
                 closeBtn.click();
             }
-        });
-        
-        // Fechar com ESC
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                if (secretModal.style.display === 'flex') {
-                    closeSecretBtn.click();
-                } else if (modal.style.display === 'block') {
-                    closeBtn.click();
-                }
-            }
-        });
-        
-        // ===== BOTÕES DE MENSAGEM SECRETA =====
-        secretMessageBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const message = btn.getAttribute('data-message');
-                
-                if (message) {
-                    showSecretMessage(message);
-                }
-            });
-        });
-        
-        // Fechar modal secreto
-        closeSecretBtn.addEventListener('click', () => {
-            secretModal.style.display = 'none';
-        });
-        
-        secretModal.addEventListener('click', (e) => {
-            if (e.target === secretModal) {
-                closeSecretBtn.click();
-            }
-        });
-
-        updateTimelineProgress();
-        
-        console.log('✅ Timeline modal inicializada');
-        console.log(`🔒 ${secretMessageBtns.length} mensagens secretas encontradas`);
-    }
-
-    function showSecretMessage(message) {
-        const secretModal = document.getElementById('secretModal');
-        const secretMessageText = document.getElementById('secretMessageText');
-        
-        if (secretModal && secretMessageText) {
-            secretMessageText.textContent = message;
-            secretModal.style.display = 'flex';
-            HistoryManager.push('secret-modal');
-            
-            console.log('🔓 Mensagem secreta revelada');
         }
-    }
-
-    // ===== BARRA DE PROGRESSO NA TIMELINE =====
-    function updateTimelineProgress() {
-        const timelineScroll = document.querySelector('.timeline-scroll');
-        const timelineContainer = document.querySelector('.timeline-container');
-        
-        if (!timelineScroll || !timelineContainer) return;
-        
-        timelineScroll.addEventListener('scroll', () => {
-            const scrollTop = timelineScroll.scrollTop;
-            const scrollHeight = timelineScroll.scrollHeight - timelineScroll.clientHeight;
-            const scrollPercent = (scrollTop / scrollHeight) * 100;
+    });
+    
+    secretMessageBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const message = btn.getAttribute('data-message');
             
-            // Atualizar a altura da barra de progresso
-            timelineContainer.style.setProperty('--progress-height', `${scrollPercent}%`);
+            if (message) {
+                showSecretMessage(message);
+            }
         });
-    }
+    });
+    
+    closeSecretBtn.addEventListener('click', () => {
+        secretModal.style.display = 'none';
+    });
+    
+    secretModal.addEventListener('click', (e) => {
+        if (e.target === secretModal) {
+            closeSecretBtn.click();
+        }
+    });
 
-// ===== MENU HAMBÚRGUER PREMIUM COM AUTO-FECHAMENTO =====
+    updateTimelineProgress();
+    
+    console.log('✅ Timeline modal inicializada');
+    console.log(`🔒 ${secretMessageBtns.length} mensagens secretas encontradas`);
+}
+
+function showSecretMessage(message) {
+    const secretModal = document.getElementById('secretModal');
+    const secretMessageText = document.getElementById('secretMessageText');
+    
+    if (secretModal && secretMessageText) {
+        secretMessageText.textContent = message;
+        secretModal.style.display = 'flex';
+        HistoryManager.push('secret-modal');
+        
+        console.log('🔓 Mensagem secreta revelada');
+    }
+}
+
+function updateTimelineProgress() {
+    const timelineScroll = document.querySelector('.timeline-scroll');
+    const timelineContainer = document.querySelector('.timeline-container');
+    
+    if (!timelineScroll || !timelineContainer) return;
+    
+    timelineScroll.addEventListener('scroll', () => {
+        const scrollTop = timelineScroll.scrollTop;
+        const scrollHeight = timelineScroll.scrollHeight - timelineScroll.clientHeight;
+        const scrollPercent = (scrollTop / scrollHeight) * 100;
+        
+        timelineContainer.style.setProperty('--progress-height', `${scrollPercent}%`);
+    });
+}
+
 function initHamburgerMenu() {
     console.log('🍔 Inicializando menu hambúrguer premium...');
     
@@ -1706,14 +1434,13 @@ function initHamburgerMenu() {
     const menuCloseBtn = document.querySelector('.menu-close-btn');
 
     if (menuCloseBtn) {
-    menuCloseBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        closeMenu();
-    });
-}
+        menuCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeMenu();
+        });
+    }
 
-    // Verificação de segurança
     if (!hamburgerBtn || !sideMenu || !menuOverlay) {
         console.error('❌ Elementos do menu não encontrados!');
         return false;
@@ -1721,7 +1448,6 @@ function initHamburgerMenu() {
 
     console.log('✅ Elementos do menu encontrados');
 
-    // ===== FUNÇÃO PARA FECHAR O MENU =====
     function closeMenu() {
         hamburgerBtn.classList.remove('active');
         sideMenu.classList.remove('active');
@@ -1730,7 +1456,6 @@ function initHamburgerMenu() {
         console.log('🔒 Menu fechado');
     }
 
-    // ===== FUNÇÃO PARA ABRIR O MENU =====
     function openMenu() {
         hamburgerBtn.classList.add('active');
         sideMenu.classList.add('active');
@@ -1739,7 +1464,6 @@ function initHamburgerMenu() {
         console.log('🔓 Menu aberto');
     }
 
-    // ===== ALTERNAR MENU =====
     function toggleMenu() {
         const isActive = sideMenu.classList.contains('active');
         if (isActive) {
@@ -1749,7 +1473,6 @@ function initHamburgerMenu() {
         }
     }
 
-    // ===== EVENTOS DOS BOTÕES =====
     hamburgerBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -1761,18 +1484,14 @@ function initHamburgerMenu() {
         closeMenu();
     });
 
-
-    // ===== NAVEGAÇÃO INTERNA =====
     menuLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const targetId = link.getAttribute('href');
             console.log('🔗 Navegação:', targetId);
             
-            // Fechar menu imediatamente
             closeMenu();
             
-            // Aguardar animação de fechamento (300ms)
             setTimeout(() => {
                 if (targetId === '#home') {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1805,17 +1524,14 @@ function initHamburgerMenu() {
         });
     });
 
-    // ===== SELETOR DE TEMAS =====
     themeCards.forEach(card => {
         card.addEventListener('click', () => {
             const theme = card.dataset.theme;
             console.log('🎨 Tema selecionado:', theme);
             
-            // Atualizar visual
             themeCards.forEach(c => c.classList.remove('active'));
             card.classList.add('active');
             
-            // Aplicar tema
             if (typeof changeTheme === 'function') {
                 changeTheme(theme, true);
             }
@@ -1824,7 +1540,6 @@ function initHamburgerMenu() {
         });
     });
 
-    // Carregar tema salvo
     const savedTheme = localStorage.getItem('kevinIaraTheme') || 'meteors';
     themeCards.forEach(card => {
         if (card.dataset.theme === savedTheme) {
@@ -1834,7 +1549,6 @@ function initHamburgerMenu() {
         }
     });
 
-    // ===== INTEGRAÇÃO COM ADMIN =====
     let isAdminUnlocked = false;
 
     if (adminMenuBtn) {
@@ -1843,7 +1557,6 @@ function initHamburgerMenu() {
             console.log('🔐 Botão admin clicado');
             
             if (!isAdminUnlocked) {
-                // Solicitar senha
                 const password = prompt('🔐 Digite a senha de admin:');
                 
                 if (password === 'iara2023') {
@@ -1851,10 +1564,8 @@ function initHamburgerMenu() {
                     adminMenuBtn.classList.add('unlocked');
                     adminMenuBtn.innerHTML = '<i class="fas fa-lock-open"></i><span>Admin</span>';
                     
-                    // Fechar menu
                     closeMenu();
                     
-                    // Aguardar animação
                     setTimeout(() => {
                         const adminModal = document.getElementById('adminModal');
                         const adminToggleBtn = document.getElementById('adminToggleBtn');
@@ -1879,7 +1590,6 @@ function initHamburgerMenu() {
                     alert('❌ Senha incorreta!');
                 }
             } else {
-                // Admin já desbloqueado
                 closeMenu();
                 
                 setTimeout(() => {
@@ -1897,25 +1607,19 @@ function initHamburgerMenu() {
         });
     }
 
-    // ===== ATALHO ESC PARA FECHAR =====
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && sideMenu.classList.contains('active')) {
             closeMenu();
         }
     });
 
-    // ===== AUTO-FECHAR AO ABRIR MODAIS =====
-    // Observar quando qualquer modal é aberto
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.attributeName === 'style') {
                 const target = mutation.target;
                 
-                // Se um modal foi aberto
                 if (target.style.display === 'flex' || target.style.display === 'block') {
-                    // E o menu está aberto
                     if (sideMenu.classList.contains('active')) {
-                        // Fechar o menu
                         closeMenu();
                         console.log('🔒 Menu fechado automaticamente (modal aberto)');
                     }
@@ -1924,7 +1628,6 @@ function initHamburgerMenu() {
         });
     });
 
-    // Observar todos os modais
     const modals = [
         document.getElementById('albumModal'),
         document.getElementById('timelineModal'),
@@ -1944,6 +1647,16 @@ function initHamburgerMenu() {
     console.log('✅ Menu hambúrguer premium inicializado!');
     console.log('✅ Auto-fechamento de menu configurado');
     return true;
-    
-    
 }
+
+console.log(`
+╔══════════════════════════════════════╗
+║   💖 SITE KEVIN & IARA INICIADO 💖   ║
+╠══════════════════════════════════════╣
+║   📱 Otimizado para Mobile          ║
+║   🎵 Player corrigido                ║
+║   📸 ${window.albums ? window.albums.length : 0} álbuns organizados        ║
+║   🎨 ${Object.keys(themes).length} temas disponíveis            ║
+║   💾 Tema persistente                ║
+╚══════════════════════════════════════╝
+`);
