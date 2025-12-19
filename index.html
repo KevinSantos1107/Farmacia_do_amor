@@ -288,7 +288,6 @@
                 </div>
             </div>
         </div>
-        
         <!-- Mensagens do Dia -->
         <section class="messages-section">
             <h2><i class="fas fa-envelope"></i> Mensagem Especial</h2>
@@ -464,15 +463,24 @@
             </button>
         </div>
         
+
         <!-- TAB: Gerenciar Álbuns -->
         <div class="admin-content active" id="albums-tab">
             <div class="admin-section">
                 <h3><i class="fas fa-plus-circle"></i> Adicionar Novo Álbum</h3>
                 <form id="addAlbumForm">
+                    <label for="albumTitle" style="display: none;">Título do Álbum</label>
                     <input type="text" id="albumTitle" placeholder="Título do Álbum" required>
+                    
+                    <label for="albumDate" style="display: none;">Data</label>
                     <input type="text" id="albumDate" placeholder="Data (ex: Junho 2023)" required>
+                    
+                    <label for="albumDescription" style="display: none;">Descrição</label>
                     <textarea id="albumDescription" placeholder="Descrição do álbum" rows="3" required></textarea>
+                    
+                    <label for="albumCover" style="display: none;">Capa do Álbum</label>
                     <input type="file" id="albumCover" accept="image/*" required>
+                    
                     <button type="submit" class="admin-btn">
                         <i class="fas fa-save"></i> Criar Álbum
                     </button>
@@ -481,10 +489,12 @@
             
             <div class="admin-section">
                 <h3><i class="fas fa-photo-video"></i> Adicionar Fotos ao Álbum</h3>
-                <select id="selectAlbum" class="admin-select">
+                <label for="selectAlbum" style="display: none;">Selecionar Álbum</label>
+                <select id="selectAlbum" class="admin-select" aria-label="Selecionar álbum">
                     <option value="">Selecione um álbum</option>
                 </select>
                 <form id="addPhotoForm">
+                    <label for="photoFile" style="display: none;">Selecionar Fotos</label>
                     <input type="file" id="photoFile" accept="image/*" multiple required>
                     <button type="submit" class="admin-btn">
                         <i class="fas fa-upload"></i> Adicionar Fotos
@@ -503,11 +513,21 @@
             <div class="admin-section">
                 <h3><i class="fas fa-plus-circle"></i> Adicionar Evento na Timeline</h3>
                 <form id="addTimelineForm">
+                    <label for="eventDate" style="display: none;">Data do Evento</label>
                     <input type="text" id="eventDate" placeholder="Data (ex: Setembro 2022)" required>
+                    
+                    <label for="eventTitle" style="display: none;">Título do Evento</label>
                     <input type="text" id="eventTitle" placeholder="Título do Evento" required>
+                    
+                    <label for="eventSecret" style="display: none;">Mensagem Secreta</label>
                     <textarea id="eventSecret" placeholder="Mensagem secreta (opcional)" rows="3"></textarea>
+                    
+                    <label for="eventPhoto" style="display: none;">Foto do Evento</label>
                     <input type="file" id="eventPhoto" accept="image/*" required>
+                    
+                    <label for="photoCaption" style="display: none;">Legenda da Foto</label>
                     <input type="text" id="photoCaption" placeholder="Legenda da foto">
+                    
                     <button type="submit" class="admin-btn">
                         <i class="fas fa-save"></i> Adicionar Evento
                     </button>
@@ -519,17 +539,18 @@
                 <div id="existingEvents" class="existing-items"></div>
             </div>
         </div>
-    </div>
-</div>
 
-   <!-- Firebase SDKs -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
-    <script src="animations.js"></script>
+
+    <!-- Configurações -->
     <script src="firebase-config.js"></script>
     <script src="imgbb-config.js"></script>
-    <script src="admin.js"></script>
+
+    <!-- Scripts principais -->
     <script src="script.js"></script>
+    <script src="animations.js"></script>
+    <script src="admin.js"></script>
 </body>
 </html>
