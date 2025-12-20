@@ -722,7 +722,7 @@ function addEditTabToAdmin() {
                                 <i class="fas fa-camera"></i>
                                 <span>Trocar Capa</span>
                             </label>
-                            <input type="file" id="newCoverInput" accept="image/*" style="display: none;">
+                            <input type="file" id="newCoverInput" accept="image/*" style="display: none;" aria-label="Selecionar nova capa do álbum">
                         </div>
                         
                         <!-- Campos de texto -->
@@ -841,6 +841,44 @@ async function updateEditAlbumSelect() {
     }
 }
 
+// ===== RECRIAR LISTENERS DA TOOLBAR (CORRIGE BUG DE TRAVAMENTO) =====
+function recreateToolbarListeners() {
+    console.log('🔄 Recriando listeners da toolbar...');
+    
+    const cancelBtn = document.getElementById('cancelSelection');
+    const reorganizeBtn = document.getElementById('reorganizePhotos');
+    const deleteBtn = document.getElementById('deleteSelectedPhotos');
+    
+    if (cancelBtn) {
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        newCancelBtn.addEventListener('click', cancelSelection);
+        console.log('✅ Listener de cancelar recriado');
+    }
+    
+    if (reorganizeBtn) {
+        const newReorganizeBtn = reorganizeBtn.cloneNode(true);
+        reorganizeBtn.parentNode.replaceChild(newReorganizeBtn, reorganizeBtn);
+        
+        // 🔥 GARANTIR QUE O BOTÃO ESTÁ HABILITADO
+        newReorganizeBtn.disabled = false;
+        newReorganizeBtn.classList.remove('active');
+        newReorganizeBtn.innerHTML = '<i class="fas fa-sort"></i><span>Reorganizar</span>';
+        
+        newReorganizeBtn.addEventListener('click', enterReorganizeMode);
+        console.log('✅ Listener de reorganizar recriado');
+    }
+    
+    if (deleteBtn) {
+        const newDeleteBtn = deleteBtn.cloneNode(true);
+        deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
+        newDeleteBtn.addEventListener('click', deleteSelectedPhotos);
+        console.log('✅ Listener de deletar recriado');
+    }
+    
+    console.log('✅ Todos os listeners da toolbar recriados com sucesso');
+}
+
 // ===== CARREGAR ÁLBUM PARA EDIÇÃO =====
 async function loadAlbumForEdit() {
     const select = document.getElementById('editAlbumSelect');
@@ -857,6 +895,11 @@ async function loadAlbumForEdit() {
         const btn = document.getElementById('loadEditAlbumBtn');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
         btn.disabled = true;
+
+        const toolbar = document.getElementById('bottomToolbar');
+        if (toolbar) {
+            toolbar.style.display = 'none';
+        }
         
         // Buscar dados do álbum
         const albumDoc = await db.collection('albums').doc(albumId).get();
@@ -895,7 +938,9 @@ async function loadAlbumForEdit() {
         btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
         btn.disabled = false;
         
-        
+        // 🔥 IMPORTANTE: Recriar listeners dos botões da toolbar
+        recreateToolbarListeners();
+
         // ✅ PREENCHER CAMPOS DE EDIÇÃO
         document.getElementById('editAlbumTitle').value = albumData.title || '';
         document.getElementById('editAlbumDate').value = albumData.date || '';
@@ -1021,6 +1066,7 @@ async function saveAlbumInfo() {
         
         // Recarregar galeria principal
         await loadAlbumsFromFirebase();
+        await updateEditAlbumSelect();
         
         saveBtn.innerHTML = originalText;
         saveBtn.disabled = false;
@@ -1054,8 +1100,8 @@ function renderPhotosForEdit(photos, albumTitle) {
         photoCard.className = 'gallery-photo';
         photoCard.setAttribute('data-index', index);
         
-        photoCard.innerHTML = `
-            <input type="checkbox" class="photo-checkbox" id="photo-${index}">
+    photoCard.innerHTML = `
+        <input type="checkbox" class="photo-checkbox" id="photo-${index}" aria-label="Selecionar foto ${index + 1}">
             <div class="photo-wrapper">
                 <img src="${photo.src}" alt="Foto ${index + 1}" loading="lazy">
                 <div class="photo-checkmark">
@@ -1304,11 +1350,17 @@ function exitReorganizeMode(save = false) {
         return; // saveNewPhotoOrder já chama exitReorganizeMode(false)
     }
     
+    // 🔥 GARANTIR QUE O BOTÃO ESTÁ HABILITADO E VISÍVEL
     reorganizeBtn.innerHTML = '<i class="fas fa-sort"></i><span>Reorganizar</span>';
     reorganizeBtn.classList.remove('active');
+    reorganizeBtn.disabled = false; // ← ADICIONAR ESTA LINHA
     
     // Mostrar outros botões novamente
-    document.getElementById('deleteSelectedPhotos').style.display = 'flex';
+    const deleteBtn = document.getElementById('deleteSelectedPhotos');
+    if (deleteBtn) {
+        deleteBtn.style.display = 'flex';
+    }
+    
     document.getElementById('bottomToolbar').style.display = 'none';
     
     // Desativar arrastar
@@ -1375,18 +1427,21 @@ function handleDragEnd(e) {
     });
 }
 
-// ===== TOUCH HANDLERS (MOBILE) - CORRIGIDO =====
+// ===== TOUCH HANDLERS (MOBILE) - SISTEMA ROBUSTO COM LONG-PRESS =====
 let touchedElement = null;
 let touchStartYPos = 0;
 let touchStartXPos = 0;
 let isTouchDragging = false;
 let touchStartTimestamp = 0;
-const LONG_PRESS_THRESHOLD = 300; // ms para considerar long-press
+let longPressTimer = null;
+const LONG_PRESS_THRESHOLD = 500; // 500ms = meio segundo para ativar
+const MOVE_THRESHOLD = 15; // pixels de movimento permitido antes de cancelar
 
 function handleTouchStart(e) {
     if (!isReorganizing) return;
     
-    // 🚫 NÃO preventDefault aqui - permite scroll
+    // Resetar estados
+    isTouchDragging = false;
     touchedElement = this;
     draggedIndex = parseInt(this.getAttribute('data-index'));
     
@@ -1394,50 +1449,63 @@ function handleTouchStart(e) {
     touchStartXPos = touch.clientX;
     touchStartYPos = touch.clientY;
     touchStartTimestamp = Date.now();
-    isTouchDragging = false;
     
-    // Aguardar long-press antes de ativar drag
-    setTimeout(() => {
+    // Iniciar timer de long-press
+    longPressTimer = setTimeout(() => {
+        // Verificar se ainda está tocando no mesmo lugar
         if (touchedElement && !isTouchDragging) {
-            const timePassed = Date.now() - touchStartTimestamp;
-            const moved = Math.abs(touch.clientX - touchStartXPos) > 10 || 
-                          Math.abs(touch.clientY - touchStartYPos) > 10;
+            // Ativar modo drag
+            isTouchDragging = true;
+            touchedElement.classList.add('dragging');
             
-            // Só ativar se segurou tempo suficiente E não moveu muito
-            if (timePassed >= LONG_PRESS_THRESHOLD && !moved) {
-                touchedElement.classList.add('dragging');
-                isTouchDragging = true;
-                
-                if (navigator.vibrate) {
-                    navigator.vibrate(50);
-                }
+            // Feedback visual e tátil
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
             }
+            
+            console.log(`📱 Foto ${draggedIndex + 1} pronta para ser movida`);
         }
     }, LONG_PRESS_THRESHOLD);
 }
 
 function handleTouchMove(e) {
-    if (!isTouchDragging || !touchedElement) {
-        // ✅ Permitir scroll normal se não estiver arrastando
+    if (!isReorganizing || !touchedElement) return;
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartXPos);
+    const deltaY = Math.abs(touch.clientY - touchStartYPos);
+    
+    // Se moveu ANTES de ativar o drag, cancelar long-press
+    if (!isTouchDragging) {
+        if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+            // Cancelar long-press e permitir scroll
+            clearTimeout(longPressTimer);
+            touchedElement = null;
+            return;
+        }
+        // Ainda esperando long-press, não fazer nada
         return;
     }
     
-    // 🔥 IMPORTANTE: Verificar se pode prevenir
+    // ✅ Agora SIM está arrastando - prevenir scroll
     if (e.cancelable) {
         e.preventDefault();
     }
     
-    const touch = e.touches[0];
+    // Detectar foto abaixo do dedo
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     const photoBelow = elementBelow?.closest('.gallery-photo');
     
+    // Limpar highlights anteriores
+    document.querySelectorAll('.gallery-photo').forEach(p => {
+        if (p !== touchedElement) {
+            p.classList.remove('drag-over');
+        }
+    });
+    
+    // Highlight na foto alvo
     if (photoBelow && photoBelow !== touchedElement) {
         const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
-        
-        document.querySelectorAll('.gallery-photo').forEach(p => {
-            p.classList.remove('drag-over');
-        });
-        
         if (draggedIndex !== targetIndex) {
             photoBelow.classList.add('drag-over');
         }
@@ -1445,28 +1513,41 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd(e) {
-    if (!touchedElement) return;
+    if (!isReorganizing) return;
     
-    // Se estava arrastando, processar troca
-    if (isTouchDragging) {
-        const touch = e.changedTouches[0];
-        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-        const photoBelow = elementBelow?.closest('.gallery-photo');
-        
-        if (photoBelow && photoBelow !== touchedElement) {
-            const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
-            
-            if (draggedIndex !== targetIndex) {
-                swapPhotos(draggedIndex, targetIndex);
-            }
-        }
-        
-        touchedElement.classList.remove('dragging');
-        document.querySelectorAll('.gallery-photo').forEach(p => {
-            p.classList.remove('drag-over');
-        });
+    // Cancelar timer se ainda estiver rodando
+    clearTimeout(longPressTimer);
+    
+    // Se NÃO estava arrastando, apenas limpar
+    if (!isTouchDragging) {
+        touchedElement = null;
+        return;
     }
     
+    // ✅ Estava arrastando - processar troca
+    const touch = e.changedTouches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const photoBelow = elementBelow?.closest('.gallery-photo');
+    
+    if (photoBelow && photoBelow !== touchedElement) {
+        const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
+        
+        if (draggedIndex !== targetIndex) {
+            swapPhotos(draggedIndex, targetIndex);
+            console.log(`✅ Foto ${draggedIndex + 1} movida para posição ${targetIndex + 1}`);
+        }
+    }
+    
+    // Limpar estados visuais
+    if (touchedElement) {
+        touchedElement.classList.remove('dragging');
+    }
+    
+    document.querySelectorAll('.gallery-photo').forEach(p => {
+        p.classList.remove('drag-over');
+    });
+    
+    // Resetar variáveis
     touchedElement = null;
     isTouchDragging = false;
 }
@@ -1498,7 +1579,7 @@ function renderPhotosForEditInReorganizeMode(photos) {
         photoCard.setAttribute('draggable', 'true');
         
         photoCard.innerHTML = `
-            <div class="photo-wrapper">
+            <div class="photo-wrapper" role="button" aria-label="Arrastar foto ${index + 1} para reorganizar">
                 <img src="${photo.src}" alt="Foto ${index + 1}" loading="lazy">
                 <div class="photo-number" style="display: flex;">${index + 1}</div>
             </div>
@@ -1591,9 +1672,12 @@ async function saveNewPhotoOrder() {
         
         // Carregar álbum atualizado
         await loadAlbumForEdit();
-        
+        await updateEditAlbumSelect();
+
+         reorganizeBtn.disabled = false;
+
         console.log('✅ Álbum recarregado com nova ordem!');
-        
+
     } catch (error) {
         console.error('❌ Erro ao salvar nova ordem:', error);
         alert('❌ Erro ao salvar: ' + error.message);
@@ -1664,14 +1748,18 @@ async function deleteSelectedPhotos() {
         return;
     }
     
+    // 🔥 SALVAR REFERÊNCIAS ANTES
+    const currentAlbumId = window.currentEditAlbum.id;
+    const btn = document.getElementById('deleteSelectedPhotos');
+    const toolbar = document.getElementById('bottomToolbar');
+    
     try {
-        const btn = document.getElementById('deleteSelectedPhotos');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deletando...';
         btn.disabled = true;
         
         // Coletar índices das fotos selecionadas
         const selectedIndices = Array.from(checkboxes).map(cb => {
-            return parseInt(cb.closest('.gallery-photo').getAttribute('data-index')); // ← CORRIGIDO
+            return parseInt(cb.closest('.gallery-photo').getAttribute('data-index'));
         }).sort((a, b) => b - a);
         
         console.log(`🗑️ Deletando ${selectedIndices.length} fotos...`);
@@ -1693,7 +1781,7 @@ async function deleteSelectedPhotos() {
         
         // Deletar todas as páginas antigas
         const oldPagesSnapshot = await db.collection('album_photos')
-            .where('albumId', '==', window.currentEditAlbum.id)
+            .where('albumId', '==', currentAlbumId)
             .get();
         
         const deletePromises = [];
@@ -1708,7 +1796,7 @@ async function deleteSelectedPhotos() {
         if (newPages.length > 0) {
             for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
                 await db.collection('album_photos').add({
-                    albumId: window.currentEditAlbum.id,
+                    albumId: currentAlbumId,
                     pageNumber: pageIndex,
                     photos: newPages[pageIndex].map(p => ({
                         src: p.src,
@@ -1722,28 +1810,53 @@ async function deleteSelectedPhotos() {
         }
         
         // Atualizar contador de fotos no álbum
-        await db.collection('albums').doc(window.currentEditAlbum.id).update({
+        await db.collection('albums').doc(currentAlbumId).update({
             photoCount: remainingPhotos.length
         });
         
         alert(`✅ ${selectedIndices.length} foto(s) deletada(s) com sucesso!\n\n⚠️ As imagens continuam no ImgBB.`);
+        
+        // 🔥 RESETAR BOTÃO E ESCONDER TOOLBAR IMEDIATAMENTE
+        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar';
+        btn.disabled = false;
+        toolbar.style.display = 'none';
+        
+        // 🔥 LIMPAR TODAS AS SELEÇÕES
+        const allCheckboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+        allCheckboxes.forEach(cb => {
+            cb.checked = false;
+            const photoCard = cb.closest('.gallery-photo');
+            if (photoCard) {
+                photoCard.classList.remove('selected', 'selection-mode');
+            }
+        });
+        
+        // 🔥 MANTER ÁLBUM SELECIONADO
+        const select = document.getElementById('editAlbumSelect');
+        select.value = currentAlbumId;
         
         // Recarregar álbum
         await loadAlbumForEdit();
         
         // Atualizar galeria principal
         await loadAlbumsFromFirebase();
+        await updateEditAlbumSelect();
         
-        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
-        btn.disabled = false;
+        // 🔥 GARANTIR QUE O ÁLBUM PERMANECE SELECIONADO
+        setTimeout(() => {
+            select.value = currentAlbumId;
+        }, 100);
+        
+        console.log('✅ Exclusão concluída, toolbar escondida e álbum mantido');
         
     } catch (error) {
         console.error('❌ Erro ao deletar fotos:', error);
         alert('❌ Erro ao deletar fotos: ' + error.message);
         
-        const btn = document.getElementById('deleteSelectedPhotos');
-        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar Selecionadas';
+        // 🔥 RESETAR INTERFACE MESMO EM CASO DE ERRO
+        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar';
         btn.disabled = false;
+        toolbar.style.display = 'none';
     }
 }
 
