@@ -1434,7 +1434,7 @@ let touchStartXPos = 0;
 let isTouchDragging = false;
 let touchStartTimestamp = 0;
 let longPressTimer = null;
-const LONG_PRESS_THRESHOLD = 500; // 500ms = meio segundo para ativar
+const LONG_PRESS_THRESHOLD = 400; // 400ms para ativar
 const MOVE_THRESHOLD = 15; // pixels de movimento permitido antes de cancelar
 
 function handleTouchStart(e) {
