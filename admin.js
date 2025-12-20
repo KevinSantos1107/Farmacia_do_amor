@@ -109,8 +109,21 @@ async function initAdmin() {
         }
     });
     
-    // Configurar sistema de tabs
+// Configurar sistema de tabs
     setupTabListeners();
+    
+    // ← ADICIONAR ESTE BLOCO COMPLETO
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+            
+            // Se for aba de edição, adicionar ao histórico
+            if (targetTab === 'edit') {
+                HistoryManager.push('edit-tab');
+                console.log('📝 Aba de edição aberta - adicionado ao histórico');
+            }
+        });
+    });
     
     // Inicializar formulários
     initAlbumForms();
@@ -970,9 +983,13 @@ function toggleAlbumInfoEdit() {
     if (form.style.display === 'none') {
         form.style.display = 'block';
         btn.innerHTML = '<i class="fas fa-times"></i><span>Fechar</span>';
+        HistoryManager.push('album-info-edit'); // ← ADICIONAR ESTA LINHA
+        console.log('✏️ Formulário de edição aberto');
     } else {
         form.style.display = 'none';
         btn.innerHTML = '<i class="fas fa-edit"></i><span>Editar Álbum</span>';
+        HistoryManager.remove('album-info-edit'); // ← ADICIONAR ESTA LINHA
+        console.log('✏️ Formulário de edição fechado');
     }
 }
 
@@ -989,6 +1006,10 @@ function cancelAlbumInfoEdit() {
     // Fechar form
     document.getElementById('albumInfoEditForm').style.display = 'none';
     document.getElementById('toggleAlbumInfoEdit').innerHTML = '<i class="fas fa-edit"></i><span>Editar Álbum</span>';
+    
+    // ← ADICIONAR ESTAS 3 LINHAS
+    HistoryManager.remove('album-info-edit');
+    console.log('✏️ Edição cancelada');
 }
 
 let newCoverFile = null;
@@ -1243,7 +1264,6 @@ function updateSelectionUI() {
     }
 }
 
-// ===== CANCELAR SELEÇÃO =====
 function cancelSelection() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
     
@@ -1252,9 +1272,12 @@ function cancelSelection() {
         cb.closest('.gallery-photo').classList.remove('selected');
     });
     
+    // ← ADICIONAR ESTAS 3 LINHAS
+    HistoryManager.remove('edit-mode-selection');
+    console.log('☑️ Seleção cancelada - removido do histórico');
+    
     updateSelectionUI();
 }
-
 // ===== HANDLER PARA BOTÃO "VOLTAR" DO ANDROID =====
 function setupBackButtonHandler() {
     // Criar um "estado" no histórico para capturar o back
@@ -1295,6 +1318,10 @@ function enterReorganizeMode() {
     }
     
     isReorganizing = true;
+    
+    // ← ADICIONAR ESTAS 3 LINHAS
+    HistoryManager.push('reorganize-mode');
+    console.log('📝 Modo reorganizar ativado - adicionado ao histórico');
     
     const reorganizeBtn = document.getElementById('reorganizePhotos');
     reorganizeBtn.innerHTML = '<i class="fas fa-save"></i><span>Salvar</span>';
@@ -1341,6 +1368,10 @@ function enterReorganizeMode() {
 }
 function exitReorganizeMode(save = false) {
     isReorganizing = false;
+    
+    // ← ADICIONAR ESTAS 3 LINHAS
+    HistoryManager.remove('reorganize-mode');
+    console.log('📝 Modo reorganizar desativado - removido do histórico');
     
     const reorganizeBtn = document.getElementById('reorganizePhotos');
     
