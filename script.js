@@ -1,17 +1,17 @@
-// ===== SISTEMA GLOBAL DE HISTÓRICO (BACK BUTTON) =====
+// ===== SISTEMA GLOBAL DE HISTÓRICO (BACK BUTTON) - VERSÃO COMPLETA =====
 const HistoryManager = {
     stack: [],
     
     push(state) {
         this.stack.push(state);
         history.pushState({ customState: state }, '');
-        console.log('📍 Estado adicionado:', state);
+        console.log('📍 Estado adicionado:', state, '| Pilha:', this.stack.length);
     },
     
     pop() {
         if (this.stack.length > 0) {
             const state = this.stack.pop();
-            console.log('⬅️ Voltando de:', state);
+            console.log('⬅️ Voltando de:', state, '| Pilha restante:', this.stack.length);
             return state;
         }
         return null;
@@ -24,6 +24,14 @@ const HistoryManager = {
     
     getCurrentState() {
         return this.stack[this.stack.length - 1] || null;
+    },
+    
+    remove(state) {
+        const index = this.stack.lastIndexOf(state);
+        if (index > -1) {
+            this.stack.splice(index, 1);
+            console.log('🗑️ Estado removido:', state);
+        }
     }
 };
 
@@ -31,30 +39,109 @@ const HistoryManager = {
 window.addEventListener('popstate', (e) => {
     const currentState = HistoryManager.pop();
     
-    if (!currentState) return;
+    if (!currentState) {
+        console.log('ℹ️ Pilha vazia - deixando navegador processar');
+        return;
+    }
     
     e.preventDefault();
+    console.log('🔙 Processando back para:', currentState);
     
     switch(currentState) {
+        // ===== MODAIS PRINCIPAIS =====
         case 'album-modal':
             document.getElementById('closeModal')?.click();
             break;
+            
         case 'timeline-modal':
             document.getElementById('closeTimelineBtn')?.click();
             break;
+            
         case 'secret-modal':
             document.getElementById('closeSecretBtn')?.click();
             break;
+            
+        // ===== MENU HAMBÚRGUER =====
+        case 'hamburger-menu':
+            const sideMenu = document.getElementById('sideMenu');
+            const menuOverlay = document.getElementById('menuOverlay');
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            
+            if (sideMenu && sideMenu.classList.contains('active')) {
+                hamburgerBtn?.classList.remove('active');
+                sideMenu.classList.remove('active');
+                menuOverlay?.classList.remove('active');
+                document.body.style.overflow = 'auto';
+                console.log('🍔 Menu hambúrguer fechado pelo back');
+            }
+            break;
+            
+        // ===== ADMIN MODAL =====
         case 'admin-modal':
             document.getElementById('closeAdminBtn')?.click();
             break;
+            
+        // ===== EDIÇÃO DE INFORMAÇÕES DO ÁLBUM =====
+        case 'album-info-edit':
+            const albumInfoForm = document.getElementById('albumInfoEditForm');
+            const toggleBtn = document.getElementById('toggleAlbumInfoEdit');
+            
+            if (albumInfoForm && albumInfoForm.style.display !== 'none') {
+                albumInfoForm.style.display = 'none';
+                if (toggleBtn) {
+                    toggleBtn.innerHTML = '<i class="fas fa-edit"></i><span>Editar Álbum</span>';
+                }
+                console.log('✏️ Formulário de edição fechado pelo back');
+            }
+            break;
+            
+        // ===== MODO DE REORGANIZAÇÃO =====
+        case 'reorganize-mode':
+            if (typeof isReorganizing !== 'undefined' && isReorganizing) {
+                if (typeof exitReorganizeMode === 'function') {
+                    exitReorganizeMode(false); // false = não salvar
+                }
+                console.log('🔄 Modo reorganizar cancelado pelo back');
+            }
+            break;
+            
+        // ===== MODO DE SELEÇÃO =====
         case 'edit-mode-selection':
             if (typeof cancelSelection === 'function') {
                 cancelSelection();
+                console.log('☑️ Seleção cancelada pelo back');
             }
             break;
+            
+        // ===== ABA DE EDIÇÃO (VOLTAR PARA CRIAR) =====
+        case 'edit-tab':
+            const editTab = document.getElementById('edit-tab');
+            const createTab = document.querySelector('[data-tab="create"]');
+            
+            if (editTab && createTab) {
+                // Esconder aba de edição
+                editTab.classList.remove('active');
+                
+                // Mostrar aba de criar
+                document.getElementById('create-tab')?.classList.add('active');
+                
+                // Atualizar botões de tab
+                document.querySelectorAll('.admin-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                    if (tab.dataset.tab === 'create') {
+                        tab.classList.add('active');
+                    }
+                });
+                
+                console.log('📝 Voltou para aba de criação');
+            }
+            break;
+            
+        default:
+            console.warn('⚠️ Estado desconhecido:', currentState);
     }
     
+    // Re-adicionar estado anterior se ainda houver
     if (HistoryManager.stack.length > 0) {
         history.pushState({ customState: HistoryManager.getCurrentState() }, '');
     }
