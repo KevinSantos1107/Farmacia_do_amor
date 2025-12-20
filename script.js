@@ -1548,6 +1548,7 @@ function initHamburgerMenu() {
         sideMenu.classList.add('active');
         menuOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
+        HistoryManager.push('hamburger-menu');
         console.log('🔓 Menu aberto');
     }
 
