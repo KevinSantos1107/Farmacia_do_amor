@@ -45,6 +45,7 @@ window.addEventListener('popstate', (e) => {
     }
     
     e.preventDefault();
+    e.stopPropagation(); // ← ADICIONAR ESTA LINHA
     console.log('🔙 Processando back para:', currentState);
     
     switch(currentState) {
@@ -75,11 +76,33 @@ window.addEventListener('popstate', (e) => {
                 console.log('🍔 Menu hambúrguer fechado pelo back');
             }
             break;
-            
-        // ===== ADMIN MODAL =====
-        case 'admin-modal':
-            document.getElementById('closeAdminBtn')?.click();
-            break;
+        
+// ===== ADMIN MODAL =====
+case 'admin-modal':
+    console.log('🎯 CASE ADMIN-MODAL ATIVADO!');
+    const adminModal = document.getElementById('adminModal');
+    console.log('🔍 Admin modal encontrado?', !!adminModal);
+    console.log('🔍 Display atual:', adminModal?.style.display);
+    
+    if (adminModal) {
+        // ← FORÇAR COM setAttribute (ignora CSS externo)
+        adminModal.setAttribute('style', 'display: none !important;');
+        document.body.style.overflow = 'auto';
+        
+        // Limpar estados internos
+        const editSection = document.getElementById('editAlbumSection');
+        const editInfoSection = document.getElementById('editAlbumInfoSection');
+        const toolbar = document.getElementById('bottomToolbar');
+        const albumInfoForm = document.getElementById('albumInfoEditForm');
+        
+        if (editSection) editSection.style.display = 'none';
+        if (editInfoSection) editInfoSection.style.display = 'none';
+        if (toolbar) toolbar.style.display = 'none';
+        if (albumInfoForm) albumInfoForm.style.display = 'none';
+        
+        console.log('🔐 Admin fechado pelo back - Display agora:', adminModal.style.display);
+    }
+    break;
             
         // ===== EDIÇÃO DE INFORMAÇÕES DO ÁLBUM =====
         case 'album-info-edit':
@@ -1666,6 +1689,7 @@ function initHamburgerMenu() {
                             
                             adminModal.style.display = 'block';
                             document.body.style.overflow = 'hidden';
+                            HistoryManager.push('admin-modal'); // ← ADICIONAR ESTA LINHA
                             
                             if (typeof loadExistingContent === 'function') {
                                 loadExistingContent();
@@ -1680,17 +1704,21 @@ function initHamburgerMenu() {
             } else {
                 closeMenu();
                 
-                setTimeout(() => {
-                    const adminModal = document.getElementById('adminModal');
-                    if (adminModal) {
-                        adminModal.style.display = 'block';
-                        document.body.style.overflow = 'hidden';
-                        
-                        if (typeof loadExistingContent === 'function') {
-                            loadExistingContent();
-                        }
+            setTimeout(() => {
+                const adminModal = document.getElementById('adminModal');
+                if (adminModal) {
+                    // ← LIMPAR O ESTADO DO MENU ANTES
+                    HistoryManager.remove('hamburger-menu');
+                    
+                    adminModal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                    HistoryManager.push('admin-modal'); // ← ADICIONAR ESTA LINHA
+                    
+                    if (typeof loadExistingContent === 'function') {
+                        loadExistingContent();
                     }
-                }, 300);
+                }
+            }, 300);
             }
         });
     }
