@@ -90,9 +90,12 @@ async function initAdmin() {
                 alert('❌ Senha incorreta!');
             }
         } else {
-            adminModal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-            HistoryManager.push('admin-modal');
+            // Verificar se já está aberto para não duplicar no histórico
+            if (adminModal.style.display !== 'block') {
+                adminModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                HistoryManager.push('admin-modal');
+            }
             loadExistingContent();
         }
     });
@@ -101,11 +104,16 @@ async function initAdmin() {
     closeAdminBtn.addEventListener('click', () => {
         adminModal.style.display = 'none';
         document.body.style.overflow = 'auto';
+        HistoryManager.remove('admin-modal'); // ← ADICIONAR ESTA LINHA
+        console.log('🔐 Admin fechado manualmente');
     });
     
     adminModal.addEventListener('click', (e) => {
         if (e.target === adminModal) {
-            closeAdminBtn.click();
+            adminModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            HistoryManager.remove('admin-modal'); // ← ADICIONAR ESTA LINHA
+            console.log('🔐 Admin fechado (clique fora)');
         }
     });
     
