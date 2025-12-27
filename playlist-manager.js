@@ -286,6 +286,7 @@ function loadCustomPlaylistTracks(playlistIndex) {
     createCustomPlayer(container, playlist, playlistIndex);
 }
 
+// ===== CRIAR PLAYER CUSTOM =====
 function createCustomPlayer(container, playlist, playlistIndex) {
     const playerId = `custom-player-${playlistIndex}`;
     const audioId = `custom-audio-${playlistIndex}`;
