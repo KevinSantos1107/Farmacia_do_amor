@@ -67,8 +67,9 @@
     position: relative;
     overflow: hidden;
     border-radius: 20px;
-    max-width: 100%; /* ← ADICIONAR */
-    width: 100%; /* ← ADICIONAR */
+    width: 100% !important;
+    max-width: 400px !important;
+    margin: 0 auto !important;
 }
 
 /* Carrossel (slides deslizam horizontalmente) */
@@ -101,11 +102,6 @@
     pointer-events: auto;
 }
 
-.playlist-slide.active {
-    opacity: 1;
-    pointer-events: auto;
-}
-
 /* ===== REMOVER QUALQUER ESTILO CUSTOMIZADO - USAR APENAS O ORIGINAL ===== */
 
 /* Garantir que players customizados usem EXATAMENTE o mesmo CSS do original */
@@ -115,7 +111,6 @@
 #custom-player-3,
 #custom-player-4,
 #custom-player-5 {
-    /* Herda TUDO do .music-player em styles.css */
     all: unset;
 }
 
@@ -148,8 +143,6 @@
     font-family: 'Poppins', sans-serif;
     font-size: 1rem;
 }
-
-
 
 /* ===== RESPONSIVO ===== */
 
@@ -198,7 +191,6 @@
 }
 
 @media (hover: hover) {
-    /* Animações hover apenas em desktop */
     .playlist-track-card:hover .track-number {
         background: var(--theme-primary);
         color: white;
@@ -227,7 +219,6 @@
 .playlist-track-card:nth-child(3) { animation-delay: 0.15s; }
 .playlist-track-card:nth-child(4) { animation-delay: 0.2s; }
 .playlist-track-card:nth-child(5) { animation-delay: 0.25s; }
-
 /* ===== AJUSTES PARA INTEGRAÇÃO COM O PLAYER ORIGINAL ===== */
 
 /* O player original dentro do slide não precisa de estilos extras,
