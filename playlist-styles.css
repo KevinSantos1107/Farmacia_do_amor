@@ -219,6 +219,8 @@
 
 /* ===== CORREÇÃO COMPLETA: PLAYERS CUSTOMIZADOS IGUAIS AO ORIGINAL ===== */
 
+/* ===== CORREÇÃO COMPLETA: PLAYERS CUSTOMIZADOS IGUAIS AO ORIGINAL ===== */
+
 @media (max-width: 768px) {
     /* Remover a largura máxima forçada dos players customizados */
     [id^="custom-player-"] {
@@ -241,12 +243,21 @@
         aspect-ratio: 1 / 1 !important;
     }
     
-    /* 🔥 CORRIGIR: Barra de progresso com largura correta */
+    /* 🔥 CORRIGIR: Barra de progresso com largura correta E SEM NEON FIXO */
     .music-player .progress-bar-bg,
     [id^="custom-player-"] .progress-bar-bg {
         width: 100% !important;
         height: 4px !important;
         margin-bottom: 8px !important;
+        background: rgba(255, 255, 255, 0.1) !important; /* Fundo cinza escuro */
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3) !important; /* Sombra interna */
+    }
+    
+    /* 🔥 CORRIGIR: Barra de preenchimento (a parte que avança) */
+    .music-player .progress-bar-fill,
+    [id^="custom-player-"] .progress-bar-fill {
+        background: var(--gradient-primary) !important; /* Gradiente neon */
+        box-shadow: 0 0 10px var(--theme-primary) !important; /* Brilho neon apenas na parte preenchida */
     }
     
     /* 🔥 CORRIGIR: Time display (tempos nas laterais) */
