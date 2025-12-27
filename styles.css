@@ -2867,9 +2867,12 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
 }
 
 .icon-circle {
-    width: 55px;
-    height: 55px;
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    min-height: 60px;
     border-radius: 50%;
+    flex-shrink: 0;
     background: var(--gradient-primary);
     display: flex;
     align-items: center;
@@ -2881,7 +2884,12 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
 }
 
 .icon-circle.green {
+    width: 60px;
+    height: 60px;
+    min-width: 60px; /* ← IMPORTANTE */
+    min-height: 60px; /* ← IMPORTANTE */
     background: linear-gradient(135deg, #00ff88, #00cc66);
+    flex-shrink: 0;
     box-shadow: 
         0 5px 20px rgba(0, 255, 136, 0.4),
         0 0 30px rgba(0, 255, 136, 0.3);
