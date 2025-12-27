@@ -219,12 +219,6 @@
 
 /* ===== CORREÇÃO COMPLETA: PLAYERS CUSTOMIZADOS IGUAIS AO ORIGINAL ===== */
 
-/* ===== CORREÇÃO COMPLETA: PLAYERS CUSTOMIZADOS IGUAIS AO ORIGINAL ===== */
-
-/* ===== CORREÇÃO COMPLETA: PLAYERS CUSTOMIZADOS IGUAIS AO ORIGINAL ===== */
-
-/* ===== CORREÇÃO COMPLETA: PLAYERS CUSTOMIZADOS IGUAIS AO ORIGINAL ===== */
-
 @media (max-width: 768px) {
     /* Remover a largura máxima forçada dos players customizados */
     [id^="custom-player-"] {
