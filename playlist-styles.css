@@ -217,85 +217,14 @@
 /* O player original dentro do slide não precisa de estilos extras,
    pois ele já tem seus próprios estilos no styles.css */
 
-   /* ===== FORÇAR PROPORÇÕES IDÊNTICAS NO MOBILE ===== */
-
-/* ===== CORREÇÃO: FORÇAR PROPORÇÕES IDÊNTICAS NO MOBILE ===== */
-
-@media (max-width: 768px) {
-    /* 🎯 GARANTIR que TODOS os players tenham proporções idênticas */
-    .music-player,
+   @media (max-width: 768px) {
     [id^="custom-player-"] {
+        max-width: none !important;
         width: 100% !important;
-        max-width: 100% !important;
-        padding: 20px !important;
-        box-sizing: border-box !important;
-        margin: 0 auto !important;
     }
     
-    /* 🎯 FORÇAR tamanho da capa do álbum - TODOS os players */
-    .music-player .album-cover,
-    [id^="custom-player-"] .album-cover {
-        width: 180px !important;
-        height: 180px !important;
-        margin: 0 auto 20px !important;
-    }
-    
-    /* 🎯 FORÇAR tamanho dos botões de controle - TODOS os players */
-    .music-player .control-btn,
-    [id^="custom-player-"] .control-btn {
-        width: 45px !important;
-        height: 45px !important;
-        font-size: 1rem !important;
-    }
-    
-    /* 🎯 FORÇAR tamanho do botão play/pause - TODOS os players */
-    .music-player .play-pause-btn,
-    [id^="custom-player-"] .play-pause-btn {
-        width: 55px !important;
-        height: 55px !important;
-        font-size: 1.2rem !important;
-    }
-    
-    /* 🎯 FORÇAR tamanho do título da música - TODOS os players */
-    .music-player .song-info h3,
-    [id^="custom-player-"] .song-info h3 {
-        font-size: 1.3rem !important;
-        margin-bottom: 5px !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-    
-    /* 🎯 FORÇAR tamanho do artista - TODOS os players */
-    .music-player .song-info p,
-    [id^="custom-player-"] .song-info p {
-        font-size: 1rem !important;
-    }
-    
-    /* 🎯 FORÇAR espaçamento dos controles - TODOS os players */
-    .music-player .control-buttons,
-    [id^="custom-player-"] .control-buttons {
-        gap: 20px !important;
-        margin-bottom: 15px !important;
-    }
-    
-    /* 🎯 GARANTIR que o wrapper não interfira */
-    .playlist-carousel-wrapper {
-        max-width: 100% !important;
-        padding: 0 !important;
-    }
-    
-    /* 🎯 GARANTIR que os slides ocupem 100% */
-    .playlist-slide {
-        padding: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-    
-    /* 🎯 FORÇAR containers dos players customizados */
     [id^="playlist-"][id$="-container"] {
+        max-width: none !important;
         width: 100% !important;
-        max-width: 100% !important;
-        padding: 0 !important;
     }
 }
