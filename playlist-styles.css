@@ -217,27 +217,108 @@
 /* O player original dentro do slide não precisa de estilos extras,
    pois ele já tem seus próprios estilos no styles.css */
 
-/* ===== CORREÇÃO COMPLETA: PLAYERS CUSTOMIZADOS IGUAIS AO ORIGINAL ===== */
+   /* ===== FORÇAR PROPORÇÕES IDÊNTICAS NO MOBILE ===== */
 
 @media (max-width: 768px) {
-    /* Remover a largura máxima forçada dos players customizados */
-    [id^="custom-player-"] {
-        max-width: none !important;
+    /* Garantir que TODOS os players tenham largura idêntica */
+    .music-player,
+    #custom-player-0,
+    #custom-player-1,
+    #custom-player-2,
+    #custom-player-3,
+    #custom-player-4,
+    #custom-player-5 {
         width: 100% !important;
+        max-width: 100% !important;
+        padding: 20px !important;
+        box-sizing: border-box !important;
     }
     
-    /* Garantir que os containers não limitem */
-    [id^="playlist-"][id$="-container"] {
-        max-width: none !important;
-        width: 100% !important;
+    /* Forçar tamanho da capa do álbum */
+    .music-player .album-cover,
+    #custom-player-0 .album-cover,
+    #custom-player-1 .album-cover,
+    #custom-player-2 .album-cover,
+    #custom-player-3 .album-cover,
+    #custom-player-4 .album-cover,
+    #custom-player-5 .album-cover {
+        width: 180px !important;
+        height: 180px !important;
+        margin: 0 auto 20px !important;
     }
     
-    /* 🔥 CORRIGIR: Botão play/pause perfeitamente redondo */
+    /* Forçar tamanho dos botões de controle */
+    .music-player .control-btn,
+    #custom-player-0 .control-btn,
+    #custom-player-1 .control-btn,
+    #custom-player-2 .control-btn,
+    #custom-player-3 .control-btn,
+    #custom-player-4 .control-btn,
+    #custom-player-5 .control-btn {
+        width: 45px !important;
+        height: 45px !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Forçar tamanho do botão play/pause */
     .music-player .play-pause-btn,
-    [id^="custom-player-"] .play-pause-btn {
+    #custom-player-0 .play-pause-btn,
+    #custom-player-1 .play-pause-btn,
+    #custom-player-2 .play-pause-btn,
+    #custom-player-3 .play-pause-btn,
+    #custom-player-4 .play-pause-btn,
+    #custom-player-5 .play-pause-btn {
         width: 55px !important;
         height: 55px !important;
-        border-radius: 50% !important;
-        aspect-ratio: 1 / 1 !important;
+        font-size: 1.2rem !important;
+    }
+    
+    /* Forçar tamanho do título da música */
+    .music-player .song-info h3,
+    #custom-player-0 .song-info h3,
+    #custom-player-1 .song-info h3,
+    #custom-player-2 .song-info h3,
+    #custom-player-3 .song-info h3,
+    #custom-player-4 .song-info h3,
+    #custom-player-5 .song-info h3 {
+        font-size: 1.3rem !important;
+        margin-bottom: 5px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    /* Forçar tamanho do artista */
+    .music-player .song-info p,
+    #custom-player-0 .song-info p,
+    #custom-player-1 .song-info p,
+    #custom-player-2 .song-info p,
+    #custom-player-3 .song-info p,
+    #custom-player-4 .song-info p,
+    #custom-player-5 .song-info p {
+        font-size: 1rem !important;
+    }
+    
+    /* Forçar espaçamento dos controles */
+    .music-player .control-buttons,
+    #custom-player-0 .control-buttons,
+    #custom-player-1 .control-buttons,
+    #custom-player-2 .control-buttons,
+    #custom-player-3 .control-buttons,
+    #custom-player-4 .control-buttons,
+    #custom-player-5 .control-buttons {
+        gap: 20px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    /* Garantir que o wrapper não interfira */
+    .playlist-carousel-wrapper {
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+    
+    /* Garantir que os slides ocupem 100% */
+    .playlist-slide {
+        padding: 0 !important;
     }
 }
