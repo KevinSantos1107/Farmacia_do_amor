@@ -860,7 +860,12 @@ body {
     padding: 20px;
     border: 1px solid var(--theme-card-border);
     max-width: 400px;
-    margin: 0 auto;
+    margin: 0 auto; /* ← JÁ EXISTE */
+    
+    /* 🔥 ADICIONE ESTAS 3 LINHAS: */
+    width: 90%; /* ← Garante que ocupa 90% da tela */
+    box-sizing: border-box; /* ← Inclui padding no cálculo */
+    position: relative; /* ← Garante posicionamento correto */
     box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
     position: relative;
     transition: all 0.3s ease;
@@ -3362,6 +3367,4 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     margin-top: 20px !important;
 }
 }
-
-
 
