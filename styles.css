@@ -860,15 +860,12 @@ body {
     padding: 20px;
     border: 1px solid var(--theme-card-border);
     max-width: 400px;
-    margin: 0 auto; /* ← JÁ EXISTE */
-    
-    /* 🔥 ADICIONE ESTAS 3 LINHAS: */
-    width: 90%; /* ← Garante que ocupa 90% da tela */
-    box-sizing: border-box; /* ← Inclui padding no cálculo */
-    position: relative; /* ← Garante posicionamento correto */
+    margin: 0 auto; 
+    width: 90%;
+    box-sizing: border-box; 
     box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-    position: relative;
     transition: all 0.3s ease;
+    overflow: hidden; 
 }
 
 .music-player:hover {
@@ -2891,8 +2888,8 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
 .icon-circle.green {
     width: 55px;
     height: 55px;
-    min-width: 55px; /* ← IMPORTANTE */
-    min-height: 55px; /* ← IMPORTANTE */
+    min-width: 55px; 
+    min-height: 55px; 
     background: linear-gradient(135deg, #00ff88, #00cc66);
     flex-shrink: 0;
     box-shadow: 
