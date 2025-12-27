@@ -2867,10 +2867,10 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
 }
 
 .icon-circle {
-    width: 60px;
-    height: 60px;
-    min-width: 60px;
-    min-height: 60px;
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    min-height: 50px;
     border-radius: 50%;
     flex-shrink: 0;
     background: var(--gradient-primary);
@@ -2884,10 +2884,10 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
 }
 
 .icon-circle.green {
-    width: 60px;
-    height: 60px;
-    min-width: 60px; /* ← IMPORTANTE */
-    min-height: 60px; /* ← IMPORTANTE */
+    width: 50px;
+    height: 50px;
+    min-width: 50px; /* ← IMPORTANTE */
+    min-height: 50px; /* ← IMPORTANTE */
     background: linear-gradient(135deg, #00ff88, #00cc66);
     flex-shrink: 0;
     box-shadow: 
@@ -3362,4 +3362,5 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     margin-top: 20px !important;
 }
 }
+
 
