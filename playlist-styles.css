@@ -101,48 +101,33 @@
     pointer-events: auto;
 }
 
-/* ===== GARANTIR LARGURA UNIFORME EM TODOS OS PLAYERS ===== */
-.music-player,
-.custom-music-player {
+.playlist-slide.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ===== REMOVER QUALQUER ESTILO CUSTOMIZADO - USAR APENAS O ORIGINAL ===== */
+
+/* Garantir que players customizados usem EXATAMENTE o mesmo CSS do original */
+#custom-player-0,
+#custom-player-1,
+#custom-player-2,
+#custom-player-3,
+#custom-player-4,
+#custom-player-5 {
+    /* Herda TUDO do .music-player em styles.css */
+    all: unset;
+}
+
+/* Re-aplicar display e posicionamento */
+#custom-player-0,
+#custom-player-1,
+#custom-player-2,
+#custom-player-3,
+#custom-player-4,
+#custom-player-5 {
+    display: block !important;
     width: 100% !important;
-    max-width: 400px !important;
-    min-width: 0 !important; /* ← Remove min-width que possa existir */
-    box-sizing: border-box !important;
-}
-
-/* ===== GARANTIR QUE O NOME DA MÚSICA NÃO QUEBRE O LAYOUT ===== */
-.music-player .song-info h3,
-.custom-music-player .song-info h3 {
-    max-width: 360px !important;
-    min-width: 0 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-/* ===== GARANTIR QUE O ARTISTA TAMBÉM SEJA LIMITADO ===== */
-.music-player .song-info p,
-.custom-music-player .song-info p {
-    max-width: 360px !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-/* ===== FORÇAR LARGURA DO CONTAINER ===== */
-.playlist-carousel-wrapper {
-    width: 100% !important;
-    max-width: 400px !important;
-    margin: 0 auto !important;
-}
-
-.custom-music-player:hover {
-    box-shadow: 0 0 25px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
-}
-
-/* Animação do vinil para players customizados */
-.custom-music-player.playing .vinyl-effect {
-    animation-play-state: running;
 }
 
 /* Playlist vazia */
