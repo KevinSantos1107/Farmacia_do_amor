@@ -859,6 +859,7 @@ body {
     border-radius: 20px;
     padding: 20px;
     border: 1px solid var(--theme-card-border);
+    width: 100%; /* ← MUDANÇA 1 */
     max-width: 400px;
     margin: 0 auto; 
     box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
@@ -916,6 +917,8 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    max-width: 360px; /* ← MUDANÇA 2: Largura fixa */
+    width: 100%; 
 }
 
 .song-info p {
