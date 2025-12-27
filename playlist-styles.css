@@ -217,14 +217,50 @@
 /* O player original dentro do slide não precisa de estilos extras,
    pois ele já tem seus próprios estilos no styles.css */
 
-   @media (max-width: 768px) {
+/* ===== CORREÇÃO COMPLETA: PLAYERS CUSTOMIZADOS IGUAIS AO ORIGINAL ===== */
+
+@media (max-width: 768px) {
+    /* Remover a largura máxima forçada dos players customizados */
     [id^="custom-player-"] {
         max-width: none !important;
         width: 100% !important;
     }
     
+    /* Garantir que os containers não limitem */
     [id^="playlist-"][id$="-container"] {
         max-width: none !important;
         width: 100% !important;
+    }
+    
+    /* 🔥 CORRIGIR: Botão play/pause perfeitamente redondo */
+    .music-player .play-pause-btn,
+    [id^="custom-player-"] .play-pause-btn {
+        width: 55px !important;
+        height: 55px !important;
+        border-radius: 50% !important;
+        aspect-ratio: 1 / 1 !important;
+    }
+    
+    /* 🔥 CORRIGIR: Barra de progresso com largura correta */
+    .music-player .progress-bar-bg,
+    [id^="custom-player-"] .progress-bar-bg {
+        width: 100% !important;
+        height: 4px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    /* 🔥 CORRIGIR: Time display (tempos nas laterais) */
+    .music-player .time-display,
+    [id^="custom-player-"] .time-display {
+        display: flex !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        font-size: 0.8rem !important;
+    }
+    
+    /* 🔥 CORRIGIR: Garantir que o tempo total fique à direita */
+    .music-player .time-display span:last-child,
+    [id^="custom-player-"] .time-display span:last-child {
+        margin-left: auto !important;
     }
 }
