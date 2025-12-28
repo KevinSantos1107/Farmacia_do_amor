@@ -3658,6 +3658,40 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     overflow: hidden !important;
 }
 
+/* ✨ ADICIONAR: Espaçamento da barra de progresso no mobile */
+    .music-player .progress-container,
+    #custom-player-0 .progress-container,
+    #custom-player-1 .progress-container,
+    #custom-player-2 .progress-container,
+    #custom-player-3 .progress-container,
+    #custom-player-4 .progress-container,
+    #custom-player-5 .progress-container {
+        padding: 0 15px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    /* ✨ ADICIONAR: Espaçamento dos tempos no mobile */
+    .music-player .time-display,
+    #custom-player-0 .time-display,
+    #custom-player-1 .time-display,
+    #custom-player-2 .time-display,
+    #custom-player-3 .time-display,
+    #custom-player-4 .time-display,
+    #custom-player-5 .time-display {
+        padding: 0 5px !important;
+    }
+    
+    /* ✨ ADICIONAR: Margem da barra no mobile */
+    .music-player .progress-bar-bg,
+    #custom-player-0 .progress-bar-bg,
+    #custom-player-1 .progress-bar-bg,
+    #custom-player-2 .progress-bar-bg,
+    #custom-player-3 .progress-bar-bg,
+    #custom-player-4 .progress-bar-bg,
+    #custom-player-5 .progress-bar-bg {
+        margin-bottom: 10px !important;
+    }
+
 /* Forçar song-info com largura fixa */
 .music-player .song-info,
 #custom-player-0 .song-info,
