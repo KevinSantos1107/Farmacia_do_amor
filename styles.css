@@ -870,7 +870,7 @@ body {
     transition: all 0.3s ease;
     
     /* 🔒 EVITAR OVERFLOW */
-    overflow: hidden;
+    overflow: visible;
     box-sizing: border-box;
     
     /* ✨ ADICIONAR: Para funcionar o efeito ::before */
