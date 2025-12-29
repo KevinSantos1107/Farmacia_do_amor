@@ -3439,6 +3439,21 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     font-size: 1rem;
 }
 
+/* ===== DESKTOP: Player com largura fixa ===== */
+@media (min-width: 769px) {
+    .music-player,
+    #custom-player-0,
+    #custom-player-1,
+    #custom-player-2,
+    #custom-player-3,
+    #custom-player-4,
+    #custom-player-5 {
+        width: 360px !important;
+        max-width: 360px !important;
+        min-width: 360px !important;
+        margin: 0 auto !important;
+    }
+}
 /* ===== RESPONSIVO ===== */
 @media (max-width: 768px) {
     /* 🔒 MOBILE: Forçar containers do carrossel */
@@ -3747,23 +3762,6 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     to { transform: rotate(360deg); }
 }
 
-/* ===== CORREÇÃO ÚNICA E DEFINITIVA - SEM DUPLICATAS ===== */
-
-/* 🔒 FORÇAR LARGURA FIXA EM TODOS OS PLAYERS */
-.music-player,
-#custom-player-0,
-#custom-player-1,
-#custom-player-2,
-#custom-player-3,
-#custom-player-4,
-#custom-player-5 {
-    width: 360px !important;
-    max-width: 360px !important;
-    min-width: 360px !important;
-    margin: 0 auto !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
-}
 
 /* ✨ ADICIONAR: Espaçamento da barra de progresso no mobile */
     .music-player .progress-container,
