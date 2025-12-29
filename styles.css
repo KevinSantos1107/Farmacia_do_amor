@@ -877,7 +877,7 @@ body {
     position: relative;
 }
 
-/* ✨ Efeito de brilho nas bordas (DELICADO igual aos álbuns) */
+/* ✨ Efeito de brilho nas bordas (IGUAL AOS ÁLBUNS) */
 .music-player::before {
     content: '';
     position: absolute;
@@ -889,11 +889,15 @@ body {
     border-radius: inherit;
     z-index: -1;
     opacity: 0;
-    transition: opacity 0.5s ease;
+    transition: opacity 0.3s ease;
 }
 
 .music-player:hover {
-    box-shadow: 0 0 25px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 20px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+.music-player:hover::before {
+    opacity: 0.3;
 }
 
 .album-cover {
