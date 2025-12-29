@@ -867,61 +867,47 @@ body {
     
     margin: 0 auto; 
     
-    /* ✨ BOX-SHADOW LATERAL NEON - IGUAL AOS OUTROS CARDS */
+    /* ✨ BOX-SHADOW COM BLUR SUAVE (IGUAL AOS ÁLBUNS) */
     box-shadow: 
         var(--theme-glow), 
         inset 0 0 20px rgba(255, 255, 255, 0.1),
-        /* 🔥 ADICIONAR: Brilho lateral forte */
-        -8px 0 20px rgba(138, 43, 226, 0.4),
-        8px 0 20px rgba(138, 43, 226, 0.4);
+        0 0 30px rgba(138, 43, 226, 0.4),
+        0 0 50px rgba(138, 43, 226, 0.2);
     
     transition: all 0.3s ease;
-    
-    /* 🔒 EVITAR OVERFLOW */
-    overflow: visible; /* ← CRÍTICO: Mudou de "visible" para "visible" */
+    overflow: visible;
     box-sizing: border-box;
-    
-    /* ✨ POSITION RELATIVE GARANTIDO */
     position: relative;
-    z-index: 1; /* ← Garante que está acima do background */
+    z-index: 1;
 }
 
-/* ✨ EFEITO DE BRILHO NAS BORDAS (GRADIENTE NEON) */
+/* ✨ EFEITO DE BRILHO NAS BORDAS - ARREDONDADO */
 .music-player::before {
     content: '';
     position: absolute;
-    
-    /* 🔥 EXPANDIR 2PX ALÉM DAS BORDAS */
     top: -2px;
     left: -2px;
     right: -2px;
     bottom: -2px;
-    
     background: var(--gradient-neon);
-    border-radius: 22px; /* ← 20px + 2px = 22px */
-    
-    /* 🔥 Z-INDEX NEGATIVO FORTE */
+    border-radius: 22px;
     z-index: -1;
-    
     opacity: 0;
     transition: opacity 0.3s ease;
-    
-    /* ✨ ADICIONAR: Blur no gradiente para efeito mais suave */
-    filter: blur(8px);
+    filter: blur(12px);
 }
 
-/* HOVER: Gradiente neon fica visível + brilho lateral aumenta */
+/* HOVER: Box-shadow mais forte + gradiente visível */
 .music-player:hover {
     box-shadow: 
-        0 0 25px var(--theme-primary), 
+        0 0 30px var(--theme-primary), 
         inset 0 0 30px rgba(255, 255, 255, 0.2),
-        /* 🔥 BRILHO LATERAL AUMENTADO */
-        -12px 0 30px rgba(138, 43, 226, 0.6),
-        12px 0 30px rgba(138, 43, 226, 0.6);
+        0 0 40px rgba(138, 43, 226, 0.6),
+        0 0 60px rgba(138, 43, 226, 0.3);
 }
 
 .music-player:hover::before {
-    opacity: 0.3; /* ← Gradiente fica visível no hover */
+    opacity: 0.3;
 }
 
 /* ===== GARANTIR QUE OS PLAYERS CUSTOMIZADOS TAMBÉM TENHAM O EFEITO ===== */
@@ -990,8 +976,7 @@ body {
     opacity: 0.3;
 }
 
-/* ===== MOBILE: Manter o efeito mesmo sem hover ===== */
-@media (max-width: 768px) {
+/* 🔥 CORRIGIR PLAYER NO MOBILE */
     .music-player,
     .custom-music-player,
     #custom-player-0,
@@ -1000,15 +985,13 @@ body {
     #custom-player-3,
     #custom-player-4,
     #custom-player-5 {
-        /* Brilho lateral sempre visível no mobile */
         box-shadow: 
             var(--theme-glow), 
-            inset 0 0 20px rgba(255, 255, 255, 0.1),
-            -10px 0 25px rgba(138, 43, 226, 0.5),
-            10px 0 25px rgba(138, 43, 226, 0.5) !important;
+            inset 0 0 20px rgba(255, 255, 255, 0.1) !important;
+        border-radius: 20px !important;
     }
     
-    /* Gradiente levemente visível no mobile */
+    /* 🔥 REMOVER GRADIENTE NO MOBILE */
     .music-player::before,
     .custom-music-player::before,
     #custom-player-0::before,
@@ -1017,9 +1000,8 @@ body {
     #custom-player-3::before,
     #custom-player-4::before,
     #custom-player-5::before {
-        opacity: 0.15 !important;
+        display: none !important;
     }
-}
 
 .album-cover {
     position: relative;
