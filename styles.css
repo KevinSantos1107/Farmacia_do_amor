@@ -832,7 +832,7 @@ body {
     text-shadow: 0 0 10px var(--theme-accent);
 }
 
-/* ===== PLAYER DE MÚSICA - DESIGN PERFEITO RESTAURADO ===== */
+/* ===== PLAYER DE MÚSICA ===== */
 .music-player-section {
     margin-bottom: 30px;
     animation: fadeIn 0.8s ease-out 0.6s both;
@@ -853,23 +853,65 @@ body {
     text-shadow: 0 0 10px var(--theme-primary);
 }
 
-/* ✅ PLAYER - DESIGN PERFEITO (SEM LIMITAÇÕES) */
 .music-player {
     background: var(--theme-card-bg);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     padding: 20px;
     border: 1px solid var(--theme-card-border);
-    max-width: 400px; /* ← LARGURA IDEAL */
+    max-width: 400px; /* ← MUDOU de 360px para 400px */
     margin: 0 auto;
     box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
     position: relative;
     transition: all 0.3s ease;
 }
 
-/* ✅ HOVER SUAVE - SEM EXAGEROS */
+/* ✨ EFEITO DE BRILHO NAS BORDAS - ARREDONDADO */
+.music-player::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: var(--gradient-neon);
+    border-radius: 22px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    filter: blur(12px);
+}
+
+/* HOVER: Box-shadow mais forte + gradiente visível */
 .music-player:hover {
-    box-shadow: 0 0 25px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 0 30px var(--theme-primary), 
+        inset 0 0 30px rgba(255, 255, 255, 0.2),
+        0 0 40px rgba(138, 43, 226, 0.6),
+        0 0 60px rgba(138, 43, 226, 0.3);
+}
+
+.music-player:hover::before {
+    opacity: 0.3;
+}
+
+
+
+@media (max-width: 768px) {
+    .music-player,
+    .custom-music-player,
+    #custom-player-0,
+    #custom-player-1,
+    #custom-player-2,
+    #custom-player-3,
+    #custom-player-4,
+    #custom-player-5 {
+        box-shadow: 
+            var(--theme-glow),
+            inset 0 0 20px rgba(255, 255, 255, 0.1),
+            -12px 0 35px rgba(138, 43, 226, 0.7),
+            12px 0 35px rgba(138, 43, 226, 0.7);
+    }
 }
 
 .album-cover {
@@ -904,7 +946,6 @@ body {
     animation-play-state: running;
 }
 
-/* ✅ SONG INFO - FLEXÍVEL E RESPONSIVO */
 .song-info {
     text-align: center;
     margin-bottom: 20px;
@@ -915,18 +956,40 @@ body {
     font-size: 1.3rem;
     color: var(--theme-text);
     margin-bottom: 5px;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    
+    /* 🔒 LARGURA FIXA - CORTAR TEXTO LONGO */
+    width: 320px;
+    max-width: 320px;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    display: block;
+    box-sizing: border-box;
+    padding: 0;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .song-info p {
     font-size: 1rem;
     color: var(--theme-text-secondary);
+    
+    /* 🔒 LARGURA FIXA - CORTAR TEXTO LONGO */
+    width: 320px;
+    max-width: 320px;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0 auto;
+    display: block;
 }
 
-/* ===== BARRA DE PROGRESSO ===== */
+/* ===== CORREÇÃO: Garantir visibilidade da barra de progresso ===== */
 .progress-container {
     margin-bottom: 20px;
     width: 100%;
@@ -941,7 +1004,7 @@ body {
     overflow: hidden;
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    position: relative;
+    position: relative; /* ← IMPORTANTE */
 }
 
 .progress-bar-fill {
@@ -951,7 +1014,7 @@ body {
     border-radius: 2px;
     transition: width 0.1s linear;
     box-shadow: 0 0 10px var(--theme-primary);
-    position: absolute;
+    position: absolute; /* ← IMPORTANTE */
     top: 0;
     left: 0;
 }
@@ -962,10 +1025,9 @@ body {
     font-family: 'Poppins', sans-serif;
     font-size: 0.8rem;
     color: var(--theme-text-secondary);
-    min-height: 16px;
+    min-height: 16px; /* ← GARANTIR altura mínima */
 }
-
-/* ===== CONTROLES DO PLAYER ===== */
+/* Controles do Player */
 .control-buttons {
     display: flex;
     justify-content: center;
@@ -994,6 +1056,7 @@ body {
     outline: none;
 }
 
+/* Remove TODOS os estados hover e active problemáticos */
 .control-btn:hover {
     background: rgba(255, 255, 255, 0.15);
 }
@@ -1002,23 +1065,25 @@ body {
     transform: scale(0.9);
 }
 
+/* Estado ativado (repeat/shuffle ligados) - SEM animações extras */
 .control-btn.active {
     color: var(--theme-primary);
     background: rgba(255, 255, 255, 0.15);
     box-shadow: 0 0 15px var(--theme-primary);
 }
 
-/* ===== BOTÃO PLAY/PAUSE - GRADIENTE PERMANENTE ===== */
+/* ===== BOTÃO PLAY/PAUSE - MANTÉM O GRADIENTE SEMPRE ===== */
 .play-pause-btn {
     width: 55px;
     height: 55px;
-    background: var(--gradient-primary) !important;
+    background: var(--gradient-primary) !important; /* IMPORTANTE: força o gradiente */
     font-size: 1.2rem;
     box-shadow: 
         0 0 20px var(--theme-primary),
-        0 0 30px var(--theme-primary) !important;
+        0 0 30px var(--theme-primary) !important; /* IMPORTANTE: força o brilho */
 }
 
+/* Hover do play/pause - mantém gradiente */
 .play-pause-btn:hover {
     background: var(--gradient-primary) !important;
     transform: scale(1.05);
@@ -1027,6 +1092,7 @@ body {
         0 0 35px var(--theme-primary) !important;
 }
 
+/* Active do play/pause - mantém gradiente */
 .play-pause-btn:active {
     background: var(--gradient-primary) !important;
     transform: scale(0.95);
@@ -1035,6 +1101,7 @@ body {
         0 0 30px var(--theme-primary) !important;
 }
 
+/* Focus do play/pause - mantém gradiente (importante para mobile) */
 .play-pause-btn:focus {
     background: var(--gradient-primary) !important;
     box-shadow: 
@@ -1043,6 +1110,7 @@ body {
     outline: none;
 }
 
+/* Garantir que o ícone dentro do botão também mantenha a cor branca */
 .play-pause-btn i {
     color: white !important;
 }
@@ -3287,27 +3355,86 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
         margin: 0 auto !important;
     }
 }
-
-/* ===== RESPONSIVO - DESIGN PERFEITO ===== */
+/* ===== RESPONSIVO ===== */
 @media (max-width: 768px) {
-    .music-player {
-        max-width: 100%;
-        padding: 20px 15px;
+    /* 🔒 MOBILE: Forçar containers do carrossel */
+    .playlist-carousel-wrapper {
+        max-width: 100% !important;
+        overflow: visible !important;  /* ← MUDOU DE hidden PARA visible */
     }
     
-    .album-cover {
-        width: 160px;
-        height: 160px;
+    .playlist-carousel {
+        max-width: 100% !important;
     }
     
-    .song-info h3 {
-        font-size: 1.2rem;
+    .playlist-slide {
+        max-width: 100% !important;
+        overflow: hidden !important;
     }
     
-    .song-info p {
-        font-size: 0.95rem;
+    /* Garantir que TODOS os players tenham largura idêntica */
+    .music-player,
+    #custom-player-0,
+    #custom-player-1,
+    #custom-player-2,
+    #custom-player-3,
+    #custom-player-4,
+    #custom-player-5 {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        padding: 20px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
     }
     
+    /* 🔒 MOBILE: Forçar song-info a não expandir */
+    .music-player .song-info,
+    #custom-player-0 .song-info,
+    #custom-player-1 .song-info,
+    #custom-player-2 .song-info,
+    #custom-player-3 .song-info,
+    #custom-player-4 .song-info,
+    #custom-player-5 .song-info {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+    }
+    
+    /* 🔒 MOBILE: Forçar título a cortar com ... */
+    .music-player .song-info h3,
+    #custom-player-0 .song-info h3,
+    #custom-player-1 .song-info h3,
+    #custom-player-2 .song-info h3,
+    #custom-player-3 .song-info h3,
+    #custom-player-4 .song-info h3,
+    #custom-player-5 .song-info h3 {
+        font-size: 1.3rem !important;
+        margin-bottom: 5px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        display: block !important;
+    }
+    
+    /* 🔒 MOBILE: Forçar artista a cortar com ... */
+    .music-player .song-info p,
+    #custom-player-0 .song-info p,
+    #custom-player-1 .song-info p,
+    #custom-player-2 .song-info p,
+    #custom-player-3 .song-info p,
+    #custom-player-4 .song-info p,
+    #custom-player-5 .song-info p {
+        font-size: 1rem !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
     .form-row {
         grid-template-columns: 1fr;
     }
@@ -3334,10 +3461,296 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     .playlist-icon-big i {
         font-size: 1.7rem;
     }
+
+
+
+/* ESCONDER PREVIEW DA CAPA - SEM GAP - VERSÃO CORRIGIDA */
+#editAlbumInfoSection .cover-preview-container {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: none !important;
 }
 
-@media (min-width: 769px) {
-    .music-player {
-        max-width: 400px;
+/* Garantir que O GRID NÃO RESERVA ESPAÇO */
+#editAlbumInfoSection .edit-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+}
+
+/* Garantir que os campos de texto ocupam 100% */
+#editAlbumInfoSection .edit-fields-container {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+/* ===== CORREÇÃO DEFINITIVA DO GAP DO PREVIEW ===== */
+
+/* Esconder preview por padrão SEM ocupar espaço */
+#coverPreviewContainer,
+.cover-preview-container {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Quando visível, aplicar espaçamento mínimo */
+#coverPreviewContainer.show,
+.cover-preview-container.show {
+    display: block !important;
+    height: auto !important;
+    margin-top: 8px !important;
+    margin-bottom: 0 !important;
+}
+
+/* Remover margem do input de áudio */
+.form-group:has(#musicAudioFile),
+.input-group:has(#musicAudioFile) {
+    margin-bottom: 0 !important;
+}
+
+/* Garantir espaço do botão */
+#addMusicForm .submit-btn.green {
+    margin-top: 20px !important;
+}
+}
+
+/* ===== GARANTIR DESIGN PERFEITO DO SISTEMA DE PLAYLISTS ===== */
+
+#playlistDynamicContainer {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.music-player-section {
+    margin-bottom: 30px;
+    animation: fadeIn 0.8s ease-out 0.6s both;
+}
+
+.music-player-section h2 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: var(--theme-accent);
+    text-align: center;
+    text-shadow: 0 0 10px var(--theme-accent);
+}
+
+.music-player-section h2 i {
+    color: var(--theme-primary);
+    margin-right: 10px;
+    text-shadow: 0 0 10px var(--theme-primary);
+}
+
+/* ===== LOADING STATE DO PLAYER ===== */
+
+.playlist-loading-state {
+    background: var(--theme-card-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 60px 20px;
+    border: 1px solid var(--theme-card-border);
+    max-width: 400px;
+    margin: 0 auto;
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.loading-spinner {
+    margin-bottom: 20px;
+}
+
+.loading-spinner i {
+    font-size: 3rem;
+    color: var(--theme-primary);
+    text-shadow: 0 0 20px var(--theme-primary);
+    animation: spin 1s linear infinite;
+}
+
+.playlist-loading-state p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    color: var(--theme-text-secondary);
+    margin: 0;
+}
+
+/* Loading error */
+.loading-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.loading-error i {
+    font-size: 3rem;
+    color: #ff6b6b;
+    text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+}
+
+.loading-error p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    color: var(--theme-text);
+}
+
+.retry-btn {
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.retry-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* Mensagem de playlist vazia */
+.empty-playlist-message {
+    background: var(--theme-card-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 60px 30px;
+    border: 1px solid var(--theme-card-border);
+    max-width: 400px;
+    margin: 0 auto;
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.empty-playlist-message i {
+    font-size: 4rem;
+    color: var(--theme-primary);
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px var(--theme-primary);
+    opacity: 0.5;
+}
+
+.empty-playlist-message h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.5rem;
+    color: var(--theme-text);
+    margin: 0 0 10px 0;
+}
+
+.empty-playlist-message p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    color: var(--theme-text-secondary);
+    margin: 0;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+
+/* ✨ ADICIONAR: Espaçamento da barra de progresso no mobile */
+    .music-player .progress-container,
+    #custom-player-0 .progress-container,
+    #custom-player-1 .progress-container,
+    #custom-player-2 .progress-container,
+    #custom-player-3 .progress-container,
+    #custom-player-4 .progress-container,
+    #custom-player-5 .progress-container {
+        padding: 0 15px !important;
+        margin-bottom: 20px !important;
     }
+    
+    /* ✨ ADICIONAR: Espaçamento dos tempos no mobile */
+    .music-player .time-display,
+    #custom-player-0 .time-display,
+    #custom-player-1 .time-display,
+    #custom-player-2 .time-display,
+    #custom-player-3 .time-display,
+    #custom-player-4 .time-display,
+    #custom-player-5 .time-display {
+        padding: 0 5px !important;
+    }
+    
+    /* ✨ ADICIONAR: Margem da barra no mobile */
+    .music-player .progress-bar-bg,
+    #custom-player-0 .progress-bar-bg,
+    #custom-player-1 .progress-bar-bg,
+    #custom-player-2 .progress-bar-bg,
+    #custom-player-3 .progress-bar-bg,
+    #custom-player-4 .progress-bar-bg,
+    #custom-player-5 .progress-bar-bg {
+        margin-bottom: 10px !important;
+    }
+
+/* Forçar song-info com largura fixa */
+.music-player .song-info,
+#custom-player-0 .song-info,
+#custom-player-1 .song-info,
+#custom-player-2 .song-info,
+#custom-player-3 .song-info,
+#custom-player-4 .song-info,
+#custom-player-5 .song-info {
+    width: 320px !important;
+    max-width: 320px !important;
+    min-width: 320px !important;
+    margin: 0 auto 20px auto !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+/* Forçar título em uma linha - LARGURA FIXA */
+.music-player .song-info h3,
+#custom-player-0 .song-info h3,
+#custom-player-1 .song-info h3,
+#custom-player-2 .song-info h3,
+#custom-player-3 .song-info h3,
+#custom-player-4 .song-info h3,
+#custom-player-5 .song-info h3 {
+    width: 320px !important;
+    max-width: 320px !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+    margin: 0 0 5px 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Forçar artista em uma linha - LARGURA FIXA */
+.music-player .song-info p,
+#custom-player-0 .song-info p,
+#custom-player-1 .song-info p,
+#custom-player-2 .song-info p,
+#custom-player-3 .song-info p,
+#custom-player-4 .song-info p,
+#custom-player-5 .song-info p {
+    width: 320px !important;
+    max-width: 320px !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
 }
