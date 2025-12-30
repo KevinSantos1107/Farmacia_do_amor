@@ -1,0 +1,223 @@
+/* ===== SISTEMA DE PLAYLISTS - ESTILOS ===== */
+
+/* Container principal do carrossel */
+.playlist-carousel-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%; 
+    margin-top: 20px;
+    overflow: hidden; 
+}
+
+/* Indicadores de playlist (topo) */
+.playlist-indicators {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 0 5px;
+}
+
+.playlist-indicators::-webkit-scrollbar {
+    display: none;
+}
+
+.playlist-indicator {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 20px;
+    color: var(--theme-text-secondary);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.playlist-indicator i {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.playlist-indicator:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--theme-primary);
+}
+
+.playlist-indicator.active {
+    background: var(--theme-primary);
+    border-color: var(--theme-primary);
+    color: white;
+    box-shadow: 0 0 15px var(--theme-primary);
+}
+
+.playlist-indicator.active i {
+    opacity: 1;
+}
+
+/* Wrapper do carrossel (esconde overflow) */
+.playlist-carousel-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    max-width: 100%; /* ← ADICIONAR */
+    width: 100%; /* ← ADICIONAR */
+}
+
+/* Carrossel (slides deslizam horizontalmente) */
+.playlist-carousel {
+    display: flex;
+    transition: transform 0.3s ease;
+    will-change: transform;
+    cursor: grab;
+}
+
+.playlist-carousel:active {
+    cursor: grabbing;
+}
+
+.playlist-slide {
+    min-width: 100%;
+    max-width: 100%; 
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; 
+}
+
+.playlist-slide.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.custom-music-player:hover {
+    box-shadow: 0 0 25px var(--theme-primary), inset 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+/* Animação do vinil para players customizados */
+.custom-music-player.playing .vinyl-effect {
+    animation-play-state: running;
+}
+
+/* Playlist vazia */
+.empty-playlist {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--theme-text-secondary);
+}
+
+.empty-playlist i {
+    font-size: 3rem;
+    opacity: 0.3;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.empty-playlist p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+}
+
+
+
+/* ===== RESPONSIVO ===== */
+
+@media (max-width: 768px) {
+    .playlist-indicator {
+        font-size: 0.8rem;
+        padding: 6px 12px;
+    }
+    
+    .playlist-title {
+        font-size: 1.1rem;
+    }
+    
+    .playlist-tracks {
+        max-height: 300px;
+    }
+    
+    .playlist-track-card {
+        padding: 10px 12px;
+    }
+    
+    .track-number {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+    
+    .track-title {
+        font-size: 0.9rem;
+    }
+    
+    .track-artist {
+        font-size: 0.75rem;
+    }
+    
+    .track-play-btn {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .playlist-nav-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (hover: hover) {
+    /* Animações hover apenas em desktop */
+    .playlist-track-card:hover .track-number {
+        background: var(--theme-primary);
+        color: white;
+    }
+}
+
+/* ===== ANIMAÇÕES ===== */
+
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.playlist-track-card {
+    animation: fadeInSlide 0.3s ease-out backwards;
+}
+
+.playlist-track-card:nth-child(1) { animation-delay: 0.05s; }
+.playlist-track-card:nth-child(2) { animation-delay: 0.1s; }
+.playlist-track-card:nth-child(3) { animation-delay: 0.15s; }
+.playlist-track-card:nth-child(4) { animation-delay: 0.2s; }
+.playlist-track-card:nth-child(5) { animation-delay: 0.25s; }
+
+/* ===== AJUSTES PARA INTEGRAÇÃO COM O PLAYER ORIGINAL ===== */
+
+/* ===== GARANTIR DESIGN IDÊNTICO (SEM SOBRESCREVER) ===== */
+
+/* NÃO forçar nada - deixar o styles.css principal controlar */
+.playlist-slide .music-player {
+    /* Herda tudo do styles.css */
+}
+
+/* Garantir apenas que não tenha estilos inline conflitantes */
+[id^="custom-player-"] {
+    /* Não adicionar nenhum estilo - deixar puro */
+}
