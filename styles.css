@@ -3492,21 +3492,30 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
         overflow: hidden !important;
     }
     
-    /* Garantir que TODOS os players tenham largura idêntica */
-    .music-player,
-    #custom-player-0,
-    #custom-player-1,
-    #custom-player-2,
-    #custom-player-3,
-    #custom-player-4,
-    #custom-player-5 {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        padding: 20px !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-    }
+/* Garantir que TODOS os players tenham largura idêntica */
+.custom-music-player,
+#custom-player-0,
+#custom-player-1,
+#custom-player-2,
+#custom-player-3,
+#custom-player-4,
+#custom-player-5 {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;  /* ← MUDOU: permite o neon aparecer */
+    
+    /* 🔥 ADICIONAR bordas arredondadas e neon */
+    border-radius: 20px !important;
+    border: 1px solid var(--theme-card-border) !important;
+    box-shadow: 
+        var(--theme-glow),
+        inset 0 0 20px rgba(255, 255, 255, 0.1),
+        -12px 0 35px rgba(138, 43, 226, 0.7),
+        12px 0 35px rgba(138, 43, 226, 0.7) !important;
+}
     
     /* 🔒 MOBILE: Forçar song-info a não expandir */
     .music-player .song-info,
