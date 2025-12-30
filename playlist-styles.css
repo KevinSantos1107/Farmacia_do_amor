@@ -208,16 +208,3 @@
 .playlist-track-card:nth-child(4) { animation-delay: 0.2s; }
 .playlist-track-card:nth-child(5) { animation-delay: 0.25s; }
 
-/* ===== AJUSTES PARA INTEGRAÇÃO COM O PLAYER ORIGINAL ===== */
-
-/* ===== GARANTIR DESIGN IDÊNTICO (SEM SOBRESCREVER) ===== */
-
-/* NÃO forçar nada - deixar o styles.css principal controlar */
-.playlist-slide .music-player {
-    /* Herda tudo do styles.css */
-}
-
-/* Garantir apenas que não tenha estilos inline conflitantes */
-[id^="custom-player-"] {
-    /* Não adicionar nenhum estilo - deixar puro */
-}
