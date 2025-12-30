@@ -454,10 +454,6 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         document.getElementById(`${playerId}-artist`).textContent = track.artist;
         document.getElementById(`${playerId}-currentTrack`).textContent = index + 1;
 
-        // ✅ VERIFICAR SE O TÍTULO É LONGO
-        setTimeout(() => {
-            checkLongTitle(playerId);
-        }, 100);
         
         const coverImg = document.getElementById(`${playerId}-coverImg`);
         if (coverImg) {
