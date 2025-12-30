@@ -17,24 +17,24 @@ function waitForServices() {
     });
 }
 
-// ===== SISTEMA DE TABS GLOBAL (SUPORTA TABS DINÂMICAS) =====
 function setupTabListeners() {
     const allTabs = document.querySelectorAll('.admin-tab');
     
+    // 🔥 IMPORTANTE: Remover listeners antigos ANTES de clonar
     allTabs.forEach(tab => {
-        // Remover listeners antigos (prevenir duplicação)
-        const newTab = tab.cloneNode(true);
-        tab.parentNode.replaceChild(newTab, tab);
-    });
-    
-    // Adicionar novos listeners
-    document.querySelectorAll('.admin-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const targetTab = tab.dataset.tab;
+        // Verificar se já tem listener
+        if (tab.dataset.listenerAttached === 'true') {
+            console.log('⚠️ Tab já tem listener, pulando...');
+            return;
+        }
+        
+        // Adicionar listener direto (sem clonar)
+        tab.addEventListener('click', function handleTabClick() {
+            const targetTab = this.dataset.tab;
             
             // Remover active de todas as tabs
             document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
+            this.classList.add('active');
             
             // Remover active de todos os conteúdos
             document.querySelectorAll('.admin-content').forEach(content => {
@@ -48,133 +48,238 @@ function setupTabListeners() {
                 
                 // Se for a aba de edição, atualizar select
                 if (targetTab === 'edit') {
-                    updateEditAlbumSelect();
+                    if (typeof updateEditAlbumSelect === 'function') {
+                        updateEditAlbumSelect();
+                    }
                 }
             }
         });
+        
+        // Marcar como inicializado
+        tab.dataset.listenerAttached = 'true';
     });
     
-    // 🔥 ADICIONAR FUNCIONALIDADE DE ARRASTAR NAS ABAS
+    // Inicializar tabs arrastáveis (apenas uma vez)
     initTabsDraggable();
     
-    console.log(`✅ ${document.querySelectorAll('.admin-tab').length} tabs configuradas`);
+    console.log(`✅ ${allTabs.length} tabs configuradas (sem duplicação)`);
 }
 
-// 🔥 NOVA FUNÇÃO: Tornar abas arrastáveis horizontalmente
+// ===== SISTEMA DE ARRASTE SUAVE PARA ABAS ADMIN =====
+// Substitua a função initTabsDraggable() no seu admin.js
+
 function initTabsDraggable() {
     const tabsContainer = document.querySelector('.admin-tabs');
-    if (!tabsContainer) return;
+    if (!tabsContainer) {
+        console.warn('⚠️ Container de tabs não encontrado');
+        return;
+    }
+    
+    // Prevenir múltiplas inicializações
+    if (tabsContainer.dataset.draggableInitialized === 'true') {
+        console.log('✅ Tabs já inicializadas, pulando...');
+        return;
+    }
     
     let isDown = false;
     let startX;
     let scrollLeft;
+    let velocity = 0;
+    let lastX = 0;
+    let lastTime = Date.now();
     
-    // Mouse events
-    tabsContainer.addEventListener('mousedown', (e) => {
-        // Não arrastar se clicar diretamente em um botão
+    // ===== CONFIGURAÇÕES DE SUAVIZAÇÃO =====
+    const FRICTION = 0.92; // Quanto menor, mais rápido para (0.8-0.95)
+    const SENSITIVITY = 1.2; // Multiplicador de velocidade (1.0-2.0)
+    const MIN_VELOCITY = 0.1; // Velocidade mínima para continuar o movimento
+    
+    // ===== MOUSE EVENTS (DESKTOP) =====
+    const handleMouseDown = (e) => {
+        // 🔥 Não arrastar se clicar diretamente em uma aba
         if (e.target.classList.contains('admin-tab') || e.target.closest('.admin-tab')) {
             return;
         }
         
         isDown = true;
+        tabsContainer.classList.add('dragging');
         tabsContainer.style.cursor = 'grabbing';
+        tabsContainer.style.scrollBehavior = 'auto';
+        
         startX = e.pageX - tabsContainer.offsetLeft;
         scrollLeft = tabsContainer.scrollLeft;
-    });
+        lastX = e.pageX;
+        lastTime = Date.now();
+        velocity = 0;
+        
+        // Parar qualquer animação de momentum
+        cancelAnimationFrame(tabsContainer.momentumAnimation);
+    };
     
-    tabsContainer.addEventListener('mouseleave', () => {
-        isDown = false;
-        tabsContainer.style.cursor = 'grab';
-    });
-    
-    tabsContainer.addEventListener('mouseup', () => {
-        isDown = false;
-        tabsContainer.style.cursor = 'grab';
-    });
-    
-    tabsContainer.addEventListener('mousemove', (e) => {
+    const handleMouseMove = (e) => {
         if (!isDown) return;
+        
         e.preventDefault();
-        const x = e.pageX - tabsContainer.offsetLeft;
-        const walk = (x - startX) * 2;
-        tabsContainer.scrollLeft = scrollLeft - walk;
-    });
+        
+        const currentTime = Date.now();
+        const deltaTime = currentTime - lastTime;
+        
+        if (deltaTime > 0) {
+            const x = e.pageX - tabsContainer.offsetLeft;
+            const walk = (x - startX) * SENSITIVITY;
+            
+            // Calcular velocidade
+            const deltaX = e.pageX - lastX;
+            velocity = deltaX / deltaTime * 16; // Normalizar para 60fps
+            
+            tabsContainer.scrollLeft = scrollLeft - walk;
+            
+            lastX = e.pageX;
+            lastTime = currentTime;
+        }
+    };
     
-    // Touch events (mobile)
+    const handleMouseUp = () => {
+        if (!isDown) return;
+        
+        isDown = false;
+        tabsContainer.classList.remove('dragging');
+        tabsContainer.style.cursor = 'grab';
+        
+        // Aplicar momentum (inércia)
+        applyMomentum();
+    };
+    
+    const handleMouseLeave = () => {
+        if (isDown) {
+            handleMouseUp();
+        }
+    };
+    
+    // ===== TOUCH EVENTS (MOBILE) - OTIMIZADO =====
     let touchStartX = 0;
     let touchScrollLeft = 0;
+    let touchLastX = 0;
+    let touchLastTime = Date.now();
+    let touchVelocity = 0;
+    let isTouching = false;
     
-    tabsContainer.addEventListener('touchstart', (e) => {
+    const handleTouchStart = (e) => {
+        isTouching = true;
+        tabsContainer.classList.add('dragging');
+        tabsContainer.style.scrollBehavior = 'auto';
+        
         touchStartX = e.touches[0].pageX - tabsContainer.offsetLeft;
         touchScrollLeft = tabsContainer.scrollLeft;
-    }, { passive: true });
+        touchLastX = e.touches[0].pageX;
+        touchLastTime = Date.now();
+        touchVelocity = 0;
+        
+        // Parar animação anterior
+        cancelAnimationFrame(tabsContainer.momentumAnimation);
+    };
     
-    tabsContainer.addEventListener('touchmove', (e) => {
-        const x = e.touches[0].pageX - tabsContainer.offsetLeft;
-        const walk = (x - touchStartX) * 2;
-        tabsContainer.scrollLeft = touchScrollLeft - walk;
-    }, { passive: true });
+    const handleTouchMove = (e) => {
+        if (!isTouching) return;
+        
+        const currentTime = Date.now();
+        const deltaTime = currentTime - touchLastTime;
+        
+        if (deltaTime > 0) {
+            const x = e.touches[0].pageX - tabsContainer.offsetLeft;
+            const walk = (x - touchStartX) * SENSITIVITY;
+            
+            // Calcular velocidade
+            const deltaX = e.touches[0].pageX - touchLastX;
+            touchVelocity = deltaX / deltaTime * 16;
+            
+            tabsContainer.scrollLeft = touchScrollLeft - walk;
+            
+            touchLastX = e.touches[0].pageX;
+            touchLastTime = currentTime;
+        }
+    };
     
-    console.log('✅ Abas agora são arrastáveis horizontalmente');
-}
-
-// 🔥 NOVA FUNÇÃO: Tornar abas arrastáveis horizontalmente
-function initTabsDraggable() {
-    const tabsContainer = document.querySelector('.admin-tabs');
-    if (!tabsContainer) return;
+    const handleTouchEnd = () => {
+        if (!isTouching) return;
+        
+        isTouching = false;
+        tabsContainer.classList.remove('dragging');
+        
+        // Aplicar momentum
+        velocity = touchVelocity;
+        applyMomentum();
+    };
     
-    let isDown = false;
-    let startX;
-    let scrollLeft;
-    
-    // Mouse events
-    tabsContainer.addEventListener('mousedown', (e) => {
-        // Não arrastar se clicar diretamente em um botão
-        if (e.target.classList.contains('admin-tab') || e.target.closest('.admin-tab')) {
+    // ===== FUNÇÃO DE MOMENTUM (INÉRCIA) =====
+    function applyMomentum() {
+        if (Math.abs(velocity) < MIN_VELOCITY) {
+            tabsContainer.style.scrollBehavior = 'smooth';
             return;
         }
         
-        isDown = true;
-        tabsContainer.style.cursor = 'grabbing';
-        startX = e.pageX - tabsContainer.offsetLeft;
-        scrollLeft = tabsContainer.scrollLeft;
-    });
+        // Aplicar velocidade
+        tabsContainer.scrollLeft -= velocity;
+        
+        // Aplicar fricção
+        velocity *= FRICTION;
+        
+        // Continuar animação
+        tabsContainer.momentumAnimation = requestAnimationFrame(applyMomentum);
+    }
     
-    tabsContainer.addEventListener('mouseleave', () => {
-        isDown = false;
-        tabsContainer.style.cursor = 'grab';
-    });
+    // ===== ADICIONAR LISTENERS (APENAS UMA VEZ) =====
+    tabsContainer.addEventListener('mousedown', handleMouseDown);
+    tabsContainer.addEventListener('mousemove', handleMouseMove);
+    tabsContainer.addEventListener('mouseup', handleMouseUp);
+    tabsContainer.addEventListener('mouseleave', handleMouseLeave);
     
-    tabsContainer.addEventListener('mouseup', () => {
-        isDown = false;
-        tabsContainer.style.cursor = 'grab';
-    });
+    tabsContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+    tabsContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
+    tabsContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
     
-    tabsContainer.addEventListener('mousemove', (e) => {
-        if (!isDown) return;
-        e.preventDefault();
-        const x = e.pageX - tabsContainer.offsetLeft;
-        const walk = (x - startX) * 2;
-        tabsContainer.scrollLeft = scrollLeft - walk;
-    });
+    // Marcar como inicializado
+    tabsContainer.dataset.draggableInitialized = 'true';
     
-    // Touch events (mobile)
-    let touchStartX = 0;
-    let touchScrollLeft = 0;
-    
-    tabsContainer.addEventListener('touchstart', (e) => {
-        touchStartX = e.touches[0].pageX - tabsContainer.offsetLeft;
-        touchScrollLeft = tabsContainer.scrollLeft;
-    }, { passive: true });
-    
-    tabsContainer.addEventListener('touchmove', (e) => {
-        const x = e.touches[0].pageX - tabsContainer.offsetLeft;
-        const walk = (x - touchStartX) * 2;
-        tabsContainer.scrollLeft = touchScrollLeft - walk;
-    }, { passive: true });
-    
-    console.log('✅ Abas agora são arrastáveis horizontalmente');
+    console.log('✅ Tabs arrastáveis inicializadas (versão suave otimizada)');
 }
+
+// ===== CSS ADICIONAL PARA MELHORAR O ARRASTE =====
+// Adicione este estilo no seu CSS ou crie uma tag <style>
+
+const smoothDragStyles = `
+    .admin-tabs {
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+    }
+    
+    .admin-tabs.dragging {
+        scroll-behavior: auto;
+        cursor: grabbing !important;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    
+    .admin-tabs.dragging * {
+        pointer-events: none;
+    }
+    
+    /* Melhorar performance do scroll */
+    .admin-tabs {
+        will-change: scroll-position;
+    }
+`;
+
+// Injetar estilos
+if (!document.getElementById('smooth-drag-styles')) {
+    const styleTag = document.createElement('style');
+    styleTag.id = 'smooth-drag-styles';
+    styleTag.textContent = smoothDragStyles;
+    document.head.appendChild(styleTag);
+}
+
+console.log('✅ Sistema de arraste suave aplicado!');
+
 
 // ===== CONTROLE DO MODAL =====
 async function initAdmin() {
