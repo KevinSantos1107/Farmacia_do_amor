@@ -995,11 +995,14 @@ body {
     #custom-player-3,
     #custom-player-4,
     #custom-player-5 {
+        border-radius: 20px !important;
+        border: 1px solid var(--theme-card-border) !important;
+        
         box-shadow: 
             var(--theme-glow),
             inset 0 0 20px rgba(255, 255, 255, 0.1),
             -12px 0 35px rgba(138, 43, 226, 0.7),
-            12px 0 35px rgba(138, 43, 226, 0.7);
+            12px 0 35px rgba(138, 43, 226, 0.7) !important;
     }
 }
 
@@ -3455,7 +3458,25 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     }
 }
 /* ===== RESPONSIVO ===== */
+
 @media (max-width: 768px) {
+    /* 🔥 FORÇAR BORDAS E NEON NO MOBILE */
+    .custom-music-player,
+    #custom-player-0,
+    #custom-player-1,
+    #custom-player-2,
+    #custom-player-3,
+    #custom-player-4,
+    #custom-player-5 {
+        border-radius: 20px !important;
+        border: 1px solid var(--theme-card-border) !important;
+        box-shadow: 
+            var(--theme-glow),
+            inset 0 0 20px rgba(255, 255, 255, 0.1),
+            -12px 0 35px rgba(138, 43, 226, 0.7),
+            12px 0 35px rgba(138, 43, 226, 0.7) !important;
+    }
+    
     /* 🔒 MOBILE: Forçar containers do carrossel */
     .playlist-carousel-wrapper {
         max-width: 100% !important;
