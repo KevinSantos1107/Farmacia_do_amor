@@ -859,11 +859,26 @@ body {
     border-radius: 20px;
     padding: 20px;
     border: 1px solid var(--theme-card-border);
-    max-width: 400px; /* ← MUDOU de 360px para 400px */
-    margin: 0 auto;
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
-    position: relative;
+    
+    /* 🔒 CONTENÇÃO DE LARGURA */
+    max-width: 360px;
+    width: 100%;
+    min-width: 0;
+    
+    margin: 0 auto; 
+    
+    /* ✨ BOX-SHADOW COM BLUR SUAVE (IGUAL AOS ÁLBUNS) */
+    box-shadow: 
+        var(--theme-glow), 
+        inset 0 0 20px rgba(255, 255, 255, 0.1),
+        0 0 30px rgba(138, 43, 226, 0.4),
+        0 0 50px rgba(138, 43, 226, 0.2);
+    
     transition: all 0.3s ease;
+    overflow: visible;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1;
 }
 
 /* ✨ EFEITO DE BRILHO NAS BORDAS - ARREDONDADO */
@@ -895,7 +910,81 @@ body {
     opacity: 0.3;
 }
 
+/* ===== 🔥 BORDA NEON LATERAL - VERSÃO FINAL ===== */
 
+.music-player,
+.custom-music-player,
+#custom-player-0,
+#custom-player-1,
+#custom-player-2,
+#custom-player-3,
+#custom-player-4,
+#custom-player-5 {
+    box-shadow: 
+        var(--theme-glow),
+        inset 0 0 20px rgba(255, 255, 255, 0.1),
+        -15px 0 40px rgba(138, 43, 226, 0.7),
+        15px 0 40px rgba(138, 43, 226, 0.7);
+    
+    border-radius: 20px;
+    position: relative;
+    z-index: 1;
+    overflow: visible;
+}
+
+.music-player:hover,
+.custom-music-player:hover,
+#custom-player-0:hover,
+#custom-player-1:hover,
+#custom-player-2:hover,
+#custom-player-3:hover,
+#custom-player-4:hover,
+#custom-player-5:hover {
+    box-shadow: 
+        0 0 30px var(--theme-primary),
+        inset 0 0 30px rgba(255, 255, 255, 0.2),
+        -20px 0 50px rgba(138, 43, 226, 0.9),
+        20px 0 50px rgba(138, 43, 226, 0.9);
+}
+
+.music-player::before,
+.custom-music-player::before,
+#custom-player-0::before,
+#custom-player-1::before,
+#custom-player-2::before,
+#custom-player-3::before,
+#custom-player-4::before,
+#custom-player-5::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: var(--gradient-neon);
+    border-radius: 22px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    filter: blur(15px);
+}
+
+.music-player:hover::before,
+.custom-music-player:hover::before,
+#custom-player-0:hover::before,
+#custom-player-1:hover::before,
+#custom-player-2:hover::before,
+#custom-player-3:hover::before,
+#custom-player-4:hover::before,
+#custom-player-5:hover::before {
+    opacity: 0.4;
+}
+
+.playlist-carousel-wrapper,
+.playlist-slide,
+.music-player-section {
+    overflow: visible !important;
+}
 
 @media (max-width: 768px) {
     .music-player,
@@ -949,6 +1038,16 @@ body {
 .song-info {
     text-align: center;
     margin-bottom: 20px;
+    
+    /* 🔒 LARGURA FIXA - NÃO PODE MUDAR */
+    width: 320px;
+    max-width: 320px;
+    min-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 0 10px;
 }
 
 .song-info h3 {
