@@ -1,10 +1,10 @@
-// ===== CONFIGURAÇÃO DO CLOUDINARY - VERSÃO CORRIGIDA =====
+// ===== CONFIGURAÇÃO DO CLOUDINARY - COMPATÍVEL COM IMGBB =====
 
 const CLOUDINARY_CLOUD_NAME = 'dxxnqs4gf';
 const CLOUDINARY_AUDIO_PRESET = 'music_uploads';
 const CLOUDINARY_IMAGE_PRESET = 'image_uploads';
 
-// ===== FUNÇÃO UNIVERSAL DE UPLOAD (SEM TRANSFORMATIONS) =====
+// ===== FUNÇÃO UNIVERSAL DE UPLOAD (RETORNA STRING COMO O IMGBB) =====
 async function uploadToCloudinary(file, preset, folder) {
     return new Promise(async (resolve, reject) => {
         try {
@@ -57,15 +57,8 @@ async function uploadToCloudinary(file, preset, folder) {
             console.log('✅ Upload concluído:', data.secure_url);
             console.log(`📊 Tamanho: ${(data.bytes / 1024).toFixed(2)} KB`);
             
-            resolve({
-                url: data.secure_url,
-                publicId: data.public_id,
-                duration: data.duration || 0,
-                format: data.format,
-                bytes: data.bytes,
-                width: data.width || 0,
-                height: data.height || 0
-            });
+            // 🔥 RETORNA STRING COMO O IMGBB FAZIA
+            resolve(data.secure_url);
             
         } catch (error) {
             if (error.name === 'AbortError') {
@@ -79,7 +72,7 @@ async function uploadToCloudinary(file, preset, folder) {
     });
 }
 
-// ===== UPLOAD DE ÁUDIO =====
+// ===== UPLOAD DE ÁUDIO (RETORNA OBJETO COM METADADOS) =====
 async function uploadAudioToCloudinary(audioFile) {
     // Validar tipo
     if (!audioFile.type.startsWith('audio/') && !audioFile.name.match(/\.(mp3|m4a|wav|ogg|flac)$/i)) {
@@ -87,10 +80,46 @@ async function uploadAudioToCloudinary(audioFile) {
     }
     
     console.log('🎵 Iniciando upload de áudio...');
-    return uploadToCloudinary(audioFile, CLOUDINARY_AUDIO_PRESET, 'kevin-iara/music');
+    
+    return new Promise(async (resolve, reject) => {
+        try {
+            const formData = new FormData();
+            formData.append('file', audioFile);
+            formData.append('upload_preset', CLOUDINARY_AUDIO_PRESET);
+            formData.append('folder', 'kevin-iara/music');
+            
+            const response = await fetch(
+                `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`,
+                {
+                    method: 'POST',
+                    body: formData
+                }
+            );
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `Erro HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Áudio precisa retornar objeto com metadados
+            resolve({
+                url: data.secure_url,
+                publicId: data.public_id,
+                duration: data.duration || 0,
+                format: data.format,
+                bytes: data.bytes
+            });
+            
+        } catch (error) {
+            console.error('❌ Erro no upload de áudio:', error);
+            reject(error);
+        }
+    });
 }
 
-// ===== UPLOAD DE IMAGEM (SEM maxWidth - problema estava aqui) =====
+// ===== UPLOAD DE IMAGEM (RETORNA STRING COMO O IMGBB) =====
 async function uploadImageToCloudinary(imageFile, maxWidth = null) {
     // Validar tipo
     if (!imageFile.type.startsWith('image/')) {
@@ -99,11 +128,7 @@ async function uploadImageToCloudinary(imageFile, maxWidth = null) {
     
     console.log('🖼️ Iniciando upload de imagem...');
     
-    // ✅ IGNORAR maxWidth em unsigned uploads (não suportado)
-    if (maxWidth) {
-        console.warn(`⚠️ Parâmetro maxWidth=${maxWidth} ignorado (unsigned upload)`);
-    }
-    
+    // 🔥 RETORNA STRING DIRETAMENTE
     return uploadToCloudinary(imageFile, CLOUDINARY_IMAGE_PRESET, 'kevin-iara/images');
 }
 
@@ -124,10 +149,11 @@ function validateCloudinaryConfig() {
         return false;
     }
     
-    console.log('✅ Cloudinary configurado:');
+    console.log('✅ Cloudinary configurado (compatível com ImgBB):');
     console.log(`   📦 Cloud Name: ${CLOUDINARY_CLOUD_NAME}`);
     console.log(`   🎵 Audio Preset: ${CLOUDINARY_AUDIO_PRESET}`);
     console.log(`   🖼️ Image Preset: ${CLOUDINARY_IMAGE_PRESET}`);
+    console.log(`   🔄 Modo compatibilidade: STRING (como ImgBB)`);
     
     return true;
 }
@@ -141,4 +167,4 @@ setTimeout(() => {
 window.uploadAudioToCloudinary = uploadAudioToCloudinary;
 window.uploadImageToCloudinary = uploadImageToCloudinary;
 
-console.log('☁️ Cloudinary configurado e pronto!');
+console.log('☁️ Cloudinary configurado e compatível com ImgBB!');
