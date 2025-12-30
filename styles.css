@@ -980,24 +980,8 @@ body {
     margin-right: auto;
 }
 
-/* 🎯 ANIMAÇÃO: Scroll automático para títulos longos */
-@keyframes scrollText {
-    0% {
-        transform: translateX(0);
-    }
-    50% {
-        transform: translateX(calc(-100% + 340px));
-    }
-    100% {
-        transform: translateX(0);
-    }
-}
 
-/* Aplica a animação quando o player está tocando E o título é longo */
-.music-player.playing .song-info h3 {
-    animation: scrollText 8s ease-in-out infinite;
-    animation-delay: 1s;
-}
+
 
 /* Artista - também com controle de overflow */
 .song-info p {
