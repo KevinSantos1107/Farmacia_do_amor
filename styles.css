@@ -875,17 +875,7 @@ body {
     box-sizing: border-box;
 }
 
-/* Efeito de borda animada */
-.music-player::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: var(--gradient-neon);
-    border-radius: inherit;
-    z-index: -1;
-    opacity: 0.3;
-    filter: blur(8px);
-}
+
 
 /* Hover mais forte */
 .music-player:hover {
@@ -1873,7 +1863,7 @@ body {
         box-shadow: 
             0 0 25px var(--theme-primary),
             0 0 50px rgba(138, 43, 226, 0.2),
-            inset 0 0 20px rgba(255, 255, 255, 0.15);
+           
     }
 }
 
