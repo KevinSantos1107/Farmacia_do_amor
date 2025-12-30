@@ -453,6 +453,11 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         document.getElementById(`${playerId}-title`).textContent = track.title;
         document.getElementById(`${playerId}-artist`).textContent = track.artist;
         document.getElementById(`${playerId}-currentTrack`).textContent = index + 1;
+
+        // ✅ VERIFICAR SE O TÍTULO É LONGO
+        setTimeout(() => {
+            checkLongTitle(playerId);
+        }, 100);
         
         const coverImg = document.getElementById(`${playerId}-coverImg`);
         if (coverImg) {
@@ -494,6 +499,25 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
+/**
+ * Detecta se o título da música é muito longo e precisa de animação
+ */
+function checkLongTitle(playerId) {
+    const titleElement = document.getElementById(`${playerId}-title`);
+    
+    if (!titleElement) return;
+    
+    // Verificar se o texto é maior que o container
+    const isOverflowing = titleElement.scrollWidth > titleElement.clientWidth;
+    
+    if (isOverflowing) {
+        titleElement.setAttribute('data-long-title', 'true');
+        console.log(`📏 Título longo detectado: "${titleElement.textContent}"`);
+    } else {
+        titleElement.removeAttribute('data-long-title');
+    }
+}
+
 }
 
 function showNavigationButtons() {
