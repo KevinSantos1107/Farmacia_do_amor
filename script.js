@@ -187,7 +187,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         initThemeSelector();
         initTimeCounter();
-        // ❌ REMOVIDO: initMusicPlayer() - Agora é carregado pelo PlaylistManager
         initAlbums();
         initMessages();
         initModal();
@@ -381,42 +380,9 @@ function updateTimeCounter() {
     document.getElementById('seconds').textContent = remainingSeconds.toString().padStart(2, '0');
 }
 
-// ❌ REMOVIDA TODA A SEÇÃO DE PLAYER HARDCODE
-// O player agora é gerenciado 100% pelo playlist-manager.js
-
-// ===== ÁLBUNS DE FOTOS =====
-window.albums = [
-    {
-        id: 1,
-        title: "Primeiros Encontros",
-        date: "Junho 2023",
-        cover: "images/capas-albuns/primeiro-encontro.jpg",
-        description: "Os primeiros momentos mágicos que deram início à nossa história.",
-        photos: [
-            { src: "images/fotos/album1/1.jpg", description: "Nosso primeiro café juntos" },
-            { src: "images/fotos/album1/2.jpg", description: "Passeio no parque" },
-            { src: "images/fotos/album1/3.jpg", description: "Primeiro cinema" },
-            { src: "images/fotos/album1/4.jpg", description: "Jantar especial" }
-        ]
-    },
-    {
-        id: 2,
-        title: "Viagem Inesquecível",
-        date: "Dezembro 2023",
-        cover: "images/capas-albuns/viagem.jpg",
-        description: "Nossa primeira viagem juntos, cheia de aventuras e momentos especiais.",
-        photos: [
-            { src: "images/fotos/album2/1.jpg", description: "Chegada ao destino" },
-            { src: "images/fotos/album2/2.jpg", description: "Paisagem deslumbrante" },
-            { src: "images/fotos/album2/3.jpg", description: "Aventuras pela cidade" },
-            { src: "images/fotos/album2/4.jpg", description: "Comidas típicas" }
-        ]
-    }
-];
-
-window.albums.forEach(album => {
-    album.photoCount = album.photos.length;
-});
+// ===== ÁLBUNS DE FOTOS (CARREGADOS DO FIREBASE) =====
+// Inicializar array vazio - será preenchido pelo Firebase
+window.albums = [];
 
 let currentAlbum = null;
 let currentPhotoIndex = 0;
