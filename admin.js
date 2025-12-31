@@ -651,10 +651,8 @@ async function loadAlbumsFromFirebase() {
             });
         }
         
-        // Mesclar com álbuns originais
-        if (typeof window.albums !== 'undefined') {
-            window.albums = [...window.originalAlbums, ...firebaseAlbums];
-        }
+// Atualizar álbuns globais
+        window.albums = firebaseAlbums;
         
         // Recarregar galeria
         if (typeof initAlbums === 'function') {
@@ -668,20 +666,43 @@ async function loadAlbumsFromFirebase() {
     }
 }
 
-// ===== RECONSTRUIR TIMELINE =====
 async function rebuildTimeline() {
     const container = document.querySelector('.timeline-container');
-    if (!container) return;
+    if (!container) {
+        console.warn('⚠️ Container da timeline não encontrado');
+        return;
+    }
     
     try {
         const snapshot = await db.collection('timeline').orderBy('createdAt', 'asc').get();
         
-        // Remover eventos customizados anteriores
-        const customItems = container.querySelectorAll('.timeline-item[data-custom="true"]');
-        customItems.forEach(item => item.remove());
+        // Remover TODOS os eventos anteriores (exceto timeline-end)
+        const allItems = container.querySelectorAll('.timeline-item');
+        allItems.forEach(item => item.remove());
         
-        const timelineEnd = container.querySelector('.timeline-end');
+        // Buscar ou criar o timeline-end
+        let timelineEnd = container.querySelector('.timeline-end');
         
+        if (!timelineEnd) {
+            timelineEnd = document.createElement('div');
+            timelineEnd.className = 'timeline-end';
+            timelineEnd.innerHTML = `
+                <div class="timeline-heart"><i class="fas fa-infinity"></i></div>
+                <p>E nossa história continua...</p>
+            `;
+            container.appendChild(timelineEnd);
+        }
+        
+        // Se não houver eventos, não fazer nada
+        if (snapshot.empty) {
+            console.log('📖 Nenhum evento na timeline');
+            return;
+        }
+        
+        // Criar um fragmento para melhor performance
+        const fragment = document.createDocumentFragment();
+        
+        // Adicionar eventos
         snapshot.forEach((doc, index) => {
             const event = doc.data();
             
@@ -700,7 +721,7 @@ async function rebuildTimeline() {
                         </div>
                         <h3>${event.title}</h3>
                         ${event.secret ? `
-                            <button class="secret-message-btn" data-message="${event.secret}">
+                            <button class="secret-message-btn" data-message="${event.secret.replace(/"/g, '&quot;')}">
                                 <i class="fas fa-lock"></i> Mensagem Secreta
                             </button>
                         ` : ''}
@@ -708,15 +729,18 @@ async function rebuildTimeline() {
                     <div class="timeline-photo">
                         <div class="photo-polaroid">
                             <img src="${event.photo}" alt="${event.title}">
-                            <p class="polaroid-caption">${event.caption}</p>
+                            <p class="polaroid-caption">${event.caption || ''}</p>
                         </div>
                     </div>
                 </div>
                 <div class="timeline-line"></div>
             `;
             
-            container.insertBefore(item, timelineEnd);
+            fragment.appendChild(item);
         });
+        
+        // Inserir todos os eventos de uma vez ANTES do timeline-end
+        container.insertBefore(fragment, timelineEnd);
         
         // Reinicializar botões de mensagem secreta
         const secretBtns = document.querySelectorAll('.secret-message-btn');
@@ -734,6 +758,7 @@ async function rebuildTimeline() {
         
     } catch (error) {
         console.error('❌ Erro ao reconstruir timeline:', error);
+        console.error('Stack:', error.stack);
     }
 }
 
@@ -889,11 +914,6 @@ window.deleteEvent = async function(eventId) {
 // ===== INICIALIZAR NO CARREGAMENTO =====
 document.addEventListener('DOMContentLoaded', async () => {
     await waitForServices();
-    
-    // Salvar álbuns originais
-    if (typeof albums !== 'undefined') {
-        window.originalAlbums = JSON.parse(JSON.stringify(albums));
-    }
     
     initAdmin();
     
