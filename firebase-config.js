@@ -130,6 +130,65 @@ async function loadAlbumsFromFirebase() {
     }
 }
 
+// ===== FUNÇÃO AUXILIAR: CRIAR IMAGEM COM FALLBACK INTELIGENTE =====
+function createAlbumCoverImage(album) {
+    const coverImg = document.createElement('img');
+    coverImg.alt = album.title;
+    coverImg.loading = 'lazy';
+    coverImg.className = 'album-cover-img';
+    
+    // ✅ VERIFICAR SE TEM VERSÕES RESPONSIVAS
+    if (album.coverThumb && album.coverLarge) {
+        // ✅ TEM versões - usar createResponsiveImage
+        console.log(`✅ Álbum "${album.title}" com versões responsivas`);
+        
+        coverImg.src = album.cover;  // Padrão (medium)
+        
+        coverImg.srcset = `
+            ${album.coverThumb} 400w,
+            ${album.cover} 800w,
+            ${album.coverLarge} 1600w
+        `.trim();
+        
+        coverImg.sizes = `
+            (max-width: 400px) 400px,
+            (max-width: 800px) 800px,
+            1600px
+        `.trim();
+        
+        // Blur placeholder
+        coverImg.style.filter = 'blur(10px)';
+        coverImg.style.transition = 'filter 0.3s ease';
+        
+        coverImg.addEventListener('load', () => {
+            coverImg.style.filter = 'none';
+        }, { once: true });
+        
+    } else {
+        // ❌ NÃO TEM versões - usar fallback inteligente
+        console.warn(`⚠️ Álbum "${album.title}" sem versões - aplicando fallback`);
+        
+        // Tentar otimizar URL antiga
+        if (typeof optimizeExistingUrl === 'function') {
+            coverImg.src = optimizeExistingUrl(album.cover, 800);
+            console.log(`♻️ URL otimizada para "${album.title}"`);
+        } else {
+            coverImg.src = album.cover;
+            console.warn(`⚠️ Função optimizeExistingUrl não disponível`);
+        }
+        
+        // Aplicar blur placeholder mesmo sem versões
+        coverImg.style.filter = 'blur(10px)';
+        coverImg.style.transition = 'filter 0.3s ease';
+        
+        coverImg.addEventListener('load', () => {
+            coverImg.style.filter = 'none';
+        }, { once: true });
+    }
+    
+    return coverImg;
+}
+
 function renderAlbums(albums) {
     const container = document.getElementById('albumsContainer');
     
@@ -147,36 +206,8 @@ function renderAlbums(albums) {
         albumCard.className = 'album-card';
         albumCard.dataset.id = album.id;
         
-        // ✅ Criar imagem RESPONSIVA com srcset
-        const coverImg = document.createElement('img');
-        
-        // Verificar se tem versões responsivas
-        if (album.coverThumb && album.coverLarge) {
-            // ✅ TEM versões - usar srcset
-            coverImg.src = album.cover;  // Padrão (medium)
-            
-            coverImg.srcset = `
-                ${album.coverThumb} 400w,
-                ${album.cover} 800w,
-                ${album.coverLarge} 1600w
-            `;
-            
-            coverImg.sizes = `
-                (max-width: 400px) 400px,
-                (max-width: 800px) 800px,
-                1600px
-            `;
-            
-            console.log(`✅ Álbum "${album.title}" com srcset responsivo`);
-        } else {
-            // ❌ NÃO TEM - fallback normal
-            coverImg.src = album.cover;
-            console.log(`⚠️ Álbum "${album.title}" sem versões (usando fallback)`);
-        }
-        
-        coverImg.alt = album.title;
-        coverImg.loading = 'lazy';
-        coverImg.className = 'album-cover-img';
+        // ✅ USAR FUNÇÃO AUXILIAR (cria imagem com fallback automático)
+        const coverImg = createAlbumCoverImage(album);
         
         albumCard.innerHTML = `
             <div class="album-cover-container"></div>
@@ -194,12 +225,15 @@ function renderAlbums(albums) {
             </div>
         `;
         
+        // Adicionar imagem ao container
         albumCard.querySelector('.album-cover-container').appendChild(coverImg);
         albumCard.addEventListener('click', () => openAlbum(album.id));
         
         container.appendChild(albumCard);
     });
 }
+
+
 // ===== FORÇAR CARREGAMENTO DOS ÁLBUNS =====
 async function forceLoadAlbums() {
     console.log('🔄 FORÇANDO carregamento de álbuns...');
