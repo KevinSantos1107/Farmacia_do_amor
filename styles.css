@@ -3391,7 +3391,6 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     display: flex;
     gap: 8px;
 }
-
 .action-btn {
     width: 42px;
     height: 42px;
@@ -3476,29 +3475,28 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     .playlist-icon-big i {
         font-size: 1.7rem;
     }
+    
+    /* Quando visível, aplicar espaçamento mínimo */
+    #coverPreviewContainer.show,
+    .cover-preview-container.show {
+        display: block !important;
+        height: auto !important;
+        margin-top: 8px !important;
+        margin-bottom: 0 !important;
+    }
 
+    /* Remover margem do input de áudio */
+    .form-group:has(#musicAudioFile),
+    .input-group:has(#musicAudioFile) {
+        margin-bottom: 0 !important;
+    }
 
-/* Quando visível, aplicar espaçamento mínimo */
-#coverPreviewContainer.show,
-.cover-preview-container.show {
-    display: block !important;
-    height: auto !important;
-    margin-top: 8px !important;
-    margin-bottom: 0 !important;
-}
+    /* Garantir espaço do botão */
+    #addMusicForm .submit-btn.green {
+        margin-top: 20px !important;
+    }
 
-/* Remover margem do input de áudio */
-.form-group:has(#musicAudioFile),
-.input-group:has(#musicAudioFile) {
-    margin-bottom: 0 !important;
-}
-
-/* Garantir espaço do botão */
-#addMusicForm .submit-btn.green {
-    margin-top: 20px !important;
-}
-
-/* Título de música responsivo */
+    /* Título de música responsivo */
     .song-info h3 {
         font-size: 1.1rem;
     }
@@ -3510,8 +3508,7 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     .music-player.playing .song-info h3 {
         animation-duration: 6s;
     }
-
-}
+} /* ← CHAVE QUE ESTAVA FALTANDO! */
 
 /* ===== PREVIEW DA CAPA - EXIBIÇÃO CORRETA ===== */
 
@@ -3609,4 +3606,96 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* ===== BLUR PLACEHOLDER - PRIORIDADE MÁXIMA ===== */
+
+/* Garantir que o blur funciona em TODAS as imagens */
+img[style*="blur"] {
+    transform: translateZ(0) !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+}
+
+/* Transição suave quando carregar */
+img {
+    transition: filter 0.4s ease-out;
+}
+
+/* Lazy loading */
+.lazy-image {
+    will-change: filter;
+}
+
+.lazy-image.loaded {
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0.8;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Performance */
+img[loading="lazy"] {
+    content-visibility: auto;
+}
+
+/* ===== SHIMMER EFFECT (carregando) ===== */
+
+.album-cover-container,
+.photo-polaroid {
+    position: relative;
+    overflow: hidden;
+}
+
+.album-cover-container::before,
+.photo-polaroid::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.03) 0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.03) 100%
+    );
+    animation: shimmer 2s infinite;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Mostrar shimmer quando imagem estiver com blur */
+.album-cover-container:has(img[style*="blur"])::before,
+.photo-polaroid:has(img[style*="blur"])::before {
+    opacity: 1;
+}
+
+/* Esconder quando carregar */
+.album-cover-container:has(img.loaded)::before,
+.photo-polaroid:has(img.loaded)::before {
+    opacity: 0;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* ===== GARANTIR Z-INDEX CORRETO ===== */
+
+.album-cover-container img,
+.photo-polaroid img {
+    position: relative;
+    z-index: 2; /* Acima do shimmer */
 }
