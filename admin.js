@@ -738,7 +738,6 @@ async function rebuildTimeline() {
                     </div>
                     <div class="timeline-photo">
                         <div class="photo-polaroid">
-                            <!-- ✅ SEM <img> aqui! Vai ser adicionado depois -->
                             <p class="polaroid-caption">${event.caption || ''}</p>
                         </div>
                     </div>
@@ -746,25 +745,45 @@ async function rebuildTimeline() {
                 <div class="timeline-line"></div>
             `;
 
+            // ✅ CRIAR IMAGEM AQUI (DENTRO DO forEach)
+            const img = document.createElement('img');
+
+            // ✅ TIMELINE: Usar versão LARGE com blur placeholder
+            if (event.photoLarge) {
+                img.src = event.photoLarge;
+                console.log(`✅ Timeline: LARGE para "${event.title}"`);
+            } else if (event.photo) {
+                // Fallback: otimizar URL antiga
+                if (typeof optimizeExistingUrl === 'function') {
+                    img.src = optimizeExistingUrl(event.photo, 1600);
+                    console.log(`♻️ Timeline: URL otimizada para "${event.title}"`);
+                } else {
+                    img.src = event.photo;
+                    console.warn(`⚠️ Timeline: URL não otimizada para "${event.title}"`);
+                }
+            } else {
+                img.src = 'images/capas-albuns/default-music.jpg';
+            }
+
+            img.alt = event.title;
+            img.loading = 'lazy';
+            img.decoding = 'async';
+
+            // ✅ BLUR PLACEHOLDER
+            img.style.filter = 'blur(10px)';
+            img.style.transition = 'filter 0.4s ease-out';
+
+            img.addEventListener('load', () => {
+                img.style.filter = 'none';
+            }, { once: true });
+
+            // ✅ INSERIR IMAGEM NO LUGAR CERTO
+            const polaroid = item.querySelector('.photo-polaroid');
+            const caption = polaroid.querySelector('.polaroid-caption');
+            polaroid.insertBefore(img, caption);
+            
+            // ✅ ADICIONAR ITEM AO FRAGMENT
             fragment.appendChild(item);
-
-        const img = document.createElement('img');
-
-        // ✅ TIMELINE: Sempre usar versão LARGE (1600px, quality 90)
-        if (event.photoLarge) {
-            img.src = event.photoLarge;  // ✅ LARGE (1600px) - ALTA QUALIDADE
-            console.log(`✅ Timeline: Carregando LARGE para "${event.title}"`);
-        } else if (event.photo) {
-            img.src = event.photo;  // Fallback: medium
-            console.log(`⚠️ Timeline: Usando medium (sem versão large) para "${event.title}"`);
-        } else {
-            img.src = 'images/capas-albuns/default-music.jpg';
-        }
-
-        img.alt = event.title;
-        img.loading = 'lazy';
-
-        item.querySelector('.photo-polaroid').insertBefore(img, item.querySelector('.polaroid-caption'));
         });
         
         // Inserir todos os eventos de uma vez ANTES do timeline-end
