@@ -192,8 +192,7 @@
             </div>
             <div class="timeline-scroll">
                 <div class="timeline-container">
-
-                <!-- Eventos serão carregados automaticamente do Firebase -->
+                    <!-- Eventos serão carregados automaticamente do Firebase -->
                     <div class="timeline-end">
                         <div class="timeline-heart"><i class="fas fa-infinity"></i></div>
                         <p>E nossa história continua...</p>
@@ -240,96 +239,343 @@
             </button>
         </div>
         
-<div class="admin-tabs">
-    <button class="admin-tab active" data-tab="albums">
-        <i class="fas fa-images"></i> Álbuns
-    </button>
-    <button class="admin-tab" data-tab="timeline">
-        <i class="fas fa-clock"></i> Timeline
-    </button>
-    <button class="admin-tab" data-tab="playlists">
-        <i class="fas fa-music"></i> Playlists
-    </button>
-    <button class="admin-tab" data-tab="edit">
-        <i class="fas fa-edit"></i> Editar Álbum
-    </button>
-</div>
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="albums">
+                <i class="fas fa-images"></i> Álbuns
+            </button>
+            <button class="admin-tab" data-tab="timeline">
+                <i class="fas fa-clock"></i> Timeline
+            </button>
+            <button class="admin-tab" data-tab="playlists">
+                <i class="fas fa-music"></i> Playlists
+            </button>
+        </div>
         
-        <!-- TAB: Gerenciar Álbuns -->
+        <!-- TAB: Gerenciar Álbuns - REDESIGN PROFISSIONAL -->
         <div class="admin-content active" id="albums-tab">
-            <div class="admin-section">
-                <h3><i class="fas fa-plus-circle"></i> Adicionar Novo Álbum</h3>
-                <form id="addAlbumForm">
-                    <label for="albumTitle" style="display: none;">Título do Álbum</label>
-                    <input type="text" id="albumTitle" placeholder="Título do Álbum" required>
+            
+            <!-- ===== CRIAR NOVO ÁLBUM ===== -->
+            <div class="album-create-card">
+                <div class="card-icon-header">
+                    <div class="icon-circle purple">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <h3>Criar Novo Álbum</h3>
+                </div>
+                
+                <form id="addAlbumForm" class="modern-form">
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label>
+                                <i class="fas fa-heading"></i>
+                                Título do Álbum
+                            </label>
+                            <input type="text" id="albumTitle" placeholder="Ex: Viagem à Praia, Aniversário..." required>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>
+                                <i class="fas fa-calendar-alt"></i>
+                                Data
+                            </label>
+                            <input type="text" id="albumDate" placeholder="Ex: Junho 2023" required>
+                        </div>
+                    </div>
                     
-                    <label for="albumDate" style="display: none;">Data</label>
-                    <input type="text" id="albumDate" placeholder="Data (ex: Junho 2023)" required>
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-align-left"></i>
+                            Descrição
+                        </label>
+                        <textarea id="albumDescription" rows="3" placeholder="Descreva as memórias deste álbum..." required></textarea>
+                    </div>
                     
-                    <label for="albumDescription" style="display: none;">Descrição</label>
-                    <textarea id="albumDescription" placeholder="Descrição do álbum" rows="3" required></textarea>
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-image"></i>
+                            Capa do Álbum
+                        </label>
+                        <input type="file" id="albumCover" accept="image/*" required>
+                    </div>
                     
-                    <label for="albumCover" style="display: none;">Capa do Álbum</label>
-                    <input type="file" id="albumCover" accept="image/*" required>
-                    
-                    <button type="submit" class="admin-btn">
-                        <i class="fas fa-save"></i> Criar Álbum
+                    <button type="submit" class="submit-btn purple">
+                        <i class="fas fa-check-circle"></i>
+                        Criar Álbum
                     </button>
                 </form>
             </div>
             
-            <div class="admin-section">
-                <h3><i class="fas fa-photo-video"></i> Adicionar Fotos ao Álbum</h3>
-                <label for="selectAlbum" style="display: none;">Selecionar Álbum</label>
-                <select id="selectAlbum" class="admin-select" aria-label="Selecionar álbum">
-                    <option value="">Selecione um álbum</option>
-                </select>
-                <form id="addPhotoForm">
-                    <label for="photoFile" style="display: none;">Selecionar Fotos</label>
-                    <input type="file" id="photoFile" accept="image/*" multiple required>
-                    <button type="submit" class="admin-btn">
-                        <i class="fas fa-upload"></i> Adicionar Fotos
+            <!-- ===== ADICIONAR FOTOS AO ÁLBUM ===== -->
+            <div class="album-photos-card">
+                <div class="card-icon-header">
+                    <div class="icon-circle blue">
+                        <i class="fas fa-images"></i>
+                    </div>
+                    <h3>Adicionar Fotos</h3>
+                </div>
+                
+                <div class="input-group">
+                    <label>
+                        <i class="fas fa-folder-open"></i>
+                        Selecione o Álbum
+                    </label>
+                    <select id="selectAlbum" class="modern-select">
+                        <option value="">Escolha um álbum...</option>
+                    </select>
+                </div>
+                
+                <form id="addPhotoForm" class="modern-form" style="display: none; margin-top: 20px;">
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-camera"></i>
+                            Selecionar Fotos
+                        </label>
+                        <input type="file" id="photoFile" accept="image/*" multiple required>
+                        <small style="color: var(--theme-text-secondary); display: block; margin-top: 5px;">
+                            Você pode selecionar múltiplas fotos de uma vez
+                        </small>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn blue">
+                        <i class="fas fa-upload"></i>
+                        Adicionar ao Álbum
                     </button>
                 </form>
             </div>
             
-            <div class="admin-section">
-                <h3><i class="fas fa-list"></i> Álbuns Existentes</h3>
-                <div id="existingAlbums" class="existing-items"></div>
+            <!-- ===== BIBLIOTECA DE ÁLBUNS ===== -->
+            <div class="albums-library">
+                <div class="library-header">
+                    <div class="header-icon purple">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <h3>Seus Álbuns</h3>
+                </div>
+                
+                <div id="existingAlbums" class="albums-grid">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Carregando álbuns...</p>
+                    </div>
+                </div>
             </div>
+            
+            <!-- ===== MODAL DE EDIÇÃO DE ÁLBUM (INLINE) ===== -->
+            <div id="albumEditModal" class="inline-edit-modal" style="display: none;">
+                <div class="inline-edit-content">
+                    <div class="inline-edit-header">
+                        <h3>
+                            <i class="fas fa-edit"></i>
+                            Editar Álbum
+                        </h3>
+                        <button class="close-inline-edit" id="closeAlbumEdit">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Edição de Informações -->
+                    <div class="edit-section">
+                        <h4>📋 Informações do Álbum</h4>
+                        <div class="edit-info-grid">
+                            <div class="cover-preview-section">
+                                <img id="editAlbumCoverPreview" src="" alt="Capa">
+                                <label for="editAlbumCoverInput" class="change-cover-btn">
+                                    <i class="fas fa-camera"></i>
+                                    Trocar Capa
+                                </label>
+                                <input type="file" id="editAlbumCoverInput" accept="image/*" style="display: none;">
+                            </div>
+                            
+                            <div class="edit-fields">
+                                <div class="input-group">
+                                    <label>Título</label>
+                                    <input type="text" id="editAlbumTitle" placeholder="Título do álbum">
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label>Data</label>
+                                    <input type="text" id="editAlbumDate" placeholder="Ex: Junho 2023">
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label>Descrição</label>
+                                    <textarea id="editAlbumDescription" rows="3" placeholder="Descrição"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="edit-actions">
+                            <button class="action-btn cancel" onclick="closeAlbumEditModal()">
+                                <i class="fas fa-times"></i>
+                                Cancelar
+                            </button>
+                            <button class="action-btn save" id="saveAlbumInfoBtn">
+                                <i class="fas fa-check"></i>
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Gerenciar Fotos -->
+                    <div class="edit-section">
+                        <h4>📸 Gerenciar Fotos</h4>
+                        <div id="editPhotosGrid" class="edit-photos-grid">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Carregando fotos...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
         </div>
-        
-        <!-- TAB: Gerenciar Timeline -->
+
+        <!-- TAB: Gerenciar Timeline - REDESIGN PROFISSIONAL -->
         <div class="admin-content" id="timeline-tab">
-            <div class="admin-section">
-                <h3><i class="fas fa-plus-circle"></i> Adicionar Evento na Timeline</h3>
-                <form id="addTimelineForm">
-                    <label for="eventDate" style="display: none;">Data do Evento</label>
-                    <input type="text" id="eventDate" placeholder="Data (ex: Setembro 2022)" required>
+            
+            <!-- ===== CRIAR NOVO EVENTO ===== -->
+            <div class="timeline-create-card">
+                <div class="card-icon-header">
+                    <div class="icon-circle orange">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <h3>Adicionar Evento na Timeline</h3>
+                </div>
+                
+                <form id="addTimelineForm" class="modern-form">
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label>
+                                <i class="fas fa-calendar-day"></i>
+                                Data do Evento
+                            </label>
+                            <input type="text" id="eventDate" placeholder="Ex: Setembro 2022" required>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>
+                                <i class="fas fa-heading"></i>
+                                Título do Evento
+                            </label>
+                            <input type="text" id="eventTitle" placeholder="Ex: Nosso Primeiro Encontro" required>
+                        </div>
+                    </div>
                     
-                    <label for="eventTitle" style="display: none;">Título do Evento</label>
-                    <input type="text" id="eventTitle" placeholder="Título do Evento" required>
+                    <div class="input-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            Mensagem Secreta (opcional)
+                        </label>
+                        <textarea id="eventSecret" rows="3" placeholder="Uma mensagem especial que só aparece ao clicar..."></textarea>
+                    </div>
                     
-                    <label for="eventSecret" style="display: none;">Mensagem Secreta</label>
-                    <textarea id="eventSecret" placeholder="Mensagem secreta (opcional)" rows="3"></textarea>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label>
+                                <i class="fas fa-image"></i>
+                                Foto do Evento
+                            </label>
+                            <input type="file" id="eventPhoto" accept="image/*" required>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>
+                                <i class="fas fa-comment"></i>
+                                Legenda da Foto
+                            </label>
+                            <input type="text" id="photoCaption" placeholder="Ex: Momentos especiais...">
+                        </div>
+                    </div>
                     
-                    <label for="eventPhoto" style="display: none;">Foto do Evento</label>
-                    <input type="file" id="eventPhoto" accept="image/*" required>
-                    
-                    <label for="photoCaption" style="display: none;">Legenda da Foto</label>
-                    <input type="text" id="photoCaption" placeholder="Legenda da foto">
-                    
-                    <button type="submit" class="admin-btn">
-                        <i class="fas fa-save"></i> Adicionar Evento
+                    <button type="submit" class="submit-btn orange">
+                        <i class="fas fa-check-circle"></i>
+                        Adicionar à Timeline
                     </button>
                 </form>
             </div>
             
-            <div class="admin-section">
-                <h3><i class="fas fa-list"></i> Eventos Existentes</h3>
-                <div id="existingEvents" class="existing-items"></div>
+            <!-- ===== BIBLIOTECA DE EVENTOS ===== -->
+            <div class="timeline-library">
+                <div class="library-header">
+                    <div class="header-icon orange">
+                        <i class="fas fa-clock-rotate-left"></i>
+                    </div>
+                    <h3>Eventos da Timeline</h3>
+                </div>
+                
+                <div id="existingEvents" class="timeline-events-grid">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Carregando eventos...</p>
+                    </div>
+                </div>
             </div>
+            
+            <!-- ===== MODAL DE EDIÇÃO DE EVENTO (INLINE) ===== -->
+            <div id="eventEditModal" class="inline-edit-modal" style="display: none;">
+                <div class="inline-edit-content">
+                    <div class="inline-edit-header">
+                        <h3>
+                            <i class="fas fa-edit"></i>
+                            Editar Evento
+                        </h3>
+                        <button class="close-inline-edit" id="closeEventEdit">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="edit-section">
+                        <h4>📅 Informações do Evento</h4>
+                        <div class="edit-info-grid">
+                            <div class="cover-preview-section">
+                                <img id="editEventPhotoPreview" src="" alt="Foto do evento">
+                                <label for="editEventPhotoInput" class="change-cover-btn">
+                                    <i class="fas fa-camera"></i>
+                                    Trocar Foto
+                                </label>
+                                <input type="file" id="editEventPhotoInput" accept="image/*" style="display: none;">
+                            </div>
+                            
+                            <div class="edit-fields">
+                                <div class="input-group">
+                                    <label>Data</label>
+                                    <input type="text" id="editEventDate" placeholder="Ex: Setembro 2022">
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label>Título</label>
+                                    <input type="text" id="editEventTitle" placeholder="Título do evento">
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label>Legenda</label>
+                                    <input type="text" id="editEventCaption" placeholder="Legenda da foto">
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label>Mensagem Secreta</label>
+                                    <textarea id="editEventSecret" rows="2" placeholder="Mensagem secreta (opcional)"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="edit-actions">
+                            <button class="action-btn cancel" onclick="closeEventEditModal()">
+                                <i class="fas fa-times"></i>
+                                Cancelar
+                            </button>
+                            <button class="action-btn save" id="saveEventInfoBtn">
+                                <i class="fas fa-check"></i>
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
         </div>
+
         <!-- TAB: Gerenciar Playlists -->
         <div class="admin-content" id="playlists-tab">
             <div class="playlist-create-card">
@@ -478,80 +724,7 @@
                 </div>
             </div>
         </div>
-        <!-- TAB: Editar Álbum -->
-        <div class="admin-content" id="edit-tab">
-            <!-- Seletor de álbum -->
-            <div class="admin-section">
-                <h3><i class="fas fa-folder-open"></i> Selecione um Álbum</h3>
-                <select id="editAlbumSelect" class="admin-select">
-                    <option value="">Escolha um álbum...</option>
-                </select>
-                <button id="loadEditAlbumBtn" class="admin-btn" style="margin-top: 12px;">
-                    <i class="fas fa-images"></i> Carregar Fotos
-                </button>
-            </div>
-            
-            <!-- Área de edição de informações do álbum -->
-            <div id="editAlbumInfoSection" style="display: none;">
-                <div class="admin-section">
-                    <h3><i class="fas fa-pen"></i> Editar Informações do Álbum</h3>
-                    <button id="toggleAlbumInfoEdit" class="simple-edit-btn">
-                        <i class="fas fa-edit"></i>
-                        <span class="edit-text">Editar Álbum</span>
-                    </button>
-                    <!-- Form de edição (inicialmente oculto) -->
-                    <div id="albumInfoEditForm" style="display: none; margin-top: 15px;">
-                        <div class="edit-form-grid">
-                            <!-- Preview da capa -->
-                            <div class="cover-preview-container">
-                                <img id="currentCoverPreview" src="" alt="Capa atual">
-                                <label for="newCoverInput" class="change-cover-label">
-                                    <i class="fas fa-camera"></i>
-                                    <span>Trocar Capa</span>
-                                </label>
-                                <input type="file" id="newCoverInput" accept="image/*" style="display: none;" aria-label="Selecionar nova capa do álbum">
-                            </div>
-                            
-                            <!-- Campos de texto -->
-                            <div class="edit-fields-container">
-                                <div class="edit-field">
-                                    <label>Título</label>
-                                    <input type="text" id="editAlbumTitle" placeholder="Título do álbum">
-                                </div>
-                                
-                                <div class="edit-field">
-                                    <label>Data</label>
-                                    <input type="text" id="editAlbumDate" placeholder="Ex: Junho 2023">
-                                </div>
-                                
-                                <div class="edit-field">
-                                    <label>Descrição</label>
-                                    <textarea id="editAlbumDescription" rows="3" placeholder="Descrição do álbum"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Botões de ação -->
-                        <div class="edit-actions">
-                            <button id="cancelAlbumEdit" class="minimal-btn cancel">
-                                <i class="fas fa-times"></i>
-                                <span>Cancelar</span>
-                            </button>
-                            <button id="saveAlbumEdit" class="minimal-btn save">
-                                <i class="fas fa-check"></i>
-                                <span>Salvar</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Área de edição -->
-            <div id="editAlbumSection" style="display: none;">
-                <!-- Grid de fotos (estilo galeria real) -->
-                <div id="editPhotosGrid" class="edit-photos-grid"></div>
-            </div>
-        </div>
+
     </div>
 </div>
 
