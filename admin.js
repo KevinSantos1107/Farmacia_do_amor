@@ -2,7 +2,24 @@
 
 console.log('🔐 Sistema de Admin ILIMITADO carregado');
 
+// ===== VARIÁVEIS GLOBAIS =====
 let isAdminUnlocked = false;
+let isReorganizing = false;
+let draggedElement = null;
+let draggedIndex = null;
+let newCoverFile = null;
+
+// ===== TOUCH VARIÁVEIS PARA REORGANIZAÇÃO =====
+let touchedElement = null;
+let touchStartYPos = 0;
+let touchStartXPos = 0;
+let isTouchDragging = false;
+let touchStartTimestamp = 0;
+let longPressTimer = null;
+const LONG_PRESS_THRESHOLD = 400;
+const MOVE_THRESHOLD = 15;
+
+// ===== FUNÇÕES DE INICIALIZAÇÃO =====
 
 function waitForServices() {
     return new Promise((resolve) => {
@@ -20,33 +37,26 @@ function waitForServices() {
 function setupTabListeners() {
     const allTabs = document.querySelectorAll('.admin-tab');
     
-    // 🔥 IMPORTANTE: Remover listeners antigos ANTES de clonar
     allTabs.forEach(tab => {
-        // Verificar se já tem listener
         if (tab.dataset.listenerAttached === 'true') {
             console.log('⚠️ Tab já tem listener, pulando...');
             return;
         }
         
-        // Adicionar listener direto (sem clonar)
         tab.addEventListener('click', function handleTabClick() {
             const targetTab = this.dataset.tab;
             
-            // Remover active de todas as tabs
             document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
             this.classList.add('active');
             
-            // Remover active de todos os conteúdos
             document.querySelectorAll('.admin-content').forEach(content => {
                 content.classList.remove('active');
             });
             
-            // Ativar conteúdo correto
             const targetContent = document.getElementById(`${targetTab}-tab`);
             if (targetContent) {
                 targetContent.classList.add('active');
                 
-                // Se for a aba de edição, atualizar select
                 if (targetTab === 'edit') {
                     if (typeof updateEditAlbumSelect === 'function') {
                         updateEditAlbumSelect();
@@ -55,18 +65,12 @@ function setupTabListeners() {
             }
         });
         
-        // Marcar como inicializado
         tab.dataset.listenerAttached = 'true';
     });
     
-    // Inicializar tabs arrastáveis (apenas uma vez)
     initTabsDraggable();
-    
     console.log(`✅ ${allTabs.length} tabs configuradas (sem duplicação)`);
 }
-
-// ===== SISTEMA DE ARRASTE SUAVE PARA ABAS ADMIN =====
-// Substitua a função initTabsDraggable() no seu admin.js
 
 function initTabsDraggable() {
     const tabsContainer = document.querySelector('.admin-tabs');
@@ -75,7 +79,6 @@ function initTabsDraggable() {
         return;
     }
     
-    // Prevenir múltiplas inicializações
     if (tabsContainer.dataset.draggableInitialized === 'true') {
         console.log('✅ Tabs já inicializadas, pulando...');
         return;
@@ -88,14 +91,11 @@ function initTabsDraggable() {
     let lastX = 0;
     let lastTime = Date.now();
     
-    // ===== CONFIGURAÇÕES DE SUAVIZAÇÃO =====
-    const FRICTION = 0.92; // Quanto menor, mais rápido para (0.8-0.95)
-    const SENSITIVITY = 1.2; // Multiplicador de velocidade (1.0-2.0)
-    const MIN_VELOCITY = 0.1; // Velocidade mínima para continuar o movimento
+    const FRICTION = 0.92;
+    const SENSITIVITY = 1.2;
+    const MIN_VELOCITY = 0.1;
     
-    // ===== MOUSE EVENTS (DESKTOP) =====
     const handleMouseDown = (e) => {
-        // 🔥 Não arrastar se clicar diretamente em uma aba
         if (e.target.classList.contains('admin-tab') || e.target.closest('.admin-tab')) {
             return;
         }
@@ -111,7 +111,6 @@ function initTabsDraggable() {
         lastTime = Date.now();
         velocity = 0;
         
-        // Parar qualquer animação de momentum
         cancelAnimationFrame(tabsContainer.momentumAnimation);
     };
     
@@ -127,9 +126,8 @@ function initTabsDraggable() {
             const x = e.pageX - tabsContainer.offsetLeft;
             const walk = (x - startX) * SENSITIVITY;
             
-            // Calcular velocidade
             const deltaX = e.pageX - lastX;
-            velocity = deltaX / deltaTime * 16; // Normalizar para 60fps
+            velocity = deltaX / deltaTime * 16;
             
             tabsContainer.scrollLeft = scrollLeft - walk;
             
@@ -145,7 +143,6 @@ function initTabsDraggable() {
         tabsContainer.classList.remove('dragging');
         tabsContainer.style.cursor = 'grab';
         
-        // Aplicar momentum (inércia)
         applyMomentum();
     };
     
@@ -155,7 +152,6 @@ function initTabsDraggable() {
         }
     };
     
-    // ===== TOUCH EVENTS (MOBILE) - OTIMIZADO =====
     let touchStartX = 0;
     let touchScrollLeft = 0;
     let touchLastX = 0;
@@ -174,7 +170,6 @@ function initTabsDraggable() {
         touchLastTime = Date.now();
         touchVelocity = 0;
         
-        // Parar animação anterior
         cancelAnimationFrame(tabsContainer.momentumAnimation);
     };
     
@@ -188,7 +183,6 @@ function initTabsDraggable() {
             const x = e.touches[0].pageX - tabsContainer.offsetLeft;
             const walk = (x - touchStartX) * SENSITIVITY;
             
-            // Calcular velocidade
             const deltaX = e.touches[0].pageX - touchLastX;
             touchVelocity = deltaX / deltaTime * 16;
             
@@ -205,29 +199,21 @@ function initTabsDraggable() {
         isTouching = false;
         tabsContainer.classList.remove('dragging');
         
-        // Aplicar momentum
         velocity = touchVelocity;
         applyMomentum();
     };
     
-    // ===== FUNÇÃO DE MOMENTUM (INÉRCIA) =====
     function applyMomentum() {
         if (Math.abs(velocity) < MIN_VELOCITY) {
             tabsContainer.style.scrollBehavior = 'smooth';
             return;
         }
         
-        // Aplicar velocidade
         tabsContainer.scrollLeft -= velocity;
-        
-        // Aplicar fricção
         velocity *= FRICTION;
-        
-        // Continuar animação
         tabsContainer.momentumAnimation = requestAnimationFrame(applyMomentum);
     }
     
-    // ===== ADICIONAR LISTENERS (APENAS UMA VEZ) =====
     tabsContainer.addEventListener('mousedown', handleMouseDown);
     tabsContainer.addEventListener('mousemove', handleMouseMove);
     tabsContainer.addEventListener('mouseup', handleMouseUp);
@@ -237,49 +223,9 @@ function initTabsDraggable() {
     tabsContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
     tabsContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
     
-    // Marcar como inicializado
     tabsContainer.dataset.draggableInitialized = 'true';
-    
     console.log('✅ Tabs arrastáveis inicializadas (versão suave otimizada)');
 }
-
-// ===== CSS ADICIONAL PARA MELHORAR O ARRASTE =====
-// Adicione este estilo no seu CSS ou crie uma tag <style>
-
-const smoothDragStyles = `
-    .admin-tabs {
-        scroll-behavior: smooth;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-x: contain;
-    }
-    
-    .admin-tabs.dragging {
-        scroll-behavior: auto;
-        cursor: grabbing !important;
-        user-select: none;
-        -webkit-user-select: none;
-    }
-    
-    .admin-tabs.dragging * {
-        pointer-events: none;
-    }
-    
-    /* Melhorar performance do scroll */
-    .admin-tabs {
-        will-change: scroll-position;
-    }
-`;
-
-// Injetar estilos
-if (!document.getElementById('smooth-drag-styles')) {
-    const styleTag = document.createElement('style');
-    styleTag.id = 'smooth-drag-styles';
-    styleTag.textContent = smoothDragStyles;
-    document.head.appendChild(styleTag);
-}
-
-console.log('✅ Sistema de arraste suave aplicado!');
-
 
 // ===== CONTROLE DO MODAL =====
 async function initAdmin() {
@@ -294,12 +240,10 @@ async function initAdmin() {
         return;
     }
     
-// Abrir modal (com senha)
     adminToggleBtn.addEventListener('click', () => {
         if (!isAdminUnlocked) {
             const password = prompt('🔐 Digite a senha de admin:');
             
-            // ALTERE AQUI A SUA SENHA
             if (password === 'iara2023') {
                 isAdminUnlocked = true;
                 adminToggleBtn.classList.add('unlocked');
@@ -318,7 +262,6 @@ async function initAdmin() {
         }
     });
     
-    // Fechar modal
     closeAdminBtn.addEventListener('click', () => {
         adminModal.style.display = 'none';
         document.body.style.overflow = 'auto';
@@ -333,22 +276,18 @@ async function initAdmin() {
         }
     });
     
-// Configurar sistema de tabs
     setupTabListeners();
     
-    // ← ADICIONAR ESTE BLOCO COMPLETO
     document.querySelectorAll('.admin-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const targetTab = tab.dataset.tab;
             
-            // Se for aba de edição, adicionar ao histórico
             if (targetTab === 'edit') {
                 console.log('📝 Aba de edição aberta - adicionado ao histórico');
             }
         });
     });
     
-    // Inicializar formulários
     initAlbumForms();
     initTimelineForms();
     
@@ -361,7 +300,6 @@ function initAlbumForms() {
     const addPhotoForm = document.getElementById('addPhotoForm');
     const selectAlbum = document.getElementById('selectAlbum');
     
-    // Criar novo álbum
     addAlbumForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -375,7 +313,6 @@ function initAlbumForms() {
             return;
         }
         
-        // ✅ REMOVIDO: limite de 10MB (agora aceita até 32MB do ImgBB)
         if (coverFile.size > 32 * 1024 * 1024) {
             alert('❌ Imagem muito grande! O ImgBB aceita até 32MB por imagem.');
             return;
@@ -387,19 +324,17 @@ function initAlbumForms() {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando capa...';
             btn.disabled = true;
             
-            // ✅ Upload com VERSÕES RESPONSIVAS
             const coverUrls = await uploadImageToCloudinary(coverFile, 1600, true);
             
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
             
-            // ✅ Salvar TODAS as versões no Firebase
             await db.collection('albums').add({
                 title: title,
                 date: date,
-                cover: coverUrls.medium,        // URL padrão (800px)
-                coverThumb: coverUrls.thumb,    // 400px para mobile
-                coverLarge: coverUrls.large,    // 1600px para desktop
-                coverWebP: coverUrls.webp,      // WebP explícito
+                cover: coverUrls.medium,
+                coverThumb: coverUrls.thumb,
+                coverLarge: coverUrls.large,
+                coverWebP: coverUrls.webp,
                 description: description,
                 photoCount: 0,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -423,7 +358,6 @@ function initAlbumForms() {
         }
     });
     
-    // ✅ ADICIONAR FOTOS AO ÁLBUM (VERDADEIRAMENTE ILIMITADO)
     addPhotoForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -440,8 +374,6 @@ function initAlbumForms() {
             return;
         }
         
-        // ✅ REMOVIDO: limite de 30 fotos (agora aceita QUANTAS QUISER)
-        // Agora apenas avisa se for mais de 100 (por questão de tempo de processamento)
         if (photoFiles.length > 100) {
             const confirm = window.confirm(
                 `⚠️ Você selecionou ${photoFiles.length} fotos!\n\n` +
@@ -456,12 +388,10 @@ function initAlbumForms() {
             const originalText = btn.innerHTML;
             btn.disabled = true;
             
-            // Upload de todas as fotos para ImgBB
             const photoUrls = [];
             let uploadErrors = 0;
             
             for (let i = 0; i < photoFiles.length; i++) {
-                // ✅ ALTERADO: Agora aceita até 32MB (limite do ImgBB)
                 if (photoFiles[i].size > 32 * 1024 * 1024) {
                     uploadErrors++;
                     console.warn(`⚠️ Foto ${i + 1} ignorada (maior que 32MB)`);
@@ -471,24 +401,22 @@ function initAlbumForms() {
                 btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Enviando ${i + 1}/${photoFiles.length} para ImgBB...`;
                 
                 try {
-                // ✅ Upload com versões responsivas
-                const urls = await uploadImageToCloudinary(photoFiles[i], 1600, true);
-                
-                photoUrls.push({
-                    src: urls.medium,         // URL padrão
-                    srcThumb: urls.thumb,     // Mobile
-                    srcLarge: urls.large,     // Desktop
-                    srcWebP: urls.webp,       // WebP
-                    description: '',
-                    timestamp: Date.now() + i
-                });
-                
-                // Delay menor para ser mais rápido
-                await new Promise(resolve => setTimeout(resolve, 300));
-            } catch (uploadError) {
-                uploadErrors++;
-                console.error(`❌ Erro no upload da foto ${i + 1}:`, uploadError);
-            }
+                    const urls = await uploadImageToCloudinary(photoFiles[i], 1600, true);
+                    
+                    photoUrls.push({
+                        src: urls.medium,
+                        srcThumb: urls.thumb,
+                        srcLarge: urls.large,
+                        srcWebP: urls.webp,
+                        description: '',
+                        timestamp: Date.now() + i
+                    });
+                    
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                } catch (uploadError) {
+                    uploadErrors++;
+                    console.error(`❌ Erro no upload da foto ${i + 1}:`, uploadError);
+                }
             }
             
             if (photoUrls.length === 0) {
@@ -500,8 +428,6 @@ function initAlbumForms() {
             
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
             
-            // ✅ ALTERADO: Agora 200 fotos por página (Firebase aceita até 1MB por documento)
-            // Como cada URL tem ~100 bytes, 200 URLs = ~20KB (muito abaixo do limite)
             const PHOTOS_PER_PAGE = 200;
             const pages = [];
             
@@ -509,7 +435,6 @@ function initAlbumForms() {
                 pages.push(photoUrls.slice(i, i + PHOTOS_PER_PAGE));
             }
             
-            // Salvar cada página
             for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
                 await db.collection('album_photos').add({
                     albumId: albumId,
@@ -519,7 +444,6 @@ function initAlbumForms() {
                 });
             }
             
-            // Atualizar contador
             const albumDoc = await db.collection('albums').doc(albumId).get();
             const currentCount = albumDoc.data().photoCount || 0;
             
@@ -527,7 +451,6 @@ function initAlbumForms() {
                 photoCount: currentCount + photoUrls.length
             });
             
-            // Mensagem de sucesso com avisos se houver erros
             let successMsg = `✅ ${photoUrls.length} foto(s) adicionada(s) ao ImgBB e Firebase!`;
             if (uploadErrors > 0) {
                 successMsg += `\n\n⚠️ ${uploadErrors} foto(s) não foram enviadas (verifique o tamanho ou formato).`;
@@ -571,7 +494,6 @@ function initTimelineForms() {
             return;
         }
         
-        // ✅ ALTERADO: Aceita até 32MB
         if (photoFile.size > 32 * 1024 * 1024) {
             alert('❌ Imagem muito grande! O ImgBB aceita até 32MB.');
             return;
@@ -583,12 +505,10 @@ function initTimelineForms() {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando para ImgBB...';
             btn.disabled = true;
             
-            // Upload para ImgBB
-          const photoUrls = await uploadImageToCloudinary(photoFile, 1600, true);
+            const photoUrls = await uploadImageToCloudinary(photoFile, 1600, true);
 
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando posição...';
 
-            // DETERMINAR LADO AUTOMATICAMENTE
             let eventSide = 'left';
             try {
                 const allEvents = await db.collection('timeline').get();
@@ -600,15 +520,14 @@ function initTimelineForms() {
 
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
 
-            // ✅ Criar evento com TODAS as versões
             await db.collection('timeline').add({
                 date: eventDate,
                 title: eventTitle,
                 secret: eventSecret || null,
-                photo: photoUrls.medium,      // Padrão
-                photoThumb: photoUrls.thumb,  // Mobile
-                photoLarge: photoUrls.large,  // Desktop
-                photoWebP: photoUrls.webp,    // WebP
+                photo: photoUrls.medium,
+                photoThumb: photoUrls.thumb,
+                photoLarge: photoUrls.large,
+                photoWebP: photoUrls.webp,
                 caption: photoCaption || '',
                 side: eventSide,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -641,13 +560,11 @@ async function loadAlbumsFromFirebase() {
         for (const doc of snapshot.docs) {
             const albumData = doc.data();
             
-            // Buscar todas as páginas de fotos
             const photoPagesSnapshot = await db.collection('album_photos')
                 .where('albumId', '==', doc.id)
                 .orderBy('pageNumber', 'asc')
                 .get();
             
-            // Juntar todas as fotos
             const allPhotos = [];
             photoPagesSnapshot.forEach(pageDoc => {
                 const pageData = pageDoc.data();
@@ -661,10 +578,8 @@ async function loadAlbumsFromFirebase() {
             });
         }
         
-// Atualizar álbuns globais
         window.albums = firebaseAlbums;
         
-        // Recarregar galeria
         if (typeof initAlbums === 'function') {
             initAlbums();
         }
@@ -676,6 +591,7 @@ async function loadAlbumsFromFirebase() {
     }
 }
 
+// ===== REBUILD TIMELINE =====
 async function rebuildTimeline() {
     const container = document.querySelector('.timeline-container');
     if (!container) {
@@ -686,11 +602,9 @@ async function rebuildTimeline() {
     try {
         const snapshot = await db.collection('timeline').orderBy('createdAt', 'asc').get();
         
-        // Remover TODOS os eventos anteriores (exceto timeline-end)
         const allItems = container.querySelectorAll('.timeline-item');
         allItems.forEach(item => item.remove());
         
-        // Buscar ou criar o timeline-end
         let timelineEnd = container.querySelector('.timeline-end');
         
         if (!timelineEnd) {
@@ -703,16 +617,13 @@ async function rebuildTimeline() {
             container.appendChild(timelineEnd);
         }
         
-        // Se não houver eventos, não fazer nada
         if (snapshot.empty) {
             console.log('📖 Nenhum evento na timeline');
             return;
         }
         
-        // Criar um fragmento para melhor performance
         const fragment = document.createDocumentFragment();
         
-        // Adicionar eventos
         snapshot.forEach((doc, index) => {
             const event = doc.data();
             
@@ -745,15 +656,12 @@ async function rebuildTimeline() {
                 <div class="timeline-line"></div>
             `;
 
-            // ✅ CRIAR IMAGEM AQUI (DENTRO DO forEach)
             const img = document.createElement('img');
 
-            // ✅ TIMELINE: Usar versão LARGE com blur placeholder
             if (event.photoLarge) {
                 img.src = event.photoLarge;
                 console.log(`✅ Timeline: LARGE para "${event.title}"`);
             } else if (event.photo) {
-                // Fallback: otimizar URL antiga
                 if (typeof optimizeExistingUrl === 'function') {
                     img.src = optimizeExistingUrl(event.photo, 1600);
                     console.log(`♻️ Timeline: URL otimizada para "${event.title}"`);
@@ -768,8 +676,6 @@ async function rebuildTimeline() {
             img.alt = event.title;
             img.loading = 'lazy';
             img.decoding = 'async';
-
-            // ✅ BLUR PLACEHOLDER
             img.style.filter = 'blur(10px)';
             img.style.transition = 'filter 0.4s ease-out';
 
@@ -777,19 +683,15 @@ async function rebuildTimeline() {
                 img.style.filter = 'none';
             }, { once: true });
 
-            // ✅ INSERIR IMAGEM NO LUGAR CERTO
             const polaroid = item.querySelector('.photo-polaroid');
             const caption = polaroid.querySelector('.polaroid-caption');
             polaroid.insertBefore(img, caption);
             
-            // ✅ ADICIONAR ITEM AO FRAGMENT
             fragment.appendChild(item);
         });
         
-        // Inserir todos os eventos de uma vez ANTES do timeline-end
         container.insertBefore(fragment, timelineEnd);
         
-        // Reinicializar botões de mensagem secreta
         const secretBtns = document.querySelectorAll('.secret-message-btn');
         secretBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -837,76 +739,6 @@ async function loadExistingContent() {
     await loadExistingEventsRedesign();
 }
 
-async function loadExistingAlbums() {
-    const container = document.getElementById('existingAlbums');
-    
-    try {
-        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
-        
-        container.innerHTML = '';
-        
-        if (snapshot.empty) {
-            container.innerHTML = '<p style="color: var(--theme-text-secondary); text-align: center;">Nenhum álbum criado ainda</p>';
-            return;
-        }
-        
-        snapshot.forEach(doc => {
-            const album = doc.data();
-            const item = document.createElement('div');
-            item.className = 'existing-item';
-            item.innerHTML = `
-                <div class="existing-item-info">
-                    <div class="existing-item-title">${album.title}</div>
-                    <div class="existing-item-meta">${album.date} • ${album.photoCount || 0} fotos</div>
-                </div>
-                <button class="delete-item-btn" onclick="deleteAlbum('${doc.id}')">
-                    <i class="fas fa-trash"></i> Excluir
-                </button>
-            `;
-            container.appendChild(item);
-        });
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar álbuns:', error);
-        container.innerHTML = '<p style="color: #ff5050;">Erro ao carregar álbuns</p>';
-    }
-}
-
-async function loadExistingEvents() {
-    const container = document.getElementById('existingEvents');
-    
-    try {
-        const snapshot = await db.collection('timeline').orderBy('createdAt', 'desc').get();
-        
-        container.innerHTML = '';
-        
-        if (snapshot.empty) {
-            container.innerHTML = '<p style="color: var(--theme-text-secondary); text-align: center;">Nenhum evento criado ainda</p>';
-            return;
-        }
-        
-        snapshot.forEach(doc => {
-            const event = doc.data();
-            const item = document.createElement('div');
-            item.className = 'existing-item';
-            item.innerHTML = `
-                <div class="existing-item-info">
-                    <div class="existing-item-title">${event.title}</div>
-                    <div class="existing-item-meta">${event.date} • Lado ${event.side === 'left' ? 'esquerdo' : 'direito'}</div>
-                </div>
-                <button class="delete-item-btn" onclick="deleteEvent('${doc.id}')">
-                    <i class="fas fa-trash"></i> Excluir
-                </button>
-            `;
-            container.appendChild(item);
-        });
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar eventos:', error);
-        container.innerHTML = '<p style="color: #ff5050;">Erro ao carregar eventos</p>';
-    }
-}
-
 // ===== FUNÇÕES DE EXCLUSÃO =====
 window.deleteAlbum = async function(albumId) {
     if (!confirm('❌ Tem certeza que deseja excluir este álbum?\n\nISSO NÃO DELETARÁ as imagens do ImgBB (elas ficarão lá para sempre).')) {
@@ -914,10 +746,8 @@ window.deleteAlbum = async function(albumId) {
     }
     
     try {
-        // Deletar documento principal
         await db.collection('albums').doc(albumId).delete();
         
-        // Deletar todas as páginas de fotos
         const photoPagesSnapshot = await db.collection('album_photos')
             .where('albumId', '==', albumId)
             .get();
@@ -958,24 +788,9 @@ window.deleteEvent = async function(eventId) {
     }
 };
 
-// ===== INICIALIZAR NO CARREGAMENTO =====
-document.addEventListener('DOMContentLoaded', async () => {
-    await waitForServices();
-    
-    initAdmin();
-    
-    // Carregar conteúdo do Firebase
-    setTimeout(async () => {
-        await loadAlbumsFromFirebase();
-        await rebuildTimeline();
-    }, 1000);
-});
-
-// ===== SISTEMA DE EDIÇÃO DE ÁLBUNS (DELETAR E REORGANIZAR FOTOS) =====
-
+// ===== SISTEMA DE EDIÇÃO DE ÁLBUNS =====
 console.log('✏️ Sistema de edição de álbuns carregado');
 
-// ===== CONFIGURAR LISTENERS DA ABA DE EDIÇÃO =====
 function setupEditTabListeners() {
     setTimeout(() => {
         const loadBtn = document.getElementById('loadEditAlbumBtn');
@@ -1035,17 +850,13 @@ function setupEditTabListeners() {
             console.log('✅ Listener de preview capa configurado');
         }
         
-        // Criar toolbar se não existir
         createBottomToolbar();
-        
-        // Listener para botão "voltar" do Android
         setupBackButtonHandler();
         
         console.log('✅ Todos os listeners da aba de edição configurados');
     }, 500);
 }
 
-// ===== CRIAR TOOLBAR (SE NÃO EXISTIR) =====
 function createBottomToolbar() {
     let toolbar = document.getElementById('bottomToolbar');
     if (!toolbar) {
@@ -1078,7 +889,6 @@ function createBottomToolbar() {
     }
 }
 
-// ===== ATUALIZAR SELECT DE ÁLBUNS PARA EDIÇÃO =====
 async function updateEditAlbumSelect() {
     const select = document.getElementById('editAlbumSelect');
     
@@ -1102,7 +912,6 @@ async function updateEditAlbumSelect() {
     }
 }
 
-// ===== RECRIAR LISTENERS DA TOOLBAR (CORRIGE BUG DE TRAVAMENTO) =====
 function recreateToolbarListeners() {
     console.log('🔄 Recriando listeners da toolbar...');
     
@@ -1121,7 +930,6 @@ function recreateToolbarListeners() {
         const newReorganizeBtn = reorganizeBtn.cloneNode(true);
         reorganizeBtn.parentNode.replaceChild(newReorganizeBtn, reorganizeBtn);
         
-        // 🔥 GARANTIR QUE O BOTÃO ESTÁ HABILITADO
         newReorganizeBtn.disabled = false;
         newReorganizeBtn.classList.remove('active');
         newReorganizeBtn.innerHTML = '<i class="fas fa-sort"></i><span>Reorganizar</span>';
@@ -1140,7 +948,6 @@ function recreateToolbarListeners() {
     console.log('✅ Todos os listeners da toolbar recriados com sucesso');
 }
 
-// ===== CARREGAR ÁLBUM PARA EDIÇÃO =====
 async function loadAlbumForEdit() {
     const select = document.getElementById('editAlbumSelect');
     const albumId = select.value;
@@ -1162,17 +969,14 @@ async function loadAlbumForEdit() {
             toolbar.style.display = 'none';
         }
         
-        // Buscar dados do álbum
         const albumDoc = await db.collection('albums').doc(albumId).get();
         const albumData = albumDoc.data();
         
-        // Buscar todas as páginas de fotos
         const photoPagesSnapshot = await db.collection('album_photos')
             .where('albumId', '==', albumId)
             .orderBy('pageNumber', 'asc')
             .get();
         
-        // Juntar todas as fotos com seus IDs de página
         const allPhotos = [];
         photoPagesSnapshot.forEach(pageDoc => {
             const pageData = pageDoc.data();
@@ -1186,29 +990,25 @@ async function loadAlbumForEdit() {
             });
         });
         
-        // Armazenar dados globalmente
         window.currentEditAlbum = {
             id: albumId,
             data: albumData,
             photos: allPhotos
         };
         
-        // Renderizar fotos
         renderPhotosForEdit(allPhotos, albumData.title);
         
         btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
         btn.disabled = false;
         
-        // 🔥 IMPORTANTE: Recriar listeners dos botões da toolbar
         recreateToolbarListeners();
 
-        // ✅ PREENCHER CAMPOS DE EDIÇÃO
         document.getElementById('editAlbumTitle').value = albumData.title || '';
         document.getElementById('editAlbumDate').value = albumData.date || '';
         document.getElementById('editAlbumDescription').value = albumData.description || '';
         document.getElementById('currentCoverPreview').src = albumData.cover || '';
         document.getElementById('editAlbumSection').style.display = 'block';
-        document.getElementById('editAlbumInfoSection').style.display = 'block'; // ← Mostrar seção de edição
+        document.getElementById('editAlbumInfoSection').style.display = 'block';
         
         console.log(`✅ ${allPhotos.length} fotos carregadas para edição`);
         
@@ -1229,13 +1029,11 @@ function toggleAlbumInfoEdit() {
     if (!form || !btn) return;
     
     if (form.style.display === 'none' || form.style.display === '') {
-        // Abrir
         form.style.display = 'block';
         btn.querySelector('.edit-text').textContent = 'Fechar';
         btn.querySelector('i').className = 'fas fa-times';
         console.log('✏️ Formulário de edição ABERTO');
     } else {
-        // Fechar
         form.style.display = 'none';
         btn.querySelector('.edit-text').textContent = 'Editar Álbum';
         btn.querySelector('i').className = 'fas fa-edit';
@@ -1243,7 +1041,6 @@ function toggleAlbumInfoEdit() {
     }
 }
 
-// ✅ VERSÃO SIMPLES: Apenas clique (sem arraste)
 function initSwipeableEditButton() {
     const btn = document.getElementById('toggleAlbumInfoEdit');
     if (!btn) {
@@ -1251,11 +1048,9 @@ function initSwipeableEditButton() {
         return;
     }
     
-    // Remover qualquer listener antigo
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
     
-    // Adicionar apenas clique simples
     newBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1265,8 +1060,8 @@ function initSwipeableEditButton() {
     
     console.log('✅ Botão de edição inicializado (apenas clique)');
 }
+
 function cancelAlbumInfoEdit() {
-    // Restaurar valores originais
     if (window.currentEditAlbum) {
         const albumData = window.currentEditAlbum.data;
         document.getElementById('editAlbumTitle').value = albumData.title || '';
@@ -1275,10 +1070,8 @@ function cancelAlbumInfoEdit() {
         document.getElementById('currentCoverPreview').src = albumData.cover || '';
     }
     
-    // Fechar form
     document.getElementById('albumInfoEditForm').style.display = 'none';
     
-    // Restaurar botão
     const btn = document.getElementById('toggleAlbumInfoEdit');
     if (btn) {
         btn.querySelector('.edit-text').textContent = 'Editar Álbum';
@@ -1287,7 +1080,6 @@ function cancelAlbumInfoEdit() {
     
     console.log('✏️ Edição cancelada');
 }
-let newCoverFile = null;
 
 function previewNewCover(e) {
     const file = e.target.files[0];
@@ -1300,7 +1092,6 @@ function previewNewCover(e) {
     
     newCoverFile = file;
     
-    // Preview imediato
     const reader = new FileReader();
     reader.onload = (e) => {
         document.getElementById('currentCoverPreview').src = e.target.result;
@@ -1338,7 +1129,6 @@ async function saveAlbumInfo() {
             description: newDescription
         };
         
-        // Upload nova capa se houver
         if (newCoverFile) {
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Enviando capa...</span>';
             const coverUrl = await uploadImageToCloudinary(newCoverFile, 800);
@@ -1348,10 +1138,8 @@ async function saveAlbumInfo() {
         
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando no Firebase...</span>';
         
-        // Atualizar no Firebase
         await db.collection('albums').doc(albumId).update(updateData);
         
-        // Atualizar cache local
         window.currentEditAlbum.data = {
             ...window.currentEditAlbum.data,
             ...updateData
@@ -1359,13 +1147,11 @@ async function saveAlbumInfo() {
         
         alert('✅ Informações do álbum atualizadas com sucesso!');
         
-        // ✅ NÃO FECHA O FORMULÁRIO - Apenas restaura o botão
         if (document.getElementById('saveAlbumEdit')) {
             saveBtn.innerHTML = originalText;
             saveBtn.disabled = false;
         }
         
-        // Recarregar dados em background
         await loadAlbumsFromFirebase();
         await updateEditAlbumSelect();
         
@@ -1373,7 +1159,6 @@ async function saveAlbumInfo() {
         console.error('❌ Erro ao salvar:', error);
         alert('❌ Erro ao salvar: ' + error.message);
         
-        // Verificar se o botão ainda existe antes de modificar
         const btn = document.getElementById('saveAlbumEdit');
         if (btn) {
             btn.innerHTML = originalText;
@@ -1382,7 +1167,20 @@ async function saveAlbumInfo() {
     }
 }
 
-// Encontre esta função (linha ~1650) e substitua completamente
+function createLazyImage(src, alt) {
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = alt;
+    img.loading = 'lazy';
+    img.style.filter = 'blur(10px)';
+    img.style.transition = 'filter 0.4s ease-out';
+    
+    img.addEventListener('load', () => {
+        img.style.filter = 'none';
+    }, { once: true });
+    
+    return img;
+}
 
 function renderPhotosForEdit(photos, albumTitle) {
     const grid = document.getElementById('editPhotosGrid');
@@ -1404,11 +1202,9 @@ function renderPhotosForEdit(photos, albumTitle) {
         photoCard.className = 'gallery-photo';
         photoCard.setAttribute('data-index', index);
         
-        // ✅ NÃO CRIAR <img> NO innerHTML
         photoCard.innerHTML = `
             <input type="checkbox" class="photo-checkbox" id="photo-${index}" aria-label="Selecionar foto ${index + 1}">
             <div class="photo-wrapper">
-                <!-- Imagem será adicionada via JavaScript -->
                 <div class="photo-checkmark">
                     <i class="fas fa-check"></i>
                 </div>
@@ -1416,30 +1212,24 @@ function renderPhotosForEdit(photos, albumTitle) {
             </div>
         `;
         
-        // ✅ ADICIONAR AO GRID PRIMEIRO
         grid.appendChild(photoCard);
         
-        // ✅ CRIAR IMAGEM COM LAZY LOADING DEPOIS
         const wrapper = photoCard.querySelector('.photo-wrapper');
         const img = createLazyImage(photo.src, `Foto ${index + 1}`);
         
-        // Inserir imagem ANTES do checkmark
         wrapper.insertBefore(img, wrapper.firstChild);
         
-        // Configurar eventos (long press, etc) - CÓDIGO JÁ EXISTENTE
         const checkbox = photoCard.querySelector('input[type="checkbox"]');
         
         let longPressTimer;
         let touchStartTime;
         let touchMoved = false;
         
-        // ===== 🔥 BLOQUEAR MENU DE CONTEXTO =====
         wrapper.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             return false;
         });
         
-        // ===== LONG PRESS (MOBILE) =====
         wrapper.addEventListener('touchstart', (e) => {
             if (isReorganizing) return;
             
@@ -1479,7 +1269,6 @@ function renderPhotosForEdit(photos, albumTitle) {
             }
         }, { passive: true });
         
-        // ===== CLICK (DESKTOP) =====
         wrapper.addEventListener('mousedown', (e) => {
             e.preventDefault();
             
@@ -1500,7 +1289,6 @@ function renderPhotosForEdit(photos, albumTitle) {
             clearTimeout(longPressTimer);
         });
         
-        // ===== 🔥 BLOQUEAR ARRASTAR IMAGEM =====
         wrapper.addEventListener('dragstart', (e) => {
             if (!isReorganizing) {
                 e.preventDefault();
@@ -1512,13 +1300,11 @@ function renderPhotosForEdit(photos, albumTitle) {
     updateSelectionUI();
 }
 
-// ===== VERIFICAR SE ESTÁ EM MODO SELEÇÃO =====
 function isInSelectionMode() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
     return checkboxes.length > 0;
 }
 
-// ===== ATUALIZAR UI DE SELEÇÃO =====
 function updateSelectionUI() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
     const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
@@ -1527,21 +1313,15 @@ function updateSelectionUI() {
     const selectionCountSpan = document.getElementById('selectionCount');
     
     if (selectedCount > 0) {
-        // Adicionar ao histórico quando entrar em modo seleção
-        
-        // Mostrar barra inferior
         bottomToolbar.style.display = 'flex';
         selectionCountSpan.textContent = `${selectedCount} selecionada${selectedCount !== 1 ? 's' : ''}`;
         
-        // Mostrar checkmarks em TODAS as fotos
         document.querySelectorAll('.gallery-photo').forEach(photo => {
             photo.classList.add('selection-mode');
         });
     } else {
-        // Esconder barra inferior
         bottomToolbar.style.display = 'none';
         
-        // Esconder checkmarks
         document.querySelectorAll('.gallery-photo').forEach(photo => {
             photo.classList.remove('selection-mode');
         });
@@ -1556,25 +1336,21 @@ function cancelSelection() {
         cb.closest('.gallery-photo').classList.remove('selected');
     });
     
-    // ← ADICIONAR ESTAS 3 LINHAS
     console.log('☑️ Seleção cancelada');
     
     updateSelectionUI();
 }
-// ===== HANDLER PARA BOTÃO "VOLTAR" DO ANDROID =====
+
 function setupBackButtonHandler() {
-    // Criar um "estado" no histórico para capturar o back
     window.addEventListener('popstate', (e) => {
         if (isInSelectionMode()) {
             e.preventDefault();
             cancelSelection();
             
-            // Re-adicionar estado no histórico
             history.pushState({ editMode: true }, '');
         }
     });
     
-    // Adicionar estado inicial quando entrar em modo edição
     const editSection = document.getElementById('editAlbumSection');
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
@@ -1590,10 +1366,6 @@ function setupBackButtonHandler() {
 }
 
 // ===== MODO REORGANIZAR =====
-let isReorganizing = false;
-let draggedElement = null;
-let draggedIndex = null;
-
 function enterReorganizeMode() {
     if (isReorganizing) {
         saveNewPhotoOrder();
@@ -1602,72 +1374,61 @@ function enterReorganizeMode() {
     
     isReorganizing = true;
     
-    // ← ADICIONAR ESTAS 3 LINHAS
     console.log('📝 Modo reorganizar ativado');
     
     const reorganizeBtn = document.getElementById('reorganizePhotos');
     reorganizeBtn.innerHTML = '<i class="fas fa-save"></i><span>Salvar</span>';
     reorganizeBtn.classList.add('active');
     
-    // Esconder outros botões
     document.getElementById('deleteSelectedPhotos').style.display = 'none';
     document.getElementById('cancelSelection').innerHTML = '<i class="fas fa-times"></i><span>Cancelar</span>';
     
-    // Desmarcar todas
     cancelSelection();
     
-    // Atualizar UI
     const selectionCountSpan = document.getElementById('selectionCount');
     selectionCountSpan.textContent = 'Arraste para reorganizar';
     document.getElementById('bottomToolbar').style.display = 'flex';
     
-    // Ativar arrastar
     const photos = document.querySelectorAll('.gallery-photo');
     photos.forEach((photo, index) => {
         photo.classList.add('draggable');
         photo.setAttribute('draggable', 'true');
         
-        // Mostrar número
         const numberEl = photo.querySelector('.photo-number');
         if (numberEl) {
             numberEl.style.display = 'flex';
             numberEl.textContent = index + 1;
         }
         
-        // Desktop drag
         photo.addEventListener('dragstart', handleDragStart);
         photo.addEventListener('dragover', handleDragOver);
         photo.addEventListener('drop', handleDrop);
         photo.addEventListener('dragend', handleDragEnd);
         
-        // Mobile touch - 🔥 PASSIVE FALSE AQUI
         photo.addEventListener('touchstart', handleTouchStart, { passive: true });
-        photo.addEventListener('touchmove', handleTouchMove, { passive: false }); // ← AQUI
+        photo.addEventListener('touchmove', handleTouchMove, { passive: false });
         photo.addEventListener('touchend', handleTouchEnd, { passive: true });
     });
     
     console.log('📝 Modo reorganizar ativado');
 }
+
 function exitReorganizeMode(save = false) {
     isReorganizing = false;
     
-    // ← ADICIONAR ESTAS 3 LINHAS
     console.log('📝 Modo reorganizar desativado');
     
     const reorganizeBtn = document.getElementById('reorganizePhotos');
     
     if (save) {
-        // Salvar antes de sair
         saveNewPhotoOrder();
-        return; // saveNewPhotoOrder já chama exitReorganizeMode(false)
+        return;
     }
     
-    // 🔥 GARANTIR QUE O BOTÃO ESTÁ HABILITADO E VISÍVEL
     reorganizeBtn.innerHTML = '<i class="fas fa-sort"></i><span>Reorganizar</span>';
     reorganizeBtn.classList.remove('active');
-    reorganizeBtn.disabled = false; // ← ADICIONAR ESTA LINHA
+    reorganizeBtn.disabled = false;
     
-    // Mostrar outros botões novamente
     const deleteBtn = document.getElementById('deleteSelectedPhotos');
     if (deleteBtn) {
         deleteBtn.style.display = 'flex';
@@ -1675,19 +1436,16 @@ function exitReorganizeMode(save = false) {
     
     document.getElementById('bottomToolbar').style.display = 'none';
     
-    // Desativar arrastar
     const photos = document.querySelectorAll('.gallery-photo');
     photos.forEach(photo => {
         photo.classList.remove('draggable');
         photo.removeAttribute('draggable');
         
-        // Esconder número
         const numberEl = photo.querySelector('.photo-number');
         if (numberEl) {
             numberEl.style.display = 'none';
         }
         
-        // Remover listeners
         photo.removeEventListener('dragstart', handleDragStart);
         photo.removeEventListener('dragover', handleDragOver);
         photo.removeEventListener('drop', handleDrop);
@@ -1700,8 +1458,6 @@ function exitReorganizeMode(save = false) {
     console.log('📝 Modo reorganizar desativado');
 }
 
-
-// ===== DRAG & DROP HANDLERS (DESKTOP) =====
 function handleDragStart(e) {
     draggedElement = this;
     draggedIndex = parseInt(this.getAttribute('data-index'));
@@ -1739,20 +1495,9 @@ function handleDragEnd(e) {
     });
 }
 
-// ===== TOUCH HANDLERS (MOBILE) - SISTEMA ROBUSTO COM LONG-PRESS =====
-let touchedElement = null;
-let touchStartYPos = 0;
-let touchStartXPos = 0;
-let isTouchDragging = false;
-let touchStartTimestamp = 0;
-let longPressTimer = null;
-const LONG_PRESS_THRESHOLD = 400; // 400ms para ativar
-const MOVE_THRESHOLD = 15; // pixels de movimento permitido antes de cancelar
-
 function handleTouchStart(e) {
     if (!isReorganizing) return;
     
-    // Resetar estados
     isTouchDragging = false;
     touchedElement = this;
     draggedIndex = parseInt(this.getAttribute('data-index'));
@@ -1762,15 +1507,11 @@ function handleTouchStart(e) {
     touchStartYPos = touch.clientY;
     touchStartTimestamp = Date.now();
     
-    // Iniciar timer de long-press
     longPressTimer = setTimeout(() => {
-        // Verificar se ainda está tocando no mesmo lugar
         if (touchedElement && !isTouchDragging) {
-            // Ativar modo drag
             isTouchDragging = true;
             touchedElement.classList.add('dragging');
             
-            // Feedback visual e tátil
             if (navigator.vibrate) {
                 navigator.vibrate(50);
             }
@@ -1787,35 +1528,28 @@ function handleTouchMove(e) {
     const deltaX = Math.abs(touch.clientX - touchStartXPos);
     const deltaY = Math.abs(touch.clientY - touchStartYPos);
     
-    // Se moveu ANTES de ativar o drag, cancelar long-press
     if (!isTouchDragging) {
         if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
-            // Cancelar long-press e permitir scroll
             clearTimeout(longPressTimer);
             touchedElement = null;
             return;
         }
-        // Ainda esperando long-press, não fazer nada
         return;
     }
     
-    // ✅ Agora SIM está arrastando - prevenir scroll
     if (e.cancelable) {
         e.preventDefault();
     }
     
-    // Detectar foto abaixo do dedo
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     const photoBelow = elementBelow?.closest('.gallery-photo');
     
-    // Limpar highlights anteriores
     document.querySelectorAll('.gallery-photo').forEach(p => {
         if (p !== touchedElement) {
             p.classList.remove('drag-over');
         }
     });
     
-    // Highlight na foto alvo
     if (photoBelow && photoBelow !== touchedElement) {
         const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
         if (draggedIndex !== targetIndex) {
@@ -1827,16 +1561,13 @@ function handleTouchMove(e) {
 function handleTouchEnd(e) {
     if (!isReorganizing) return;
     
-    // Cancelar timer se ainda estiver rodando
     clearTimeout(longPressTimer);
     
-    // Se NÃO estava arrastando, apenas limpar
     if (!isTouchDragging) {
         touchedElement = null;
         return;
     }
     
-    // ✅ Estava arrastando - processar troca
     const touch = e.changedTouches[0];
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     const photoBelow = elementBelow?.closest('.gallery-photo');
@@ -1850,7 +1581,6 @@ function handleTouchEnd(e) {
         }
     }
     
-    // Limpar estados visuais
     if (touchedElement) {
         touchedElement.classList.remove('dragging');
     }
@@ -1859,27 +1589,21 @@ function handleTouchEnd(e) {
         p.classList.remove('drag-over');
     });
     
-    // Resetar variáveis
     touchedElement = null;
     isTouchDragging = false;
 }
 
-// ===== TROCAR POSIÇÃO DAS FOTOS (CORRIGIDO) =====
 function swapPhotos(fromIndex, toIndex) {
     const photos = window.currentEditAlbum.photos;
     
-    // 🔥 Mover item (não apenas trocar)
     const movedPhoto = photos.splice(fromIndex, 1)[0];
     photos.splice(toIndex, 0, movedPhoto);
     
-    // Re-renderizar com nova ordem
     renderPhotosForEditInReorganizeMode(photos);
     
     console.log(`🔄 Foto ${fromIndex + 1} movida para posição ${toIndex + 1}`);
 }
 
-
-// ===== RE-RENDERIZAR NO MODO REORGANIZAR =====
 function renderPhotosForEditInReorganizeMode(photos) {
     const grid = document.getElementById('editPhotosGrid');
     grid.innerHTML = '';
@@ -1897,7 +1621,6 @@ function renderPhotosForEditInReorganizeMode(photos) {
             </div>
         `;
         
-        // Re-adicionar listeners
         photoCard.addEventListener('dragstart', handleDragStart);
         photoCard.addEventListener('dragover', handleDragOver);
         photoCard.addEventListener('drop', handleDrop);
@@ -1910,7 +1633,6 @@ function renderPhotosForEditInReorganizeMode(photos) {
     });
 }
 
-// ===== SALVAR NOVA ORDEM NO FIREBASE (COM AUTO-RELOAD) =====
 async function saveNewPhotoOrder() {
     if (!window.currentEditAlbum) return;
     
@@ -1923,7 +1645,6 @@ async function saveNewPhotoOrder() {
         const photos = window.currentEditAlbum.photos;
         const albumId = window.currentEditAlbum.id;
         
-        // Reorganizar em páginas
         const PHOTOS_PER_PAGE = 200;
         const newPages = [];
         
@@ -1931,7 +1652,6 @@ async function saveNewPhotoOrder() {
             newPages.push(photos.slice(i, i + PHOTOS_PER_PAGE));
         }
         
-        // Deletar páginas antigas
         const oldPagesSnapshot = await db.collection('album_photos')
             .where('albumId', '==', albumId)
             .get();
@@ -1944,7 +1664,6 @@ async function saveNewPhotoOrder() {
         await Promise.all(deletePromises);
         console.log(`✅ ${oldPagesSnapshot.size} páginas antigas deletadas`);
         
-        // Criar novas páginas com nova ordem
         for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
             await db.collection('album_photos').add({
                 albumId: albumId,
@@ -1962,27 +1681,20 @@ async function saveNewPhotoOrder() {
         
         alert('✅ Nova ordem das fotos salva com sucesso!');
         
-        // 🔥 RECARREGAR ÁLBUM AUTOMATICAMENTE
         console.log('🔄 Recarregando álbum automaticamente...');
         
-        // Sair do modo reorganizar
         exitReorganizeMode(false);
         
-        // Recarregar galeria principal
         await loadAlbumsFromFirebase();
         
-        // 🎯 RECARREGAR O ÁLBUM ATUAL (SEM TROCAR)
         const select = document.getElementById('editAlbumSelect');
-        select.value = albumId; // Manter álbum selecionado
+        select.value = albumId;
         
-        // Simular clique no botão de carregar
         const loadBtn = document.getElementById('loadEditAlbumBtn');
         loadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recarregando...';
         
-        // Aguardar um pouco antes de recarregar
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Carregar álbum atualizado
         await loadAlbumForEdit();
         await updateEditAlbumSelect();
 
@@ -1999,8 +1711,6 @@ async function saveNewPhotoOrder() {
     }
 }
 
-
-// ===== SELECIONAR/DESMARCAR TODAS =====
 function selectAllPhotos() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
     const allChecked = Array.from(checkboxes).every(cb => cb.checked);
@@ -2013,7 +1723,6 @@ function selectAllPhotos() {
     updateSelectionCount();
 }
 
-// ===== ATUALIZAR CONTADOR DE SELEÇÃO =====
 function updateSelectionCount() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
     const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
@@ -2023,7 +1732,6 @@ function updateSelectionCount() {
     const selectAllBtn = document.getElementById('selectAllPhotos');
     const deleteCountSpan = document.getElementById('deleteCount');
     
-    // Atualizar botão de deletar
     if (selectedCount > 0) {
         deleteBtn.style.display = 'flex';
         deleteCountSpan.textContent = `Deletar (${selectedCount})`;
@@ -2031,7 +1739,6 @@ function updateSelectionCount() {
         deleteBtn.style.display = 'none';
     }
     
-    // Atualizar botão de selecionar
     const allChecked = selectedCount === totalCount && totalCount > 0;
     
     if (allChecked) {
@@ -2043,7 +1750,6 @@ function updateSelectionCount() {
     }
 }
 
-// ===== DELETAR FOTOS SELECIONADAS =====
 async function deleteSelectedPhotos() {
     const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
     
@@ -2060,7 +1766,6 @@ async function deleteSelectedPhotos() {
         return;
     }
     
-    // 🔥 SALVAR REFERÊNCIAS ANTES
     const currentAlbumId = window.currentEditAlbum.id;
     const btn = document.getElementById('deleteSelectedPhotos');
     const toolbar = document.getElementById('bottomToolbar');
@@ -2069,21 +1774,18 @@ async function deleteSelectedPhotos() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deletando...';
         btn.disabled = true;
         
-        // Coletar índices das fotos selecionadas
         const selectedIndices = Array.from(checkboxes).map(cb => {
             return parseInt(cb.closest('.gallery-photo').getAttribute('data-index'));
         }).sort((a, b) => b - a);
         
         console.log(`🗑️ Deletando ${selectedIndices.length} fotos...`);
         
-        // Filtrar fotos que NÃO serão deletadas
         const remainingPhotos = window.currentEditAlbum.photos.filter((photo, index) => {
             return !selectedIndices.includes(index);
         });
         
         console.log(`📊 Fotos restantes: ${remainingPhotos.length}`);
         
-        // Reorganizar em páginas de 200 fotos
         const PHOTOS_PER_PAGE = 200;
         const newPages = [];
         
@@ -2091,7 +1793,6 @@ async function deleteSelectedPhotos() {
             newPages.push(remainingPhotos.slice(i, i + PHOTOS_PER_PAGE));
         }
         
-        // Deletar todas as páginas antigas
         const oldPagesSnapshot = await db.collection('album_photos')
             .where('albumId', '==', currentAlbumId)
             .get();
@@ -2104,7 +1805,6 @@ async function deleteSelectedPhotos() {
         await Promise.all(deletePromises);
         console.log(`✅ ${oldPagesSnapshot.size} páginas antigas deletadas`);
         
-        // Criar novas páginas (se ainda houver fotos)
         if (newPages.length > 0) {
             for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
                 await db.collection('album_photos').add({
@@ -2121,19 +1821,16 @@ async function deleteSelectedPhotos() {
             console.log(`✅ ${newPages.length} novas páginas criadas`);
         }
         
-        // Atualizar contador de fotos no álbum
         await db.collection('albums').doc(currentAlbumId).update({
             photoCount: remainingPhotos.length
         });
         
         alert(`✅ ${selectedIndices.length} foto(s) deletada(s) com sucesso!\n\n⚠️ As imagens continuam no ImgBB.`);
         
-        // 🔥 RESETAR BOTÃO E ESCONDER TOOLBAR IMEDIATAMENTE
         btn.innerHTML = '<i class="fas fa-trash"></i> Deletar';
         btn.disabled = false;
         toolbar.style.display = 'none';
         
-        // 🔥 LIMPAR TODAS AS SELEÇÕES
         const allCheckboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
         allCheckboxes.forEach(cb => {
             cb.checked = false;
@@ -2143,18 +1840,14 @@ async function deleteSelectedPhotos() {
             }
         });
         
-        // 🔥 MANTER ÁLBUM SELECIONADO
         const select = document.getElementById('editAlbumSelect');
         select.value = currentAlbumId;
         
-        // Recarregar álbum
         await loadAlbumForEdit();
         
-        // Atualizar galeria principal
         await loadAlbumsFromFirebase();
         await updateEditAlbumSelect();
         
-        // 🔥 GARANTIR QUE O ÁLBUM PERMANECE SELECIONADO
         setTimeout(() => {
             select.value = currentAlbumId;
         }, 100);
@@ -2165,470 +1858,10 @@ async function deleteSelectedPhotos() {
         console.error('❌ Erro ao deletar fotos:', error);
         alert('❌ Erro ao deletar fotos: ' + error.message);
         
-        // 🔥 RESETAR INTERFACE MESMO EM CASO DE ERRO
         btn.innerHTML = '<i class="fas fa-trash"></i> Deletar';
         btn.disabled = false;
         toolbar.style.display = 'none';
     }
-}
-
-// ===== CSS GALERIA NATIVA COM BARRA INFERIOR =====
-function injectEditStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-        /* ===== GRID GALERIA - 3 COLUNAS ===== */
-        .edit-photos-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 80px; /* ← Espaço para a toolbar */
-        }
-        
-        /* ===== CARD DE FOTO ===== */
-        .gallery-photo {
-            position: relative;
-            aspect-ratio: 1;
-            overflow: hidden;
-            background: rgba(0, 0, 0, 0.5);
-        }
-        
-        .photo-wrapper {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        
-        .gallery-photo img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: all 0.3s ease;
-            pointer-events: none;
-        }
-        
-        /* Checkbox escondido */
-        .photo-checkbox {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        /* Checkmark (SÓ APARECE EM MODO SELEÇÃO) */
-        .photo-checkmark {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 24px;
-            height: 24px;
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: all 0.2s ease;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            pointer-events: none;
-        }
-        
-        .photo-checkmark i {
-            color: white;
-            font-size: 12px;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-        
-        /* Mostrar checkmark quando está em modo seleção */
-        .gallery-photo.selection-mode .photo-checkmark {
-            opacity: 1;
-        }
-        
-        /* Checkmark ativo */
-        .gallery-photo.selected .photo-checkmark {
-            opacity: 1;
-            background: var(--theme-primary);
-            border-color: var(--theme-primary);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        }
-        
-        .gallery-photo.selected .photo-checkmark i {
-            opacity: 1;
-        }
-        
-        .gallery-photo.selected img {
-            opacity: 0.7;
-        }
-        
-        .gallery-photo.selected::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border: 3px solid var(--theme-primary);
-            pointer-events: none;
-            z-index: 10;
-        }
-        
-        /* ===== MODO REORGANIZAR ===== */
-        .gallery-photo.draggable {
-            cursor: grab;
-        }
-        
-        .gallery-photo.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
-        }
-        
-        .gallery-photo.drag-over {
-            border: 3px solid var(--theme-accent);
-            box-shadow: 0 0 20px var(--theme-accent);
-        }
-        
-        /* Número da foto (modo reorganizar) */
-        .photo-number {
-            position: absolute;
-            bottom: 8px;
-            left: 8px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: bold;
-            font-family: 'Poppins', sans-serif;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            min-width: 32px;
-        }
-        
-        /* ===== BARRA INFERIOR FIXA (ESTILO GALERIA NATIVA) ===== */
-        .bottom-toolbar {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            background: var(--theme-card-bg);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid var(--theme-card-border);
-            padding: 12px 20px;
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            z-index: 999999 !important; /* ← Z-INDEX MÁXIMO */
-            box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.3);
-            animation: slideUp 0.3s ease-out;
-            pointer-events: auto !important; /* ← Garantir que é clicável */
-        }
-        
-        /* 🔥 IMPORTANTE: Garantir que toolbar fica visível */
-        .bottom-toolbar[style*="display: flex"] {
-            display: flex !important;
-            position: fixed !important;
-        }
-        
-        @keyframes slideUp {
-            from {
-                transform: translateY(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        
-        .bottom-info {
-            flex: 1;
-            text-align: center;
-            color: var(--theme-text);
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-        
-        /* Botões da barra inferior */
-        .bottom-btn {
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--theme-card-border);
-            border-radius: 8px;
-            color: var(--theme-text);
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.85rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-        
-        .bottom-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .bottom-btn.cancel-btn {
-            background: rgba(150, 150, 150, 0.15);
-            border-color: rgba(150, 150, 150, 0.3);
-            color: #aaa;
-        }
-        
-        .bottom-btn.reorganize-btn {
-            background: rgba(100, 150, 255, 0.15);
-            border-color: rgba(100, 150, 255, 0.3);
-            color: #6b9bff;
-        }
-        
-        .bottom-btn.reorganize-btn.active {
-            background: rgba(100, 255, 100, 0.15);
-            border-color: rgba(100, 255, 100, 0.3);
-            color: #6bff6b;
-        }
-        
-        .bottom-btn.delete-btn {
-            background: rgba(255, 70, 70, 0.15);
-            border-color: rgba(255, 70, 70, 0.3);
-            color: #ff6b6b;
-        }
-        
-        /* ===== RESPONSIVO ===== */
-        @media (max-width: 768px) {
-            .bottom-toolbar {
-                padding: 10px 12px;
-            }
-            
-            .bottom-btn {
-                padding: 12px 14px;
-                font-size: 0.8rem;
-            }
-            
-            .bottom-btn span {
-                display: none;
-            }
-            
-            .bottom-btn i {
-                margin: 0;
-                font-size: 1.1rem;
-            }
-            
-            .bottom-info {
-                font-size: 0.85rem;
-            }
-            
-            .photo-checkmark {
-                width: 28px;
-                height: 28px;
-            }
-            
-            .photo-checkmark i {
-                font-size: 14px;
-            }
-        }
-            /* ===== EDIÇÃO DE INFORMAÇÕES DO ÁLBUM - MINIMALISTA ===== */
-        
-        .minimal-edit-btn {
-            width: 100%;
-            padding: 12px 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--theme-card-border);
-            border-radius: 10px;
-            color: var(--theme-text);
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.95rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.2s ease;
-        }
-        
-        .minimal-edit-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: var(--theme-primary);
-        }
-        
-        .edit-form-grid {
-            display: grid;
-            grid-template-columns: 120px 1fr;
-            gap: 20px;
-            margin-top: 15px;
-        }
-        
-        .cover-preview-container {
-            position: relative;
-            width: 120px;
-            height: 120px;
-            border-radius: 10px;
-            overflow: hidden;
-            background: rgba(0, 0, 0, 0.3);
-        }
-        
-        .cover-preview-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .change-cover-label {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 8px;
-            text-align: center;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .change-cover-label:hover {
-            background: var(--theme-primary);
-        }
-        
-        .change-cover-label i {
-            font-size: 1rem;
-        }
-        
-        .edit-fields-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .edit-field {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        
-        .edit-field label {
-            font-size: 0.85rem;
-            color: var(--theme-text-secondary);
-            font-weight: 500;
-        }
-        
-        .edit-field input,
-        .edit-field textarea {
-            width: 100%;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--theme-card-border);
-            border-radius: 8px;
-            color: var(--theme-text);
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
-        }
-        
-        .edit-field input:focus,
-        .edit-field textarea:focus {
-            outline: none;
-            border-color: var(--theme-primary);
-            background: rgba(255, 255, 255, 0.08);
-        }
-        
-        .edit-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .minimal-btn {
-            flex: 1;
-            padding: 10px 20px;
-            border: 1px solid var(--theme-card-border);
-            border-radius: 8px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.9rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-        }
-        
-        .minimal-btn.cancel {
-            background: rgba(150, 150, 150, 0.1);
-            color: #aaa;
-        }
-        
-        .minimal-btn.cancel:hover {
-            background: rgba(150, 150, 150, 0.15);
-        }
-        
-        .minimal-btn.save {
-            background: var(--theme-primary);
-            color: white;
-            border-color: var(--theme-primary);
-        }
-        
-        .minimal-btn.save:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-        
-        @media (max-width: 768px) {
-            .edit-form-grid {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-            
-            .cover-preview-container {
-                width: 100%;
-                height: 200px;
-                margin: 0 auto;
-            }
-        }
-/* ===== BOTÃO DE EDIÇÃO SIMPLES (SEM ARRASTE) ===== */
-.simple-edit-btn {
-    width: 100%;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--theme-card-border);
-    border-radius: 10px;
-    color: var(--theme-text);
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.95rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    transition: all 0.2s ease;
-}
-
-.simple-edit-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--theme-primary);
-}
-
-.simple-edit-btn:active {
-    transform: scale(0.98);
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.simple-edit-btn i {
-    font-size: 1rem;
-}
-    `;
-    document.head.appendChild(style);
 }
 
 // ===== INICIALIZAR SISTEMA DE EDIÇÃO =====
@@ -2640,13 +1873,11 @@ function initEditSystem() {
             clearInterval(checkInterval);
             
             setupEditTabListeners();
-            injectEditStyles();
             
             console.log('✅ Sistema de edição de álbuns inicializado');
         }
     }, 500);
     
-    // Timeout de segurança
     setTimeout(() => {
         clearInterval(checkInterval);
     }, 10000);
@@ -2655,9 +1886,7 @@ function initEditSystem() {
 // ===== SISTEMA DE GERENCIAMENTO DE PLAYLISTS VIA ADMIN =====
 console.log('🎵 Sistema de gerenciamento de playlists carregado');
 
-// ===== CONFIGURAR LISTENERS DA ABA DE PLAYLISTS =====
 function setupPlaylistTabListeners() {
-    // Aguardar elementos estarem prontos
     setTimeout(() => {
         const createForm = document.getElementById('createPlaylistForm');
         const selectPlaylist = document.getElementById('selectPlaylistForMusic');
@@ -2682,7 +1911,6 @@ function setupPlaylistTabListeners() {
             console.log('✅ Listener do formulário de adicionar música configurado');
         }
         
-        // Preview do arquivo de áudio
         if (audioInput && !audioInput.dataset.listenerAttached) {
             setupAudioPreview(audioInput);
             audioInput.dataset.listenerAttached = 'true';
@@ -2691,7 +1919,6 @@ function setupPlaylistTabListeners() {
     }, 500);
 }
 
-// ===== CONFIGURAR PREVIEW DE ÁUDIO =====
 function setupAudioPreview(audioInput) {
     audioInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
@@ -2702,13 +1929,11 @@ function setupAudioPreview(audioInput) {
             return;
         }
         
-        // Verificar se é áudio
         if (!file.type.includes('audio') && !file.name.match(/\.(mp3|m4a)$/i)) {
             if (previewContainer) previewContainer.style.display = 'none';
             return;
         }
         
-        // Mostrar preview
         if (previewContainer) {
             previewContainer.style.display = 'block';
             const infoEl = document.getElementById('coverPreviewInfo');
@@ -2716,7 +1941,6 @@ function setupAudioPreview(audioInput) {
         }
         
         try {
-            // Extrair capa e metadata
             const extracted = await extractMP3Cover(file);
             
             if (extracted) {
@@ -2731,7 +1955,6 @@ function setupAudioPreview(audioInput) {
                     `;
                 }
                 
-                // Preencher campos automaticamente
                 const titleInput = document.getElementById('musicTitle');
                 const artistInput = document.getElementById('musicArtist');
                 
@@ -2782,39 +2005,31 @@ async function createNewPlaylist(e) {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
         btn.disabled = true;
         
-        // Salvar no Firebase (sem capa customizada)
         await db.collection('custom_playlists').add({
             name: name,
             icon: icon,
-            cover: 'images/capas-albuns/default-playlist.jpg', // ← Sempre usa capa padrão
+            cover: 'images/capas-albuns/default-playlist.jpg',
             trackCount: 0,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-alert(`✅ Playlist "${name}" criada com sucesso!`);
+        alert(`✅ Playlist "${name}" criada com sucesso!`);
 
-// Resetar form
-document.getElementById('createPlaylistForm').reset();
-btn.innerHTML = originalText;
-btn.disabled = false;
+        document.getElementById('createPlaylistForm').reset();
+        btn.innerHTML = originalText;
+        btn.disabled = false;
 
-// Atualizar lista
-await loadExistingPlaylists();
-await updatePlaylistSelects();
+        await loadExistingPlaylists();
+        await updatePlaylistSelects();
 
-// 🎯 SALVAR ÍNDICE ANTES DE RECARREGAR
-const currentPlaylistIndex = window.PlaylistManager?.state?.currentPlaylistIndex || 0;
+        const currentPlaylistIndex = window.PlaylistManager?.state?.currentPlaylistIndex || 0;
 
-// 🔥 Recarregar playlists no player automaticamente
-if (typeof PlaylistManager !== 'undefined' && PlaylistManager.reload) {
-    await PlaylistManager.reload();
-}
+        if (typeof PlaylistManager !== 'undefined' && PlaylistManager.reload) {
+            await PlaylistManager.reload();
+        }
 
-// Mostrar seção de adicionar música
-document.getElementById('addMusicSection').style.display = 'block';
-
-// Mostrar seção de adicionar música
-document.getElementById('addMusicSection').style.display = 'block';        
+        document.getElementById('addMusicSection').style.display = 'block';
+        
     } catch (error) {
         console.error('❌ Erro ao criar playlist:', error);
         alert('❌ Erro: ' + error.message);
@@ -2823,7 +2038,6 @@ document.getElementById('addMusicSection').style.display = 'block';
     }
 }
 
-// ===== MOSTRAR FORMULÁRIO DE MÚSICA =====
 function showMusicForm() {
     const select = document.getElementById('selectPlaylistForMusic');
     const form = document.getElementById('addMusicForm');
@@ -2835,7 +2049,6 @@ function showMusicForm() {
     }
 }
 
-// ===== CARREGAR PLAYLISTS EXISTENTES - DESIGN MODERNO =====
 async function loadExistingPlaylists() {
     const container = document.getElementById('existingPlaylists');
     
@@ -2895,7 +2108,6 @@ async function loadExistingPlaylists() {
     }
 }
 
-// ===== ATUALIZAR SELECTS DE PLAYLIST =====
 async function updatePlaylistSelects() {
     const select = document.getElementById('selectPlaylistForMusic');
     
@@ -2912,7 +2124,6 @@ async function updatePlaylistSelects() {
             select.appendChild(option);
         });
         
-        // Mostrar seção se houver playlists
         if (!snapshot.empty) {
             document.getElementById('addMusicSection').style.display = 'block';
         }
@@ -2922,17 +2133,14 @@ async function updatePlaylistSelects() {
     }
 }
 
-// ===== DELETAR PLAYLIST =====
 window.deletePlaylist = async function(playlistId, playlistName) {
     if (!confirm(`❌ Tem certeza que deseja deletar a playlist "${playlistName}"?\n\nIsso removerá TODAS as músicas desta playlist.`)) {
         return;
     }
     
     try {
-        // Deletar documento principal
         await db.collection('custom_playlists').doc(playlistId).delete();
         
-        // Deletar todas as páginas de músicas
         const tracksSnapshot = await db.collection('playlist_tracks')
             .where('playlistId', '==', playlistId)
             .get();
@@ -2956,159 +2164,16 @@ window.deletePlaylist = async function(playlistId, playlistName) {
     }
 };
 
-// ===== EDITAR PLAYLIST (IMPLEMENTAR DEPOIS) =====
 window.editPlaylist = function(playlistId) {
     alert('🚧 Função de edição em desenvolvimento...');
 };
 
-// ===== RECARREGAR TODAS AS PLAYLISTS NO PLAYER =====
 async function reloadAllPlaylists() {
     if (typeof window.PlaylistManager !== 'undefined' && window.PlaylistManager.reload) {
         await window.PlaylistManager.reload();
     }
 }
 
-// ===== ESTILOS CSS =====
-function injectPlaylistAdminStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-        .playlist-admin-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--theme-card-border);
-            border-radius: 10px;
-            margin-bottom: 10px;
-            transition: all 0.2s ease;
-        }
-        
-        .playlist-admin-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: var(--theme-primary);
-        }
-        
-        .playlist-admin-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .playlist-admin-title {
-            font-weight: 600;
-            color: var(--theme-text);
-            font-size: 1rem;
-        }
-        
-        .playlist-admin-meta {
-            font-size: 0.85rem;
-            color: var(--theme-text-secondary);
-            margin-top: 3px;
-        }
-        
-        .playlist-admin-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .playlist-action-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-        }
-        
-        .playlist-action-btn.edit {
-            background: rgba(100, 150, 255, 0.15);
-            color: #6b9bff;
-        }
-        
-        .playlist-action-btn.edit:hover {
-            background: rgba(100, 150, 255, 0.25);
-        }
-        
-        .playlist-action-btn.delete {
-            background: rgba(255, 70, 70, 0.15);
-            color: #ff6b6b;
-        }
-        
-        .playlist-action-btn.delete:hover {
-            background: rgba(255, 70, 70, 0.25);
-        }
-        
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-        
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .form-group label {
-            font-size: 0.9rem;
-            color: var(--theme-text-secondary);
-            font-weight: 500;
-        }
-        
-        .form-group input,
-        .form-group select {
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--theme-card-border);
-            border-radius: 8px;
-            color: var(--theme-text);
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.9rem;
-        }
-        
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--theme-primary);
-            background: rgba(255, 255, 255, 0.08);
-        }
-        
-        .admin-btn.primary {
-            background: var(--theme-primary);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 10px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.95rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.2s ease;
-            margin-top: 15px;
-        }
-        
-        .admin-btn.primary:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-        
-        .admin-btn.primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-// ===== INICIALIZAR =====
 function initPlaylistAdminSystem() {
     const checkInterval = setInterval(() => {
         const playlistsTab = document.getElementById('playlists-tab');
@@ -3116,13 +2181,8 @@ function initPlaylistAdminSystem() {
         if (playlistsTab) {
             clearInterval(checkInterval);
             
-            // Configurar listeners
             setupPlaylistTabListeners();
             
-            // Injetar estilos
-            injectPlaylistAdminStyles();
-            
-            // Carregar dados
             setTimeout(() => {
                 loadExistingPlaylists();
                 updatePlaylistSelects();
@@ -3131,13 +2191,11 @@ function initPlaylistAdminSystem() {
         }
     }, 500);
     
-    // Timeout de segurança
     setTimeout(() => {
         clearInterval(checkInterval);
     }, 10000);
 }
 
-// Inicializar
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initPlaylistAdminSystem);
 } else {
@@ -3145,16 +2203,6 @@ if (document.readyState === 'loading') {
 }
 
 console.log('✅ Módulo de gerenciamento de playlists carregado!');
-
-// Inicializar quando o DOM carregar
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initEditSystem);
-} else {
-    initEditSystem();
-}
-
-console.log('✏️ Módulo de edição de álbuns carregado!');
-
 
 async function addMusicToPlaylist(e) {
     e.preventDefault();
@@ -3181,7 +2229,6 @@ async function addMusicToPlaylist(e) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
         
-        // ===== VALIDAÇÃO DO ARQUIVO =====
         if (!audioFile.type.startsWith('audio/') && !audioFile.name.match(/\.(mp3|m4a|wav|ogg|flac)$/i)) {
             alert('❌ Arquivo inválido! Use MP3, M4A, WAV, OGG ou FLAC.');
             btn.disabled = false;
@@ -3196,65 +2243,58 @@ async function addMusicToPlaylist(e) {
             return;
         }
         
-// ===== 🎨 EXTRAIR CAPA E METADATA =====
-btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extraindo capa do MP3...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extraindo capa do MP3...';
 
-let coverUrl = 'images/capas-albuns/default-music.jpg';
-let metadata = {
-    title: title || audioFile.name.replace(/\.[^/.]+$/, ""),
-    artist: artist || 'Artista desconhecido',
-    album: ''
-};
+        let coverUrl = 'images/capas-albuns/default-music.jpg';
+        let metadata = {
+            title: title || audioFile.name.replace(/\.[^/.]+$/, ""),
+            artist: artist || 'Artista desconhecido',
+            album: ''
+        };
 
-// ✅ FORÇA EXTRAÇÃO PARA QUALQUER ÁUDIO
-console.log('🎵 Tentando extrair capa do arquivo de áudio...');
+        console.log('🎵 Tentando extrair capa do arquivo de áudio...');
 
-if (typeof extractAndUploadMP3Cover === 'function') {
-    try {
-        const extracted = await extractAndUploadMP3Cover(audioFile);
-        
-        // ✅ VERIFICAR SE REALMENTE EXTRAIU UMA CAPA VÁLIDA
-        if (extracted && extracted.coverUrl && !extracted.coverUrl.includes('default-music.jpg')) {
-            coverUrl = extracted.coverUrl;
-            console.log('✅ CAPA EXTRAÍDA E SALVA:', coverUrl);
+        if (typeof extractAndUploadMP3Cover === 'function') {
+            try {
+                const extracted = await extractAndUploadMP3Cover(audioFile);
+                
+                if (extracted && extracted.coverUrl && !extracted.coverUrl.includes('default-music.jpg')) {
+                    coverUrl = extracted.coverUrl;
+                    console.log('✅ CAPA EXTRAÍDA E SALVA:', coverUrl);
+                } else {
+                    console.warn('⚠️ Nenhuma capa embutida encontrada - usando padrão');
+                }
+                
+                if (!title && extracted.metadata.title) {
+                    metadata.title = extracted.metadata.title;
+                    document.getElementById('musicTitle').value = metadata.title;
+                }
+                
+                if (!artist && extracted.metadata.artist) {
+                    metadata.artist = extracted.metadata.artist;
+                    document.getElementById('musicArtist').value = metadata.artist;
+                }
+                
+                if (extracted.metadata.album) {
+                    metadata.album = extracted.metadata.album;
+                }
+                
+            } catch (extractError) {
+                console.error('❌ Erro ao extrair capa:', extractError);
+                console.warn('⚠️ Usando capa padrão devido ao erro');
+            }
         } else {
-            console.warn('⚠️ Nenhuma capa embutida encontrada - usando padrão');
+            console.error('❌ Função extractAndUploadMP3Cover não encontrada!');
+            alert('⚠️ Sistema de extração de capa não está carregado. Recarregue a página.');
         }
-        
-        // Atualizar metadata se os campos estiverem vazios
-        if (!title && extracted.metadata.title) {
-            metadata.title = extracted.metadata.title;
-            document.getElementById('musicTitle').value = metadata.title;
-        }
-        
-        if (!artist && extracted.metadata.artist) {
-            metadata.artist = extracted.metadata.artist;
-            document.getElementById('musicArtist').value = metadata.artist;
-        }
-        
-        if (extracted.metadata.album) {
-            metadata.album = extracted.metadata.album;
-        }
-        
-    } catch (extractError) {
-        console.error('❌ Erro ao extrair capa:', extractError);
-        console.warn('⚠️ Usando capa padrão devido ao erro');
-    }
-} else {
-    console.error('❌ Função extractAndUploadMP3Cover não encontrada!');
-    alert('⚠️ Sistema de extração de capa não está carregado. Recarregue a página.');
-}
 
-// ✅ LOG FINAL PARA DEBUG
-console.log('📋 RESUMO DA EXTRAÇÃO:');
-console.log('   🖼️ Capa final:', coverUrl);
-console.log('   🎵 Título:', metadata.title);
-console.log('   🎤 Artista:', metadata.artist);
+        console.log('📋 RESUMO DA EXTRAÇÃO:');
+        console.log('   🖼️ Capa final:', coverUrl);
+        console.log('   🎵 Título:', metadata.title);
+        console.log('   🎤 Artista:', metadata.artist);
         
-        // Aguardar um pouco antes de fazer upload do áudio
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // ===== UPLOAD DO ÁUDIO =====
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fazendo upload do áudio...';
         
         if (typeof uploadAudioToCloudinary === 'undefined') {
@@ -3271,7 +2311,6 @@ console.log('   🎤 Artista:', metadata.artist);
         
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
         
-        // ===== BUSCAR MÚSICAS ATUAIS DA PLAYLIST =====
         const musicSnapshot = await db.collection('playlist_tracks')
             .where('playlistId', '==', playlistId)
             .get();
@@ -3285,8 +2324,7 @@ console.log('   🎤 Artista:', metadata.artist);
             const tracks = doc.data().tracks || [];
             currentTracks.push(...tracks);
         });
-        
-// ===== ADICIONAR NOVA MÚSICA COM CAPA =====
+
         const newTrack = {
             title: metadata.title,
             artist: metadata.artist,
@@ -3299,14 +2337,12 @@ console.log('   🎤 Artista:', metadata.artist);
             addedAt: Date.now()
         };
         
-        // ✅ LOGS DE DEBUG
         console.log('🎵 MÚSICA QUE SERÁ SALVA NO FIREBASE:');
         console.log('   📝 Título:', newTrack.title);
         console.log('   🎤 Artista:', newTrack.artist);
         console.log('   🖼️ Capa:', newTrack.cover);
         console.log('   🔊 Áudio:', newTrack.src);
         
-        // ✅ VERIFICAÇÃO DE SEGURANÇA
         if (newTrack.cover.includes('default-music.jpg')) {
             console.warn('⚠️ ATENÇÃO: Capa padrão será salva (capa não foi extraída)');
         } else {
@@ -3315,7 +2351,6 @@ console.log('   🎤 Artista:', metadata.artist);
         
         currentTracks.push(newTrack);
         
-        // ===== REORGANIZAR EM PÁGINAS =====
         const TRACKS_PER_PAGE = 200;
         const pages = [];
         
@@ -3323,14 +2358,12 @@ console.log('   🎤 Artista:', metadata.artist);
             pages.push(currentTracks.slice(i, i + TRACKS_PER_PAGE));
         }
         
-        // ===== DELETAR PÁGINAS ANTIGAS =====
         const deletePromises = [];
         musicSnapshot.forEach(doc => {
             deletePromises.push(db.collection('playlist_tracks').doc(doc.id).delete());
         });
         await Promise.all(deletePromises);
         
-        // ===== CRIAR NOVAS PÁGINAS =====
         for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
             await db.collection('playlist_tracks').add({
                 playlistId: playlistId,
@@ -3340,31 +2373,26 @@ console.log('   🎤 Artista:', metadata.artist);
             });
         }
         
-        // ===== ATUALIZAR CONTADOR =====
         await db.collection('custom_playlists').doc(playlistId).update({
             trackCount: currentTracks.length
         });
         
         alert(`✅ Música "${metadata.title}" adicionada com ${coverUrl.includes('default') ? 'capa padrão' : 'capa extraída do MP3'}!`);
         
-        // ===== RESETAR FORMULÁRIO =====
         document.getElementById('addMusicForm').reset();
         btn.innerHTML = originalText;
         btn.disabled = false;
         
-        // ===== ATUALIZAR LISTAS =====
         await loadExistingPlaylists();
-        
-// 🎯 SALVAR ÍNDICE ANTES DE RECARREGAR
-const currentPlaylistIndex = window.PlaylistManager?.state?.currentPlaylistIndex || 0;
-console.log(`💾 Playlist atual antes do reload: ${currentPlaylistIndex}`);
 
-// Recarregar player se existir
-if (typeof PlaylistManager !== 'undefined' && PlaylistManager.reload) {
-    await PlaylistManager.reload();
-}
+        const currentPlaylistIndex = window.PlaylistManager?.state?.currentPlaylistIndex || 0;
+        console.log(`💾 Playlist atual antes do reload: ${currentPlaylistIndex}`);
 
-console.log('✅ Música adicionada com sucesso!');
+        if (typeof PlaylistManager !== 'undefined' && PlaylistManager.reload) {
+            await PlaylistManager.reload();
+        }
+
+        console.log('✅ Música adicionada com sucesso!');
         
     } catch (error) {
         console.error('❌ Erro ao adicionar música:', error);
@@ -3375,11 +2403,8 @@ console.log('✅ Música adicionada com sucesso!');
     }
 }
 
-console.log('✅ admin.js com Firebase + ImgBB VERDADEIRAMENTE ILIMITADO carregado!');
-
 // ===== REDESIGN ADMIN - FUNÇÕES NOVAS =====
 
-// ===== CARREGAR ÁLBUNS NO NOVO FORMATO =====
 async function loadExistingAlbumsRedesign() {
     const container = document.getElementById('existingAlbums');
     
@@ -3445,7 +2470,6 @@ async function loadExistingAlbumsRedesign() {
     }
 }
 
-// ===== CARREGAR EVENTOS NO NOVO FORMATO =====
 async function loadExistingEventsRedesign() {
     const container = document.getElementById('existingEvents');
     
@@ -3505,45 +2529,23 @@ async function loadExistingEventsRedesign() {
     }
 }
 
-// ===== ABRIR MODAL DE EDIÇÃO DE ÁLBUM =====
 window.openAlbumEditModal = async function(albumId) {
-    const modal = document.getElementById('albumEditModal');
+    const modal = document.getElementById('albumEditModalPopup');
     modal.style.display = 'block';
-    modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.body.style.overflow = 'hidden';
     
-    // Armazenar ID do álbum atual
     window.currentEditingAlbumId = albumId;
     
     try {
-        // Buscar dados do álbum
         const albumDoc = await db.collection('albums').doc(albumId).get();
         const albumData = albumDoc.data();
         
-        // Preencher campos
-        document.getElementById('editAlbumTitle').value = albumData.title || '';
-        document.getElementById('editAlbumDate').value = albumData.date || '';
-        document.getElementById('editAlbumDescription').value = albumData.description || '';
-        document.getElementById('editAlbumCoverPreview').src = albumData.cover || '';
+        document.getElementById('popupAlbumTitle').value = albumData.title || '';
+        document.getElementById('popupAlbumDate').value = albumData.date || '';
+        document.getElementById('popupAlbumDescription').value = albumData.description || '';
+        document.getElementById('popupAlbumCoverPreview').src = albumData.cover || '';
         
-        // Buscar fotos do álbum
-        const photoPagesSnapshot = await db.collection('album_photos')
-            .where('albumId', '==', albumId)
-            .orderBy('pageNumber', 'asc')
-            .get();
-        
-        const allPhotos = [];
-        photoPagesSnapshot.forEach(pageDoc => {
-            const pageData = pageDoc.data();
-            allPhotos.push(...pageData.photos);
-        });
-        
-        // Armazenar fotos globalmente
-        window.currentEditingAlbumPhotos = allPhotos;
-        
-        // Renderizar fotos
-        renderEditPhotosGrid(allPhotos);
-        
-        console.log(`✅ Álbum "${albumData.title}" carregado para edição`);
+        console.log(`✅ Álbum "${albumData.title}" carregado no popup`);
         
     } catch (error) {
         console.error('❌ Erro ao carregar álbum:', error);
@@ -3551,7 +2553,6 @@ window.openAlbumEditModal = async function(albumId) {
     }
 };
 
-// ===== FECHAR MODAL DE EDIÇÃO DE ÁLBUM =====
 window.closeAlbumEditModal = function() {
     const modal = document.getElementById('albumEditModal');
     modal.style.display = 'none';
@@ -3561,7 +2562,6 @@ window.closeAlbumEditModal = function() {
 
 document.getElementById('closeAlbumEdit')?.addEventListener('click', closeAlbumEditModal);
 
-// ===== SALVAR INFORMAÇÕES DO ÁLBUM =====
 document.getElementById('saveAlbumInfoBtn')?.addEventListener('click', async function() {
     if (!window.currentEditingAlbumId) return;
     
@@ -3589,7 +2589,6 @@ document.getElementById('saveAlbumInfoBtn')?.addEventListener('click', async fun
             description: newDescription
         };
         
-        // Upload nova capa se houver
         const coverInput = document.getElementById('editAlbumCoverInput');
         if (coverInput.files.length > 0) {
             const coverFile = coverInput.files[0];
@@ -3606,7 +2605,6 @@ document.getElementById('saveAlbumInfoBtn')?.addEventListener('click', async fun
             updateData.cover = coverUrl;
         }
         
-        // Atualizar no Firebase
         await db.collection('albums').doc(window.currentEditingAlbumId).update(updateData);
         
         alert('✅ Álbum atualizado com sucesso!');
@@ -3614,7 +2612,6 @@ document.getElementById('saveAlbumInfoBtn')?.addEventListener('click', async fun
         btn.innerHTML = originalText;
         btn.disabled = false;
         
-        // Recarregar listas
         await loadExistingAlbumsRedesign();
         await loadAlbumsFromFirebase();
         
@@ -3626,7 +2623,6 @@ document.getElementById('saveAlbumInfoBtn')?.addEventListener('click', async fun
     }
 });
 
-// ===== PREVIEW DE NOVA CAPA =====
 document.getElementById('editAlbumCoverInput')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -3638,7 +2634,6 @@ document.getElementById('editAlbumCoverInput')?.addEventListener('change', funct
     reader.readAsDataURL(file);
 });
 
-// ===== RENDERIZAR GRID DE FOTOS PARA EDIÇÃO =====
 function renderEditPhotosGrid(photos) {
     const grid = document.getElementById('editPhotosGrid');
     grid.innerHTML = '';
@@ -3671,11 +2666,9 @@ function renderEditPhotosGrid(photos) {
         grid.appendChild(photoCard);
     });
     
-    // Configurar seleção de fotos (reutilizar código existente)
     setupPhotoSelection();
 }
 
-// ===== ABRIR MODAL DE EDIÇÃO DE EVENTO =====
 window.openEventEditModal = async function(eventId) {
     const modal = document.getElementById('eventEditModal');
     modal.style.display = 'block';
@@ -3701,7 +2694,6 @@ window.openEventEditModal = async function(eventId) {
     }
 };
 
-// ===== FECHAR MODAL DE EDIÇÃO DE EVENTO =====
 window.closeEventEditModal = function() {
     const modal = document.getElementById('eventEditModal');
     modal.style.display = 'none';
@@ -3710,7 +2702,6 @@ window.closeEventEditModal = function() {
 
 document.getElementById('closeEventEdit')?.addEventListener('click', closeEventEditModal);
 
-// ===== SALVAR INFORMAÇÕES DO EVENTO =====
 document.getElementById('saveEventInfoBtn')?.addEventListener('click', async function() {
     if (!window.currentEditingEventId) return;
     
@@ -3740,7 +2731,6 @@ document.getElementById('saveEventInfoBtn')?.addEventListener('click', async fun
             secret: newSecret || null
         };
         
-        // Upload nova foto se houver
         const photoInput = document.getElementById('editEventPhotoInput');
         if (photoInput.files.length > 0) {
             const photoFile = photoInput.files[0];
@@ -3775,7 +2765,6 @@ document.getElementById('saveEventInfoBtn')?.addEventListener('click', async fun
     }
 });
 
-// ===== PREVIEW DE NOVA FOTO DO EVENTO =====
 document.getElementById('editEventPhotoInput')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -3787,7 +2776,6 @@ document.getElementById('editEventPhotoInput')?.addEventListener('change', funct
     reader.readAsDataURL(file);
 });
 
-// ===== MOSTRAR FORMULÁRIO DE ADICIONAR FOTOS =====
 document.getElementById('selectAlbum')?.addEventListener('change', function() {
     const form = document.getElementById('addPhotoForm');
     if (this.value) {
@@ -3797,14 +2785,128 @@ document.getElementById('selectAlbum')?.addEventListener('change', function() {
     }
 });
 
-// ===== SUBSTITUIR CHAMADA ANTIGA PELA NOVA =====
-// Encontre a função loadExistingContent() e substitua as chamadas:
 async function loadExistingContentRedesign() {
     await loadExistingAlbumsRedesign();
     await loadExistingEventsRedesign();
 }
 
-console.log('✅ Admin Redesign carregado - Design Profissional Ativado!');
+// ===== INICIALIZAÇÃO COMPLETA =====
+document.addEventListener('DOMContentLoaded', async () => {
+    await waitForServices();
+    
+    initAdmin();
+    
+    setTimeout(async () => {
+        await loadAlbumsFromFirebase();
+        await rebuildTimeline();
+    }, 1000);
+});
 
-console.log('🧪 Para testar, digite no console: testBackendConnection()');
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEditSystem);
+} else {
+    initEditSystem();
+}
 
+console.log('✅ admin.js com Firebase + ImgBB VERDADEIRAMENTE ILIMITADO carregado!');
+
+// ===== EVENT LISTENERS DO POPUP DE EDIÇÃO =====
+document.getElementById('closeAlbumEditPopup')?.addEventListener('click', function() {
+    document.getElementById('albumEditModalPopup').style.display = 'none';
+    document.body.style.overflow = 'auto';
+});
+
+document.getElementById('cancelAlbumEditPopup')?.addEventListener('click', function() {
+    document.getElementById('albumEditModalPopup').style.display = 'none';
+    document.body.style.overflow = 'auto';
+});
+
+document.getElementById('popupAlbumCoverInput')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('popupAlbumCoverPreview').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+document.getElementById('saveAlbumEditPopup')?.addEventListener('click', async function() {
+    if (!window.currentEditingAlbumId) return;
+    
+    const btn = this;
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        btn.disabled = true;
+        
+        const albumId = window.currentEditingAlbumId;
+        const newTitle = document.getElementById('popupAlbumTitle').value.trim();
+        const newDate = document.getElementById('popupAlbumDate').value.trim();
+        const newDescription = document.getElementById('popupAlbumDescription').value.trim();
+        
+        if (!newTitle || !newDate) {
+            alert('⚠️ Título e Data são obrigatórios!');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            return;
+        }
+        
+        const updateData = {
+            title: newTitle,
+            date: newDate,
+            description: newDescription
+        };
+        
+        const coverInput = document.getElementById('popupAlbumCoverInput');
+        if (coverInput.files.length > 0) {
+            const coverFile = coverInput.files[0];
+            
+            if (coverFile.size > 32 * 1024 * 1024) {
+                alert('❌ Imagem muito grande! Máximo 32MB.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando capa...';
+            const coverUrls = await uploadImageToCloudinary(coverFile, 1600, true);
+            updateData.cover = coverUrls.medium;
+            updateData.coverThumb = coverUrls.thumb;
+            updateData.coverLarge = coverUrls.large;
+        }
+        
+        await db.collection('albums').doc(albumId).update(updateData);
+        
+        alert('✅ Álbum atualizado com sucesso!');
+        
+        document.getElementById('albumEditModalPopup').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        await loadExistingAlbumsRedesign();
+        await loadAlbumsFromFirebase();
+        
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        alert('❌ Erro ao salvar: ' + error.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+
+// Função auxiliar para configuração de seleção de fotos
+function setupPhotoSelection() {
+    // Implementação da configuração de seleção de fotos
+    // Esta função pode ser expandida conforme necessário
+}
+
+// Função auxiliar para otimização de URLs existentes
+function optimizeExistingUrl(url, maxWidth) {
+    // Implementação da otimização de URLs
+    return url;
+}
