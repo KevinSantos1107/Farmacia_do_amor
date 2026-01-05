@@ -405,13 +405,13 @@
                         </div>
                         
                         <div class="edit-actions">
-                            <button class="action-btn cancel" onclick="closeAlbumEditModal()">
+                            <button class="action-btn cancel" id="closeAlbumEditBtn">
                                 <i class="fas fa-times"></i>
                                 Cancelar
                             </button>
                             <button class="action-btn save" id="saveAlbumInfoBtn">
                                 <i class="fas fa-check"></i>
-                                Salvar Alterações
+                                Salvar
                             </button>
                         </div>
                     </div>
@@ -561,7 +561,7 @@
                         </div>
                         
                         <div class="edit-actions">
-                            <button class="action-btn cancel" onclick="closeEventEditModal()">
+                            <button class="action-btn cancel" id="closeEventEditBtn">
                                 <i class="fas fa-times"></i>
                                 Cancelar
                             </button>
@@ -725,6 +725,69 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<!-- ===== MODAL FLUTUANTE DE EDIÇÃO DE ÁLBUM ===== -->
+<div class="album-edit-modal" id="albumEditModalPopup">
+    <div class="album-edit-modal-content">
+        <div class="album-edit-header">
+            <h2>
+                <i class="fas fa-edit"></i>
+                Editar Álbum
+            </h2>
+            <button class="close-album-edit" id="closeAlbumEditPopup">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="album-edit-body">
+            <div class="album-edit-section">
+                <h3>
+                    <i class="fas fa-info-circle"></i>
+                    Informações do Álbum
+                </h3>
+                
+                <div class="album-edit-grid">
+                    <div class="album-cover-preview">
+                        <img id="popupAlbumCoverPreview" src="" alt="Capa do álbum">
+                        <label for="popupAlbumCoverInput" class="change-album-cover-btn">
+                            <i class="fas fa-camera"></i>
+                            Trocar Capa
+                        </label>
+                        <input type="file" id="popupAlbumCoverInput" accept="image/*" style="display: none;">
+                    </div>
+                    
+                    <div class="album-edit-fields">
+                        <div class="album-edit-field">
+                            <label>Título</label>
+                            <input type="text" id="popupAlbumTitle" placeholder="Título do álbum">
+                        </div>
+                        
+                        <div class="album-edit-field">
+                            <label>Data</label>
+                            <input type="text" id="popupAlbumDate" placeholder="Ex: Junho 2023">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="album-edit-field" style="margin-top: 20px;">
+                    <label>Descrição</label>
+                    <textarea id="popupAlbumDescription" placeholder="Descrição do álbum"></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="album-edit-actions">
+            <button class="album-action-btn cancel" id="cancelAlbumEditPopup">
+                <i class="fas fa-times"></i>
+                Cancelar
+            </button>
+            <button class="album-action-btn save" id="saveAlbumEditPopup">
+                <i class="fas fa-check"></i>
+                Salvar Alterações
+            </button>
+        </div>
     </div>
 </div>
 
