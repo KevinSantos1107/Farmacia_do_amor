@@ -833,8 +833,8 @@ async function updateAlbumSelect() {
 
 // ===== CARREGAR CONTEÚDO EXISTENTE =====
 async function loadExistingContent() {
-    await loadExistingAlbums();
-    await loadExistingEvents();
+    await loadExistingAlbumsRedesign();
+    await loadExistingEventsRedesign();
 }
 
 async function loadExistingAlbums() {
@@ -3376,6 +3376,435 @@ console.log('✅ Música adicionada com sucesso!');
 }
 
 console.log('✅ admin.js com Firebase + ImgBB VERDADEIRAMENTE ILIMITADO carregado!');
+
+// ===== REDESIGN ADMIN - FUNÇÕES NOVAS =====
+
+// ===== CARREGAR ÁLBUNS NO NOVO FORMATO =====
+async function loadExistingAlbumsRedesign() {
+    const container = document.getElementById('existingAlbums');
+    
+    try {
+        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
+        
+        container.innerHTML = '';
+        
+        if (snapshot.empty) {
+            container.innerHTML = `
+                <div class="loading-state">
+                    <i class="fas fa-images"></i>
+                    <p>Nenhum álbum criado ainda</p>
+                </div>
+            `;
+            return;
+        }
+        
+        for (const doc of snapshot.docs) {
+            const album = doc.data();
+            
+            const card = document.createElement('div');
+            card.className = 'album-item-card';
+            card.innerHTML = `
+                <div class="album-item-cover">
+                    <img src="${album.cover}" alt="${album.title}">
+                </div>
+                
+                <div class="album-item-info">
+                    <h4>${album.title}</h4>
+                    <div class="album-item-meta">
+                        <span>
+                            <i class="fas fa-calendar"></i>
+                            ${album.date}
+                        </span>
+                        <span>
+                            <i class="fas fa-images"></i>
+                            ${album.photoCount || 0} foto${album.photoCount !== 1 ? 's' : ''}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="album-item-actions">
+                    <button class="action-btn edit" onclick="openAlbumEditModal('${doc.id}')" title="Editar álbum">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="action-btn delete" onclick="deleteAlbum('${doc.id}')" title="Deletar álbum">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar álbuns:', error);
+        container.innerHTML = `
+            <div class="loading-state">
+                <i class="fas fa-exclamation-triangle" style="color: #ff5050;"></i>
+                <p style="color: #ff5050;">Erro ao carregar álbuns</p>
+            </div>
+        `;
+    }
+}
+
+// ===== CARREGAR EVENTOS NO NOVO FORMATO =====
+async function loadExistingEventsRedesign() {
+    const container = document.getElementById('existingEvents');
+    
+    try {
+        const snapshot = await db.collection('timeline').orderBy('createdAt', 'desc').get();
+        
+        container.innerHTML = '';
+        
+        if (snapshot.empty) {
+            container.innerHTML = `
+                <div class="loading-state">
+                    <i class="fas fa-clock"></i>
+                    <p>Nenhum evento criado ainda</p>
+                </div>
+            `;
+            return;
+        }
+        
+        snapshot.forEach(doc => {
+            const event = doc.data();
+            
+            const card = document.createElement('div');
+            card.className = 'timeline-event-card';
+            card.innerHTML = `
+                <div class="timeline-event-photo">
+                    <img src="${event.photo}" alt="${event.title}">
+                </div>
+                
+                <div class="timeline-event-info">
+                    <h4>${event.title}</h4>
+                    <div class="timeline-event-date">
+                        <i class="fas fa-calendar"></i>
+                        ${event.date}
+                    </div>
+                </div>
+                
+                <div class="timeline-event-actions">
+                    <button class="action-btn edit" onclick="openEventEditModal('${doc.id}')" title="Editar evento">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="action-btn delete" onclick="deleteEvent('${doc.id}')" title="Deletar evento">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar eventos:', error);
+        container.innerHTML = `
+            <div class="loading-state">
+                <i class="fas fa-exclamation-triangle" style="color: #ff5050;"></i>
+                <p style="color: #ff5050;">Erro ao carregar eventos</p>
+            </div>
+        `;
+    }
+}
+
+// ===== ABRIR MODAL DE EDIÇÃO DE ÁLBUM =====
+window.openAlbumEditModal = async function(albumId) {
+    const modal = document.getElementById('albumEditModal');
+    modal.style.display = 'block';
+    modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    // Armazenar ID do álbum atual
+    window.currentEditingAlbumId = albumId;
+    
+    try {
+        // Buscar dados do álbum
+        const albumDoc = await db.collection('albums').doc(albumId).get();
+        const albumData = albumDoc.data();
+        
+        // Preencher campos
+        document.getElementById('editAlbumTitle').value = albumData.title || '';
+        document.getElementById('editAlbumDate').value = albumData.date || '';
+        document.getElementById('editAlbumDescription').value = albumData.description || '';
+        document.getElementById('editAlbumCoverPreview').src = albumData.cover || '';
+        
+        // Buscar fotos do álbum
+        const photoPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', albumId)
+            .orderBy('pageNumber', 'asc')
+            .get();
+        
+        const allPhotos = [];
+        photoPagesSnapshot.forEach(pageDoc => {
+            const pageData = pageDoc.data();
+            allPhotos.push(...pageData.photos);
+        });
+        
+        // Armazenar fotos globalmente
+        window.currentEditingAlbumPhotos = allPhotos;
+        
+        // Renderizar fotos
+        renderEditPhotosGrid(allPhotos);
+        
+        console.log(`✅ Álbum "${albumData.title}" carregado para edição`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar álbum:', error);
+        alert('❌ Erro ao carregar álbum: ' + error.message);
+    }
+};
+
+// ===== FECHAR MODAL DE EDIÇÃO DE ÁLBUM =====
+window.closeAlbumEditModal = function() {
+    const modal = document.getElementById('albumEditModal');
+    modal.style.display = 'none';
+    window.currentEditingAlbumId = null;
+    window.currentEditingAlbumPhotos = null;
+};
+
+document.getElementById('closeAlbumEdit')?.addEventListener('click', closeAlbumEditModal);
+
+// ===== SALVAR INFORMAÇÕES DO ÁLBUM =====
+document.getElementById('saveAlbumInfoBtn')?.addEventListener('click', async function() {
+    if (!window.currentEditingAlbumId) return;
+    
+    const btn = this;
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        btn.disabled = true;
+        
+        const newTitle = document.getElementById('editAlbumTitle').value.trim();
+        const newDate = document.getElementById('editAlbumDate').value.trim();
+        const newDescription = document.getElementById('editAlbumDescription').value.trim();
+        
+        if (!newTitle || !newDate) {
+            alert('⚠️ Título e Data são obrigatórios!');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            return;
+        }
+        
+        const updateData = {
+            title: newTitle,
+            date: newDate,
+            description: newDescription
+        };
+        
+        // Upload nova capa se houver
+        const coverInput = document.getElementById('editAlbumCoverInput');
+        if (coverInput.files.length > 0) {
+            const coverFile = coverInput.files[0];
+            
+            if (coverFile.size > 32 * 1024 * 1024) {
+                alert('❌ Imagem muito grande! Máximo 32MB.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando capa...';
+            const coverUrl = await uploadImageToCloudinary(coverFile, 800);
+            updateData.cover = coverUrl;
+        }
+        
+        // Atualizar no Firebase
+        await db.collection('albums').doc(window.currentEditingAlbumId).update(updateData);
+        
+        alert('✅ Álbum atualizado com sucesso!');
+        
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        // Recarregar listas
+        await loadExistingAlbumsRedesign();
+        await loadAlbumsFromFirebase();
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        alert('❌ Erro ao salvar: ' + error.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+
+// ===== PREVIEW DE NOVA CAPA =====
+document.getElementById('editAlbumCoverInput')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('editAlbumCoverPreview').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+// ===== RENDERIZAR GRID DE FOTOS PARA EDIÇÃO =====
+function renderEditPhotosGrid(photos) {
+    const grid = document.getElementById('editPhotosGrid');
+    grid.innerHTML = '';
+    
+    if (photos.length === 0) {
+        grid.innerHTML = `
+            <div class="loading-state">
+                <i class="fas fa-images"></i>
+                <p>Este álbum está vazio</p>
+            </div>
+        `;
+        return;
+    }
+    
+    photos.forEach((photo, index) => {
+        const photoCard = document.createElement('div');
+        photoCard.className = 'gallery-photo';
+        photoCard.setAttribute('data-index', index);
+        
+        photoCard.innerHTML = `
+            <input type="checkbox" class="photo-checkbox" id="photo-edit-${index}">
+            <div class="photo-wrapper">
+                <img src="${photo.src}" alt="Foto ${index + 1}" loading="lazy">
+                <div class="photo-checkmark">
+                    <i class="fas fa-check"></i>
+                </div>
+            </div>
+        `;
+        
+        grid.appendChild(photoCard);
+    });
+    
+    // Configurar seleção de fotos (reutilizar código existente)
+    setupPhotoSelection();
+}
+
+// ===== ABRIR MODAL DE EDIÇÃO DE EVENTO =====
+window.openEventEditModal = async function(eventId) {
+    const modal = document.getElementById('eventEditModal');
+    modal.style.display = 'block';
+    modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    window.currentEditingEventId = eventId;
+    
+    try {
+        const eventDoc = await db.collection('timeline').doc(eventId).get();
+        const eventData = eventDoc.data();
+        
+        document.getElementById('editEventDate').value = eventData.date || '';
+        document.getElementById('editEventTitle').value = eventData.title || '';
+        document.getElementById('editEventCaption').value = eventData.caption || '';
+        document.getElementById('editEventSecret').value = eventData.secret || '';
+        document.getElementById('editEventPhotoPreview').src = eventData.photo || '';
+        
+        console.log(`✅ Evento "${eventData.title}" carregado para edição`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar evento:', error);
+        alert('❌ Erro ao carregar evento: ' + error.message);
+    }
+};
+
+// ===== FECHAR MODAL DE EDIÇÃO DE EVENTO =====
+window.closeEventEditModal = function() {
+    const modal = document.getElementById('eventEditModal');
+    modal.style.display = 'none';
+    window.currentEditingEventId = null;
+};
+
+document.getElementById('closeEventEdit')?.addEventListener('click', closeEventEditModal);
+
+// ===== SALVAR INFORMAÇÕES DO EVENTO =====
+document.getElementById('saveEventInfoBtn')?.addEventListener('click', async function() {
+    if (!window.currentEditingEventId) return;
+    
+    const btn = this;
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        btn.disabled = true;
+        
+        const newDate = document.getElementById('editEventDate').value.trim();
+        const newTitle = document.getElementById('editEventTitle').value.trim();
+        const newCaption = document.getElementById('editEventCaption').value.trim();
+        const newSecret = document.getElementById('editEventSecret').value.trim();
+        
+        if (!newDate || !newTitle) {
+            alert('⚠️ Data e Título são obrigatórios!');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            return;
+        }
+        
+        const updateData = {
+            date: newDate,
+            title: newTitle,
+            caption: newCaption,
+            secret: newSecret || null
+        };
+        
+        // Upload nova foto se houver
+        const photoInput = document.getElementById('editEventPhotoInput');
+        if (photoInput.files.length > 0) {
+            const photoFile = photoInput.files[0];
+            
+            if (photoFile.size > 32 * 1024 * 1024) {
+                alert('❌ Imagem muito grande! Máximo 32MB.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando foto...';
+            const photoUrl = await uploadImageToCloudinary(photoFile, 1600);
+            updateData.photo = photoUrl;
+        }
+        
+        await db.collection('timeline').doc(window.currentEditingEventId).update(updateData);
+        
+        alert('✅ Evento atualizado com sucesso!');
+        
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        await loadExistingEventsRedesign();
+        await rebuildTimeline();
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        alert('❌ Erro ao salvar: ' + error.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+
+// ===== PREVIEW DE NOVA FOTO DO EVENTO =====
+document.getElementById('editEventPhotoInput')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('editEventPhotoPreview').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+// ===== MOSTRAR FORMULÁRIO DE ADICIONAR FOTOS =====
+document.getElementById('selectAlbum')?.addEventListener('change', function() {
+    const form = document.getElementById('addPhotoForm');
+    if (this.value) {
+        form.style.display = 'block';
+    } else {
+        form.style.display = 'none';
+    }
+});
+
+// ===== SUBSTITUIR CHAMADA ANTIGA PELA NOVA =====
+// Encontre a função loadExistingContent() e substitua as chamadas:
+async function loadExistingContentRedesign() {
+    await loadExistingAlbumsRedesign();
+    await loadExistingEventsRedesign();
+}
+
+console.log('✅ Admin Redesign carregado - Design Profissional Ativado!');
 
 console.log('🧪 Para testar, digite no console: testBackendConnection()');
 
