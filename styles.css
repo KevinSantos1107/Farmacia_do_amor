@@ -3141,6 +3141,8 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
         inset 0 0 15px rgba(255, 255, 255, 0.05);
 }
 
+
+
 /* ===== SELETOR DE ÍCONES ===== */
 .icon-selector {
     display: grid;
@@ -3508,22 +3510,278 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     .music-player.playing .song-info h3 {
         animation-duration: 6s;
     }
-} /* ← CHAVE QUE ESTAVA FALTANDO! */
+} 
+/* ===== MODAL DE EDIÇÃO DE ÁLBUM (INLINE) ===== */
+.inline-edit-modal {
+    margin-top: 30px;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.08) 0%, 
+        rgba(255, 255, 255, 0.03) 100%
+    );
+    border: 2px solid var(--theme-primary);
+    border-radius: 20px; /* ← MANTÉM ARREDONDADO */
+    padding: 0;
+    overflow: hidden; /* ← VOLTA PARA hidden PARA CONTER OS FILHOS */
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.5),
+        0 0 40px var(--theme-primary);
+    animation: slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
+.inline-edit-header {
+    background: var(--gradient-primary);
+    padding: 20px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px 18px 0 0; /* ← ARREDONDA APENAS O TOPO */
+}
+
+.inline-edit-header h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.close-inline-edit {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.close-inline-edit:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.inline-edit-content {
+    padding: 0;
+    overflow: visible; /* ← MANTÉM visible PARA OS BOTÕES */
+}
+
+.edit-section {
+    padding: 25px;
+    border-bottom: 1px solid var(--theme-card-border);
+    overflow: visible; /* ← MANTÉM visible PARA OS BOTÕES */
+}
+
+.edit-section:last-child {
+    border-bottom: none;
+    padding-bottom: 30px;
+    border-radius: 0 0 18px 18px; /* ← ARREDONDA APENAS EMBAIXO */
+}
+
+.edit-section h4 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--theme-text);
+    margin: 0 0 20px 0;
+}
+
+.edit-info-grid {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 25px;
+    margin-bottom: 20px;
+    overflow: visible;
+}
+
+.cover-preview-section {
+    position: relative;
+    overflow: visible;
+}
+
+.cover-preview-section img {
+    width: 140px;
+    height: 140px;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    display: block;
+}
+
+.change-cover-btn {
+    display: block;
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--theme-primary);
+    color: white;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    width: 140px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+}
+
+.change-cover-btn:hover {
+    background: var(--theme-accent);
+    box-shadow: 0 0 15px var(--theme-primary);
+    transform: translateY(-2px);
+}
+
+.change-cover-btn i {
+    margin-right: 6px;
+}
+
+.edit-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.edit-field label {
+    font-size: 0.85rem;
+    color: var(--theme-text-secondary);
+    font-weight: 500;
+}
+
+.edit-field input,
+.edit-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 8px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.edit-field input:focus,
+.edit-field textarea:focus {
+    outline: none;
+    border-color: var(--theme-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.edit-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 10px;
+}
+
+.action-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    min-height: 44px;
+}
+
+.action-btn.cancel {
+    background: rgba(150, 150, 150, 0.2);
+    color: #aaa;
+    border: 1px solid rgba(150, 150, 150, 0.3);
+}
+
+.action-btn.cancel:hover {
+    background: rgba(150, 150, 150, 0.3);
+    transform: scale(1.02);
+}
+
+.action-btn.save {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+}
+
+.action-btn.save:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(138, 43, 226, 0.6);
+}
+
+/* ===== RESPONSIVO MOBILE ===== */
+@media (max-width: 768px) {
+    .edit-section {
+        padding: 20px 15px;
+    }
+    
+    .edit-section:last-child {
+        padding-bottom: 25px;
+    }
+    
+    .edit-info-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .cover-preview-section {
+        width: 100%;
+    }
+    
+    .cover-preview-section img {
+        width: 100%;
+        height: 200px;
+        margin: 0 auto;
+    }
+    
+    .change-cover-btn {
+        width: 100%;
+    }
+    
+    .edit-actions {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .action-btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        flex: 1;
+        min-width: 120px;
+        justify-content: center;
+    }
+}
 /* ===== PREVIEW DA CAPA - EXIBIÇÃO CORRETA ===== */
 
-/* Esconder por padrão SEM forçar */
 .cover-preview-container {
     display: none;
     margin-top: 15px;
+    overflow: visible;
+    position: relative;
 }
 
-/* Mostrar quando o formulário de edição estiver aberto */
 #albumInfoEditForm .cover-preview-container {
     display: block;
 }
 
-/* Preview da capa no formulário de adicionar música */
 #coverPreviewContainer {
     display: none;
     margin-top: 8px;
@@ -3533,12 +3791,12 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     display: block !important;
 }
 
-/* Grid de edição do álbum - LAYOUT CORRETO COM PREVIEW */
 .edit-form-grid {
     display: grid;
     grid-template-columns: 120px 1fr;
     gap: 20px;
     margin-top: 15px;
+    overflow: visible;
 }
 
 .cover-preview-container {
@@ -3572,18 +3830,60 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    z-index: 10;
 }
 
 .change-cover-label:hover {
     background: var(--theme-primary);
+    padding-bottom: 10px;
 }
 
 .change-cover-label i {
     font-size: 1rem;
 }
 
-/* Mobile - Capa em cima */
+/* ===== RESPONSIVO ===== */
 @media (max-width: 768px) {
+    .edit-section {
+        padding: 20px 15px;
+    }
+    
+    .edit-section:last-child {
+        padding-bottom: 25px;
+    }
+    
+    .edit-info-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .cover-preview-section {
+        width: 100%;
+    }
+    
+    .cover-preview-section img {
+        width: 100%;
+        height: 200px;
+        margin: 0 auto;
+    }
+    
+    .change-cover-btn {
+        width: 100%;
+    }
+    
+    .edit-actions {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .action-btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        flex: 1;
+        min-width: 120px;
+        justify-content: center;
+    }
+    
     .edit-form-grid {
         grid-template-columns: 1fr;
         gap: 15px;
@@ -3595,19 +3895,6 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
         margin: 0 auto;
     }
 }
-
-.album-cover-container {
-    width: 100%;
-    height: 150px;
-    overflow: hidden;
-}
-
-.album-cover-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
 /* ===== BLUR PLACEHOLDER - PRIORIDADE MÁXIMA ===== */
 
 /* Garantir que o blur funciona em TODAS as imagens */
@@ -3944,7 +4231,7 @@ img[loading="lazy"] {
     gap: 8px;
 }
 
-/* ===== MODAL INLINE DE EDIÇÃO ===== */
+/* ===== MODAL DE EDIÇÃO DE ÁLBUM (INLINE) ===== */
 .inline-edit-modal {
     margin-top: 30px;
     background: linear-gradient(135deg, 
@@ -3954,22 +4241,11 @@ img[loading="lazy"] {
     border: 2px solid var(--theme-primary);
     border-radius: 20px;
     padding: 0;
-    overflow: hidden;
+    overflow: visible; /* ← MUDEI DE hidden PARA visible */
     box-shadow: 
         0 10px 40px rgba(0, 0, 0, 0.5),
         0 0 40px var(--theme-primary);
     animation: slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .inline-edit-header {
@@ -3981,103 +4257,20 @@ img[loading="lazy"] {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.inline-edit-header h3 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: white;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.close-inline-edit {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
-}
-
-.close-inline-edit:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: rotate(90deg);
-}
-
 .inline-edit-content {
     padding: 0;
+    overflow: visible; /* ← GARANTIR QUE O CONTEÚDO TAMBÉM SEJA VISÍVEL */
 }
 
 .edit-section {
     padding: 25px;
     border-bottom: 1px solid var(--theme-card-border);
+    overflow: visible; /* ← IMPORTANTE PARA OS BOTÕES */
 }
 
 .edit-section:last-child {
     border-bottom: none;
-}
-
-.edit-section h4 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--theme-text);
-    margin: 0 0 20px 0;
-}
-
-.edit-info-grid {
-    display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: 25px;
-    margin-bottom: 20px;
-}
-
-.cover-preview-section {
-    position: relative;
-}
-
-.cover-preview-section img {
-    width: 140px;
-    height: 140px;
-    border-radius: 12px;
-    object-fit: cover;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-}
-
-.change-cover-btn {
-    display: block;
-    margin-top: 10px;
-    padding: 10px;
-    background: var(--theme-primary);
-    color: white;
-    text-align: center;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.change-cover-btn:hover {
-    background: var(--theme-accent);
-    box-shadow: 0 0 15px var(--theme-primary);
-}
-
-.change-cover-btn i {
-    margin-right: 6px;
-}
-
-.edit-fields {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    padding-bottom: 30px; /* ← AUMENTEI O PADDING INFERIOR DA ÚLTIMA SEÇÃO */
 }
 
 .edit-actions {
@@ -4085,6 +4278,7 @@ img[loading="lazy"] {
     gap: 12px;
     justify-content: flex-end;
     margin-top: 20px;
+    padding-top: 10px; /* ← PADDING EXTRA NO TOPO */
 }
 
 .action-btn {
@@ -4099,6 +4293,8 @@ img[loading="lazy"] {
     align-items: center;
     gap: 8px;
     transition: all 0.3s ease;
+    white-space: nowrap; /* ← IMPEDE QUEBRA DE LINHA NO TEXTO DO BOTÃO */
+    min-height: 44px; /* ← ALTURA MÍNIMA PARA FACILITAR O TOQUE */
 }
 
 .action-btn.cancel {
@@ -4121,6 +4317,30 @@ img[loading="lazy"] {
 .action-btn.save:hover {
     transform: translateY(-2px) scale(1.02);
     box-shadow: 0 8px 25px rgba(138, 43, 226, 0.6);
+}
+
+/* ===== RESPONSIVO MOBILE ===== */
+@media (max-width: 768px) {
+    .edit-section {
+        padding: 20px 15px;
+    }
+    
+    .edit-section:last-child {
+        padding-bottom: 25px;
+    }
+    
+    .edit-actions {
+        gap: 10px;
+        flex-wrap: wrap; /* ← PERMITE QUEBRA DE LINHA SE NECESSÁRIO */
+    }
+    
+    .action-btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        flex: 1; /* ← BOTÕES OCUPAM ESPAÇO IGUAL */
+        min-width: 120px; /* ← LARGURA MÍNIMA */
+        justify-content: center;
+    }
 }
 
 /* ===== RESPONSIVO ===== */
@@ -4151,5 +4371,1212 @@ img[loading="lazy"] {
     .cover-preview-section img {
         width: 100%;
         height: 200px;
+    }
+}
+
+
+/* ===== ADMIN - GALERIA DE EDIÇÃO ===== */
+.edit-photos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 80px;
+}
+
+.gallery-photo {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.photo-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.gallery-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.photo-checkbox {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.photo-checkmark {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    pointer-events: none;
+}
+
+.photo-checkmark i {
+    color: white;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.gallery-photo.selection-mode .photo-checkmark {
+    opacity: 1;
+}
+
+.gallery-photo.selected .photo-checkmark {
+    opacity: 1;
+    background: var(--theme-primary);
+    border-color: var(--theme-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.gallery-photo.selected .photo-checkmark i {
+    opacity: 1;
+}
+
+.gallery-photo.selected img {
+    opacity: 0.7;
+}
+
+.gallery-photo.selected::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 3px solid var(--theme-primary);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.gallery-photo.draggable {
+    cursor: grab;
+}
+
+.gallery-photo.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.gallery-photo.drag-over {
+    border: 3px solid var(--theme-accent);
+    box-shadow: 0 0 20px var(--theme-accent);
+}
+
+.photo-number {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 'Poppins', sans-serif;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+}
+
+/* ===== BARRA INFERIOR FIXA (TOOLBAR) ===== */
+.bottom-toolbar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: var(--theme-card-bg);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--theme-card-border);
+    padding: 12px 20px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    z-index: 999999 !important;
+    box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+    pointer-events: auto !important;
+}
+
+.bottom-toolbar[style*="display: flex"] {
+    display: flex !important;
+    position: fixed !important;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.bottom-info {
+    flex: 1;
+    text-align: center;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.bottom-btn {
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 8px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.bottom-btn:active {
+    transform: scale(0.95);
+}
+
+.bottom-btn.cancel-btn {
+    background: rgba(150, 150, 150, 0.15);
+    border-color: rgba(150, 150, 150, 0.3);
+    color: #aaa;
+}
+
+.bottom-btn.reorganize-btn {
+    background: rgba(100, 150, 255, 0.15);
+    border-color: rgba(100, 150, 255, 0.3);
+    color: #6b9bff;
+}
+
+.bottom-btn.reorganize-btn.active {
+    background: rgba(100, 255, 100, 0.15);
+    border-color: rgba(100, 255, 100, 0.3);
+    color: #6bff6b;
+}
+
+.bottom-btn.delete-btn {
+    background: rgba(255, 70, 70, 0.15);
+    border-color: rgba(255, 70, 70, 0.3);
+    color: #ff6b6b;
+}
+
+/* ===== EDIÇÃO DE INFORMAÇÕES DO ÁLBUM ===== */
+.minimal-edit-btn,
+.simple-edit-btn {
+    width: 100%;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 10px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+}
+
+.minimal-edit-btn:hover,
+.simple-edit-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--theme-primary);
+}
+
+.simple-edit-btn:active {
+    transform: scale(0.98);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.simple-edit-btn i {
+    font-size: 1rem;
+}
+
+.edit-form-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.cover-preview-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.cover-preview-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.change-cover-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.change-cover-label:hover {
+    background: var(--theme-primary);
+}
+
+.change-cover-label i {
+    font-size: 1rem;
+}
+
+.edit-fields-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.edit-field label {
+    font-size: 0.85rem;
+    color: var(--theme-text-secondary);
+    font-weight: 500;
+}
+
+.edit-field input,
+.edit-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 8px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.edit-field input:focus,
+.edit-field textarea:focus {
+    outline: none;
+    border-color: var(--theme-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.edit-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+
+.minimal-btn {
+    flex: 1;
+    padding: 10px 20px;
+    border: 1px solid var(--theme-card-border);
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.minimal-btn.cancel {
+    background: rgba(150, 150, 150, 0.1);
+    color: #aaa;
+}
+
+.minimal-btn.cancel:hover {
+    background: rgba(150, 150, 150, 0.15);
+}
+
+.minimal-btn.save {
+    background: var(--theme-primary);
+    color: white;
+    border-color: var(--theme-primary);
+}
+
+.minimal-btn.save:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* ===== ADMIN - PLAYLISTS ===== */
+.playlist-admin-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.playlist-admin-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--theme-primary);
+}
+
+.playlist-admin-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.playlist-admin-title {
+    font-weight: 600;
+    color: var(--theme-text);
+    font-size: 1rem;
+}
+
+.playlist-admin-meta {
+    font-size: 0.85rem;
+    color: var(--theme-text-secondary);
+    margin-top: 3px;
+}
+
+.playlist-admin-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.playlist-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.playlist-action-btn.edit {
+    background: rgba(100, 150, 255, 0.15);
+    color: #6b9bff;
+}
+
+.playlist-action-btn.edit:hover {
+    background: rgba(100, 150, 255, 0.25);
+}
+
+.playlist-action-btn.delete {
+    background: rgba(255, 70, 70, 0.15);
+    color: #ff6b6b;
+}
+
+.playlist-action-btn.delete:hover {
+    background: rgba(255, 70, 70, 0.25);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    color: var(--theme-text-secondary);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 8px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--theme-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.admin-btn.primary {
+    background: var(--theme-primary);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+    margin-top: 15px;
+}
+
+.admin-btn.primary:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.admin-btn.primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== RESPONSIVO - ADMIN ===== */
+@media (max-width: 768px) {
+    .bottom-toolbar {
+        padding: 10px 12px;
+    }
+    
+    .bottom-btn {
+        padding: 12px 14px;
+        font-size: 0.8rem;
+    }
+    
+    .bottom-btn span {
+        display: none;
+    }
+    
+    .bottom-btn i {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    
+    .bottom-info {
+        font-size: 0.85rem;
+    }
+    
+    .photo-checkmark {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .photo-checkmark i {
+        font-size: 14px;
+    }
+    
+    .edit-form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .cover-preview-container {
+        width: 100%;
+        height: 200px;
+        margin: 0 auto;
+    }
+}
+
+/* ===== ESTILOS EXTRAS DO ADMIN.JS ===== */
+.admin-tabs {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+}
+
+.admin-tabs.dragging {
+    scroll-behavior: auto;
+    cursor: grabbing !important;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.admin-tabs.dragging * {
+    pointer-events: none;
+}
+
+/* Melhorar performance do scroll */
+.admin-tabs {
+    will-change: scroll-position;
+}
+
+/* ===== SISTEMA DE FORMULÁRIOS PADRONIZADO - COM LIMITES DE LARGURA ===== */
+
+/* ===== 1. CONTAINER PAI - LIMITA A LARGURA ===== */
+.modern-form,
+.admin-section,
+.album-create-card,
+.timeline-create-card,
+.playlist-create-card,
+.album-photos-card,
+.playlist-add-music-card {
+    max-width: 100%;
+    width: 100%;
+}
+
+/* ===== 2. INPUTS/TEXTAREAS/SELECTS COM LARGURA CONTROLADA ===== */
+.modern-form input[type="text"],
+.modern-form input[type="password"],
+.modern-form input[type="email"],
+.modern-form input[type="number"],
+.modern-form input[type="date"],
+.modern-form input[type="tel"],
+.modern-form textarea,
+.modern-form select,
+.admin-section input[type="text"],
+.admin-section textarea,
+.admin-section select,
+.album-create-card input,
+.album-create-card textarea,
+.album-create-card select,
+.timeline-create-card input,
+.timeline-create-card textarea,
+.timeline-create-card select {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 2px solid transparent !important;
+    border-radius: 10px !important;
+    color: var(--theme-text) !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.9rem !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    resize: vertical;
+    backdrop-filter: blur(10px);
+    box-sizing: border-box;
+    display: block;
+    margin: 0;
+}
+
+/* ===== 3. FOCUS STATE ===== */
+.modern-form input:focus,
+.modern-form textarea:focus,
+.modern-form select:focus,
+.admin-section input:focus,
+.admin-section textarea:focus,
+.admin-section select:focus,
+.album-create-card input:focus,
+.album-create-card textarea:focus,
+.album-create-card select:focus {
+    outline: none !important;
+    border: 2px solid var(--theme-primary) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 
+        0 0 15px rgba(138, 43, 226, 0.3),
+        inset 0 0 10px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* ===== 4. TEXTAREAS ESPECÍFICOS ===== */
+#albumDescription,
+#eventSecret,
+#editAlbumDescription,
+#editEventSecret {
+    min-height: 80px;
+    max-height: 200px;
+}
+
+/* Textareas menores */
+.edit-field textarea,
+.edit-fields textarea {
+    min-height: 60px;
+    max-height: 120px;
+}
+
+/* ===== 5. FORM ROWS - MANTÉM LAYOUT ORIGINAL ===== */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Em telas pequenas, uma coluna só */
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+/* ===== 6. INPUT GROUP - CONTROLE DE LARGURA ===== */
+.input-group {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 15px;
+}
+
+.input-group input,
+.input-group textarea,
+.input-group select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* ===== 7. SELECTS COM SETA ===== */
+.modern-select,
+select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 16px center !important;
+    background-size: 14px !important;
+    padding-right: 40px !important;
+}
+
+/* ===== 8. FILE INPUTS ===== */
+input[type="file"] {
+    padding: 10px !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 2px dashed rgba(255, 255, 255, 0.1) !important;
+    cursor: pointer;
+    font-size: 0.85rem !important;
+}
+
+input[type="file"]:focus {
+    border: 2px dashed var(--theme-primary) !important;
+}
+
+/* ===== 9. PLACEHOLDER ===== */
+::placeholder {
+    color: var(--theme-text-secondary) !important;
+    opacity: 0.7 !important;
+    font-size: 0.9rem !important;
+}
+
+/* ===== 10. LABELS ===== */
+.input-group label {
+    display: block;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--theme-text);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ===== 11. MODAIS DE EDIÇÃO ===== */
+.inline-edit-modal input,
+.inline-edit-modal textarea,
+.inline-edit-modal select,
+.edit-section input,
+.edit-section textarea,
+.edit-section select,
+.edit-fields input,
+.edit-fields textarea,
+.edit-fields select {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px 14px !important;
+    font-size: 0.85rem !important;
+    border-radius: 8px !important;
+}
+
+/* ===== 12. GARANTINDO QUE NÃO ULTRAPASSE OS LIMITES ===== */
+/* Remove qualquer padding/margin excessiva */
+.modern-form *,
+.admin-section *,
+.album-create-card *,
+.timeline-create-card * {
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+/* ===== 13. ESPECÍFICO PARA OS CARDS DO ADMIN ===== */
+.album-create-card,
+.timeline-create-card,
+.album-photos-card,
+.playlist-create-card {
+    padding: 20px !important;
+}
+
+.album-create-card .input-group,
+.timeline-create-card .input-group {
+    margin-bottom: 15px;
+}
+
+/* ===== 14. RESPONSIVIDADE FINAL ===== */
+@media (max-width: 768px) {
+    .modern-form input,
+    .modern-form textarea,
+    .modern-form select,
+    .admin-section input,
+    .admin-section textarea,
+    .admin-section select {
+        padding: 10px 14px !important;
+        font-size: 0.85rem !important;
+        border-radius: 8px !important;
+    }
+    
+    #albumDescription,
+    #eventSecret {
+        min-height: 70px;
+        max-height: 150px;
+    }
+    
+    .album-create-card,
+    .timeline-create-card {
+        padding: 15px !important;
+    }
+}
+
+/* ===== CORREÇÃO ESPECÍFICA PARA MODAL DE EDIÇÃO DO ÁLBUM ===== */
+
+/* Textareas dentro do modal de edição do álbum */
+#albumEditModal textarea,
+#albumEditModal input[type="text"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px 16px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 2px solid transparent !important;
+    border-radius: 10px !important;
+    color: var(--theme-text) !important; /* ← GARANTE TEXTO BRANCO/NEON */
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.9rem !important;
+    transition: all 0.3s ease !important;
+    resize: vertical;
+    backdrop-filter: blur(10px);
+    box-sizing: border-box;
+    display: block;
+}
+
+/* Focus no modal */
+#albumEditModal textarea:focus,
+#albumEditModal input[type="text"]:focus {
+    outline: none !important;
+    border: 2px solid var(--theme-primary) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 
+        0 0 15px rgba(138, 43, 226, 0.3),
+        inset 0 0 10px rgba(255, 255, 255, 0.05) !important;
+    color: var(--theme-text) !important; /* ← Mantém cor no focus */
+}
+
+/* Placeholder no modal */
+#albumEditModal textarea::placeholder,
+#albumEditModal input[type="text"]::placeholder {
+    color: var(--theme-text-secondary) !important;
+    opacity: 0.7 !important;
+    font-style: italic !important;
+}
+
+/* Labels dentro do modal */
+#albumEditModal .input-group label,
+#albumEditModal .edit-field label {
+    color: var(--theme-text) !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    margin-bottom: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+/* Seção específica de edição dentro do modal */
+.edit-fields input,
+.edit-fields textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px 14px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid transparent !important;
+    border-radius: 8px !important;
+    color: var(--theme-text) !important; /* ← CORRIGE TEXTO BRANCO */
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.85rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.edit-fields input:focus,
+.edit-fields textarea:focus {
+    outline: none !important;
+    border: 1px solid var(--theme-primary) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 0 10px var(--theme-primary) !important;
+}
+
+/* ===== CORREÇÃO PARA O MODAL DE EDIÇÃO DO EVENTO TAMBÉM ===== */
+#eventEditModal textarea,
+#eventEditModal input[type="text"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px 16px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 2px solid transparent !important;
+    border-radius: 10px !important;
+    color: var(--theme-text) !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.9rem !important;
+    transition: all 0.3s ease !important;
+}
+
+#eventEditModal textarea:focus,
+#eventEditModal input[type="text"]:focus {
+    outline: none !important;
+    border: 2px solid var(--theme-primary) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 0 15px var(--theme-primary) !important;
+}
+
+/* ===== GARANTINDO QUE O TEXTO NÃO FIQUE BRANCO PADRÃO DO BROWSER ===== */
+/* Esta regra FORÇA a cor do texto em TODOS os inputs dentro de modais */
+.inline-edit-modal *,
+.edit-section *,
+.edit-fields * {
+    color: var(--theme-text) !important;
+}
+
+/* Especificamente para inputs que herdam cor do browser */
+.inline-edit-modal input,
+.inline-edit-modal textarea,
+.edit-section input,
+.edit-section textarea,
+.edit-fields input,
+.edit-fields textarea {
+    color: var(--theme-text) !important;
+    -webkit-text-fill-color: var(--theme-text) !important; /* Para Safari */
+}
+
+/* Remove estilos de autofill do browser que deixam branco */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--theme-text) !important;
+    -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.05) inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* ===== MODAL FLUTUANTE DE EDIÇÃO DE ÁLBUM ===== */
+.album-edit-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 5000;
+    animation: fadeIn 0.3s ease;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.album-edit-modal-content {
+    max-width: 700px;
+    margin: 40px auto;
+    background: var(--theme-card-bg);
+    backdrop-filter: blur(20px);
+    border: 2px solid var(--theme-primary);
+    border-radius: 25px;
+    overflow: hidden;
+    box-shadow: 
+        0 0 50px var(--theme-primary),
+        0 20px 60px rgba(0, 0, 0, 0.6);
+    animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.album-edit-header {
+    background: var(--gradient-primary);
+    padding: 25px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.album-edit-header h2 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.close-album-edit {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.close-album-edit:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.album-edit-body {
+    padding: 0;
+}
+
+.album-edit-section {
+    padding: 30px;
+    border-bottom: 1px solid var(--theme-card-border);
+}
+
+.album-edit-section:last-child {
+    border-bottom: none;
+}
+
+.album-edit-section h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--theme-text);
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.album-edit-section h3 i {
+    color: var(--theme-primary);
+    text-shadow: 0 0 10px var(--theme-primary);
+}
+
+.album-edit-grid {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 25px;
+}
+
+.album-cover-preview {
+    position: relative;
+}
+
+.album-cover-preview img {
+    width: 140px;
+    height: 140px;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    display: block;
+}
+
+.change-album-cover-btn {
+    display: block;
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--theme-primary);
+    color: white;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    width: 140px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+}
+
+.change-album-cover-btn:hover {
+    background: var(--theme-accent);
+    box-shadow: 0 0 15px var(--theme-primary);
+    transform: translateY(-2px);
+}
+
+.change-album-cover-btn i {
+    margin-right: 6px;
+}
+
+.album-edit-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.album-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.album-edit-field label {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--theme-text);
+}
+
+.album-edit-field input,
+.album-edit-field textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.album-edit-field input:focus,
+.album-edit-field textarea:focus {
+    outline: none;
+    border-color: var(--theme-primary);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 15px rgba(138, 43, 226, 0.3);
+}
+
+.album-edit-field textarea {
+    min-height: 80px;
+    max-height: 150px;
+    resize: vertical;
+}
+
+.album-edit-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 25px 30px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.album-action-btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.album-action-btn.cancel {
+    background: rgba(150, 150, 150, 0.2);
+    color: #aaa;
+    border: 1px solid rgba(150, 150, 150, 0.3);
+}
+
+.album-action-btn.cancel:hover {
+    background: rgba(150, 150, 150, 0.3);
+    transform: scale(1.02);
+}
+
+.album-action-btn.save {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 5px 20px rgba(138, 43, 226, 0.4);
+}
+
+.album-action-btn.save:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 30px rgba(138, 43, 226, 0.6);
+}
+
+/* ===== RESPONSIVO MOBILE ===== */
+@media (max-width: 768px) {
+    .album-edit-modal-content {
+        margin: 20px auto;
+    }
+    
+    .album-edit-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .album-cover-preview {
+        width: 100%;
+    }
+    
+    .album-cover-preview img {
+        width: 100%;
+        height: 200px;
+    }
+    
+    .change-album-cover-btn {
+        width: 100%;
+    }
+    
+    .album-edit-section {
+        padding: 20px;
+    }
+    
+    .album-edit-actions {
+        padding: 20px;
+        flex-direction: column;
+    }
+    
+    .album-action-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
