@@ -4,22 +4,29 @@ console.log('🔐 Sistema de Admin ILIMITADO carregado');
 
 // ===== VARIÁVEIS GLOBAIS =====
 let isAdminUnlocked = false;
-let isReorganizing = false;
-let draggedElement = null;
-let draggedIndex = null;
-let newCoverFile = null;
-
-// ===== TOUCH VARIÁVEIS PARA REORGANIZAÇÃO =====
-let touchedElement = null;
-let touchStartYPos = 0;
-let touchStartXPos = 0;
-let isTouchDragging = false;
-let touchStartTimestamp = 0;
-let longPressTimer = null;
-const LONG_PRESS_THRESHOLD = 400;
-const MOVE_THRESHOLD = 15;
 
 // ===== FUNÇÕES DE INICIALIZAÇÃO =====
+
+
+// ===== HELPER: Remove campos undefined antes de salvar no Firebase =====
+function cleanFirebaseData(obj) {
+    const cleaned = {};
+    for (const key in obj) {
+        if (obj[key] !== undefined && obj[key] !== null) {
+            if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+                cleaned[key] = cleanFirebaseData(obj[key]);
+            } else if (Array.isArray(obj[key])) {
+                cleaned[key] = obj[key].map(item => 
+                    typeof item === 'object' ? cleanFirebaseData(item) : item
+                );
+            } else {
+                cleaned[key] = obj[key];
+            }
+        }
+    }
+    return cleaned;
+}
+
 
 function waitForServices() {
     return new Promise((resolve) => {
@@ -275,8 +282,7 @@ async function initAdmin() {
             console.log('🔐 Admin fechado (clique fora)');
         }
     });
-    
-    setupTabListeners();
+
     
     document.querySelectorAll('.admin-tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -287,7 +293,8 @@ async function initAdmin() {
             }
         });
     });
-    
+
+    setupTabListeners();
     initAlbumForms();
     initTimelineForms();
     
@@ -788,1100 +795,6 @@ window.deleteEvent = async function(eventId) {
     }
 };
 
-// ===== SISTEMA DE EDIÇÃO DE ÁLBUNS =====
-console.log('✏️ Sistema de edição de álbuns carregado');
-
-function setupEditTabListeners() {
-    setTimeout(() => {
-        const loadBtn = document.getElementById('loadEditAlbumBtn');
-        const cancelBtn = document.getElementById('cancelSelection');
-        const reorganizeBtn = document.getElementById('reorganizePhotos');
-        const deleteBtn = document.getElementById('deleteSelectedPhotos');
-        const toggleBtn = document.getElementById('toggleAlbumInfoEdit');
-        const cancelEditBtn = document.getElementById('cancelAlbumEdit');
-        const saveEditBtn = document.getElementById('saveAlbumEdit');
-        const newCoverInput = document.getElementById('newCoverInput');
-        
-        if (loadBtn && !loadBtn.dataset.listenerAttached) {
-            loadBtn.addEventListener('click', loadAlbumForEdit);
-            loadBtn.dataset.listenerAttached = 'true';
-            console.log('✅ Listener de carregar álbum configurado');
-        }
-        
-        if (cancelBtn && !cancelBtn.dataset.listenerAttached) {
-            cancelBtn.addEventListener('click', cancelSelection);
-            cancelBtn.dataset.listenerAttached = 'true';
-            console.log('✅ Listener de cancelar seleção configurado');
-        }
-        
-        if (reorganizeBtn && !reorganizeBtn.dataset.listenerAttached) {
-            reorganizeBtn.addEventListener('click', enterReorganizeMode);
-            reorganizeBtn.dataset.listenerAttached = 'true';
-            console.log('✅ Listener de reorganizar configurado');
-        }
-        
-        if (deleteBtn && !deleteBtn.dataset.listenerAttached) {
-            deleteBtn.addEventListener('click', deleteSelectedPhotos);
-            deleteBtn.dataset.listenerAttached = 'true';
-            console.log('✅ Listener de deletar configurado');
-        }
-        
-        if (toggleBtn && !toggleBtn.dataset.listenerAttached) {
-            toggleBtn.addEventListener('click', toggleAlbumInfoEdit);
-            toggleBtn.dataset.listenerAttached = 'true';
-            console.log('✅ Listener de toggle edit configurado');
-        }
-        
-        if (cancelEditBtn && !cancelEditBtn.dataset.listenerAttached) {
-            cancelEditBtn.addEventListener('click', cancelAlbumInfoEdit);
-            cancelEditBtn.dataset.listenerAttached = 'true';
-            console.log('✅ Listener de cancelar edit configurado');
-        }
-        
-        if (saveEditBtn && !saveEditBtn.dataset.listenerAttached) {
-            saveEditBtn.addEventListener('click', saveAlbumInfo);
-            saveEditBtn.dataset.listenerAttached = 'true';
-            console.log('✅ Listener de salvar edit configurado');
-        }
-        
-        if (newCoverInput && !newCoverInput.dataset.listenerAttached) {
-            newCoverInput.addEventListener('change', previewNewCover);
-            newCoverInput.dataset.listenerAttached = 'true';
-            console.log('✅ Listener de preview capa configurado');
-        }
-        
-        createBottomToolbar();
-        setupBackButtonHandler();
-        
-        console.log('✅ Todos os listeners da aba de edição configurados');
-    }, 500);
-}
-
-function createBottomToolbar() {
-    let toolbar = document.getElementById('bottomToolbar');
-    if (!toolbar) {
-        toolbar = document.createElement('div');
-        toolbar.className = 'bottom-toolbar';
-        toolbar.id = 'bottomToolbar';
-        toolbar.style.display = 'none';
-        toolbar.innerHTML = `
-            <button id="cancelSelection" class="bottom-btn cancel-btn">
-                <i class="fas fa-times"></i>
-                <span>Cancelar</span>
-            </button>
-            
-            <div class="bottom-info">
-                <span id="selectionCount">0 selecionadas</span>
-            </div>
-            
-            <button id="reorganizePhotos" class="bottom-btn reorganize-btn">
-                <i class="fas fa-sort"></i>
-                <span>Reorganizar</span>
-            </button>
-            
-            <button id="deleteSelectedPhotos" class="bottom-btn delete-btn">
-                <i class="fas fa-trash"></i>
-                <span>Deletar</span>
-            </button>
-        `;
-        document.body.appendChild(toolbar);
-        console.log('✅ Bottom toolbar criada');
-    }
-}
-
-async function updateEditAlbumSelect() {
-    const select = document.getElementById('editAlbumSelect');
-    
-    try {
-        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
-        
-        select.innerHTML = '<option value="">Escolha um álbum...</option>';
-        
-        snapshot.forEach(doc => {
-            const album = doc.data();
-            const option = document.createElement('option');
-            option.value = doc.id;
-            option.textContent = `${album.title} (${album.photoCount || 0} fotos)`;
-            select.appendChild(option);
-        });
-        
-        console.log(`✅ ${snapshot.size} álbuns disponíveis para edição`);
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar álbuns:', error);
-    }
-}
-
-function recreateToolbarListeners() {
-    console.log('🔄 Recriando listeners da toolbar...');
-    
-    const cancelBtn = document.getElementById('cancelSelection');
-    const reorganizeBtn = document.getElementById('reorganizePhotos');
-    const deleteBtn = document.getElementById('deleteSelectedPhotos');
-    
-    if (cancelBtn) {
-        const newCancelBtn = cancelBtn.cloneNode(true);
-        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-        newCancelBtn.addEventListener('click', cancelSelection);
-        console.log('✅ Listener de cancelar recriado');
-    }
-    
-    if (reorganizeBtn) {
-        const newReorganizeBtn = reorganizeBtn.cloneNode(true);
-        reorganizeBtn.parentNode.replaceChild(newReorganizeBtn, reorganizeBtn);
-        
-        newReorganizeBtn.disabled = false;
-        newReorganizeBtn.classList.remove('active');
-        newReorganizeBtn.innerHTML = '<i class="fas fa-sort"></i><span>Reorganizar</span>';
-        
-        newReorganizeBtn.addEventListener('click', enterReorganizeMode);
-        console.log('✅ Listener de reorganizar recriado');
-    }
-    
-    if (deleteBtn) {
-        const newDeleteBtn = deleteBtn.cloneNode(true);
-        deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
-        newDeleteBtn.addEventListener('click', deleteSelectedPhotos);
-        console.log('✅ Listener de deletar recriado');
-    }
-    
-    console.log('✅ Todos os listeners da toolbar recriados com sucesso');
-}
-
-async function loadAlbumForEdit() {
-    const select = document.getElementById('editAlbumSelect');
-    const albumId = select.value;
-    
-    if (!albumId) {
-        alert('⚠️ Selecione um álbum primeiro!');
-        return;
-    }
-    
-    try {
-        console.log(`📂 Carregando álbum ${albumId} para edição...`);
-        
-        const btn = document.getElementById('loadEditAlbumBtn');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
-        btn.disabled = true;
-
-        const toolbar = document.getElementById('bottomToolbar');
-        if (toolbar) {
-            toolbar.style.display = 'none';
-        }
-        
-        const albumDoc = await db.collection('albums').doc(albumId).get();
-        const albumData = albumDoc.data();
-        
-        const photoPagesSnapshot = await db.collection('album_photos')
-            .where('albumId', '==', albumId)
-            .orderBy('pageNumber', 'asc')
-            .get();
-        
-        const allPhotos = [];
-        photoPagesSnapshot.forEach(pageDoc => {
-            const pageData = pageDoc.data();
-            pageData.photos.forEach((photo, index) => {
-                allPhotos.push({
-                    ...photo,
-                    pageId: pageDoc.id,
-                    pageNumber: pageData.pageNumber,
-                    indexInPage: index
-                });
-            });
-        });
-        
-        window.currentEditAlbum = {
-            id: albumId,
-            data: albumData,
-            photos: allPhotos
-        };
-        
-        renderPhotosForEdit(allPhotos, albumData.title);
-        
-        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
-        btn.disabled = false;
-        
-        recreateToolbarListeners();
-
-        document.getElementById('editAlbumTitle').value = albumData.title || '';
-        document.getElementById('editAlbumDate').value = albumData.date || '';
-        document.getElementById('editAlbumDescription').value = albumData.description || '';
-        document.getElementById('currentCoverPreview').src = albumData.cover || '';
-        document.getElementById('editAlbumSection').style.display = 'block';
-        document.getElementById('editAlbumInfoSection').style.display = 'block';
-        
-        console.log(`✅ ${allPhotos.length} fotos carregadas para edição`);
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar álbum:', error);
-        alert('❌ Erro ao carregar álbum: ' + error.message);
-        
-        const btn = document.getElementById('loadEditAlbumBtn');
-        btn.innerHTML = '<i class="fas fa-folder-open"></i> Carregar Álbum';
-        btn.disabled = false;
-    }
-}
-
-function toggleAlbumInfoEdit() {
-    const form = document.getElementById('albumInfoEditForm');
-    const btn = document.getElementById('toggleAlbumInfoEdit');
-    
-    if (!form || !btn) return;
-    
-    if (form.style.display === 'none' || form.style.display === '') {
-        form.style.display = 'block';
-        btn.querySelector('.edit-text').textContent = 'Fechar';
-        btn.querySelector('i').className = 'fas fa-times';
-        console.log('✏️ Formulário de edição ABERTO');
-    } else {
-        form.style.display = 'none';
-        btn.querySelector('.edit-text').textContent = 'Editar Álbum';
-        btn.querySelector('i').className = 'fas fa-edit';
-        console.log('✏️ Formulário de edição FECHADO');
-    }
-}
-
-function initSwipeableEditButton() {
-    const btn = document.getElementById('toggleAlbumInfoEdit');
-    if (!btn) {
-        console.warn('⚠️ Botão de edição não encontrado');
-        return;
-    }
-    
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    
-    newBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('🖱️ Clique no botão de edição');
-        toggleAlbumInfoEdit();
-    });
-    
-    console.log('✅ Botão de edição inicializado (apenas clique)');
-}
-
-function cancelAlbumInfoEdit() {
-    if (window.currentEditAlbum) {
-        const albumData = window.currentEditAlbum.data;
-        document.getElementById('editAlbumTitle').value = albumData.title || '';
-        document.getElementById('editAlbumDate').value = albumData.date || '';
-        document.getElementById('editAlbumDescription').value = albumData.description || '';
-        document.getElementById('currentCoverPreview').src = albumData.cover || '';
-    }
-    
-    document.getElementById('albumInfoEditForm').style.display = 'none';
-    
-    const btn = document.getElementById('toggleAlbumInfoEdit');
-    if (btn) {
-        btn.querySelector('.edit-text').textContent = 'Editar Álbum';
-        btn.querySelector('i').className = 'fas fa-edit';
-    }
-    
-    console.log('✏️ Edição cancelada');
-}
-
-function previewNewCover(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    if (file.size > 32 * 1024 * 1024) {
-        alert('❌ Imagem muito grande! Máximo 32MB.');
-        return;
-    }
-    
-    newCoverFile = file;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('currentCoverPreview').src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-}
-
-async function saveAlbumInfo() {
-    if (!window.currentEditAlbum) return;
-    
-    const saveBtn = document.getElementById('saveAlbumEdit');
-    if (!saveBtn) return;
-    
-    const originalText = saveBtn.innerHTML;
-    
-    try {
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando...</span>';
-        saveBtn.disabled = true;
-        
-        const albumId = window.currentEditAlbum.id;
-        const newTitle = document.getElementById('editAlbumTitle').value.trim();
-        const newDate = document.getElementById('editAlbumDate').value.trim();
-        const newDescription = document.getElementById('editAlbumDescription').value.trim();
-        
-        if (!newTitle || !newDate) {
-            alert('⚠️ Título e Data são obrigatórios!');
-            saveBtn.innerHTML = originalText;
-            saveBtn.disabled = false;
-            return;
-        }
-        
-        const updateData = {
-            title: newTitle,
-            date: newDate,
-            description: newDescription
-        };
-        
-        if (newCoverFile) {
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Enviando capa...</span>';
-            const coverUrl = await uploadImageToCloudinary(newCoverFile, 800);
-            updateData.cover = coverUrl;
-            newCoverFile = null;
-        }
-        
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando no Firebase...</span>';
-        
-        await db.collection('albums').doc(albumId).update(updateData);
-        
-        window.currentEditAlbum.data = {
-            ...window.currentEditAlbum.data,
-            ...updateData
-        };
-        
-        alert('✅ Informações do álbum atualizadas com sucesso!');
-        
-        if (document.getElementById('saveAlbumEdit')) {
-            saveBtn.innerHTML = originalText;
-            saveBtn.disabled = false;
-        }
-        
-        await loadAlbumsFromFirebase();
-        await updateEditAlbumSelect();
-        
-    } catch (error) {
-        console.error('❌ Erro ao salvar:', error);
-        alert('❌ Erro ao salvar: ' + error.message);
-        
-        const btn = document.getElementById('saveAlbumEdit');
-        if (btn) {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    }
-}
-
-function createLazyImage(src, alt) {
-    const img = document.createElement('img');
-    img.src = src;
-    img.alt = alt;
-    img.loading = 'lazy';
-    img.style.filter = 'blur(10px)';
-    img.style.transition = 'filter 0.4s ease-out';
-    
-    img.addEventListener('load', () => {
-        img.style.filter = 'none';
-    }, { once: true });
-    
-    return img;
-}
-
-function renderPhotosForEdit(photos, albumTitle) {
-    const grid = document.getElementById('editPhotosGrid');
-    
-    grid.innerHTML = '';
-    
-    if (photos.length === 0) {
-        grid.innerHTML = `
-            <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: var(--theme-text-secondary);">
-                <i class="fas fa-images" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
-                <p>Este álbum está vazio</p>
-            </div>
-        `;
-        return;
-    }
-    
-    photos.forEach((photo, index) => {
-        const photoCard = document.createElement('div');
-        photoCard.className = 'gallery-photo';
-        photoCard.setAttribute('data-index', index);
-        
-        photoCard.innerHTML = `
-            <input type="checkbox" class="photo-checkbox" id="photo-${index}" aria-label="Selecionar foto ${index + 1}">
-            <div class="photo-wrapper">
-                <div class="photo-checkmark">
-                    <i class="fas fa-check"></i>
-                </div>
-                <div class="photo-number" style="display: none;">${index + 1}</div>
-            </div>
-        `;
-        
-        grid.appendChild(photoCard);
-        
-        const wrapper = photoCard.querySelector('.photo-wrapper');
-        const img = createLazyImage(photo.src, `Foto ${index + 1}`);
-        
-        wrapper.insertBefore(img, wrapper.firstChild);
-        
-        const checkbox = photoCard.querySelector('input[type="checkbox"]');
-        
-        let longPressTimer;
-        let touchStartTime;
-        let touchMoved = false;
-        
-        wrapper.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            return false;
-        });
-        
-        wrapper.addEventListener('touchstart', (e) => {
-            if (isReorganizing) return;
-            
-            touchMoved = false;
-            touchStartTime = Date.now();
-            
-            longPressTimer = setTimeout(() => {
-                if (!touchMoved && !isReorganizing) {
-                    if (navigator.vibrate) {
-                        navigator.vibrate(50);
-                    }
-                    
-                    checkbox.checked = !checkbox.checked;
-                    photoCard.classList.toggle('selected', checkbox.checked);
-                    updateSelectionUI();
-                }
-            }, 500);
-        }, { passive: true });
-        
-        wrapper.addEventListener('touchmove', () => {
-            touchMoved = true;
-            clearTimeout(longPressTimer);
-        }, { passive: true });
-        
-        wrapper.addEventListener('touchend', (e) => {
-            clearTimeout(longPressTimer);
-            
-            if (isReorganizing) return;
-            
-            if (isInSelectionMode() && !touchMoved) {
-                const touchDuration = Date.now() - touchStartTime;
-                if (touchDuration < 500) {
-                    checkbox.checked = !checkbox.checked;
-                    photoCard.classList.toggle('selected', checkbox.checked);
-                    updateSelectionUI();
-                }
-            }
-        }, { passive: true });
-        
-        wrapper.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            
-            if (isReorganizing) return;
-            
-            longPressTimer = setTimeout(() => {
-                checkbox.checked = !checkbox.checked;
-                photoCard.classList.toggle('selected', checkbox.checked);
-                updateSelectionUI();
-            }, 500);
-        });
-        
-        wrapper.addEventListener('mouseup', () => {
-            clearTimeout(longPressTimer);
-        });
-        
-        wrapper.addEventListener('mouseleave', () => {
-            clearTimeout(longPressTimer);
-        });
-        
-        wrapper.addEventListener('dragstart', (e) => {
-            if (!isReorganizing) {
-                e.preventDefault();
-                return false;
-            }
-        });
-    });
-    
-    updateSelectionUI();
-}
-
-function isInSelectionMode() {
-    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
-    return checkboxes.length > 0;
-}
-
-function updateSelectionUI() {
-    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
-    const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-    
-    const bottomToolbar = document.getElementById('bottomToolbar');
-    const selectionCountSpan = document.getElementById('selectionCount');
-    
-    if (selectedCount > 0) {
-        bottomToolbar.style.display = 'flex';
-        selectionCountSpan.textContent = `${selectedCount} selecionada${selectedCount !== 1 ? 's' : ''}`;
-        
-        document.querySelectorAll('.gallery-photo').forEach(photo => {
-            photo.classList.add('selection-mode');
-        });
-    } else {
-        bottomToolbar.style.display = 'none';
-        
-        document.querySelectorAll('.gallery-photo').forEach(photo => {
-            photo.classList.remove('selection-mode');
-        });
-    }
-}
-
-function cancelSelection() {
-    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
-    
-    checkboxes.forEach(cb => {
-        cb.checked = false;
-        cb.closest('.gallery-photo').classList.remove('selected');
-    });
-    
-    console.log('☑️ Seleção cancelada');
-    
-    updateSelectionUI();
-}
-
-function setupBackButtonHandler() {
-    window.addEventListener('popstate', (e) => {
-        if (isInSelectionMode()) {
-            e.preventDefault();
-            cancelSelection();
-            
-            history.pushState({ editMode: true }, '');
-        }
-    });
-    
-    const editSection = document.getElementById('editAlbumSection');
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'style') {
-                if (editSection.style.display !== 'none') {
-                    history.pushState({ editMode: true }, '');
-                }
-            }
-        });
-    });
-    
-    observer.observe(editSection, { attributes: true });
-}
-
-// ===== MODO REORGANIZAR =====
-function enterReorganizeMode() {
-    if (isReorganizing) {
-        saveNewPhotoOrder();
-        return;
-    }
-    
-    isReorganizing = true;
-    
-    console.log('📝 Modo reorganizar ativado');
-    
-    const reorganizeBtn = document.getElementById('reorganizePhotos');
-    reorganizeBtn.innerHTML = '<i class="fas fa-save"></i><span>Salvar</span>';
-    reorganizeBtn.classList.add('active');
-    
-    document.getElementById('deleteSelectedPhotos').style.display = 'none';
-    document.getElementById('cancelSelection').innerHTML = '<i class="fas fa-times"></i><span>Cancelar</span>';
-    
-    cancelSelection();
-    
-    const selectionCountSpan = document.getElementById('selectionCount');
-    selectionCountSpan.textContent = 'Arraste para reorganizar';
-    document.getElementById('bottomToolbar').style.display = 'flex';
-    
-    const photos = document.querySelectorAll('.gallery-photo');
-    photos.forEach((photo, index) => {
-        photo.classList.add('draggable');
-        photo.setAttribute('draggable', 'true');
-        
-        const numberEl = photo.querySelector('.photo-number');
-        if (numberEl) {
-            numberEl.style.display = 'flex';
-            numberEl.textContent = index + 1;
-        }
-        
-        photo.addEventListener('dragstart', handleDragStart);
-        photo.addEventListener('dragover', handleDragOver);
-        photo.addEventListener('drop', handleDrop);
-        photo.addEventListener('dragend', handleDragEnd);
-        
-        photo.addEventListener('touchstart', handleTouchStart, { passive: true });
-        photo.addEventListener('touchmove', handleTouchMove, { passive: false });
-        photo.addEventListener('touchend', handleTouchEnd, { passive: true });
-    });
-    
-    console.log('📝 Modo reorganizar ativado');
-}
-
-function exitReorganizeMode(save = false) {
-    isReorganizing = false;
-    
-    console.log('📝 Modo reorganizar desativado');
-    
-    const reorganizeBtn = document.getElementById('reorganizePhotos');
-    
-    if (save) {
-        saveNewPhotoOrder();
-        return;
-    }
-    
-    reorganizeBtn.innerHTML = '<i class="fas fa-sort"></i><span>Reorganizar</span>';
-    reorganizeBtn.classList.remove('active');
-    reorganizeBtn.disabled = false;
-    
-    const deleteBtn = document.getElementById('deleteSelectedPhotos');
-    if (deleteBtn) {
-        deleteBtn.style.display = 'flex';
-    }
-    
-    document.getElementById('bottomToolbar').style.display = 'none';
-    
-    const photos = document.querySelectorAll('.gallery-photo');
-    photos.forEach(photo => {
-        photo.classList.remove('draggable');
-        photo.removeAttribute('draggable');
-        
-        const numberEl = photo.querySelector('.photo-number');
-        if (numberEl) {
-            numberEl.style.display = 'none';
-        }
-        
-        photo.removeEventListener('dragstart', handleDragStart);
-        photo.removeEventListener('dragover', handleDragOver);
-        photo.removeEventListener('drop', handleDrop);
-        photo.removeEventListener('dragend', handleDragEnd);
-        photo.removeEventListener('touchstart', handleTouchStart);
-        photo.removeEventListener('touchmove', handleTouchMove);
-        photo.removeEventListener('touchend', handleTouchEnd);
-    });
-    
-    console.log('📝 Modo reorganizar desativado');
-}
-
-function handleDragStart(e) {
-    draggedElement = this;
-    draggedIndex = parseInt(this.getAttribute('data-index'));
-    this.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    
-    const targetIndex = parseInt(this.getAttribute('data-index'));
-    if (draggedIndex !== targetIndex) {
-        this.classList.add('drag-over');
-    }
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    
-    const targetIndex = parseInt(this.getAttribute('data-index'));
-    
-    if (draggedIndex !== targetIndex) {
-        swapPhotos(draggedIndex, targetIndex);
-    }
-    
-    this.classList.remove('drag-over');
-}
-
-function handleDragEnd(e) {
-    this.classList.remove('dragging');
-    
-    document.querySelectorAll('.gallery-photo').forEach(photo => {
-        photo.classList.remove('drag-over');
-    });
-}
-
-function handleTouchStart(e) {
-    if (!isReorganizing) return;
-    
-    isTouchDragging = false;
-    touchedElement = this;
-    draggedIndex = parseInt(this.getAttribute('data-index'));
-    
-    const touch = e.touches[0];
-    touchStartXPos = touch.clientX;
-    touchStartYPos = touch.clientY;
-    touchStartTimestamp = Date.now();
-    
-    longPressTimer = setTimeout(() => {
-        if (touchedElement && !isTouchDragging) {
-            isTouchDragging = true;
-            touchedElement.classList.add('dragging');
-            
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
-            }
-            
-            console.log(`📱 Foto ${draggedIndex + 1} pronta para ser movida`);
-        }
-    }, LONG_PRESS_THRESHOLD);
-}
-
-function handleTouchMove(e) {
-    if (!isReorganizing || !touchedElement) return;
-    
-    const touch = e.touches[0];
-    const deltaX = Math.abs(touch.clientX - touchStartXPos);
-    const deltaY = Math.abs(touch.clientY - touchStartYPos);
-    
-    if (!isTouchDragging) {
-        if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
-            clearTimeout(longPressTimer);
-            touchedElement = null;
-            return;
-        }
-        return;
-    }
-    
-    if (e.cancelable) {
-        e.preventDefault();
-    }
-    
-    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-    const photoBelow = elementBelow?.closest('.gallery-photo');
-    
-    document.querySelectorAll('.gallery-photo').forEach(p => {
-        if (p !== touchedElement) {
-            p.classList.remove('drag-over');
-        }
-    });
-    
-    if (photoBelow && photoBelow !== touchedElement) {
-        const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
-        if (draggedIndex !== targetIndex) {
-            photoBelow.classList.add('drag-over');
-        }
-    }
-}
-
-function handleTouchEnd(e) {
-    if (!isReorganizing) return;
-    
-    clearTimeout(longPressTimer);
-    
-    if (!isTouchDragging) {
-        touchedElement = null;
-        return;
-    }
-    
-    const touch = e.changedTouches[0];
-    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-    const photoBelow = elementBelow?.closest('.gallery-photo');
-    
-    if (photoBelow && photoBelow !== touchedElement) {
-        const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
-        
-        if (draggedIndex !== targetIndex) {
-            swapPhotos(draggedIndex, targetIndex);
-            console.log(`✅ Foto ${draggedIndex + 1} movida para posição ${targetIndex + 1}`);
-        }
-    }
-    
-    if (touchedElement) {
-        touchedElement.classList.remove('dragging');
-    }
-    
-    document.querySelectorAll('.gallery-photo').forEach(p => {
-        p.classList.remove('drag-over');
-    });
-    
-    touchedElement = null;
-    isTouchDragging = false;
-}
-
-function swapPhotos(fromIndex, toIndex) {
-    const photos = window.currentEditAlbum.photos;
-    
-    const movedPhoto = photos.splice(fromIndex, 1)[0];
-    photos.splice(toIndex, 0, movedPhoto);
-    
-    renderPhotosForEditInReorganizeMode(photos);
-    
-    console.log(`🔄 Foto ${fromIndex + 1} movida para posição ${toIndex + 1}`);
-}
-
-function renderPhotosForEditInReorganizeMode(photos) {
-    const grid = document.getElementById('editPhotosGrid');
-    grid.innerHTML = '';
-    
-    photos.forEach((photo, index) => {
-        const photoCard = document.createElement('div');
-        photoCard.className = 'gallery-photo draggable';
-        photoCard.setAttribute('data-index', index);
-        photoCard.setAttribute('draggable', 'true');
-        
-        photoCard.innerHTML = `
-            <div class="photo-wrapper" role="button" aria-label="Arrastar foto ${index + 1} para reorganizar">
-                <img src="${photo.src}" alt="Foto ${index + 1}" loading="lazy">
-                <div class="photo-number" style="display: flex;">${index + 1}</div>
-            </div>
-        `;
-        
-        photoCard.addEventListener('dragstart', handleDragStart);
-        photoCard.addEventListener('dragover', handleDragOver);
-        photoCard.addEventListener('drop', handleDrop);
-        photoCard.addEventListener('dragend', handleDragEnd);
-        photoCard.addEventListener('touchstart', handleTouchStart);
-        photoCard.addEventListener('touchmove', handleTouchMove);
-        photoCard.addEventListener('touchend', handleTouchEnd);
-        
-        grid.appendChild(photoCard);
-    });
-}
-
-async function saveNewPhotoOrder() {
-    if (!window.currentEditAlbum) return;
-    
-    const reorganizeBtn = document.getElementById('reorganizePhotos');
-    
-    try {
-        reorganizeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando...</span>';
-        reorganizeBtn.disabled = true;
-        
-        const photos = window.currentEditAlbum.photos;
-        const albumId = window.currentEditAlbum.id;
-        
-        const PHOTOS_PER_PAGE = 200;
-        const newPages = [];
-        
-        for (let i = 0; i < photos.length; i += PHOTOS_PER_PAGE) {
-            newPages.push(photos.slice(i, i + PHOTOS_PER_PAGE));
-        }
-        
-        const oldPagesSnapshot = await db.collection('album_photos')
-            .where('albumId', '==', albumId)
-            .get();
-        
-        const deletePromises = [];
-        oldPagesSnapshot.forEach(doc => {
-            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
-        });
-        
-        await Promise.all(deletePromises);
-        console.log(`✅ ${oldPagesSnapshot.size} páginas antigas deletadas`);
-        
-        for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
-            await db.collection('album_photos').add({
-                albumId: albumId,
-                pageNumber: pageIndex,
-                photos: newPages[pageIndex].map((p, idx) => ({
-                    src: p.src,
-                    description: p.description || '',
-                    timestamp: Date.now() + (pageIndex * PHOTOS_PER_PAGE) + idx
-                })),
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-        
-        console.log(`✅ ${newPages.length} novas páginas criadas com ordem correta`);
-        
-        alert('✅ Nova ordem das fotos salva com sucesso!');
-        
-        console.log('🔄 Recarregando álbum automaticamente...');
-        
-        exitReorganizeMode(false);
-        
-        await loadAlbumsFromFirebase();
-        
-        const select = document.getElementById('editAlbumSelect');
-        select.value = albumId;
-        
-        const loadBtn = document.getElementById('loadEditAlbumBtn');
-        loadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recarregando...';
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        await loadAlbumForEdit();
-        await updateEditAlbumSelect();
-
-         reorganizeBtn.disabled = false;
-
-        console.log('✅ Álbum recarregado com nova ordem!');
-
-    } catch (error) {
-        console.error('❌ Erro ao salvar nova ordem:', error);
-        alert('❌ Erro ao salvar: ' + error.message);
-        
-        reorganizeBtn.innerHTML = '<i class="fas fa-save"></i><span>Salvar</span>';
-        reorganizeBtn.disabled = false;
-    }
-}
-
-function selectAllPhotos() {
-    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
-    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-    
-    checkboxes.forEach(cb => {
-        cb.checked = !allChecked;
-        cb.closest('.gallery-photo').classList.toggle('selected', !allChecked);
-    });
-    
-    updateSelectionCount();
-}
-
-function updateSelectionCount() {
-    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
-    const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-    const totalCount = checkboxes.length;
-    
-    const deleteBtn = document.getElementById('deleteSelectedPhotos');
-    const selectAllBtn = document.getElementById('selectAllPhotos');
-    const deleteCountSpan = document.getElementById('deleteCount');
-    
-    if (selectedCount > 0) {
-        deleteBtn.style.display = 'flex';
-        deleteCountSpan.textContent = `Deletar (${selectedCount})`;
-    } else {
-        deleteBtn.style.display = 'none';
-    }
-    
-    const allChecked = selectedCount === totalCount && totalCount > 0;
-    
-    if (allChecked) {
-        selectAllBtn.innerHTML = '<i class="fas fa-times"></i><span>Desmarcar</span>';
-    } else if (selectedCount > 0) {
-        selectAllBtn.innerHTML = `<i class="fas fa-check-square"></i><span>Selecionar (${selectedCount}/${totalCount})</span>`;
-    } else {
-        selectAllBtn.innerHTML = '<i class="fas fa-check-square"></i><span>Selecionar</span>';
-    }
-}
-
-async function deleteSelectedPhotos() {
-    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
-    
-    if (checkboxes.length === 0) {
-        alert('⚠️ Selecione pelo menos uma foto para deletar!');
-        return;
-    }
-    
-    const confirmMsg = checkboxes.length === 1 
-        ? '❌ Tem certeza que deseja deletar esta foto?' 
-        : `❌ Tem certeza que deseja deletar ${checkboxes.length} fotos?`;
-    
-    if (!confirm(confirmMsg + '\n\nISTO NÃO DELETARÁ as imagens do ImgBB.')) {
-        return;
-    }
-    
-    const currentAlbumId = window.currentEditAlbum.id;
-    const btn = document.getElementById('deleteSelectedPhotos');
-    const toolbar = document.getElementById('bottomToolbar');
-    
-    try {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deletando...';
-        btn.disabled = true;
-        
-        const selectedIndices = Array.from(checkboxes).map(cb => {
-            return parseInt(cb.closest('.gallery-photo').getAttribute('data-index'));
-        }).sort((a, b) => b - a);
-        
-        console.log(`🗑️ Deletando ${selectedIndices.length} fotos...`);
-        
-        const remainingPhotos = window.currentEditAlbum.photos.filter((photo, index) => {
-            return !selectedIndices.includes(index);
-        });
-        
-        console.log(`📊 Fotos restantes: ${remainingPhotos.length}`);
-        
-        const PHOTOS_PER_PAGE = 200;
-        const newPages = [];
-        
-        for (let i = 0; i < remainingPhotos.length; i += PHOTOS_PER_PAGE) {
-            newPages.push(remainingPhotos.slice(i, i + PHOTOS_PER_PAGE));
-        }
-        
-        const oldPagesSnapshot = await db.collection('album_photos')
-            .where('albumId', '==', currentAlbumId)
-            .get();
-        
-        const deletePromises = [];
-        oldPagesSnapshot.forEach(doc => {
-            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
-        });
-        
-        await Promise.all(deletePromises);
-        console.log(`✅ ${oldPagesSnapshot.size} páginas antigas deletadas`);
-        
-        if (newPages.length > 0) {
-            for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
-                await db.collection('album_photos').add({
-                    albumId: currentAlbumId,
-                    pageNumber: pageIndex,
-                    photos: newPages[pageIndex].map(p => ({
-                        src: p.src,
-                        description: p.description,
-                        timestamp: p.timestamp
-                    })),
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-            console.log(`✅ ${newPages.length} novas páginas criadas`);
-        }
-        
-        await db.collection('albums').doc(currentAlbumId).update({
-            photoCount: remainingPhotos.length
-        });
-        
-        alert(`✅ ${selectedIndices.length} foto(s) deletada(s) com sucesso!\n\n⚠️ As imagens continuam no ImgBB.`);
-        
-        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar';
-        btn.disabled = false;
-        toolbar.style.display = 'none';
-        
-        const allCheckboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
-        allCheckboxes.forEach(cb => {
-            cb.checked = false;
-            const photoCard = cb.closest('.gallery-photo');
-            if (photoCard) {
-                photoCard.classList.remove('selected', 'selection-mode');
-            }
-        });
-        
-        const select = document.getElementById('editAlbumSelect');
-        select.value = currentAlbumId;
-        
-        await loadAlbumForEdit();
-        
-        await loadAlbumsFromFirebase();
-        await updateEditAlbumSelect();
-        
-        setTimeout(() => {
-            select.value = currentAlbumId;
-        }, 100);
-        
-        console.log('✅ Exclusão concluída, toolbar escondida e álbum mantido');
-        
-    } catch (error) {
-        console.error('❌ Erro ao deletar fotos:', error);
-        alert('❌ Erro ao deletar fotos: ' + error.message);
-        
-        btn.innerHTML = '<i class="fas fa-trash"></i> Deletar';
-        btn.disabled = false;
-        toolbar.style.display = 'none';
-    }
-}
-
-// ===== INICIALIZAR SISTEMA DE EDIÇÃO =====
-function initEditSystem() {
-    const checkInterval = setInterval(() => {
-        const editTab = document.getElementById('edit-tab');
-        
-        if (editTab) {
-            clearInterval(checkInterval);
-            
-            setupEditTabListeners();
-            
-            console.log('✅ Sistema de edição de álbuns inicializado');
-        }
-    }, 500);
-    
-    setTimeout(() => {
-        clearInterval(checkInterval);
-    }, 10000);
-}
 
 // ===== SISTEMA DE GERENCIAMENTO DE PLAYLISTS VIA ADMIN =====
 console.log('🎵 Sistema de gerenciamento de playlists carregado');
@@ -2531,8 +1444,19 @@ async function loadExistingEventsRedesign() {
 
 window.openAlbumEditModal = async function(albumId) {
     const modal = document.getElementById('albumEditModalPopup');
-    modal.style.display = 'block';
+    
+    // ✅ TRAVA O SCROLL DO BODY
     document.body.style.overflow = 'hidden';
+    
+    // ✅ MOSTRA O MODAL
+    modal.style.display = 'block';
+    
+    // ✅ FORÇA SCROLL PARA O TOPO IMEDIATAMENTE
+    setTimeout(() => {
+        modal.scrollTop = 0;
+        const modalContent = modal.querySelector('.album-edit-modal-content');
+        if (modalContent) modalContent.scrollTop = 0;
+    }, 10);
     
     window.currentEditingAlbumId = albumId;
     
@@ -2552,7 +1476,6 @@ window.openAlbumEditModal = async function(albumId) {
         alert('❌ Erro ao carregar álbum: ' + error.message);
     }
 };
-
 window.closeAlbumEditModal = function() {
     const modal = document.getElementById('albumEditModal');
     modal.style.display = 'none';
@@ -2802,11 +1725,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 1000);
 });
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initEditSystem);
-} else {
-    initEditSystem();
-}
 
 console.log('✅ admin.js com Firebase + ImgBB VERDADEIRAMENTE ILIMITADO carregado!');
 
@@ -2899,14 +1817,920 @@ document.getElementById('saveAlbumEditPopup')?.addEventListener('click', async f
     }
 });
 
-// Função auxiliar para configuração de seleção de fotos
-function setupPhotoSelection() {
-    // Implementação da configuração de seleção de fotos
-    // Esta função pode ser expandida conforme necessário
-}
-
 // Função auxiliar para otimização de URLs existentes
 function optimizeExistingUrl(url, maxWidth) {
     // Implementação da otimização de URLs
     return url;
 }
+
+// ===== SISTEMA DE GERENCIAMENTO DE FOTOS DO ÁLBUM (VERSÃO FINALIZADA) =====
+
+let isReorganizing = false;
+let draggedElement = null;
+let draggedIndex = null;
+let touchedElement = null;
+let touchStartYPos = 0;
+let touchStartXPos = 0;
+let isTouchDragging = false;
+let touchStartTimestamp = 0;
+let longPressTouchTimer = null;
+const LONG_PRESS_THRESHOLD = 400;
+const MOVE_THRESHOLD = 15;
+
+// ===== EVENT LISTENERS DO MODAL =====
+function initAlbumEditModal() {
+    document.getElementById('closeAlbumEditPopup')?.addEventListener('click', closePopup);
+    document.getElementById('cancelAlbumEditPopup')?.addEventListener('click', closePopup);
+    document.getElementById('popupAlbumCoverInput')?.addEventListener('change', previewNewCoverPopup);
+    document.getElementById('saveAlbumEditPopup')?.addEventListener('click', saveAlbumInfoPopup);
+    document.getElementById('managePhotosBtn')?.addEventListener('click', loadPhotosForManagement);
+    
+    // Listeners da Toolbar
+    document.getElementById('cancelSelection')?.addEventListener('click', cancelSelection);
+    document.getElementById('reorganizePhotos')?.addEventListener('click', enterReorganizeMode);
+    document.getElementById('deleteSelectedPhotos')?.addEventListener('click', deleteSelectedPhotos);
+    
+    console.log('✅ Event listeners do modal de edição configurados');
+}
+
+// Inicializar quando o DOM carregar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAlbumEditModal);
+} else {
+    initAlbumEditModal();
+}
+
+function closePopup() {
+    const modal = document.getElementById('albumEditModalPopup');
+    const toolbar = document.getElementById('bottomToolbar');
+    
+    if (modal) modal.style.display = 'none';
+    if (toolbar) toolbar.style.display = 'none';
+    
+    // ✅ LIBERA O SCROLL DO BODY
+    document.body.style.overflow = 'auto';
+    
+    // Limpar grid
+    const grid = document.getElementById('editPhotosGrid');
+    if (grid) {
+        grid.style.display = 'none';
+        grid.innerHTML = '';
+    }
+    
+    // Resetar estado
+    isReorganizing = false;
+    window.currentEditingAlbumId = null;
+    window.currentEditingAlbumPhotos = null;
+    
+    console.log('🔐 Modal fechado e estado resetado');
+}
+
+function previewNewCoverPopup(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 32 * 1024 * 1024) {
+        alert('❌ Imagem muito grande! Máximo 32MB.');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const preview = document.getElementById('popupAlbumCoverPreview');
+        if (preview) preview.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+async function saveAlbumInfoPopup() {
+    if (!window.currentEditingAlbumId) {
+        alert('⚠️ Nenhum álbum selecionado para editar');
+        return;
+    }
+    
+    const saveBtn = document.getElementById('saveAlbumEditPopup');
+    if (!saveBtn) return;
+    
+    const originalText = saveBtn.innerHTML;
+    
+    try {
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        saveBtn.disabled = true;
+        
+        const albumId = window.currentEditingAlbumId;
+        const newTitle = document.getElementById('popupAlbumTitle')?.value.trim();
+        const newDate = document.getElementById('popupAlbumDate')?.value.trim();
+        const newDescription = document.getElementById('popupAlbumDescription')?.value.trim();
+        
+        if (!newTitle || !newDate) {
+            alert('⚠️ Título e Data são obrigatórios!');
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+            return;
+        }
+        
+        const updateData = {
+            title: newTitle,
+            date: newDate,
+            description: newDescription
+        };
+        
+        // Upload nova capa se houver
+        const coverInput = document.getElementById('popupAlbumCoverInput');
+        if (coverInput && coverInput.files.length > 0) {
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando capa...';
+            
+            if (typeof uploadImageToCloudinary !== 'function') {
+                throw new Error('Sistema de upload não está disponível');
+            }
+            
+            const coverUrls = await uploadImageToCloudinary(coverInput.files[0], 1600, true);
+            updateData.cover = coverUrls.medium;
+            updateData.coverThumb = coverUrls.thumb;
+            updateData.coverLarge = coverUrls.large;
+            updateData.coverWebP = coverUrls.webp;
+        }
+        
+        await db.collection('albums').doc(albumId).update(updateData);
+        
+        alert('✅ Informações do álbum atualizadas com sucesso!');
+        
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+        
+        // Recarregar listas
+        if (typeof loadExistingAlbumsRedesign === 'function') {
+            await loadExistingAlbumsRedesign();
+        }
+        
+        if (typeof loadAlbumsFromFirebase === 'function') {
+            await loadAlbumsFromFirebase();
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        alert('❌ Erro ao salvar: ' + error.message);
+        
+        if (saveBtn) {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
+    }
+}
+
+async function loadPhotosForManagement() {
+    if (!window.currentEditingAlbumId) {
+        alert('⚠️ Nenhum álbum selecionado');
+        return;
+    }
+    
+    const btn = document.getElementById('managePhotosBtn');
+    const grid = document.getElementById('editPhotosGrid');
+    
+    if (!btn || !grid) {
+        console.error('❌ Elementos não encontrados');
+        return;
+    }
+    
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+        btn.disabled = true;
+        
+        // Buscar fotos do álbum
+        const photoPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', window.currentEditingAlbumId)
+            .orderBy('pageNumber', 'asc')
+            .get();
+        
+        const allPhotos = [];
+        photoPagesSnapshot.forEach(pageDoc => {
+            const pageData = pageDoc.data();
+            if (pageData.photos && Array.isArray(pageData.photos)) {
+                pageData.photos.forEach((photo, index) => {
+                    allPhotos.push({
+                        ...photo,
+                        pageId: pageDoc.id,
+                        pageNumber: pageData.pageNumber,
+                        indexInPage: index
+                    });
+                });
+            }
+        });
+        
+        window.currentEditingAlbumPhotos = allPhotos;
+        
+        // Renderizar fotos
+        renderPhotosForEdit(allPhotos);
+        
+        grid.style.display = 'grid';
+        // Esconder estado vazio
+        const emptyState = document.getElementById('emptyPhotosState');
+        if (emptyState) emptyState.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-sync"></i> Recarregar Fotos';
+        btn.disabled = false;
+        
+        console.log(`✅ ${allPhotos.length} fotos carregadas para gerenciamento`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar fotos:', error);
+        alert('❌ Erro ao carregar fotos: ' + error.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+function renderPhotosForEdit(photos) {
+    const grid = document.getElementById('editPhotosGrid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    if (!photos || photos.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: var(--theme-text-secondary);">
+                <i class="fas fa-images" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                <p>Este álbum está vazio</p>
+            </div>
+        `;
+        return;
+    }
+    
+    photos.forEach((photo, index) => {
+        const photoCard = document.createElement('div');
+        photoCard.className = 'gallery-photo';
+        photoCard.setAttribute('data-index', index);
+        
+        photoCard.innerHTML = `
+            <input type="checkbox" class="photo-checkbox" id="photo-${index}">
+            <div class="photo-wrapper">
+                <div class="photo-checkmark">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="photo-number" style="display: none;">${index + 1}</div>
+            </div>
+        `;
+        
+        grid.appendChild(photoCard);
+        
+        // Criar imagem com lazy loading
+        const wrapper = photoCard.querySelector('.photo-wrapper');
+        const img = document.createElement('img');
+        img.src = photo.srcThumb || photo.src || 'images/capas-albuns/default-music.jpg';
+        img.alt = `Foto ${index + 1}`;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        wrapper.insertBefore(img, wrapper.firstChild);
+        
+        // Configurar eventos
+        setupPhotoEvents(photoCard);
+    });
+    
+    updateSelectionUI();
+}
+
+function setupPhotoEvents(photoCard) {
+    const checkbox = photoCard.querySelector('input[type="checkbox"]');
+    const wrapper = photoCard.querySelector('.photo-wrapper');
+    
+    if (!checkbox || !wrapper) return;
+    
+    let longPressTimer;
+    let touchStartTime;
+    let touchMoved = false;
+    
+    // Bloquear menu de contexto
+    wrapper.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        return false;
+    });
+    
+    // ===== TOUCH EVENTS (MOBILE) =====
+    wrapper.addEventListener('touchstart', (e) => {
+        if (isReorganizing) return;
+        
+        touchMoved = false;
+        touchStartTime = Date.now();
+        
+        longPressTimer = setTimeout(() => {
+            if (!touchMoved && !isReorganizing) {
+                if (navigator.vibrate) navigator.vibrate(50);
+                checkbox.checked = !checkbox.checked;
+                photoCard.classList.toggle('selected', checkbox.checked);
+                updateSelectionUI();
+            }
+        }, 500);
+    }, { passive: true });
+    
+    wrapper.addEventListener('touchmove', () => {
+        touchMoved = true;
+        clearTimeout(longPressTimer);
+    }, { passive: true });
+    
+    wrapper.addEventListener('touchend', () => {
+        clearTimeout(longPressTimer);
+        
+        if (isReorganizing) return;
+        
+        if (isInSelectionMode() && !touchMoved) {
+            const touchDuration = Date.now() - touchStartTime;
+            if (touchDuration < 500) {
+                checkbox.checked = !checkbox.checked;
+                photoCard.classList.toggle('selected', checkbox.checked);
+                updateSelectionUI();
+            }
+        }
+    }, { passive: true });
+    
+    // ===== MOUSE EVENTS (DESKTOP) =====
+    wrapper.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        if (isReorganizing) return;
+        
+        longPressTimer = setTimeout(() => {
+            checkbox.checked = !checkbox.checked;
+            photoCard.classList.toggle('selected', checkbox.checked);
+            updateSelectionUI();
+        }, 500);
+    });
+    
+    wrapper.addEventListener('mouseup', () => clearTimeout(longPressTimer));
+    wrapper.addEventListener('mouseleave', () => clearTimeout(longPressTimer));
+    
+    // Bloquear arrastar imagem
+    wrapper.addEventListener('dragstart', (e) => {
+        if (!isReorganizing) {
+            e.preventDefault();
+            return false;
+        }
+    });
+}
+
+function isInSelectionMode() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
+    return checkboxes.length > 0;
+}
+
+function updateSelectionUI() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+    const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    const bottomToolbar = document.getElementById('bottomToolbar');
+    const selectionCountSpan = document.getElementById('selectionCount');
+    
+    if (!bottomToolbar || !selectionCountSpan) return;
+    
+    if (selectedCount > 0) {
+        bottomToolbar.style.display = 'flex';
+        selectionCountSpan.textContent = `${selectedCount} selecionada${selectedCount !== 1 ? 's' : ''}`;
+        
+        document.querySelectorAll('.gallery-photo').forEach(photo => {
+            photo.classList.add('selection-mode');
+        });
+    } else {
+        bottomToolbar.style.display = 'none';
+        
+        document.querySelectorAll('.gallery-photo').forEach(photo => {
+            photo.classList.remove('selection-mode');
+        });
+    }
+}
+
+function cancelSelection() {
+    if (isReorganizing) {
+        exitReorganizeMode(false);
+        return;
+    }
+    
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+        const photoCard = cb.closest('.gallery-photo');
+        if (photoCard) photoCard.classList.remove('selected');
+    });
+    
+    updateSelectionUI();
+    console.log('✅ Seleção cancelada');
+}
+
+function enterReorganizeMode() {
+    const reorganizeBtn = document.getElementById('reorganizePhotos');
+    
+    if (!reorganizeBtn) return;
+    
+    if (isReorganizing) {
+        saveNewPhotoOrder();
+        return;
+    }
+    
+    isReorganizing = true;
+    
+    reorganizeBtn.innerHTML = '<i class="fas fa-save"></i><span>Salvar</span>';
+    reorganizeBtn.classList.add('active');
+    
+    const deleteBtn = document.getElementById('deleteSelectedPhotos');
+    const cancelBtn = document.getElementById('cancelSelection');
+    
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (cancelBtn) cancelBtn.innerHTML = '<i class="fas fa-times"></i><span>Cancelar</span>';
+    
+    // Limpar seleção antes de entrar no modo reorganizar
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+        const photoCard = cb.closest('.gallery-photo');
+        if (photoCard) photoCard.classList.remove('selected');
+    });
+    
+    const selectionCountSpan = document.getElementById('selectionCount');
+    const toolbar = document.getElementById('bottomToolbar');
+    
+    if (selectionCountSpan) selectionCountSpan.textContent = 'Arraste para reorganizar';
+    if (toolbar) toolbar.style.display = 'flex';
+    
+    // Ativar arrastar
+    const photos = document.querySelectorAll('.gallery-photo');
+    photos.forEach((photo, index) => {
+        photo.classList.add('draggable');
+        photo.setAttribute('draggable', 'true');
+        
+        const numberEl = photo.querySelector('.photo-number');
+        if (numberEl) {
+            numberEl.style.display = 'flex';
+            numberEl.textContent = index + 1;
+        }
+        
+        // Desktop drag
+        photo.addEventListener('dragstart', handleDragStart);
+        photo.addEventListener('dragover', handleDragOver);
+        photo.addEventListener('drop', handleDrop);
+        photo.addEventListener('dragend', handleDragEnd);
+        
+        // Mobile touch
+        photo.addEventListener('touchstart', handleTouchStartReorganize, { passive: true });
+        photo.addEventListener('touchmove', handleTouchMoveReorganize, { passive: false });
+        photo.addEventListener('touchend', handleTouchEndReorganize, { passive: true });
+    });
+    
+    console.log('📱 Modo reorganizar ativado');
+}
+
+function exitReorganizeMode(save = false) {
+    isReorganizing = false;
+    
+    const reorganizeBtn = document.getElementById('reorganizePhotos');
+    
+    if (!reorganizeBtn) return;
+    
+    if (save) {
+        saveNewPhotoOrder();
+        return;
+    }
+    
+    reorganizeBtn.innerHTML = '<i class="fas fa-sort"></i><span>Reorganizar</span>';
+    reorganizeBtn.classList.remove('active');
+    reorganizeBtn.disabled = false;
+    
+    const deleteBtn = document.getElementById('deleteSelectedPhotos');
+    const cancelBtn = document.getElementById('cancelSelection');
+    const toolbar = document.getElementById('bottomToolbar');
+    
+    if (deleteBtn) deleteBtn.style.display = 'flex';
+    if (cancelBtn) cancelBtn.innerHTML = '<i class="fas fa-times"></i><span>Cancelar</span>';
+    if (toolbar) toolbar.style.display = 'none';
+    
+    const photos = document.querySelectorAll('.gallery-photo');
+    photos.forEach(photo => {
+        photo.classList.remove('draggable');
+        photo.removeAttribute('draggable');
+        
+        const numberEl = photo.querySelector('.photo-number');
+        if (numberEl) numberEl.style.display = 'none';
+        
+        // Remover listeners
+        photo.removeEventListener('dragstart', handleDragStart);
+        photo.removeEventListener('dragover', handleDragOver);
+        photo.removeEventListener('drop', handleDrop);
+        photo.removeEventListener('dragend', handleDragEnd);
+        photo.removeEventListener('touchstart', handleTouchStartReorganize);
+        photo.removeEventListener('touchmove', handleTouchMoveReorganize);
+        photo.removeEventListener('touchend', handleTouchEndReorganize);
+    });
+    
+    console.log('📱 Modo reorganizar desativado');
+}
+
+// ===== DRAG & DROP HANDLERS (DESKTOP) =====
+function handleDragStart(e) {
+    draggedElement = this;
+    draggedIndex = parseInt(this.getAttribute('data-index'));
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const targetIndex = parseInt(this.getAttribute('data-index'));
+    if (draggedIndex !== targetIndex) {
+        this.classList.add('drag-over');
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    
+    const targetIndex = parseInt(this.getAttribute('data-index'));
+    
+    if (draggedIndex !== targetIndex) {
+        swapPhotos(draggedIndex, targetIndex);
+    }
+    
+    this.classList.remove('drag-over');
+}
+
+function handleDragEnd() {
+    this.classList.remove('dragging');
+    
+    document.querySelectorAll('.gallery-photo').forEach(photo => {
+        photo.classList.remove('drag-over');
+    });
+}
+
+// ===== TOUCH HANDLERS (MOBILE) - REORGANIZAR =====
+function handleTouchStartReorganize(e) {
+    if (!isReorganizing) return;
+    
+    isTouchDragging = false;
+    touchedElement = this;
+    draggedIndex = parseInt(this.getAttribute('data-index'));
+    
+    const touch = e.touches[0];
+    touchStartXPos = touch.clientX;
+    touchStartYPos = touch.clientY;
+    touchStartTimestamp = Date.now();
+    
+    longPressTouchTimer = setTimeout(() => {
+        if (touchedElement && !isTouchDragging) {
+            isTouchDragging = true;
+            touchedElement.classList.add('dragging');
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+    }, LONG_PRESS_THRESHOLD);
+}
+
+function handleTouchMoveReorganize(e) {
+    if (!isReorganizing || !touchedElement) return;
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartXPos);
+    const deltaY = Math.abs(touch.clientY - touchStartYPos);
+    
+    if (!isTouchDragging) {
+        if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+            clearTimeout(longPressTouchTimer);
+            touchedElement = null;
+            return;
+        }
+        return;
+    }
+    
+    if (e.cancelable) e.preventDefault();
+    
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const photoBelow = elementBelow?.closest('.gallery-photo');
+    
+    document.querySelectorAll('.gallery-photo').forEach(p => {
+        if (p !== touchedElement) p.classList.remove('drag-over');
+    });
+    
+    if (photoBelow && photoBelow !== touchedElement) {
+        const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
+        if (draggedIndex !== targetIndex) {
+            photoBelow.classList.add('drag-over');
+        }
+    }
+}
+
+function handleTouchEndReorganize(e) {
+    if (!isReorganizing) return;
+    
+    clearTimeout(longPressTouchTimer);
+    
+    if (!isTouchDragging) {
+        touchedElement = null;
+        return;
+    }
+    
+    const touch = e.changedTouches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const photoBelow = elementBelow?.closest('.gallery-photo');
+    
+    if (photoBelow && photoBelow !== touchedElement) {
+        const targetIndex = parseInt(photoBelow.getAttribute('data-index'));
+        
+        if (draggedIndex !== targetIndex) {
+            swapPhotos(draggedIndex, targetIndex);
+        }
+    }
+    
+    if (touchedElement) touchedElement.classList.remove('dragging');
+    
+    document.querySelectorAll('.gallery-photo').forEach(p => {
+        p.classList.remove('drag-over');
+    });
+    
+    touchedElement = null;
+    isTouchDragging = false;
+}
+
+function swapPhotos(fromIndex, toIndex) {
+    if (!window.currentEditingAlbumPhotos) return;
+    
+    const photos = window.currentEditingAlbumPhotos;
+    
+    const movedPhoto = photos.splice(fromIndex, 1)[0];
+    photos.splice(toIndex, 0, movedPhoto);
+    
+    renderPhotosForEditInReorganizeMode(photos);
+    
+    console.log(`📸 Foto ${fromIndex + 1} movida para posição ${toIndex + 1}`);
+}
+
+function renderPhotosForEditInReorganizeMode(photos) {
+    const grid = document.getElementById('editPhotosGrid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    photos.forEach((photo, index) => {
+        const photoCard = document.createElement('div');
+        photoCard.className = 'gallery-photo draggable';
+        photoCard.setAttribute('data-index', index);
+        photoCard.setAttribute('draggable', 'true');
+        
+        photoCard.innerHTML = `
+            <div class="photo-wrapper">
+                <img src="${photo.srcThumb || photo.src}" alt="Foto ${index + 1}" loading="lazy" decoding="async">
+                <div class="photo-number" style="display: flex;">${index + 1}</div>
+            </div>
+        `;
+        
+        // Desktop drag
+        photoCard.addEventListener('dragstart', handleDragStart);
+        photoCard.addEventListener('dragover', handleDragOver);
+        photoCard.addEventListener('drop', handleDrop);
+        photoCard.addEventListener('dragend', handleDragEnd);
+        
+        // Mobile touch
+        photoCard.addEventListener('touchstart', handleTouchStartReorganize, { passive: true });
+        photoCard.addEventListener('touchmove', handleTouchMoveReorganize, { passive: false });
+        photoCard.addEventListener('touchend', handleTouchEndReorganize, { passive: true });
+        
+        grid.appendChild(photoCard);
+    });
+}
+
+async function saveNewPhotoOrder() {
+    if (!window.currentEditingAlbumId || !window.currentEditingAlbumPhotos) {
+        alert('⚠️ Nenhum álbum carregado');
+        return;
+    }
+    
+    const reorganizeBtn = document.getElementById('reorganizePhotos');
+    if (!reorganizeBtn) return;
+    
+    const originalText = reorganizeBtn.innerHTML;
+    
+    try {
+        reorganizeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Salvando...</span>';
+        reorganizeBtn.disabled = true;
+        
+        const photos = window.currentEditingAlbumPhotos;
+        const albumId = window.currentEditingAlbumId;
+        
+        const PHOTOS_PER_PAGE = 200;
+        const newPages = [];
+        
+        for (let i = 0; i < photos.length; i += PHOTOS_PER_PAGE) {
+            newPages.push(photos.slice(i, i + PHOTOS_PER_PAGE));
+        }
+        
+        // Deletar páginas antigas
+        const oldPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', albumId)
+            .get();
+        
+        const deletePromises = [];
+        oldPagesSnapshot.forEach(doc => {
+            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
+        });
+        
+        await Promise.all(deletePromises);
+        
+ // Criar novas páginas
+for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
+    // ✅ LIMPA dados antes de salvar
+    const cleanedPhotos = newPages[pageIndex].map(p => cleanFirebaseData({
+        src: p.src,
+        srcThumb: p.srcThumb,
+        srcLarge: p.srcLarge,
+        srcWebP: p.srcWebP,
+        description: p.description || '',
+        timestamp: Date.now() + (pageIndex * PHOTOS_PER_PAGE) + newPages[pageIndex].indexOf(p)
+    }));
+    
+    await db.collection('album_photos').add({
+        albumId: albumId,
+        pageNumber: pageIndex,
+        photos: cleanedPhotos,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+        
+        alert('✅ Nova ordem das fotos salva com sucesso!');
+        
+        exitReorganizeMode(false);
+        
+        if (typeof loadAlbumsFromFirebase === 'function') {
+            await loadAlbumsFromFirebase();
+        }
+        
+        await loadPhotosForManagement();
+        
+        reorganizeBtn.innerHTML = originalText;
+        reorganizeBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar nova ordem:', error);
+        alert('❌ Erro ao salvar: ' + error.message);
+        
+        if (reorganizeBtn) {
+            reorganizeBtn.innerHTML = originalText;
+            reorganizeBtn.disabled = false;
+        }
+    }
+}
+
+async function deleteSelectedPhotos() {
+    const checkboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('⚠️ Selecione pelo menos uma foto para deletar!');
+        return;
+    }
+    
+    const confirmMsg = checkboxes.length === 1 
+        ? '❌ Tem certeza que deseja deletar esta foto?' 
+        : `❌ Tem certeza que deseja deletar ${checkboxes.length} fotos?`;
+    
+    if (!confirm(confirmMsg + '\n\nISTO NÃO DELETARÁ as imagens do ImgBB.')) {
+        return;
+    }
+    
+    const currentAlbumId = window.currentEditingAlbumId;
+    const btn = document.getElementById('deleteSelectedPhotos');
+    const toolbar = document.getElementById('bottomToolbar');
+    
+    if (!btn || !toolbar) return;
+    
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deletando...';
+        btn.disabled = true;
+        
+        const selectedIndices = Array.from(checkboxes).map(cb => {
+            return parseInt(cb.closest('.gallery-photo').getAttribute('data-index'));
+        }).sort((a, b) => b - a);
+        
+        const remainingPhotos = window.currentEditingAlbumPhotos.filter((photo, index) => {
+            return !selectedIndices.includes(index);
+        });
+        
+        const PHOTOS_PER_PAGE = 200;
+        const newPages = [];
+        
+        for (let i = 0; i < remainingPhotos.length; i += PHOTOS_PER_PAGE) {
+            newPages.push(remainingPhotos.slice(i, i + PHOTOS_PER_PAGE));
+        }
+        
+        // Deletar páginas antigas
+        const oldPagesSnapshot = await db.collection('album_photos')
+            .where('albumId', '==', currentAlbumId)
+            .get();
+        
+        const deletePromises = [];
+        oldPagesSnapshot.forEach(doc => {
+            deletePromises.push(db.collection('album_photos').doc(doc.id).delete());
+        });
+        
+        await Promise.all(deletePromises);
+        
+// Criar novas páginas (se houver fotos restantes)
+if (newPages.length > 0) {
+    for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
+        // ✅ LIMPA dados antes de salvar
+        const cleanedPhotos = newPages[pageIndex].map(p => cleanFirebaseData({
+            src: p.src,
+            srcThumb: p.srcThumb,
+            srcLarge: p.srcLarge,
+            srcWebP: p.srcWebP,
+            description: p.description || '',
+            timestamp: p.timestamp || Date.now()
+        }));
+        
+        await db.collection('album_photos').add({
+            albumId: currentAlbumId,
+            pageNumber: pageIndex,
+            photos: cleanedPhotos,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+}
+        
+        // Atualizar contador
+        await db.collection('albums').doc(currentAlbumId).update({
+            photoCount: remainingPhotos.length
+        });
+        
+        alert(`✅ ${selectedIndices.length} foto(s) deletada(s) com sucesso!`);
+        
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        toolbar.style.display = 'none';
+        
+        // Limpar seleções
+const allCheckboxes = document.querySelectorAll('#editPhotosGrid input[type="checkbox"]');
+allCheckboxes.forEach(cb => {
+cb.checked = false;
+const photoCard = cb.closest('.gallery-photo');
+if (photoCard) {
+photoCard.classList.remove('selected', 'selection-mode');
+}
+});
+    // Atualizar array local
+    window.currentEditingAlbumPhotos = remainingPhotos;
+    
+    // Recarregar
+    await loadPhotosForManagement();
+    
+    if (typeof loadAlbumsFromFirebase === 'function') {
+        await loadAlbumsFromFirebase();
+    }
+    
+    if (typeof loadExistingAlbumsRedesign === 'function') {
+        await loadExistingAlbumsRedesign();
+    }
+    
+} catch (error) {
+    console.error('❌ Erro ao deletar fotos:', error);
+    alert('❌ Erro ao deletar fotos: ' + error.message);
+    
+    if (btn) {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+}
+
+// ===== SISTEMA DE TABS DO POPUP DE EDIÇÃO =====
+function initAlbumEditTabs() {
+    const tabs = document.querySelectorAll('.album-tab');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            
+            // Remove active de todas as tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            // Adiciona active na tab clicada
+            this.classList.add('active');
+            
+            // Mostra/esconde conteúdo
+            document.querySelectorAll('.album-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            const targetContent = document.getElementById(`${targetTab}-content`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+        });
+    });
+    
+    console.log('✅ Tabs do popup de edição inicializadas');
+}
+
+// Inicializar quando o DOM carregar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAlbumEditTabs);
+} else {
+    initAlbumEditTabs();
+}
+
+console.log('✅ Sistema completo de gerenciamento de fotos do álbum carregado!');
