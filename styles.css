@@ -3511,264 +3511,7 @@ body:has(.admin-modal[style*="display: block"]) .hamburger-button {
         animation-duration: 6s;
     }
 } 
-/* ===== MODAL DE EDIÇÃO DE ÁLBUM (INLINE) ===== */
-.inline-edit-modal {
-    margin-top: 30px;
-    background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.08) 0%, 
-        rgba(255, 255, 255, 0.03) 100%
-    );
-    border: 2px solid var(--theme-primary);
-    border-radius: 20px; /* ← MANTÉM ARREDONDADO */
-    padding: 0;
-    overflow: hidden; /* ← VOLTA PARA hidden PARA CONTER OS FILHOS */
-    box-shadow: 
-        0 10px 40px rgba(0, 0, 0, 0.5),
-        0 0 40px var(--theme-primary);
-    animation: slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
 
-.inline-edit-header {
-    background: var(--gradient-primary);
-    padding: 20px 25px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 18px 18px 0 0; /* ← ARREDONDA APENAS O TOPO */
-}
-
-.inline-edit-header h3 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: white;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.close-inline-edit {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
-}
-
-.close-inline-edit:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: rotate(90deg);
-}
-
-.inline-edit-content {
-    padding: 0;
-    overflow: visible; /* ← MANTÉM visible PARA OS BOTÕES */
-}
-
-.edit-section {
-    padding: 25px;
-    border-bottom: 1px solid var(--theme-card-border);
-    overflow: visible; /* ← MANTÉM visible PARA OS BOTÕES */
-}
-
-.edit-section:last-child {
-    border-bottom: none;
-    padding-bottom: 30px;
-    border-radius: 0 0 18px 18px; /* ← ARREDONDA APENAS EMBAIXO */
-}
-
-.edit-section h4 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--theme-text);
-    margin: 0 0 20px 0;
-}
-
-.edit-info-grid {
-    display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: 25px;
-    margin-bottom: 20px;
-    overflow: visible;
-}
-
-.cover-preview-section {
-    position: relative;
-    overflow: visible;
-}
-
-.cover-preview-section img {
-    width: 140px;
-    height: 140px;
-    border-radius: 12px;
-    object-fit: cover;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-    display: block;
-}
-
-.change-cover-btn {
-    display: block;
-    margin-top: 10px;
-    padding: 10px;
-    background: var(--theme-primary);
-    color: white;
-    text-align: center;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: none;
-    width: 140px;
-    font-family: 'Poppins', sans-serif;
-    font-weight: 500;
-}
-
-.change-cover-btn:hover {
-    background: var(--theme-accent);
-    box-shadow: 0 0 15px var(--theme-primary);
-    transform: translateY(-2px);
-}
-
-.change-cover-btn i {
-    margin-right: 6px;
-}
-
-.edit-fields {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.edit-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.edit-field label {
-    font-size: 0.85rem;
-    color: var(--theme-text-secondary);
-    font-weight: 500;
-}
-
-.edit-field input,
-.edit-field textarea {
-    width: 100%;
-    padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--theme-card-border);
-    border-radius: 8px;
-    color: var(--theme-text);
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-}
-
-.edit-field input:focus,
-.edit-field textarea:focus {
-    outline: none;
-    border-color: var(--theme-primary);
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.edit-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 20px;
-    padding-top: 10px;
-}
-
-.action-btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 10px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-    min-height: 44px;
-}
-
-.action-btn.cancel {
-    background: rgba(150, 150, 150, 0.2);
-    color: #aaa;
-    border: 1px solid rgba(150, 150, 150, 0.3);
-}
-
-.action-btn.cancel:hover {
-    background: rgba(150, 150, 150, 0.3);
-    transform: scale(1.02);
-}
-
-.action-btn.save {
-    background: var(--gradient-primary);
-    color: white;
-    box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
-}
-
-.action-btn.save:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(138, 43, 226, 0.6);
-}
-
-/* ===== RESPONSIVO MOBILE ===== */
-@media (max-width: 768px) {
-    .edit-section {
-        padding: 20px 15px;
-    }
-    
-    .edit-section:last-child {
-        padding-bottom: 25px;
-    }
-    
-    .edit-info-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-    
-    .cover-preview-section {
-        width: 100%;
-    }
-    
-    .cover-preview-section img {
-        width: 100%;
-        height: 200px;
-        margin: 0 auto;
-    }
-    
-    .change-cover-btn {
-        width: 100%;
-    }
-    
-    .edit-actions {
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-    
-    .action-btn {
-        padding: 10px 20px;
-        font-size: 0.9rem;
-        flex: 1;
-        min-width: 120px;
-        justify-content: center;
-    }
-}
 /* ===== PREVIEW DA CAPA - EXIBIÇÃO CORRETA ===== */
 
 .cover-preview-container {
@@ -4231,117 +3974,7 @@ img[loading="lazy"] {
     gap: 8px;
 }
 
-/* ===== MODAL DE EDIÇÃO DE ÁLBUM (INLINE) ===== */
-.inline-edit-modal {
-    margin-top: 30px;
-    background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.08) 0%, 
-        rgba(255, 255, 255, 0.03) 100%
-    );
-    border: 2px solid var(--theme-primary);
-    border-radius: 20px;
-    padding: 0;
-    overflow: visible; /* ← MUDEI DE hidden PARA visible */
-    box-shadow: 
-        0 10px 40px rgba(0, 0, 0, 0.5),
-        0 0 40px var(--theme-primary);
-    animation: slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
 
-.inline-edit-header {
-    background: var(--gradient-primary);
-    padding: 20px 25px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.inline-edit-content {
-    padding: 0;
-    overflow: visible; /* ← GARANTIR QUE O CONTEÚDO TAMBÉM SEJA VISÍVEL */
-}
-
-.edit-section {
-    padding: 25px;
-    border-bottom: 1px solid var(--theme-card-border);
-    overflow: visible; /* ← IMPORTANTE PARA OS BOTÕES */
-}
-
-.edit-section:last-child {
-    border-bottom: none;
-    padding-bottom: 30px; /* ← AUMENTEI O PADDING INFERIOR DA ÚLTIMA SEÇÃO */
-}
-
-.edit-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 20px;
-    padding-top: 10px; /* ← PADDING EXTRA NO TOPO */
-}
-
-.action-btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 10px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    white-space: nowrap; /* ← IMPEDE QUEBRA DE LINHA NO TEXTO DO BOTÃO */
-    min-height: 44px; /* ← ALTURA MÍNIMA PARA FACILITAR O TOQUE */
-}
-
-.action-btn.cancel {
-    background: rgba(150, 150, 150, 0.2);
-    color: #aaa;
-    border: 1px solid rgba(150, 150, 150, 0.3);
-}
-
-.action-btn.cancel:hover {
-    background: rgba(150, 150, 150, 0.3);
-    transform: scale(1.02);
-}
-
-.action-btn.save {
-    background: var(--gradient-primary);
-    color: white;
-    box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
-}
-
-.action-btn.save:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(138, 43, 226, 0.6);
-}
-
-/* ===== RESPONSIVO MOBILE ===== */
-@media (max-width: 768px) {
-    .edit-section {
-        padding: 20px 15px;
-    }
-    
-    .edit-section:last-child {
-        padding-bottom: 25px;
-    }
-    
-    .edit-actions {
-        gap: 10px;
-        flex-wrap: wrap; /* ← PERMITE QUEBRA DE LINHA SE NECESSÁRIO */
-    }
-    
-    .action-btn {
-        padding: 10px 20px;
-        font-size: 0.9rem;
-        flex: 1; /* ← BOTÕES OCUPAM ESPAÇO IGUAL */
-        min-width: 120px; /* ← LARGURA MÍNIMA */
-        justify-content: center;
-    }
-}
 
 /* ===== RESPONSIVO ===== */
 @media (max-width: 768px) {
@@ -4375,382 +4008,6 @@ img[loading="lazy"] {
 }
 
 
-/* ===== ADMIN - GALERIA DE EDIÇÃO ===== */
-.edit-photos-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 80px;
-}
-
-.gallery-photo {
-    position: relative;
-    aspect-ratio: 1;
-    overflow: hidden;
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.photo-wrapper {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-}
-
-.gallery-photo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: all 0.3s ease;
-    pointer-events: none;
-}
-
-.photo-checkbox {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.photo-checkmark {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(10px);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: all 0.2s ease;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    pointer-events: none;
-}
-
-.photo-checkmark i {
-    color: white;
-    font-size: 12px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.gallery-photo.selection-mode .photo-checkmark {
-    opacity: 1;
-}
-
-.gallery-photo.selected .photo-checkmark {
-    opacity: 1;
-    background: var(--theme-primary);
-    border-color: var(--theme-primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.gallery-photo.selected .photo-checkmark i {
-    opacity: 1;
-}
-
-.gallery-photo.selected img {
-    opacity: 0.7;
-}
-
-.gallery-photo.selected::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border: 3px solid var(--theme-primary);
-    pointer-events: none;
-    z-index: 10;
-}
-
-.gallery-photo.draggable {
-    cursor: grab;
-}
-
-.gallery-photo.dragging {
-    opacity: 0.5;
-    cursor: grabbing;
-}
-
-.gallery-photo.drag-over {
-    border: 3px solid var(--theme-accent);
-    box-shadow: 0 0 20px var(--theme-accent);
-}
-
-.photo-number {
-    position: absolute;
-    bottom: 8px;
-    left: 8px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: bold;
-    font-family: 'Poppins', sans-serif;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    min-width: 32px;
-}
-
-/* ===== BARRA INFERIOR FIXA (TOOLBAR) ===== */
-.bottom-toolbar {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    background: var(--theme-card-bg);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid var(--theme-card-border);
-    padding: 12px 20px;
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    z-index: 999999 !important;
-    box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.3);
-    animation: slideUp 0.3s ease-out;
-    pointer-events: auto !important;
-}
-
-.bottom-toolbar[style*="display: flex"] {
-    display: flex !important;
-    position: fixed !important;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.bottom-info {
-    flex: 1;
-    text-align: center;
-    color: var(--theme-text);
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 500;
-}
-
-.bottom-btn {
-    padding: 10px 16px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid var(--theme-card-border);
-    border-radius: 8px;
-    color: var(--theme-text);
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.85rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.bottom-btn:active {
-    transform: scale(0.95);
-}
-
-.bottom-btn.cancel-btn {
-    background: rgba(150, 150, 150, 0.15);
-    border-color: rgba(150, 150, 150, 0.3);
-    color: #aaa;
-}
-
-.bottom-btn.reorganize-btn {
-    background: rgba(100, 150, 255, 0.15);
-    border-color: rgba(100, 150, 255, 0.3);
-    color: #6b9bff;
-}
-
-.bottom-btn.reorganize-btn.active {
-    background: rgba(100, 255, 100, 0.15);
-    border-color: rgba(100, 255, 100, 0.3);
-    color: #6bff6b;
-}
-
-.bottom-btn.delete-btn {
-    background: rgba(255, 70, 70, 0.15);
-    border-color: rgba(255, 70, 70, 0.3);
-    color: #ff6b6b;
-}
-
-/* ===== EDIÇÃO DE INFORMAÇÕES DO ÁLBUM ===== */
-.minimal-edit-btn,
-.simple-edit-btn {
-    width: 100%;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--theme-card-border);
-    border-radius: 10px;
-    color: var(--theme-text);
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.95rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    transition: all 0.2s ease;
-}
-
-.minimal-edit-btn:hover,
-.simple-edit-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--theme-primary);
-}
-
-.simple-edit-btn:active {
-    transform: scale(0.98);
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.simple-edit-btn i {
-    font-size: 1rem;
-}
-
-.edit-form-grid {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    gap: 20px;
-    margin-top: 15px;
-}
-
-.cover-preview-container {
-    position: relative;
-    width: 120px;
-    height: 120px;
-    border-radius: 10px;
-    overflow: hidden;
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.cover-preview-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.change-cover-label {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 8px;
-    text-align: center;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-.change-cover-label:hover {
-    background: var(--theme-primary);
-}
-
-.change-cover-label i {
-    font-size: 1rem;
-}
-
-.edit-fields-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.edit-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.edit-field label {
-    font-size: 0.85rem;
-    color: var(--theme-text-secondary);
-    font-weight: 500;
-}
-
-.edit-field input,
-.edit-field textarea {
-    width: 100%;
-    padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--theme-card-border);
-    border-radius: 8px;
-    color: var(--theme-text);
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-}
-
-.edit-field input:focus,
-.edit-field textarea:focus {
-    outline: none;
-    border-color: var(--theme-primary);
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.edit-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-}
-
-
-.minimal-btn {
-    flex: 1;
-    padding: 10px 20px;
-    border: 1px solid var(--theme-card-border);
-    border-radius: 8px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.9rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.2s ease;
-}
-
-.minimal-btn.cancel {
-    background: rgba(150, 150, 150, 0.1);
-    color: #aaa;
-}
-
-.minimal-btn.cancel:hover {
-    background: rgba(150, 150, 150, 0.15);
-}
-
-.minimal-btn.save {
-    background: var(--theme-primary);
-    color: white;
-    border-color: var(--theme-primary);
-}
-
-.minimal-btn.save:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
 
 /* ===== ADMIN - PLAYLISTS ===== */
 .playlist-admin-item {
@@ -5315,26 +4572,29 @@ textarea:-webkit-autofill:focus {
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 100vh; 
     background: rgba(0, 0, 0, 0.95);
     z-index: 5000;
     animation: fadeIn 0.3s ease;
     overflow-y: auto;
-    padding: 20px;
+    padding: 0; 
 }
 
 .album-edit-modal-content {
     max-width: 700px;
-    margin: 40px auto;
+    margin: 0 auto; 
     background: var(--theme-card-bg);
     backdrop-filter: blur(20px);
     border: 2px solid var(--theme-primary);
-    border-radius: 25px;
+    border-radius: 0;
     overflow: hidden;
     box-shadow: 
         0 0 50px var(--theme-primary),
         0 20px 60px rgba(0, 0, 0, 0.6);
-    animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* ← MUDAR scaleIn PARA slideDown */
+    min-height: 100vh; 
+    display: flex; 
+    flex-direction: column; 
 }
 
 .album-edit-header {
@@ -5378,7 +4638,10 @@ textarea:-webkit-autofill:focus {
 }
 
 .album-edit-body {
+    flex: 1; 
+    overflow-y: auto; 
     padding: 0;
+    margin-bottom: 80px;
 }
 
 .album-edit-section {
@@ -5388,6 +4651,7 @@ textarea:-webkit-autofill:focus {
 
 .album-edit-section:last-child {
     border-bottom: none;
+    padding-bottom: 100px;
 }
 
 .album-edit-section h3 {
@@ -5499,11 +4763,15 @@ textarea:-webkit-autofill:focus {
 }
 
 .album-edit-actions {
+    position: sticky; 
+    bottom: 0; 
     display: flex;
     gap: 12px;
     justify-content: flex-end;
     padding: 25px 30px;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.9); 
+    border-top: 1px solid var(--theme-card-border); 
+    z-index: 10; 
 }
 
 .album-action-btn {
@@ -5594,4 +4862,844 @@ select {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
+}
+
+/* ===== SISTEMA DE EDIÇÃO DE ÁLBUNS - GALERIA NATIVA ===== */
+
+/* Grid de fotos - 3 colunas */
+.edit-photos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+/* Card de foto */
+.gallery-photo {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.photo-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.gallery-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+/* Checkbox escondido */
+.photo-checkbox {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Checkmark (SÓ APARECE EM MODO SELEÇÃO) */
+.photo-checkmark {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    pointer-events: none;
+}
+
+.photo-checkmark i {
+    color: white;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Mostrar checkmark quando está em modo seleção */
+.gallery-photo.selection-mode .photo-checkmark {
+    opacity: 1;
+}
+
+/* Checkmark ativo */
+.gallery-photo.selected .photo-checkmark {
+    opacity: 1;
+    background: var(--theme-primary);
+    border-color: var(--theme-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.gallery-photo.selected .photo-checkmark i {
+    opacity: 1;
+}
+
+.gallery-photo.selected img {
+    opacity: 0.7;
+}
+
+.gallery-photo.selected::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 3px solid var(--theme-primary);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ===== MODO REORGANIZAR ===== */
+.gallery-photo.draggable {
+    cursor: grab;
+}
+
+.gallery-photo.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.gallery-photo.drag-over {
+    border: 3px solid var(--theme-accent);
+    box-shadow: 0 0 20px var(--theme-accent);
+}
+
+/* Número da foto (modo reorganizar) */
+.photo-number {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 'Poppins', sans-serif;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+}
+
+/* ===== BARRA INFERIOR FIXA (ESTILO GALERIA NATIVA) ===== */
+.bottom-toolbar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: rgba(10, 10, 26, 0.98) !important; /* ← Fundo mais sólido */
+    backdrop-filter: blur(20px) !important;
+    border-top: 2px solid var(--theme-primary) !important; /* ← Borda neon */
+    padding: 15px 20px !important;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    z-index: 999999999 !important; /* ← Z-index GIGANTE */
+    box-shadow: 
+        0 -5px 25px rgba(0, 0, 0, 0.8),
+        0 0 30px var(--theme-primary) !important; /* ← Brilho neon */
+    animation: slideUp 0.3s ease-out;
+    pointer-events: auto !important;
+    transform: translateZ(0);
+    transition: all 0.3s ease;
+}
+
+/* ← ADICIONE ESSA REGRA NOVA: */
+.bottom-toolbar[style*="display: flex"] {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+}
+
+/* ===== FORÇA BARRA SEMPRE POR CIMA ===== */
+body:has(.bottom-toolbar[style*="display: flex"]) .album-edit-modal {
+    padding-bottom: 100px; /* ← Espaço para não cobrir conteúdo */
+}
+
+body:has(.bottom-toolbar[style*="display: flex"]) .album-edit-scroll-content {
+    padding-bottom: 120px !important; /* ← Espaço extra no scroll */
+}
+
+/* ===== MELHORAR VISIBILIDADE DOS BOTÕES ===== */
+.bottom-btn {
+    padding: 14px 20px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 2px solid var(--theme-card-border) !important;
+    border-radius: 12px !important;
+    color: var(--theme-text) !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.bottom-btn:active {
+    transform: scale(0.95);
+}
+
+.bottom-btn.cancel-btn {
+    background: rgba(150, 150, 150, 0.2) !important;
+    border-color: rgba(150, 150, 150, 0.4) !important;
+    color: #ccc !important;
+}
+
+.bottom-btn.cancel-btn:hover {
+    background: rgba(150, 150, 150, 0.3) !important;
+    border-color: rgba(150, 150, 150, 0.6) !important;
+}
+
+.bottom-btn.reorganize-btn {
+    background: rgba(100, 150, 255, 0.2) !important;
+    border-color: rgba(100, 150, 255, 0.4) !important;
+    color: #6b9bff !important;
+}
+
+.bottom-btn.reorganize-btn:hover {
+    background: rgba(100, 150, 255, 0.3) !important;
+    border-color: rgba(100, 150, 255, 0.6) !important;
+}
+
+.bottom-btn.reorganize-btn.active {
+    background: rgba(100, 255, 100, 0.2) !important;
+    border-color: rgba(100, 255, 100, 0.4) !important;
+    color: #6bff6b !important;
+    box-shadow: 0 0 20px rgba(100, 255, 100, 0.4) !important;
+}
+
+.bottom-btn.delete-btn {
+    background: rgba(255, 70, 70, 0.2) !important;
+    border-color: rgba(255, 70, 70, 0.4) !important;
+    color: #ff6b6b !important;
+}
+
+.bottom-btn.delete-btn:hover {
+    background: rgba(255, 70, 70, 0.3) !important;
+    border-color: rgba(255, 70, 70, 0.6) !important;
+    box-shadow: 0 0 20px rgba(255, 70, 70, 0.4) !important;
+}
+
+.bottom-info {
+    flex: 1;
+    text-align: center;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.05rem !important; /* ← Texto maior */
+    font-weight: 600 !important;
+    text-shadow: 0 0 10px var(--theme-primary);
+}
+
+.bottom-toolbar[style*="display: flex"] {
+    display: flex !important;
+    position: fixed !important;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.bottom-info {
+    flex: 1;
+    text-align: center;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+/* Botões da barra inferior */
+.bottom-btn {
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 8px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.bottom-btn:active {
+    transform: scale(0.95);
+}
+
+.bottom-btn.cancel-btn {
+    background: rgba(150, 150, 150, 0.15);
+    border-color: rgba(150, 150, 150, 0.3);
+    color: #aaa;
+}
+
+.bottom-btn.reorganize-btn {
+    background: rgba(100, 150, 255, 0.15);
+    border-color: rgba(100, 150, 255, 0.3);
+    color: #6b9bff;
+}
+
+.bottom-btn.reorganize-btn.active {
+    background: rgba(100, 255, 100, 0.15);
+    border-color: rgba(100, 255, 100, 0.3);
+    color: #6bff6b;
+}
+
+.bottom-btn.delete-btn {
+    background: rgba(255, 70, 70, 0.15);
+    border-color: rgba(255, 70, 70, 0.3);
+    color: #ff6b6b;
+}
+
+/* ===== BOTÃO GERENCIAR FOTOS ===== */
+.manage-photos-btn {
+    width: 100%;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 10px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+    margin-top: 15px;
+}
+
+.manage-photos-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--theme-primary);
+}
+
+/* ===== RESPONSIVO ===== */
+@media (max-width: 768px) {
+    .bottom-toolbar {
+        padding: 10px 12px;
+    }
+    
+    .bottom-btn {
+        padding: 12px 14px;
+        font-size: 0.8rem;
+    }
+    
+    .bottom-btn span {
+        display: none;
+    }
+    
+    .bottom-btn i {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    
+    .bottom-info {
+        font-size: 0.85rem;
+    }
+    
+    .photo-checkmark {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .photo-checkmark i {
+        font-size: 14px;
+    }
+/* ===== FORÇA A BARRA FIXA SEMPRE ===== */
+body:has(.bottom-toolbar[style*="display: flex"]) {
+    padding-bottom: 80px;
+}
+
+/* ===== MODAL ABERTO - SCROLL TRAVADO ===== */
+body:has(.album-edit-modal[style*="display: block"]) {
+    overflow: hidden !important;
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+}
+
+/* ===== ANIMAÇÃO DE ENTRADA DO MODAL ===== */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== REDESIGN PROFISSIONAL DO POPUP DE EDIÇÃO ===== */
+
+/* Modal Container */
+.album-edit-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.album-edit-modal-content {
+    width: 100%;
+    max-width: 700px;
+    height: 100vh;
+    margin: 0 auto;
+    background: var(--theme-card-bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* ===== HEADER FIXO ===== */
+.album-edit-header-fixed {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--gradient-primary);
+    padding: 20px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-left i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.header-left h2 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+}
+
+.close-album-edit {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.close-album-edit:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+/* ===== TABS DE NAVEGAÇÃO ===== */
+.album-edit-tabs {
+    display: flex;
+    background: var(--theme-card-bg);
+    border-bottom: 1px solid var(--theme-card-border);
+    position: sticky;
+    top: 81px; /* Altura do header */
+    z-index: 99;
+}
+
+.album-tab {
+    flex: 1;
+    padding: 15px 20px;
+    background: transparent;
+    border: none;
+    color: var(--theme-text-secondary);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.album-tab i {
+    font-size: 1.1rem;
+}
+
+.album-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--theme-text);
+}
+
+.album-tab.active {
+    color: var(--theme-primary);
+    border-bottom-color: var(--theme-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ===== CONTEÚDO COM SCROLL ===== */
+.album-edit-scroll-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 80px; /* Espaço para o footer */
+}
+
+.album-tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.album-tab-content.active {
+    display: block;
+}
+
+/* ===== TAB 1: INFORMAÇÕES ===== */
+.info-section {
+    padding: 30px 25px;
+}
+
+.cover-section {
+    margin-bottom: 30px;
+}
+
+.cover-preview-box {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.cover-preview-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.cover-preview-box:hover .cover-overlay {
+    opacity: 1;
+}
+
+.change-cover-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.change-cover-label i {
+    font-size: 2rem;
+}
+
+.info-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group-modern label {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--theme-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group-modern label i {
+    color: var(--theme-primary);
+    font-size: 1rem;
+}
+
+.form-group-modern input,
+.form-group-modern textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    color: var(--theme-text);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.form-group-modern input:focus,
+.form-group-modern textarea:focus {
+    outline: none;
+    border-color: var(--theme-primary);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 15px rgba(138, 43, 226, 0.3);
+}
+
+.form-group-modern textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* ===== TAB 2: GERENCIAR FOTOS ===== */
+.photos-section {
+    padding: 30px 25px;
+}
+
+.photos-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--theme-card-border);
+}
+
+.photos-header h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--theme-text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.photos-header h3 i {
+    color: var(--theme-primary);
+}
+
+.load-photos-btn {
+    padding: 10px 20px;
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+}
+
+.load-photos-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(138, 43, 226, 0.6);
+}
+
+.empty-photos-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--theme-text-secondary);
+}
+
+.empty-photos-state i {
+    font-size: 4rem;
+    color: var(--theme-primary);
+    opacity: 0.3;
+    margin-bottom: 20px;
+}
+
+.empty-photos-state p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+}
+
+/* Grid de fotos (reaproveita o CSS existente) */
+.edit-photos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+/* ===== FOOTER FIXO ===== */
+.album-edit-footer-fixed {
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+    background: var(--theme-card-bg);
+    border-top: 1px solid var(--theme-card-border);
+    padding: 20px 25px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.footer-btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.footer-btn.cancel {
+    background: rgba(150, 150, 150, 0.2);
+    color: #aaa;
+    border: 1px solid rgba(150, 150, 150, 0.3);
+}
+
+.footer-btn.cancel:hover {
+    background: rgba(150, 150, 150, 0.3);
+    transform: scale(1.02);
+}
+
+.footer-btn.save {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+}
+
+.footer-btn.save:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(138, 43, 226, 0.6);
+}
+
+/* ===== RESPONSIVO ===== */
+@media (max-width: 768px) {
+    .album-edit-modal-content {
+        max-width: 100%;
+    }
+    
+    .album-edit-header-fixed {
+        padding: 15px 20px;
+    }
+    
+    .header-left h2 {
+        font-size: 1.1rem;
+    }
+    
+    .album-tab {
+        padding: 12px 15px;
+        font-size: 0.85rem;
+    }
+    
+    .album-tab span {
+        display: none;
+    }
+    
+    .album-tab i {
+        font-size: 1.3rem;
+    }
+    
+    .info-section,
+    .photos-section {
+        padding: 20px 15px;
+    }
+    
+    .cover-preview-box {
+        width: 180px;
+        height: 180px;
+    }
+    
+    .photos-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .load-photos-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .footer-btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .footer-btn span {
+        display: none;
+    }
+    
+    .footer-btn i {
+        font-size: 1.2rem;
+    }
+}
+
 }
