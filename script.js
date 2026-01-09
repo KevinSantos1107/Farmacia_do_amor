@@ -876,42 +876,201 @@ function handleTapNavigation(tapX) {
     }
 }
 
-function initAlbums() {
-    const container = document.getElementById('albumsContainer');
+// ===== CARROSSEL 3D DE ÁLBUNS =====
+class AlbumsCarousel3D {
+    constructor() {
+        this.currentIndex = 0;
+        this.track = document.getElementById('carouselTrack');
+        this.indicators = document.getElementById('carouselIndicators');
+        this.isDragging = false;
+        this.startX = 0;
+        this.currentX = 0;
+        this.dragThreshold = 50;
+        
+        this.init();
+    }
     
-    if (!container) {
-        console.warn('⚠️ Container de álbuns não encontrado');
+    init() {
+        if (!this.track || window.albums.length === 0) {
+            console.warn('⚠️ Carrossel não inicializado - sem álbuns ou elemento não encontrado');
+            return;
+        }
+        
+        this.renderCards();
+        this.renderIndicators();
+        this.updatePositions();
+        this.attachEvents();
+        
+        console.log(`✅ Carrossel 3D inicializado com ${window.albums.length} álbuns`);
+    }
+    
+    renderCards() {
+        this.track.innerHTML = '';
+        
+        window.albums.forEach((album, index) => {
+            const card = document.createElement('div');
+            card.className = 'carousel-album-card';
+            card.dataset.index = index;
+            card.dataset.id = album.id;
+            
+            card.innerHTML = `
+                <img src="${album.cover}" alt="${album.title}" class="carousel-album-cover lazy-image" loading="lazy">
+                <div class="carousel-album-info">
+                    <h3>${album.title}</h3>
+                    <p class="carousel-album-date">
+                        <i class="far fa-calendar-alt"></i> ${album.date}
+                    </p>
+                    <p class="carousel-album-stats">
+                        <i class="far fa-images"></i> ${album.photoCount} ${album.photoCount === 1 ? 'foto' : 'fotos'}
+                    </p>
+                </div>
+            `;
+            
+            this.track.appendChild(card);
+        });
+    }
+    
+    renderIndicators() {
+        if (!this.indicators) return;
+        
+        this.indicators.innerHTML = '';
+        
+        window.albums.forEach((_, index) => {
+            const indicator = document.createElement('div');
+            indicator.className = 'carousel-indicator';
+            if (index === this.currentIndex) {
+                indicator.classList.add('active');
+            }
+            indicator.addEventListener('click', () => this.goToSlide(index));
+            this.indicators.appendChild(indicator);
+        });
+    }
+    
+    updatePositions() {
+        const cards = this.track.querySelectorAll('.carousel-album-card');
+        const total = cards.length;
+        
+        cards.forEach((card, index) => {
+            card.classList.remove('center', 'left', 'right', 'hidden');
+            
+            const diff = index - this.currentIndex;
+            const normalizedDiff = ((diff % total) + total) % total;
+            
+            if (normalizedDiff === 0) {
+                card.classList.add('center');
+            } else if (normalizedDiff === 1) {
+                card.classList.add('right');
+            } else if (normalizedDiff === total - 1) {
+                card.classList.add('left');
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+        
+        this.updateIndicators();
+    }
+    
+    updateIndicators() {
+        if (!this.indicators) return;
+        
+        const indicators = this.indicators.querySelectorAll('.carousel-indicator');
+        indicators.forEach((indicator, index) => {
+            indicator.classList.toggle('active', index === this.currentIndex);
+        });
+    }
+    
+    next() {
+        this.currentIndex = (this.currentIndex + 1) % window.albums.length;
+        this.updatePositions();
+    }
+    
+    prev() {
+        this.currentIndex = (this.currentIndex - 1 + window.albums.length) % window.albums.length;
+        this.updatePositions();
+    }
+    
+    goToSlide(index) {
+        this.currentIndex = index;
+        this.updatePositions();
+    }
+    
+    attachEvents() {
+        // Clique nos cards
+        this.track.addEventListener('click', (e) => {
+            const card = e.target.closest('.carousel-album-card');
+            if (!card) return;
+            
+            const index = parseInt(card.dataset.index);
+            const diff = index - this.currentIndex;
+            const total = window.albums.length;
+            const normalizedDiff = ((diff % total) + total) % total;
+            
+            if (normalizedDiff === 1) {
+                this.next();
+            } else if (normalizedDiff === total - 1) {
+                this.prev();
+            } else if (normalizedDiff === 0) {
+                // Card central - abrir álbum
+                const albumId = card.dataset.id;
+                openAlbum(albumId);
+            }
+        });
+        
+        // Navegação por teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') this.prev();
+            if (e.key === 'ArrowRight') this.next();
+        });
+        
+        // Swipe/Drag - Mouse
+        this.track.addEventListener('mousedown', (e) => this.handleDragStart(e));
+        document.addEventListener('mousemove', (e) => this.handleDragMove(e));
+        document.addEventListener('mouseup', (e) => this.handleDragEnd(e));
+        
+        // Swipe/Drag - Touch
+        this.track.addEventListener('touchstart', (e) => this.handleDragStart(e), { passive: true });
+        document.addEventListener('touchmove', (e) => this.handleDragMove(e), { passive: true });
+        document.addEventListener('touchend', (e) => this.handleDragEnd(e), { passive: true });
+    }
+    
+    handleDragStart(e) {
+        this.isDragging = true;
+        this.startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        this.currentX = this.startX;
+    }
+    
+    handleDragMove(e) {
+        if (!this.isDragging) return;
+        this.currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    }
+    
+    handleDragEnd(e) {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        
+        const diff = this.currentX - this.startX;
+        
+        if (Math.abs(diff) > this.dragThreshold) {
+            if (diff > 0) {
+                this.prev();
+            } else {
+                this.next();
+            }
+        }
+    }
+}
+
+// Instância global do carrossel
+let albumsCarousel = null;
+
+// SUBSTITUIR a função initAlbums() existente:
+function initAlbums() {
+    if (!window.albums || window.albums.length === 0) {
+        console.warn('⚠️ Nenhum álbum para exibir');
         return;
     }
     
-    container.innerHTML = '';
-    
-    window.albums.forEach(album => {
-        const albumCard = document.createElement('div');
-        albumCard.className = 'album-card';
-        albumCard.dataset.id = album.id;
-        
-        albumCard.innerHTML = `
-            <img src="${album.cover}" alt="${album.title}" class="album-cover-img">
-            <div class="album-info">
-                <h3>${album.title}</h3>
-                <p class="album-date">
-                    <i class="far fa-calendar-alt"></i> ${album.date}
-                </p>
-                <p>${album.description}</p>
-                <div class="album-stats">
-                    <span>
-                        <i class="far fa-images"></i> ${album.photoCount} ${album.photoCount === 1 ? 'foto' : 'fotos'}
-                    </span>
-                </div>
-            </div>
-        `;
-        
-        albumCard.addEventListener('click', () => openAlbum(album.id));
-        container.appendChild(albumCard);
-    });
-    
-    console.log(`✅ ${albums.length} álbuns carregados`);
+    albumsCarousel = new AlbumsCarousel3D();
 }
 
 function openAlbum(albumId) {
