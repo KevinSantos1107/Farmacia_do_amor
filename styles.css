@@ -1409,30 +1409,65 @@ body {
     border-radius: 5px;
     box-shadow: 0 0 15px var(--theme-primary);
 }
-
 /* Responsivo Mobile - CARDS VISÍVEIS */
 @media (max-width: 768px) {
     .albums-carousel-container {
         height: 450px;
         perspective: 1200px;
+        overflow: visible !important; /* ← IMPORTANTE */
+    }
+    
+    .albums-carousel-viewport {
+        overflow: visible !important; /* ← IMPORTANTE */
+    }
+    
+    .albums-carousel-track {
+        overflow: visible !important; /* ← IMPORTANTE */
     }
 
     .carousel-album-card {
         width: 220px;
         height: 320px;
+        opacity: 1 !important; /* ← FORÇA VISIBILIDADE */
+        visibility: visible !important; /* ← FORÇA VISIBILIDADE */
     }
 
     /* CRUCIAL: Aproximar MUITO os cards laterais */
     .carousel-album-card.center {
-        transform: translate(-50%, -50%) scale(1.1) translateZ(0) rotateY(0deg);
+        transform: translate(-50%, -50%) scale(1.1) translateZ(0) rotateY(0deg) !important;
+        opacity: 1 !important;
+        z-index: 100 !important;
     }
 
     .carousel-album-card.left {
-        transform: translate(-50%, -50%) translateX(-180px) scale(0.75) translateZ(-80px) rotateY(35deg);
+        transform: translate(-50%, -50%) translateX(-180px) scale(0.75) translateZ(-80px) rotateY(35deg) !important;
+        opacity: 1 !important;
+        z-index: 50 !important;
     }
 
     .carousel-album-card.right {
-        transform: translate(-50%, -50%) translateX(180px) scale(0.75) translateZ(-80px) rotateY(-35deg);
+        transform: translate(-50%, -50%) translateX(180px) scale(0.75) translateZ(-80px) rotateY(-35deg) !important;
+        opacity: 1 !important;
+        z-index: 50 !important;
+    }
+    
+    .carousel-album-card.hidden {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+    
+    /* 📱 MOBILE: Aumentar área de toque dos cards laterais */
+    .carousel-album-card.left,
+    .carousel-album-card.right {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        touch-action: manipulation !important;
+    }
+    
+    .carousel-album-card.center {
+        pointer-events: auto !important;
+        touch-action: manipulation !important;
     }
 
     .carousel-album-info {
