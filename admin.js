@@ -601,11 +601,13 @@ async function loadAlbumsFromFirebase() {
         
         window.albums = firebaseAlbums;
         
+        // ✅ INICIALIZAR O CARROSSEL APÓS CARREGAR OS ÁLBUNS
         if (typeof initAlbums === 'function') {
             initAlbums();
         }
         
-        console.log(`✅ ${firebaseAlbums.length} álbuns carregados (ImgBB + Firebase)`);
+        console.log(`✅ ${firebaseAlbums.length} álbuns carregados do Firebase`);
+        console.log(`✅ Carrossel 3D inicializado com ${firebaseAlbums.length} álbuns`);
         
     } catch (error) {
         console.error('❌ Erro ao carregar álbuns:', error);
