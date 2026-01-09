@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         initThemeSelector();
         initTimeCounter();
-        initAlbums();
+
         initMessages();
         initModal();
         initTimelineModal();
