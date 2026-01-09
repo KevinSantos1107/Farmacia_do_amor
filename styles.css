@@ -1286,6 +1286,19 @@ body {
     box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
+/* FORÇA RENDERIZAÇÃO NO MOBILE */
+.carousel-album-card {
+    will-change: transform, opacity;
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
+}
+
+.albums-carousel-container,
+.albums-carousel-viewport,
+.albums-carousel-track {
+    transform: translateZ(0); /* Força aceleração GPU */
+}
+
 /* Estado: Centro (Destaque) */
 .carousel-album-card.center {
     transform: translate(-50%, -50%) scale(1.2) translateZ(0) rotateY(0deg);
