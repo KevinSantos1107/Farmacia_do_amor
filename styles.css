@@ -1408,7 +1408,7 @@ body {
 
 .carousel-indicator {
     width: 10px;
-    height: 10px;
+    height: 10px; 
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.3);
     cursor: pointer;
@@ -1422,64 +1422,67 @@ body {
     border-radius: 5px;
     box-shadow: 0 0 15px var(--theme-primary);
 }
-/* Responsivo Mobile - CARDS VISÍVEIS */
+
+/* ===== RESPONSIVO MOBILE - CORREÇÃO FINAL ===== */
 @media (max-width: 768px) {
     .albums-carousel-container {
         height: 450px;
         perspective: 1200px;
-        overflow: visible !important; /* ← IMPORTANTE */
+        overflow: visible !important;
+        margin: 40px 0;
     }
     
     .albums-carousel-viewport {
-        overflow: visible !important; /* ← IMPORTANTE */
+        overflow: visible !important;
     }
     
     .albums-carousel-track {
-        overflow: visible !important; /* ← IMPORTANTE */
+        overflow: visible !important;
     }
 
     .carousel-album-card {
         width: 220px;
         height: 320px;
-        opacity: 1 !important; /* ← FORÇA VISIBILIDADE */
-        visibility: visible !important; /* ← FORÇA VISIBILIDADE */
+        /* ❌ REMOVER: opacity: 1 !important; */
+        /* ❌ REMOVER: visibility: visible !important; */
     }
 
-    /* CRUCIAL: Aproximar MUITO os cards laterais */
+    /* ✅ CRUCIAL: Aproximar os cards laterais */
     .carousel-album-card.center {
         transform: translate(-50%, -50%) scale(1.1) translateZ(0) rotateY(0deg) !important;
         opacity: 1 !important;
         z-index: 100 !important;
+        visibility: visible !important;
     }
 
     .carousel-album-card.left {
         transform: translate(-50%, -50%) translateX(-180px) scale(0.75) translateZ(-80px) rotateY(35deg) !important;
-        opacity: 1 !important;
+        opacity: 0.8 !important; /* ← Parcialmente visível */
         z-index: 50 !important;
+        visibility: visible !important;
     }
 
     .carousel-album-card.right {
         transform: translate(-50%, -50%) translateX(180px) scale(0.75) translateZ(-80px) rotateY(-35deg) !important;
-        opacity: 1 !important;
+        opacity: 0.8 !important; /* ← Parcialmente visível */
         z-index: 50 !important;
+        visibility: visible !important;
     }
     
+    /* ✅ FORÇAR: Cards escondidos devem sumir */
     .carousel-album-card.hidden {
         opacity: 0 !important;
         visibility: hidden !important;
         pointer-events: none !important;
+        transform: translate(-50%, -50%) translateX(-600px) scale(0.3) translateZ(-200px) rotateY(60deg) !important;
     }
     
-    /* 📱 MOBILE: Aumentar área de toque dos cards laterais */
+    /* 📱 MOBILE: Aumentar área de toque */
     .carousel-album-card.left,
-    .carousel-album-card.right {
-        pointer-events: auto !important;
-        cursor: pointer !important;
-        touch-action: manipulation !important;
-    }
-    
+    .carousel-album-card.right,
     .carousel-album-card.center {
         pointer-events: auto !important;
+        cursor: pointer !important;
         touch-action: manipulation !important;
     }
 
@@ -1495,7 +1498,7 @@ body {
     .carousel-album-stats {
         font-size: 0.8rem;
     }
-}
+
 
 /* Mobile MUITO PEQUENO (iPhone SE, etc) */
 @media (max-width: 400px) {
