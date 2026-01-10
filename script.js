@@ -876,25 +876,57 @@ function handleTapNavigation(tapX) {
     }
 }
 
-// ===== CARROSSEL 3D OTIMIZADO  =====
+// ===== CARROSSEL 3D PROFISSIONAL - GESTOS PRECISOS =====
 class AlbumsCarousel3D {
     constructor() {
         this.currentIndex = 0;
         this.track = document.getElementById('carouselTrack');
         this.indicators = document.getElementById('carouselIndicators');
         
-        // Controle de gestos
-        this.isDragging = false;
-        this.startX = 0;
-        this.startY = 0;
-        this.currentX = 0;
-        this.currentY = 0;
-        this.dragThreshold = 60;
-        this.dragDirection = null;
+        // ===== CONTROLES DE GESTO - SISTEMA PROFISSIONAL =====
+        this.gesture = {
+            // Estado do gesto
+            isActive: false,
+            type: null, // 'tap', 'drag', 'scroll'
+            
+            // Posições
+            startX: 0,
+            startY: 0,
+            currentX: 0,
+            currentY: 0,
+            lastX: 0,
+            lastY: 0,
+            
+            // Medições
+            distanceX: 0,
+            distanceY: 0,
+            velocity: 0,
+            
+            // Timing
+            startTime: 0,
+            lastMoveTime: 0,
+            
+            // Configurações
+            tapMaxDistance: 10,
+            tapMaxDuration: 200,
+            dragThreshold: 80,
+            directionThreshold: 20,
+            velocityThreshold: 0.3
+        };
         
-        // Controle de transição
-        this.isAnimating = false;
-        this.animationTimeout = null;
+        // ===== CONTROLES DE NAVEGAÇÃO =====
+        this.navigation = {
+            isAnimating: false,
+            animationDuration: 550,
+            debounceTime: 100,
+            lastNavigationTime: 0
+        };
+        
+        // ===== CONTROLES DE CLIQUE EM CARDS =====
+        this.cardClick = {
+            enabled: true,
+            tapData: new Map()
+        };
         
         this.init();
     }
@@ -910,7 +942,7 @@ class AlbumsCarousel3D {
         this.updatePositions();
         this.attachEvents();
         
-        console.log(`✅ Carrossel inicializado com ${window.albums.length} álbuns`);
+        console.log(`✅ Carrossel profissional inicializado com ${window.albums.length} álbuns`);
     }
     
     renderCards() {
@@ -988,104 +1020,144 @@ class AlbumsCarousel3D {
         });
     }
     
+    // ===== NAVEGAÇÃO COM DEBOUNCE =====
+    
     next() {
-        if (this.isAnimating) return;
+        if (!this.canNavigate()) return;
         
-        this.isAnimating = true;
+        this.navigation.isAnimating = true;
+        this.navigation.lastNavigationTime = Date.now();
+        
         this.currentIndex = (this.currentIndex + 1) % window.albums.length;
         this.updatePositions();
         
-        clearTimeout(this.animationTimeout);
-        this.animationTimeout = setTimeout(() => {
-            this.isAnimating = false;
-        }, 550);
+        setTimeout(() => {
+            this.navigation.isAnimating = false;
+        }, this.navigation.animationDuration);
+        
+        console.log('➡️ Próximo álbum');
     }
     
     prev() {
-        if (this.isAnimating) return;
+        if (!this.canNavigate()) return;
         
-        this.isAnimating = true;
+        this.navigation.isAnimating = true;
+        this.navigation.lastNavigationTime = Date.now();
+        
         this.currentIndex = (this.currentIndex - 1 + window.albums.length) % window.albums.length;
         this.updatePositions();
         
-        clearTimeout(this.animationTimeout);
-        this.animationTimeout = setTimeout(() => {
-            this.isAnimating = false;
-        }, 550);
+        setTimeout(() => {
+            this.navigation.isAnimating = false;
+        }, this.navigation.animationDuration);
+        
+        console.log('⬅️ Álbum anterior');
     }
     
     goToSlide(index) {
-        if (this.isAnimating || index === this.currentIndex) return;
+        if (!this.canNavigate() || index === this.currentIndex) return;
         
-        this.isAnimating = true;
+        this.navigation.isAnimating = true;
+        this.navigation.lastNavigationTime = Date.now();
+        
         this.currentIndex = index;
         this.updatePositions();
         
-        clearTimeout(this.animationTimeout);
-        this.animationTimeout = setTimeout(() => {
-            this.isAnimating = false;
-        }, 550);
+        setTimeout(() => {
+            this.navigation.isAnimating = false;
+        }, this.navigation.animationDuration);
+        
+        console.log(`🎯 Indo para álbum ${index + 1}`);
     }
     
-    // ===== EVENTOS =====
+    canNavigate() {
+        const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
+        
+        if (this.navigation.isAnimating) {
+            console.log('⏳ Navegação bloqueada - animação em andamento');
+            return false;
+        }
+        
+        if (timeSinceLastNav < this.navigation.debounceTime) {
+            console.log('⏳ Navegação bloqueada - debounce ativo');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // ===== SISTEMA DE GESTOS PROFISSIONAL =====
     
     attachEvents() {
         this.setupCardClicks();
         this.setupKeyboardNavigation();
-        this.setupDragListeners();
+        this.setupGestureListeners();
     }
     
     setupCardClicks() {
         const cards = this.track.querySelectorAll('.carousel-album-card');
         
         cards.forEach(card => {
-            let tapStartTime = 0;
-            let tapStartX = 0;
-            let tapStartY = 0;
+            const cardIndex = parseInt(card.dataset.index);
             
-            // Touch start
+            // Touch start - registrar dados do tap
             card.addEventListener('touchstart', (e) => {
-                tapStartTime = Date.now();
-                tapStartX = e.touches[0].clientX;
-                tapStartY = e.touches[0].clientY;
+                this.cardClick.tapData.set(cardIndex, {
+                    startTime: Date.now(),
+                    startX: e.touches[0].clientX,
+                    startY: e.touches[0].clientY
+                });
             }, { passive: true });
             
-            // Click/Touch handler
-            const handleClick = (e) => {
-                // Validação touch
-                if (e.type === 'touchend') {
-                    const touchEndX = e.changedTouches[0].clientX;
-                    const touchEndY = e.changedTouches[0].clientY;
-                    const duration = Date.now() - tapStartTime;
-                    
-                    const moveX = Math.abs(touchEndX - tapStartX);
-                    const moveY = Math.abs(touchEndY - tapStartY);
-                    const totalMove = Math.sqrt(moveX * moveX + moveY * moveY);
-                    
-                    if (totalMove > 15 || duration > 400) {
-                        return;
-                    }
+            // Touch end - validar tap
+            card.addEventListener('touchend', (e) => {
+                if (!this.cardClick.enabled) return;
+                
+                const tapData = this.cardClick.tapData.get(cardIndex);
+                if (!tapData) return;
+                
+                const duration = Date.now() - tapData.startTime;
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+                
+                const moveX = Math.abs(touchEndX - tapData.startX);
+                const moveY = Math.abs(touchEndY - tapData.startY);
+                const totalMove = Math.sqrt(moveX * moveX + moveY * moveY);
+                
+                // Validar se foi um tap limpo
+                if (totalMove < 15 && duration < 300) {
+                    this.handleCardClick(card);
                 }
                 
-                if (this.isDragging || this.isAnimating) return;
-                
-                const index = parseInt(card.dataset.index);
-                const diff = index - this.currentIndex;
-                const total = window.albums.length;
-                const normalizedDiff = ((diff % total) + total) % total;
-                
-                if (normalizedDiff === 1) {
-                    this.next();
-                } else if (normalizedDiff === total - 1) {
-                    this.prev();
-                } else if (normalizedDiff === 0) {
-                    openAlbum(card.dataset.id);
-                }
-            };
+                this.cardClick.tapData.delete(cardIndex);
+            }, { passive: true });
             
-            card.addEventListener('click', handleClick);
-            card.addEventListener('touchend', handleClick, { passive: true });
+            // Click (desktop)
+            card.addEventListener('click', (e) => {
+                if (this.gesture.type === 'drag') {
+                    e.preventDefault();
+                    return;
+                }
+                this.handleCardClick(card);
+            });
         });
+    }
+    
+    handleCardClick(card) {
+        if (this.navigation.isAnimating || this.gesture.type === 'drag') return;
+        
+        const index = parseInt(card.dataset.index);
+        const diff = index - this.currentIndex;
+        const total = window.albums.length;
+        const normalizedDiff = ((diff % total) + total) % total;
+        
+        if (normalizedDiff === 1) {
+            this.next();
+        } else if (normalizedDiff === total - 1) {
+            this.prev();
+        } else if (normalizedDiff === 0) {
+            openAlbum(card.dataset.id);
+        }
     }
     
     setupKeyboardNavigation() {
@@ -1095,84 +1167,170 @@ class AlbumsCarousel3D {
         });
     }
     
-    setupDragListeners() {
+    setupGestureListeners() {
         // Mouse
-        this.track.addEventListener('mousedown', (e) => this.handleDragStart(e));
-        document.addEventListener('mousemove', (e) => this.handleDragMove(e));
-        document.addEventListener('mouseup', (e) => this.handleDragEnd(e));
+        this.track.addEventListener('mousedown', (e) => this.onGestureStart(e));
+        document.addEventListener('mousemove', (e) => this.onGestureMove(e));
+        document.addEventListener('mouseup', (e) => this.onGestureEnd(e));
         
         // Touch
-        this.track.addEventListener('touchstart', (e) => this.handleDragStart(e), { passive: true });
-        document.addEventListener('touchmove', (e) => this.handleDragMove(e), { passive: true });
-        document.addEventListener('touchend', (e) => this.handleDragEnd(e), { passive: true });
+        this.track.addEventListener('touchstart', (e) => this.onGestureStart(e), { passive: true });
+        document.addEventListener('touchmove', (e) => this.onGestureMove(e), { passive: true });
+        document.addEventListener('touchend', (e) => this.onGestureEnd(e), { passive: true });
     }
     
-handleDragStart(e) {
-    if (this.isAnimating) return;
+    // ===== HANDLERS DE GESTO =====
     
-    this.isDragging = false;
-    this.dragDirection = null;
+    onGestureStart(e) {
+        if (this.navigation.isAnimating) return;
+        
+        const isTouch = e.type.includes('touch');
+        const point = isTouch ? e.touches[0] : e;
+        
+        // Reset do estado
+        this.gesture.isActive = true;
+        this.gesture.type = null;
+        this.gesture.startX = point.clientX;
+        this.gesture.startY = point.clientY;
+        this.gesture.currentX = point.clientX;
+        this.gesture.currentY = point.clientY;
+        this.gesture.lastX = point.clientX;
+        this.gesture.lastY = point.clientY;
+        this.gesture.startTime = Date.now();
+        this.gesture.lastMoveTime = Date.now();
+        this.gesture.distanceX = 0;
+        this.gesture.distanceY = 0;
+        this.gesture.velocity = 0;
+        
+        console.log('👆 Gesto iniciado');
+    }
     
-    const isTouch = e.type.includes('touch');
-    this.startX = isTouch ? e.touches[0].clientX : e.clientX;
-    this.startY = isTouch ? e.touches[0].clientY : e.clientY;
-    this.currentX = this.startX;
-    this.currentY = this.startY;
-}
-
-handleDragMove(e) {
-    if (this.isAnimating) return;
-    
-    const isTouch = e.type.includes('touch');
-    this.currentX = isTouch ? e.touches[0].clientX : e.clientX;
-    this.currentY = isTouch ? e.touches[0].clientY : e.clientY;
-    
-    const diffX = Math.abs(this.currentX - this.startX);
-    const diffY = Math.abs(this.currentY - this.startY);
-    
-    // ✅ CRÍTICO: Só detecta direção se movimento for CLARO
-    if (this.dragDirection === null && (diffX > 15 || diffY > 15)) {
-        // ✅ Exige que horizontal seja MUITO maior que vertical
-        if (diffX > diffY * 1.5) {
-            this.dragDirection = 'horizontal';
-            this.isDragging = true;
-            console.log('➡️ Drag horizontal detectado');
-        } else {
-            this.dragDirection = 'vertical';
-            console.log('⬇️ Scroll vertical - carrossel inativo');
+    onGestureMove(e) {
+        if (!this.gesture.isActive || this.navigation.isAnimating) return;
+        
+        const isTouch = e.type.includes('touch');
+        const point = isTouch ? e.touches[0] : e;
+        
+        // Atualizar posições
+        this.gesture.currentX = point.clientX;
+        this.gesture.currentY = point.clientY;
+        
+        // Calcular distâncias desde o início
+        this.gesture.distanceX = this.gesture.currentX - this.gesture.startX;
+        this.gesture.distanceY = this.gesture.currentY - this.gesture.startY;
+        
+        const absDistanceX = Math.abs(this.gesture.distanceX);
+        const absDistanceY = Math.abs(this.gesture.distanceY);
+        
+        // ===== DETECÇÃO DE TIPO DE GESTO =====
+        
+        if (this.gesture.type === null) {
+            // Aguardar movimento mínimo antes de decidir
+            if (absDistanceX < this.gesture.directionThreshold && 
+                absDistanceY < this.gesture.directionThreshold) {
+                return;
+            }
+            
+            // Determinar tipo baseado na direção DOMINANTE
+            const ratio = absDistanceX / absDistanceY;
+            
+            if (ratio > 2.0) {
+                // Movimento CLARAMENTE horizontal
+                this.gesture.type = 'drag';
+                this.cardClick.enabled = false;
+                console.log('↔️ DRAG horizontal detectado');
+            } else if (ratio < 0.5) {
+                // Movimento CLARAMENTE vertical
+                this.gesture.type = 'scroll';
+                console.log('↕️ SCROLL vertical detectado');
+                return;
+            } else {
+                // Movimento diagonal - interpretar como scroll
+                this.gesture.type = 'scroll';
+                console.log('↗️ Movimento diagonal - interpretado como scroll');
+                return;
+            }
+        }
+        
+        // ===== PROCESSAR APENAS SE FOR DRAG =====
+        
+        if (this.gesture.type === 'drag') {
+            // Calcular velocidade
+            const now = Date.now();
+            const deltaTime = now - this.gesture.lastMoveTime;
+            
+            if (deltaTime > 0) {
+                const deltaX = this.gesture.currentX - this.gesture.lastX;
+                this.gesture.velocity = Math.abs(deltaX / deltaTime);
+            }
+            
+            this.gesture.lastX = this.gesture.currentX;
+            this.gesture.lastY = this.gesture.currentY;
+            this.gesture.lastMoveTime = now;
         }
     }
-}
-
-handleDragEnd(e) {
-    // ✅ Só navega se foi REALMENTE horizontal
-    if (!this.isDragging || this.dragDirection !== 'horizontal') {
-        this.resetDragState();
-        return;
-    }
     
-    const totalDrag = this.currentX - this.startX;
-    const shouldNavigate = Math.abs(totalDrag) > this.dragThreshold;
-    
-    if (shouldNavigate) {
-        console.log(`✅ Navegando ${totalDrag > 0 ? 'anterior' : 'próximo'}`);
-        if (totalDrag > 0) {
-            this.prev();
-        } else {
-            this.next();
+    onGestureEnd(e) {
+        if (!this.gesture.isActive) return;
+        
+        const gestureDuration = Date.now() - this.gesture.startTime;
+        
+        console.log(`🏁 Gesto finalizado - Tipo: ${this.gesture.type}, Duração: ${gestureDuration}ms`);
+        
+        // ===== PROCESSAR BASEADO NO TIPO =====
+        
+        if (this.gesture.type === 'drag') {
+            this.processDrag();
+        } else if (this.gesture.type === null) {
+            // Gesto muito pequeno - pode ser um tap
+            const totalDistance = Math.sqrt(
+                this.gesture.distanceX ** 2 + 
+                this.gesture.distanceY ** 2
+            );
+            
+            if (totalDistance < this.gesture.tapMaxDistance && 
+                gestureDuration < this.gesture.tapMaxDuration) {
+                console.log('👆 TAP detectado');
+            }
         }
-    } else {
-        console.log('↩️ Movimento insuficiente, voltando');
+        
+        // Reset
+        this.resetGesture();
     }
     
-    this.resetDragState();
-}
+    processDrag() {
+        const absDistance = Math.abs(this.gesture.distanceX);
+        const isSwipe = this.gesture.velocity > this.gesture.velocityThreshold;
+        
+        console.log(`📊 Drag - Distância: ${absDistance}px, Velocidade: ${this.gesture.velocity.toFixed(3)}, Swipe: ${isSwipe}`);
+        
+        // Navegação por distância OU velocidade
+        const shouldNavigate = absDistance > this.gesture.dragThreshold || isSwipe;
+        
+        if (shouldNavigate) {
+            if (this.gesture.distanceX > 0) {
+                console.log('⬅️ Navegando para anterior (swipe direita)');
+                this.prev();
+            } else {
+                console.log('➡️ Navegando para próximo (swipe esquerda)');
+                this.next();
+            }
+        } else {
+            console.log('❌ Movimento insuficiente - sem navegação');
+        }
+    }
     
-    resetDragState() {
-        this.isDragging = false;
-        this.dragDirection = null;
-        this.startX = 0;
-        this.currentX = 0;
+    resetGesture() {
+        this.gesture.isActive = false;
+        this.gesture.type = null;
+        this.gesture.distanceX = 0;
+        this.gesture.distanceY = 0;
+        this.gesture.velocity = 0;
+        
+        // Reabilitar cliques após delay
+        setTimeout(() => {
+            this.cardClick.enabled = true;
+        }, 50);
     }
 }
 
@@ -1712,3 +1870,4 @@ console.log(`
 ║   💾 Tema persistente                ║
 ╚══════════════════════════════════════╝
 `);
+
