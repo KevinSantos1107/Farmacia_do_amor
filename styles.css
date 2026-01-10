@@ -1140,7 +1140,7 @@ body {
 .albums-section h2 {
     font-family: 'Poppins', sans-serif;
     font-size: 1.5rem;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     color: var(--theme-accent);
     text-align: center;
     text-shadow: 0 0 10px var(--theme-accent);
@@ -1241,7 +1241,7 @@ body {
     height: 500px;
     perspective: 1500px;
     overflow: hidden;
-    margin: 40px 0;
+    margin: 10px 0;
 }
 
 .albums-carousel-viewport {
@@ -1400,7 +1400,7 @@ body {
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin-top: 40px;
+    margin-top: -20px;
 }
 
 .carousel-indicator {
