@@ -888,6 +888,7 @@ class AlbumsCarousel3D {
         this.startX = 0;
         this.startY = 0;
         this.currentX = 0;
+        this.currentY = 0;
         this.dragThreshold = 60;
         this.dragDirection = null;
         
@@ -1106,56 +1107,66 @@ class AlbumsCarousel3D {
         document.addEventListener('touchend', (e) => this.handleDragEnd(e), { passive: true });
     }
     
-    handleDragStart(e) {
-        if (this.isAnimating) return;
-        
-        this.isDragging = false;
-        this.dragDirection = null;
-        
-        const isTouch = e.type.includes('touch');
-        this.startX = isTouch ? e.touches[0].clientX : e.clientX;
-        this.startY = isTouch ? e.touches[0].clientY : e.clientY;
-        this.currentX = this.startX;
-    }
+handleDragStart(e) {
+    if (this.isAnimating) return;
     
-    handleDragMove(e) {
-        if (this.isAnimating) return;
-        
-        const isTouch = e.type.includes('touch');
-        this.currentX = isTouch ? e.touches[0].clientX : e.clientX;
-        const currentY = isTouch ? e.touches[0].clientY : e.clientY;
-        
-        const diffX = Math.abs(this.currentX - this.startX);
-        const diffY = Math.abs(currentY - this.startY);
-        
-        // Detecta direção
-        if (this.dragDirection === null && (diffX > 10 || diffY > 10)) {
-            this.dragDirection = diffX > diffY ? 'horizontal' : 'vertical';
-            if (this.dragDirection === 'horizontal') {
-                this.isDragging = true;
-            }
+    this.isDragging = false;
+    this.dragDirection = null;
+    
+    const isTouch = e.type.includes('touch');
+    this.startX = isTouch ? e.touches[0].clientX : e.clientX;
+    this.startY = isTouch ? e.touches[0].clientY : e.clientY;
+    this.currentX = this.startX;
+    this.currentY = this.startY;
+}
+
+handleDragMove(e) {
+    if (this.isAnimating) return;
+    
+    const isTouch = e.type.includes('touch');
+    this.currentX = isTouch ? e.touches[0].clientX : e.clientX;
+    this.currentY = isTouch ? e.touches[0].clientY : e.clientY;
+    
+    const diffX = Math.abs(this.currentX - this.startX);
+    const diffY = Math.abs(this.currentY - this.startY);
+    
+    // ✅ CRÍTICO: Só detecta direção se movimento for CLARO
+    if (this.dragDirection === null && (diffX > 15 || diffY > 15)) {
+        // ✅ Exige que horizontal seja MUITO maior que vertical
+        if (diffX > diffY * 1.5) {
+            this.dragDirection = 'horizontal';
+            this.isDragging = true;
+            console.log('➡️ Drag horizontal detectado');
+        } else {
+            this.dragDirection = 'vertical';
+            console.log('⬇️ Scroll vertical - carrossel inativo');
         }
     }
-    
-    handleDragEnd(e) {
-        if (!this.isDragging || this.dragDirection !== 'horizontal') {
-            this.resetDragState();
-            return;
-        }
-        
-        const totalDrag = this.currentX - this.startX;
-        const shouldNavigate = Math.abs(totalDrag) > this.dragThreshold;
-        
-        if (shouldNavigate) {
-            if (totalDrag > 0) {
-                this.prev();
-            } else {
-                this.next();
-            }
-        }
-        
+}
+
+handleDragEnd(e) {
+    // ✅ Só navega se foi REALMENTE horizontal
+    if (!this.isDragging || this.dragDirection !== 'horizontal') {
         this.resetDragState();
+        return;
     }
+    
+    const totalDrag = this.currentX - this.startX;
+    const shouldNavigate = Math.abs(totalDrag) > this.dragThreshold;
+    
+    if (shouldNavigate) {
+        console.log(`✅ Navegando ${totalDrag > 0 ? 'anterior' : 'próximo'}`);
+        if (totalDrag > 0) {
+            this.prev();
+        } else {
+            this.next();
+        }
+    } else {
+        console.log('↩️ Movimento insuficiente, voltando');
+    }
+    
+    this.resetDragState();
+}
     
     resetDragState() {
         this.isDragging = false;
