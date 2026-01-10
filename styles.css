@@ -1234,13 +1234,13 @@ body {
     text-shadow: 0 0 10px var(--theme-accent);
 }
 
-/* ===== CARROSSEL 3D DE ÁLBUNS ===== */
+/* ===== CARROSSEL 3D DE ÁLBUNS - OTIMIZADO ===== */
 .albums-carousel-container {
     position: relative;
     width: 100%;
     height: 500px;
     perspective: 1500px;
-    overflow: visible;
+    overflow: hidden;
     margin: 40px 0;
 }
 
@@ -1258,109 +1258,124 @@ body {
     width: 100%;
     height: 100%;
     transform-style: preserve-3d;
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none; /* ← Track não captura toque */
-    z-index: 1;
+    pointer-events: none;
 }
 
-/* Cards capturam toque, track não */
 .albums-carousel-track > .carousel-album-card {
-    pointer-events: auto !important;
+    pointer-events: auto;
 }
 
-/* Card do Álbum no Carrossel */
+/* ===== CARD DO ÁLBUM - BASE ===== */
 .carousel-album-card {
     position: absolute;
-    width: 300px;
-    height: 420px;
+    width: 280px;
+    height: 400px;
     left: 50%;
     top: 50%;
-    transform-origin: center center;
-    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    cursor: pointer;
     background: var(--theme-card-bg);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     overflow: hidden;
     border: 1px solid var(--theme-card-border);
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(138, 43, 226, 0.2);
+    
+    /* Performance */
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform-origin: center center;
+    
+    /* Transição suave */
+    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-/* Estado: Centro (Destaque) */
+/* ===== POSIÇÕES - ACELERAÇÃO GPU ===== */
+
+/* Centro (destaque) */
 .carousel-album-card.center {
-    transform: translate(-50%, -50%) scale(1.2) translateZ(0) rotateY(0deg);
-    z-index: 10;
+    transform: translate3d(-50%, -50%, 0) scale(1.15);
+    z-index: 100;
     opacity: 1;
     filter: brightness(1);
     box-shadow: 
-        0 0 40px var(--theme-primary),
         0 20px 60px rgba(0, 0, 0, 0.5),
-        inset 0 0 30px rgba(255, 255, 255, 0.15);
+        0 0 40px var(--theme-primary);
 }
 
-/* Estado: Esquerda (Trás) */
+/* Esquerda */
 .carousel-album-card.left {
-    transform: translate(-50%, -50%) translateX(-450px) scale(0.8) translateZ(-150px) rotateY(45deg);
-    z-index: 5;
-    opacity: 0.6;
-    filter: brightness(0.7);
+    transform: translate3d(calc(-50% - 350px), -50%, -200px) scale(0.85) rotateY(35deg);
+    z-index: 50;
+    opacity: 0.7;
+    filter: brightness(0.75);
 }
 
-/* Estado: Direita (Trás) */
+/* Direita */
 .carousel-album-card.right {
-    transform: translate(-50%, -50%) translateX(450px) scale(0.8) translateZ(-150px) rotateY(-45deg);
-    z-index: 5;
-    opacity: 0.6;
-    filter: brightness(0.7);
+    transform: translate3d(calc(-50% + 350px), -50%, -200px) scale(0.85) rotateY(-35deg);
+    z-index: 50;
+    opacity: 0.7;
+    filter: brightness(0.75);
 }
 
-/* Estados Escondidos */
+/* Escondidos */
 .carousel-album-card.hidden {
-    transform: translate(-50%, -50%) translateX(-900px) scale(0.4) translateZ(-300px) rotateY(60deg);
-    z-index: 0;
+    transform: translate3d(calc(-50% - 700px), -50%, -400px) scale(0.5) rotateY(50deg);
+    z-index: 1;
     opacity: 0;
     pointer-events: none;
 }
 
-/* Hover nos Laterais */
-.carousel-album-card.left:hover,
-.carousel-album-card.right:hover {
-    opacity: 0.8;
-    filter: brightness(0.85);
-    box-shadow: 
-        0 0 25px var(--theme-accent),
-        0 15px 40px rgba(0, 0, 0, 0.4);
+/* ===== HOVER - APENAS DESKTOP ===== */
+@media (hover: hover) {
+    .carousel-album-card.left:hover,
+    .carousel-album-card.right:hover {
+        opacity: 0.9;
+        filter: brightness(0.85);
+        box-shadow: 
+            0 15px 40px rgba(0, 0, 0, 0.45),
+            0 0 30px var(--theme-accent);
+    }
+    
+    .carousel-album-card.center:hover {
+        transform: translate3d(-50%, -50%, 0) scale(1.18);
+    }
 }
 
-/* Imagem da Capa */
+/* ===== CONTEÚDO DO CARD ===== */
 .carousel-album-cover {
     width: 100%;
     height: 65%;
     object-fit: cover;
+    display: block;
 }
 
-/* Informações do Álbum */
 .carousel-album-info {
     padding: 20px;
     background: linear-gradient(to bottom, 
-        rgba(var(--theme-card-bg-rgb), 0.95), 
-        var(--theme-card-bg)
+        rgba(10, 10, 26, 0.95), 
+        rgba(10, 10, 26, 1)
     );
 }
 
 .carousel-album-info h3 {
     font-family: 'Poppins', sans-serif;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     color: var(--theme-text);
     margin-bottom: 8px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 .carousel-album-date {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--theme-text-secondary);
     margin-bottom: 8px;
     display: flex;
@@ -1370,22 +1385,17 @@ body {
 
 .carousel-album-date i {
     color: var(--theme-primary);
-    text-shadow: 0 0 10px var(--theme-primary);
 }
 
 .carousel-album-stats {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--theme-accent);
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
-.carousel-album-stats i {
-    text-shadow: 0 0 10px var(--theme-accent);
-}
-
-/* Indicadores */
+/* ===== INDICADORES ===== */
 .carousel-indicators {
     display: flex;
     justify-content: center;
@@ -1410,29 +1420,27 @@ body {
     box-shadow: 0 0 15px var(--theme-primary);
 }
 
-/* Responsivo Mobile - CARDS VISÍVEIS */
+/* ===== RESPONSIVO MOBILE ===== */
 @media (max-width: 768px) {
     .albums-carousel-container {
         height: 450px;
-        perspective: 1200px;
     }
 
     .carousel-album-card {
-        width: 220px;
-        height: 320px;
+        width: 240px;
+        height: 350px;
     }
 
-    /* CRUCIAL: Aproximar MUITO os cards laterais */
     .carousel-album-card.center {
-        transform: translate(-50%, -50%) scale(1.1) translateZ(0) rotateY(0deg);
+        transform: translate3d(-50%, -50%, 0) scale(1.1);
     }
 
     .carousel-album-card.left {
-        transform: translate(-50%, -50%) translateX(-180px) scale(0.75) translateZ(-80px) rotateY(35deg);
+        transform: translate3d(calc(-50% - 200px), -50%, -120px) scale(0.8) rotateY(30deg);
     }
 
     .carousel-album-card.right {
-        transform: translate(-50%, -50%) translateX(180px) scale(0.75) translateZ(-80px) rotateY(-35deg);
+        transform: translate3d(calc(-50% + 200px), -50%, -120px) scale(0.8) rotateY(-30deg);
     }
 
     .carousel-album-info {
@@ -1442,57 +1450,20 @@ body {
     .carousel-album-info h3 {
         font-size: 1rem;
     }
-
-    .carousel-album-date,
-    .carousel-album-stats {
-        font-size: 0.8rem;
-    }
 }
 
-/* Mobile MUITO PEQUENO (iPhone SE, etc) */
 @media (max-width: 400px) {
     .carousel-album-card {
-        width: 200px;
-        height: 300px;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-        user-select: none;
-        -webkit-user-select: none;
+        width: 220px;
+        height: 320px;
     }
 
-
-    
-/* 📱 Cards laterais - MOBILE */
-.carousel-album-card.left,
-.carousel-album-card.right {
-    pointer-events: auto !important;
-    cursor: pointer !important;
-    z-index: 50 !important; /* ← Z-INDEX MUITO ALTO */
-    touch-action: manipulation !important;
-}
-
-.carousel-album-card.center {
-    z-index: 100 !important; /* ← Z-INDEX AINDA MAIOR */
-    pointer-events: auto !important;
-    touch-action: manipulation !important;
-}
-
-.carousel-album-card.hidden {
-    pointer-events: none !important;
-    z-index: 1 !important;
-}
-
-/* 📱 Elementos DENTRO dos cards também capturam toque */
-.carousel-album-card * {
-    pointer-events: none !important; /* ← Previne que imagens/texto roubem o toque */
-}
-
     .carousel-album-card.left {
-        transform: translate(-50%, -50%) translateX(-160px) scale(0.7) translateZ(-60px) rotateY(30deg);
+        transform: translate3d(calc(-50% - 170px), -50%, -100px) scale(0.75) rotateY(25deg);
     }
 
     .carousel-album-card.right {
-        transform: translate(-50%, -50%) translateX(160px) scale(0.7) translateZ(-60px) rotateY(-30deg);
+        transform: translate3d(calc(-50% + 170px), -50%, -100px) scale(0.75) rotateY(-25deg);
     }
 }
 
