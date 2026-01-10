@@ -1023,7 +1023,7 @@ updatePositions(dragOffset = 0) {
     }
     
 attachEvents() {
-    // 📱 Adiciona evento de clique/toque DIRETO em cada card
+    // 📱 Adiciona evento de clique/toque DIRETO em cada card (COM VALIDAÇÃO ANTI-SCROLL)
     const setupCardClick = () => {
         const cards = this.track.querySelectorAll('.carousel-album-card');
         
@@ -1035,27 +1035,69 @@ attachEvents() {
                 card.removeEventListener('touchend', oldHandler);
             }
             
-            // Cria novo handler
+            // ✅ VARIÁVEIS PARA DETECTAR CLIQUE VÁLIDO
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchStartTime = 0;
+            
+            // Captura início do toque
+            card.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchStartTime = Date.now();
+            }, { passive: true });
+            
+            // Cria novo handler COM VALIDAÇÃO
             const handler = (e) => {
-                // Se arrastou muito, não processar clique
-                const dragDistance = Math.abs(this.currentX - this.startX);
-                if (dragDistance > 15) {
+                e.stopPropagation();
+                
+                // ✅ VALIDAÇÃO 1: Verifica se arrastou muito (horizontal ou vertical)
+                const isTouchEvent = e.type === 'touchend';
+                
+                if (isTouchEvent) {
+                    const touchEndX = e.changedTouches[0].clientX;
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const touchDuration = Date.now() - touchStartTime;
+                    
+                    const dragDistanceX = Math.abs(touchEndX - touchStartX);
+                    const dragDistanceY = Math.abs(touchEndY - touchStartY);
+                    const totalDragDistance = Math.sqrt(dragDistanceX * dragDistanceX + dragDistanceY * dragDistanceY);
+                    
+                    // 🚫 Se moveu mais de 15px OU demorou mais de 500ms, NÃO é clique
+                    if (totalDragDistance > 15 || touchDuration > 500) {
+                        console.log('🚫 Clique ignorado - movimento detectado:', totalDragDistance.toFixed(0) + 'px');
+                        return;
+                    }
+                }
+                
+                // ✅ VALIDAÇÃO 2: Verifica se o carrossel estava em drag
+                if (this.isDragging || this.dragDirection !== null) {
+                    console.log('🚫 Clique ignorado - carrossel em drag');
                     return;
                 }
                 
-                e.stopPropagation();
+                // ✅ VALIDAÇÃO 3: Verifica distância do drag do carrossel
+                const dragDistance = Math.abs(this.currentX - this.startX);
+                if (dragDistance > 15) {
+                    console.log('🚫 Clique ignorado - drag do carrossel:', dragDistance.toFixed(0) + 'px');
+                    return;
+                }
                 
+                // ✅ SE PASSOU POR TODAS AS VALIDAÇÕES, processa o clique
                 const index = parseInt(card.dataset.index);
                 const diff = index - this.currentIndex;
                 const total = window.albums.length;
                 const normalizedDiff = ((diff % total) + total) % total;
                 
                 if (normalizedDiff === 1) {
+                    console.log('➡️ Navegando para próximo álbum');
                     this.next();
                 } else if (normalizedDiff === total - 1) {
+                    console.log('⬅️ Navegando para álbum anterior');
                     this.prev();
                 } else if (normalizedDiff === 0) {
                     const albumId = card.dataset.id;
+                    console.log('✅ Abrindo álbum:', albumId);
                     openAlbum(albumId);
                 }
             };
