@@ -1137,22 +1137,19 @@ attachEvents() {
     document.addEventListener('touchend', (e) => this.handleDragEnd(e), { passive: true });
 }
 
-    handleDragStart(e) {
-        if (this.isTransitioning) return;
-        
-        this.isDragging = false; // ← Começa como FALSE
-        this.startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-        this.startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY; // ← NOVA: salva Y inicial
-        this.currentX = this.startX;
-        this.currentY = this.startY; // ← NOVA: salva Y atual
-        this.dragOffset = 0;
-        this.dragDirection = null; // ← NOVA: direção não definida ainda
-        
-        const cards = this.track.querySelectorAll('.carousel-album-card');
-        cards.forEach(card => card.style.transition = 'none');
-    }
+handleDragStart(e) {
+    if (this.isTransitioning) return;
+    
+    this.isDragging = false;
+    this.startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    this.startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+    this.currentX = this.startX;
+    this.currentY = this.startY;
+    this.dragOffset = 0;
+    this.dragDirection = null;
+}
 
- handleDragMove(e) {
+handleDragMove(e) {
     if (this.isTransitioning) return;
     
     this.currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
@@ -1180,45 +1177,55 @@ attachEvents() {
     
     // ✅ Se for horizontal, processa o drag normalmente
     if (this.isDragging && this.dragDirection === 'horizontal') {
-        // ✅ ESTA LINHA É CRUCIAL - atualiza o dragOffset
         this.dragOffset = this.currentX - this.startX;
         this.updatePositions(this.dragOffset);
     }
 }
 
-    handleDragEnd(e) {
-        // 🚫 Se não estava fazendo drag horizontal, não faz nada
-        if (!this.isDragging || this.dragDirection !== 'horizontal') {
-            this.isDragging = false;
-            this.dragDirection = null; // ← Reseta para o próximo gesto
-            return;
-        }
-        
+handleDragEnd(e) {
+    // 🚫 Se não estava fazendo drag horizontal, apenas reseta
+    if (!this.isDragging || this.dragDirection !== 'horizontal') {
         this.isDragging = false;
-        this.isTransitioning = true;
-        
-        const diff = this.currentX - this.startX;
-        
-        const cards = this.track.querySelectorAll('.carousel-album-card');
-        cards.forEach(card => card.style.transition = '');
-        
-        if (Math.abs(diff) > this.dragThreshold) {
-            if (diff > 0) {
-                this.prev();
-            } else {
-                this.next();
-            }
-        } else {
-            this.dragOffset = 0;
-            this.updatePositions(0);
-        }
-        
-        setTimeout(() => {
-            this.isTransitioning = false;
-            this.dragOffset = 0;
-            this.dragDirection = null; // ← Reseta para o próximo gesto
-        }, 600);
+        this.dragDirection = null;
+        this.dragOffset = 0;
+        return;
     }
+    
+    // ✅ PRIMEIRO: Remove os estilos inline do drag ANTES de navegar
+    const cards = this.track.querySelectorAll('.carousel-album-card');
+    cards.forEach(card => {
+        card.style.transition = '';
+        card.style.transform = '';
+        card.style.opacity = '';
+    });
+    
+    // ✅ SEGUNDO: Reseta as variáveis
+    this.isDragging = false;
+    this.isTransitioning = true;
+    
+    const diff = this.currentX - this.startX;
+    
+    // ✅ TERCEIRO: Decide para onde vai
+    if (Math.abs(diff) > this.dragThreshold) {
+        console.log('✅ Threshold atingido:', Math.abs(diff).toFixed(0) + 'px - mudando álbum');
+        if (diff > 0) {
+            this.prev();
+        } else {
+            this.next();
+        }
+    } else {
+        console.log('↩️ Threshold NÃO atingido:', Math.abs(diff).toFixed(0) + 'px - voltando');
+        this.dragOffset = 0;
+        this.updatePositions(0);
+    }
+    
+    // ✅ QUARTO: Limpa tudo após a transição
+    setTimeout(() => {
+        this.isTransitioning = false;
+        this.dragOffset = 0;
+        this.dragDirection = null;
+    }, 600);
+}
 }
 
 // Instância global do carrossel
