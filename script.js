@@ -971,22 +971,111 @@ class AlbumsCarousel3D {
         });
     }
     
-    renderIndicators() {
-        if (!this.indicators) return;
-        
-        this.indicators.innerHTML = '';
-        
-        window.albums.forEach((_, index) => {
-            const indicator = document.createElement('div');
-            indicator.className = 'carousel-indicator';
-            if (index === this.currentIndex) {
-                indicator.classList.add('active');
-            }
-            indicator.addEventListener('click', () => this.goToSlide(index));
-            this.indicators.appendChild(indicator);
-        });
+
+renderIndicators(direction = null) {
+    if (!this.indicators) return;
+    
+    const MAX_DOTS = 4;
+    const totalAlbums = window.albums.length;
+    const previousIndex = this.previousIndex !== undefined ? this.previousIndex : this.currentIndex;
+    
+    // Calcular quais dots devem ser visíveis
+    let startIndex, endIndex;
+    
+    if (totalAlbums <= MAX_DOTS) {
+        startIndex = 0;
+        endIndex = totalAlbums - 1;
+    } else {
+        if (this.currentIndex <= 1) {
+            startIndex = 0;
+            endIndex = MAX_DOTS - 1;
+        } else if (this.currentIndex >= totalAlbums - 2) {
+            startIndex = totalAlbums - MAX_DOTS;
+            endIndex = totalAlbums - 1;
+        } else {
+            startIndex = this.currentIndex - 1;
+            endIndex = this.currentIndex + 2;
+        }
     }
     
+    // ===== SISTEMA DE ANIMAÇÃO PROFISSIONAL =====
+    if (direction && previousIndex !== this.currentIndex) {
+        const existingDots = this.indicators.querySelectorAll('.carousel-indicator');
+        
+        existingDots.forEach(dot => {
+            const dotIndex = parseInt(dot.dataset.index);
+            
+            // DOT QUE ESTAVA ATIVO (vai desativar)
+            if (dotIndex === previousIndex) {
+                dot.classList.add('deactivating');
+                
+                // Aplicar sliding na direção correta
+                if (direction === 'next') {
+                    dot.classList.add('sliding-next');
+                } else if (direction === 'prev') {
+                    dot.classList.add('sliding-prev');
+                }
+                
+                // Limpar classes após animação
+                setTimeout(() => {
+                    dot.classList.remove('active', 'deactivating', 'sliding-next', 'sliding-prev');
+                }, 500);
+            }
+            
+            // DOT QUE VAI RECEBER O ATIVO
+            if (dotIndex === this.currentIndex) {
+                dot.classList.add('receiving');
+                
+                setTimeout(() => {
+                    dot.classList.remove('receiving');
+                    dot.classList.add('active');
+                }, 500);
+            }
+        });
+        
+        // Aguardar animações completarem antes de recriar dots
+        setTimeout(() => {
+            this.createDots(startIndex, endIndex);
+        }, 150);
+    } else {
+        // Primeira renderização
+        this.createDots(startIndex, endIndex);
+    }
+    
+    // Guardar índice para próxima navegação
+    this.previousIndex = this.currentIndex;
+}
+
+// ===== CRIAR DOTS COM ENTRADA SUAVE =====
+createDots(startIndex, endIndex) {
+    this.indicators.innerHTML = '';
+    
+    for (let i = startIndex; i <= endIndex; i++) {
+        const indicator = document.createElement('div');
+        indicator.className = 'carousel-indicator';
+        indicator.dataset.index = i;
+        
+        if (i === this.currentIndex) {
+            indicator.classList.add('active');
+        }
+        
+        // Animação de entrada escalonada
+        indicator.classList.add('entering');
+        indicator.style.animationDelay = `${(i - startIndex) * 0.05}s`;
+        
+        // Click para navegar
+        indicator.addEventListener('click', () => this.goToSlide(i));
+        
+        this.indicators.appendChild(indicator);
+        
+        // Remover animação de entrada
+        setTimeout(() => {
+            indicator.classList.remove('entering');
+            indicator.style.animationDelay = '';
+        }, 500);
+    }
+}
+
     updatePositions() {
         const cards = this.track.querySelectorAll('.carousel-album-card');
         const total = cards.length;
@@ -1007,68 +1096,64 @@ class AlbumsCarousel3D {
                 card.classList.add('hidden');
             }
         });
-        
-        this.updateIndicators();
     }
-    
-    updateIndicators() {
-        if (!this.indicators) return;
-        
-        const indicators = this.indicators.querySelectorAll('.carousel-indicator');
-        indicators.forEach((indicator, index) => {
-            indicator.classList.toggle('active', index === this.currentIndex);
-        });
-    }
+
     
     // ===== NAVEGAÇÃO COM DEBOUNCE =====
     
-    next() {
-        if (!this.canNavigate()) return;
-        
-        this.navigation.isAnimating = true;
-        this.navigation.lastNavigationTime = Date.now();
-        
-        this.currentIndex = (this.currentIndex + 1) % window.albums.length;
-        this.updatePositions();
-        
-        setTimeout(() => {
-            this.navigation.isAnimating = false;
-        }, this.navigation.animationDuration);
-        
-        console.log('➡️ Próximo álbum');
-    }
+next() {
+    if (!this.canNavigate()) return;
     
-    prev() {
-        if (!this.canNavigate()) return;
-        
-        this.navigation.isAnimating = true;
-        this.navigation.lastNavigationTime = Date.now();
-        
-        this.currentIndex = (this.currentIndex - 1 + window.albums.length) % window.albums.length;
-        this.updatePositions();
-        
-        setTimeout(() => {
-            this.navigation.isAnimating = false;
-        }, this.navigation.animationDuration);
-        
-        console.log('⬅️ Álbum anterior');
-    }
+    this.navigation.isAnimating = true;
+    this.navigation.lastNavigationTime = Date.now();
     
-    goToSlide(index) {
-        if (!this.canNavigate() || index === this.currentIndex) return;
-        
-        this.navigation.isAnimating = true;
-        this.navigation.lastNavigationTime = Date.now();
-        
-        this.currentIndex = index;
-        this.updatePositions();
-        
-        setTimeout(() => {
-            this.navigation.isAnimating = false;
-        }, this.navigation.animationDuration);
-        
-        console.log(`🎯 Indo para álbum ${index + 1}`);
-    }
+    this.currentIndex = (this.currentIndex + 1) % window.albums.length;
+    this.updatePositions();
+    this.renderIndicators('next');
+    
+    setTimeout(() => {
+        this.navigation.isAnimating = false;
+    }, this.navigation.animationDuration);
+    
+    console.log('➡️ Próximo álbum');
+}
+    
+prev() {
+    if (!this.canNavigate()) return;
+    
+    this.navigation.isAnimating = true;
+    this.navigation.lastNavigationTime = Date.now();
+    
+    this.currentIndex = (this.currentIndex - 1 + window.albums.length) % window.albums.length;
+    this.updatePositions();
+    this.renderIndicators('prev'); 
+    
+    setTimeout(() => {
+        this.navigation.isAnimating = false;
+    }, this.navigation.animationDuration);
+    
+    console.log('⬅️ Álbum anterior');
+}
+
+goToSlide(index) {
+    if (!this.canNavigate() || index === this.currentIndex) return;
+    
+    this.navigation.isAnimating = true;
+    this.navigation.lastNavigationTime = Date.now();
+    
+    // Determinar direção
+    const direction = index > this.currentIndex ? 'next' : 'prev';
+    
+    this.currentIndex = index;
+    this.updatePositions();
+    this.renderIndicators(direction); // ← ADICIONAR DIREÇÃO
+    
+    setTimeout(() => {
+        this.navigation.isAnimating = false;
+    }, this.navigation.animationDuration);
+    
+    console.log(`🎯 Indo para álbum ${index + 1}`);
+}
     
     canNavigate() {
         const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
