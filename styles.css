@@ -1133,14 +1133,14 @@ body {
 
 /* ===== GALERIA DE ÁLBUNS ===== */
 .albums-section {
-    margin-bottom: 30px;
+    margin-bottom: 15px;
     animation: fadeIn 0.8s ease-out 0.8s both;
 }
 
 .albums-section h2 {
     font-family: 'Poppins', sans-serif;
     font-size: 1.5rem;
-    margin-bottom: 0px;
+    margin-bottom: -20px;
     color: var(--theme-accent);
     text-align: center;
     text-shadow: 0 0 10px var(--theme-accent);
@@ -1305,7 +1305,7 @@ body {
     filter: brightness(1);
     box-shadow: 
         0 20px 60px rgba(0, 0, 0, 0.5),
-        0 0 40px var(--theme-primary);
+        0 0 25px var(--theme-primary);
 }
 
 /* Esquerda */
@@ -1395,29 +1395,273 @@ body {
     gap: 6px;
 }
 
-/* ===== INDICADORES ===== */
+/* ===== INDICADORES PROFISSIONAIS (ESTILO APPLE/SPOTIFY) - MÁXIMO 4 DOTS ===== */
+
 .carousel-indicators {
     display: flex;
     justify-content: center;
-    gap: 10px;
-    margin-top: -40px;
+    align-items: center;
+    gap: 6px;
+    margin-top: -20px;
+    padding: 0;
+    background: transparent;
+    position: relative;
+    overflow: visible;
 }
 
+/* ===== DOT BASE (INATIVO) ===== */
 .carousel-indicator {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    min-height: 8px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.4);
     cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid var(--theme-card-border);
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+.carousel-indicator:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(1.2);
+}
+
+/* ===== DOT ATIVO (BARRA EXPANDIDA) ===== */
 .carousel-indicator.active {
+    width: 32px;
+    border-radius: 4px;
     background: var(--theme-primary);
-    width: 30px;
-    border-radius: 5px;
-    box-shadow: 0 0 15px var(--theme-primary);
+    box-shadow: 
+        0 0 20px var(--theme-primary),
+        0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: scale(1);
+}
+
+/* ===== ANIMAÇÃO SLIDING - INDO PARA FRENTE ===== */
+.carousel-indicator.sliding-next {
+    animation: slideToNext 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes slideToNext {
+    0% {
+        width: 32px;
+        transform: translateX(0) scaleY(1);
+        opacity: 1;
+    }
+    
+    30% {
+        width: 48px;
+        transform: translateX(8px) scaleY(1.15);
+        background: linear-gradient(90deg, var(--theme-primary), var(--theme-accent));
+        box-shadow: 
+            0 0 25px var(--theme-primary),
+            0 0 15px var(--theme-accent);
+    }
+    
+    70% {
+        width: 52px;
+        transform: translateX(18px) scaleY(1.1);
+        opacity: 0.95;
+    }
+    
+    100% {
+        width: 32px;
+        transform: translateX(40px) scaleY(1);
+        background: var(--theme-primary);
+        opacity: 1;
+        box-shadow: 0 0 20px var(--theme-primary);
+    }
+}
+
+/* ===== ANIMAÇÃO SLIDING - VOLTANDO ===== */
+.carousel-indicator.sliding-prev {
+    animation: slideToPrev 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes slideToPrev {
+    0% {
+        width: 32px;
+        transform: translateX(0) scaleY(1);
+        opacity: 1;
+    }
+    
+    30% {
+        width: 48px;
+        transform: translateX(-8px) scaleY(1.15);
+        background: linear-gradient(90deg, var(--theme-accent), var(--theme-primary));
+        box-shadow: 
+            0 0 25px var(--theme-primary),
+            0 0 15px var(--theme-accent);
+    }
+    
+    70% {
+        width: 52px;
+        transform: translateX(-18px) scaleY(1.1);
+        opacity: 0.95;
+    }
+    
+    100% {
+        width: 32px;
+        transform: translateX(-40px) scaleY(1);
+        background: var(--theme-primary);
+        opacity: 1;
+        box-shadow: 0 0 20px var(--theme-primary);
+    }
+}
+
+/* ===== DOT QUE VAI RECEBER O ATIVO (DESTINO) ===== */
+.carousel-indicator.receiving {
+    animation: dotGrow 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes dotGrow {
+    0% {
+        width: 8px;
+        background: rgba(255, 255, 255, 0.4);
+        transform: scale(1);
+    }
+    
+    40% {
+        width: 12px;
+        background: rgba(255, 255, 255, 0.6);
+        transform: scale(1.3);
+    }
+    
+    70% {
+        width: 28px;
+        border-radius: 4px;
+        background: var(--theme-secondary);
+        box-shadow: 0 0 15px var(--theme-secondary);
+    }
+    
+    100% {
+        width: 32px;
+        border-radius: 4px;
+        background: var(--theme-primary);
+        box-shadow: 
+            0 0 20px var(--theme-primary),
+            0 4px 8px rgba(0, 0, 0, 0.3);
+        transform: scale(1);
+    }
+}
+
+/* ===== DOT QUE ERA ATIVO E VAI DESATIVAR ===== */
+.carousel-indicator.deactivating {
+    animation: dotShrink 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes dotShrink {
+    0% {
+        width: 32px;
+        background: var(--theme-primary);
+        box-shadow: 0 0 20px var(--theme-primary);
+    }
+    
+    50% {
+        width: 12px;
+        background: var(--theme-secondary);
+        transform: scale(0.9);
+    }
+    
+    100% {
+        width: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transform: scale(1);
+    }
+}
+
+/* ===== ANIMAÇÃO DE ENTRADA (NOVOS DOTS) ===== */
+.carousel-indicator.entering {
+    animation: dotFadeIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes dotFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0) translateY(10px);
+    }
+    
+    60% {
+        opacity: 0.8;
+        transform: scale(1.2) translateY(0);
+    }
+    
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ===== ANIMAÇÃO DE SAÍDA (DOTS REMOVIDOS) ===== */
+.carousel-indicator.exiting {
+    animation: dotFadeOut 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes dotFadeOut {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    
+    40% {
+        opacity: 0.5;
+        transform: scale(0.8) translateY(-5px);
+    }
+    
+    100% {
+        opacity: 0;
+        transform: scale(0) translateY(-10px);
+    }
+}
+
+/* ===== RESPONSIVO MOBILE ===== */
+@media (max-width: 768px) {
+    .carousel-indicators {
+        gap: 5px;
+        padding: 0;
+    }
+    
+    .carousel-indicator {
+        width: 6px;
+        height: 6px;
+        min-width: 6px;
+        min-height: 6px;
+    }
+    
+    .carousel-indicator.active {
+        width: 24px;
+    }
+    
+    /* Ajustar distâncias para mobile */
+    @keyframes slideToNext {
+        0% { width: 24px; transform: translateX(0); }
+        30% { width: 36px; transform: translateX(6px); }
+        70% { width: 40px; transform: translateX(14px); }
+        100% { width: 24px; transform: translateX(30px); }
+    }
+    
+    @keyframes slideToPrev {
+        0% { width: 24px; transform: translateX(0); }
+        30% { width: 36px; transform: translateX(-6px); }
+        70% { width: 40px; transform: translateX(-14px); }
+        100% { width: 24px; transform: translateX(-30px); }
+    }
+    
+    @keyframes dotGrow {
+        0% { width: 6px; }
+        70% { width: 20px; }
+        100% { width: 24px; }
+    }
+    
+    @keyframes dotShrink {
+        0% { width: 24px; }
+        50% { width: 10px; }
+        100% { width: 6px; }
+    }
 }
 
 /* ===== RESPONSIVO MOBILE ===== */
