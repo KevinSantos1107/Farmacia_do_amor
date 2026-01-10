@@ -1095,55 +1095,87 @@ attachEvents() {
     document.addEventListener('touchend', (e) => this.handleDragEnd(e), { passive: true });
 }
 
-handleDragStart(e) {
-    if (this.isTransitioning) return;
-    
-    this.isDragging = true;
-    this.startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-    this.currentX = this.startX;
-    this.dragOffset = 0;
-    
-    const cards = this.track.querySelectorAll('.carousel-album-card');
-    cards.forEach(card => card.style.transition = 'none');
-}
+    handleDragStart(e) {
+        if (this.isTransitioning) return;
+        
+        this.isDragging = false; // ← Começa como FALSE
+        this.startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        this.startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY; // ← NOVA: salva Y inicial
+        this.currentX = this.startX;
+        this.currentY = this.startY; // ← NOVA: salva Y atual
+        this.dragOffset = 0;
+        this.dragDirection = null; // ← NOVA: direção não definida ainda
+        
+        const cards = this.track.querySelectorAll('.carousel-album-card');
+        cards.forEach(card => card.style.transition = 'none');
+    }
 
     handleDragMove(e) {
-        if (!this.isDragging || this.isTransitioning) return;
+        if (this.isTransitioning) return;
         
         this.currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-        this.dragOffset = this.currentX - this.startX;
+        this.currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY; // ← NOVA: atualiza Y
         
-        // 🎨 Atualiza visual em tempo real
-        this.updatePositions(this.dragOffset);
+        const diffX = Math.abs(this.currentX - this.startX);
+        const diffY = Math.abs(this.currentY - this.startY);
+        
+        // ✅ DETECTA A DIREÇÃO DO MOVIMENTO (só uma vez, no início)
+        if (this.dragDirection === null && (diffX > 10 || diffY > 10)) {
+            if (diffX > diffY) {
+                this.dragDirection = 'horizontal';
+                this.isDragging = true; // ← Ativa drag apenas se for horizontal
+                console.log('➡️ Movimento HORIZONTAL detectado - carrossel ativo');
+            } else {
+                this.dragDirection = 'vertical';
+                console.log('⬇️ Movimento VERTICAL detectado - scroll da página');
+            }
+        }
+        
+        // 🚫 Se for vertical, NÃO faz NADA (deixa o scroll natural da página)
+        if (this.dragDirection === 'vertical') {
+            return;
+        }
+        
+        // ✅ Se for horizontal, processa o drag normalmente
+        if (this.isDragging && this.dragDirection === 'horizontal') {
+            this.dragOffset = this.currentX - this.startX;
+            this.updatePositions(this.dragOffset);
+        }
     }
 
-handleDragEnd(e) {
-    if (!this.isDragging) return;
-    
-    this.isDragging = false;
-    this.isTransitioning = true;
-    
-    const diff = this.currentX - this.startX;
-    
-    const cards = this.track.querySelectorAll('.carousel-album-card');
-    cards.forEach(card => card.style.transition = '');
-    
-    if (Math.abs(diff) > this.dragThreshold) {
-        if (diff > 0) {
-            this.prev();
-        } else {
-            this.next();
+    handleDragEnd(e) {
+        // 🚫 Se não estava fazendo drag horizontal, não faz nada
+        if (!this.isDragging || this.dragDirection !== 'horizontal') {
+            this.isDragging = false;
+            this.dragDirection = null; // ← Reseta para o próximo gesto
+            return;
         }
-    } else {
-        this.dragOffset = 0;
-        this.updatePositions(0);
+        
+        this.isDragging = false;
+        this.isTransitioning = true;
+        
+        const diff = this.currentX - this.startX;
+        
+        const cards = this.track.querySelectorAll('.carousel-album-card');
+        cards.forEach(card => card.style.transition = '');
+        
+        if (Math.abs(diff) > this.dragThreshold) {
+            if (diff > 0) {
+                this.prev();
+            } else {
+                this.next();
+            }
+        } else {
+            this.dragOffset = 0;
+            this.updatePositions(0);
+        }
+        
+        setTimeout(() => {
+            this.isTransitioning = false;
+            this.dragOffset = 0;
+            this.dragDirection = null; // ← Reseta para o próximo gesto
+        }, 600);
     }
-    
-    setTimeout(() => {
-        this.isTransitioning = false;
-        this.dragOffset = 0;
-    }, 600);
-}
 }
 
 // Instância global do carrossel
