@@ -972,8 +972,8 @@ updatePositions(dragOffset = 0) {
         
         card.classList.add(position);
         
-        // 🎨 APLICA ARRASTO APENAS NO CARD CENTRAL
-        if (position === 'center' && dragOffset !== 0 && !this.isTransitioning) {
+        // 🎨 APLICA ARRASTO APENAS NO CARD CENTRAL E APENAS SE ESTIVER ARRASTANDO
+        if (position === 'center' && dragOffset !== 0 && this.isDragging && !this.isTransitioning) {
             const dragProgress = Math.min(Math.abs(dragOffset) / this.dragThreshold, 1);
             
             // Remove transição para movimento instantâneo
@@ -986,13 +986,14 @@ updatePositions(dragOffset = 0) {
             card.style.opacity = 1 - dragProgress * 0.4;
             
         } else {
-            // Reseta estilos inline quando não está arrastando
+            // ✅ IMPORTANTE: Reseta estilos inline quando NÃO está arrastando
             card.style.transition = '';
             card.style.transform = '';
             card.style.opacity = '';
         }
     });
     
+    // ✅ Atualiza indicadores apenas quando não está arrastando
     if (dragOffset === 0) {
         this.updateIndicators();
     }
@@ -1186,36 +1187,64 @@ attachEvents() {
     }
 
     handleDragEnd(e) {
-        // 🚫 Se não estava fazendo drag horizontal, não faz nada
+        // 🚫 Se não estava fazendo drag horizontal, reseta tudo e sai
         if (!this.isDragging || this.dragDirection !== 'horizontal') {
             this.isDragging = false;
-            this.dragDirection = null; // ← Reseta para o próximo gesto
+            this.dragDirection = null;
+            this.dragOffset = 0;
+            
+            // ✅ Garante que volta à posição normal se não era drag horizontal
+            const cards = this.track.querySelectorAll('.carousel-album-card');
+            cards.forEach(card => {
+                card.style.transition = '';
+                card.style.transform = '';
+                card.style.opacity = '';
+            });
+            this.updatePositions(0);
+            
             return;
         }
         
+        // ✅ Se chegou aqui, ERA drag horizontal válido
         this.isDragging = false;
         this.isTransitioning = true;
         
         const diff = this.currentX - this.startX;
         
+        // ✅ FORÇA a transição CSS de volta
         const cards = this.track.querySelectorAll('.carousel-album-card');
-        cards.forEach(card => card.style.transition = '');
+        cards.forEach(card => {
+            card.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            card.style.transform = ''; // ✅ Remove transform inline
+            card.style.opacity = ''; // ✅ Remove opacity inline
+        });
         
+        // ✅ Decide: próximo, anterior ou volta pro atual
         if (Math.abs(diff) > this.dragThreshold) {
+            console.log('✅ Threshold atingido:', Math.abs(diff).toFixed(0) + 'px - mudando álbum');
             if (diff > 0) {
                 this.prev();
             } else {
                 this.next();
             }
         } else {
+            console.log('↩️ Threshold NÃO atingido:', Math.abs(diff).toFixed(0) + 'px - voltando');
             this.dragOffset = 0;
             this.updatePositions(0);
         }
         
+        // ✅ Reseta TUDO após a animação terminar
         setTimeout(() => {
             this.isTransitioning = false;
             this.dragOffset = 0;
-            this.dragDirection = null; // ← Reseta para o próximo gesto
+            this.dragDirection = null;
+            
+            // ✅ Remove estilos inline após transição
+            cards.forEach(card => {
+                card.style.transition = '';
+                card.style.transform = '';
+                card.style.opacity = '';
+            });
         }, 600);
     }
 }
