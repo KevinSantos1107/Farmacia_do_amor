@@ -915,11 +915,11 @@ class AlbumsCarousel3D {
             velocityThreshold: 0.3
         };
         
-        // ===== CONTROLES DE NAVEGAÇÃO =====
+        // ===== CONTROLES DE NAVEGAÇÃO - OTIMIZADO =====
         this.navigation = {
             isAnimating: false,
-            animationDuration: 500,
-            debounceTime: 50,
+            animationDuration: 300, 
+            debounceTime: 30, 
             lastNavigationTime: 0
         };
         
@@ -1353,57 +1353,80 @@ insertDotInOrder(newDot, newIndex) {
         
     }
     
-// ===== NAVEGAÇÃO RÁPIDA SEM DELAY =====
+    // ===== NAVEGAÇÃO COM DEBOUNCE =====
     
     next() {
-        const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
-        if (timeSinceLastNav < 20) return; // Debounce de apenas 20ms
+        if (!this.canNavigate()) return;
         
+        this.navigation.isAnimating = true;
         this.navigation.lastNavigationTime = Date.now();
         
         this.previousIndex = this.currentIndex;
         this.currentIndex = (this.currentIndex + 1) % window.albums.length;
         this.updatePositions();
-        this.renderIndicators('forward');
+        this.renderIndicators('forward'); // ← ADICIONAR DIREÇÃO
+        
+        setTimeout(() => {
+            this.navigation.isAnimating = false;
+        }, this.navigation.animationDuration);
         
         console.log('➡️ Próximo álbum');
     }
     
     prev() {
-        const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
-        if (timeSinceLastNav < 20) return; // Debounce de apenas 20ms
+        if (!this.canNavigate()) return;
         
+        this.navigation.isAnimating = true;
         this.navigation.lastNavigationTime = Date.now();
         
         this.previousIndex = this.currentIndex;
         this.currentIndex = (this.currentIndex - 1 + window.albums.length) % window.albums.length;
         this.updatePositions();
-        this.renderIndicators('backward');
+        this.renderIndicators('backward'); // ← ADICIONAR DIREÇÃO
+        
+        setTimeout(() => {
+            this.navigation.isAnimating = false;
+        }, this.navigation.animationDuration);
         
         console.log('⬅️ Álbum anterior');
     }
 
     goToSlide(index) {
-        if (index === this.currentIndex) return;
+        if (!this.canNavigate() || index === this.currentIndex) return;
         
-        const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
-        if (timeSinceLastNav < 20) return; // Debounce de apenas 20ms
-        
+        this.navigation.isAnimating = true;
         this.navigation.lastNavigationTime = Date.now();
         
         this.previousIndex = this.currentIndex;
         
+        // Detectar direção do click
         const direction = index > this.currentIndex ? 'forward' : 'backward';
         
         this.currentIndex = index;
         this.updatePositions();
-        this.renderIndicators(direction);
+        this.renderIndicators(direction); // ← ADICIONAR DIREÇÃO
+        
+        setTimeout(() => {
+            this.navigation.isAnimating = false;
+        }, this.navigation.animationDuration);
         
         console.log(`🎯 Indo para álbum ${index + 1}`);
     }
     
     canNavigate() {
-        return true; // Sempre permitir navegação
+        const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
+        
+        if (this.navigation.isAnimating) {
+            console.log('⏳ Navegação bloqueada - animação em andamento');
+            return false;
+        }
+        
+        if (timeSinceLastNav < this.navigation.debounceTime) {
+            console.log('⏳ Navegação bloqueada - debounce ativo');
+            return false;
+        }
+        
+        return true;
     }
     
     // ===== SISTEMA DE GESTOS PROFISSIONAL =====
@@ -1414,7 +1437,7 @@ insertDotInOrder(newDot, newIndex) {
         this.setupGestureListeners();
     }
     
-    setupCardClicks() {
+ setupCardClicks() {
         const cards = this.track.querySelectorAll('.carousel-album-card');
         
         cards.forEach(card => {
@@ -1425,7 +1448,8 @@ insertDotInOrder(newDot, newIndex) {
                 this.cardClick.tapData.set(cardIndex, {
                     startTime: Date.now(),
                     startX: e.touches[0].clientX,
-                    startY: e.touches[0].clientY
+                    startY: e.touches[0].clientY,
+                    wasDrag: false // ← ADICIONAR flag de controle
                 });
             }, { passive: true });
             
@@ -1444,8 +1468,8 @@ insertDotInOrder(newDot, newIndex) {
                 const moveY = Math.abs(touchEndY - tapData.startY);
                 const totalMove = Math.sqrt(moveX * moveX + moveY * moveY);
                 
-                // Validar se foi um tap limpo
-                if (totalMove < 15 && duration < 300) {
+                // ← VALIDAÇÃO MAIS RIGOROSA: só processar se NÃO foi drag
+                if (totalMove < 15 && duration < 300 && !tapData.wasDrag) {
                     this.handleCardClick(card);
                 }
                 
@@ -1454,7 +1478,8 @@ insertDotInOrder(newDot, newIndex) {
             
             // Click (desktop)
             card.addEventListener('click', (e) => {
-                if (this.gesture.type === 'drag') {
+                // ← BLOQUEIO MAIS FORTE: só processar se não teve movimento
+                if (this.gesture.type === 'drag' || this.gesture.distanceX !== 0) {
                     e.preventDefault();
                     return;
                 }
@@ -1464,7 +1489,7 @@ insertDotInOrder(newDot, newIndex) {
     }
     
     handleCardClick(card) {
-        if (this.gesture.type === 'drag') return;
+        if (this.navigation.isAnimating || this.gesture.type === 'drag') return;
         
         const index = parseInt(card.dataset.index);
         const diff = index - this.currentIndex;
@@ -1554,11 +1579,17 @@ insertDotInOrder(newDot, newIndex) {
             // Determinar tipo baseado na direção DOMINANTE
             const ratio = absDistanceX / absDistanceY;
             
-            if (ratio > 2.0) {
-                // Movimento CLARAMENTE horizontal
-                this.gesture.type = 'drag';
-                this.cardClick.enabled = false;
-                console.log('↔️ DRAG horizontal detectado');
+        if (ratio > 2.0) {
+            // Movimento CLARAMENTE horizontal
+            this.gesture.type = 'drag';
+            this.cardClick.enabled = false;
+            
+            // ← MARCAR TODOS OS TAPS COMO DRAG
+            this.cardClick.tapData.forEach((data) => {
+                data.wasDrag = true;
+            });
+            
+            console.log('↔️ DRAG horizontal detectado');
             } else if (ratio < 0.5) {
                 // Movimento CLARAMENTE vertical
                 this.gesture.type = 'scroll';
@@ -2190,4 +2221,3 @@ console.log(`
 ║   💾 Tema persistente                ║
 ╚══════════════════════════════════════╝
 `);
-
