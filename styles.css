@@ -966,7 +966,7 @@ body {
     pointer-events: auto;
 }
 
-/* ===== CARD DO ÁLBUM - BASE COM ANIMAÇÃO RÁPIDA ===== */
+/* ===== CARD DO ÁLBUM - BASE ===== */
 .carousel-album-card {
     position: absolute;
     width: 280px;
@@ -988,8 +988,8 @@ body {
     -webkit-backface-visibility: hidden;
     transform-origin: center center;
     
-    /* Transição ULTRA RÁPIDA para navegação fluida */
-    transition: all 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+    /* Transição suave */
+    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     
     cursor: pointer;
     user-select: none;
