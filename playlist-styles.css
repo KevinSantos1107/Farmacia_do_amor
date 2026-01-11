@@ -383,14 +383,148 @@
 }
 
 /* ===== RESPONSIVO MOBILE - NEON OTIMIZADO ===== */
+
+/* Tablets e celulares grandes (768px - 481px) */
 @media (max-width: 768px) {
-    /* Neon mais sutil no mobile */
     .music-player {
+        max-width: 85%;
+        margin: 0 auto;
+        padding: 18px;
         box-shadow: var(--theme-glow), inset 0 0 15px rgba(255, 255, 255, 0.08);
     }
     
     .music-player:hover {
         box-shadow: 0 0 15px var(--theme-primary), inset 0 0 20px rgba(255, 255, 255, 0.15);
+    }
+    
+    .playlist-slide {
+        padding: 20px 7.5%; /* Espaço lateral para o neon */
+    }
+    
+    .album-cover {
+        width: 160px;
+        height: 160px;
+    }
+}
+
+/* Celulares médios (480px - 376px) */
+@media (max-width: 480px) {
+    .music-player {
+        max-width: 82%;
+        padding: 16px;
+    }
+    
+    .playlist-slide {
+        padding: 20px 9%; /* Mais espaço lateral */
+    }
+    
+    .album-cover {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .song-info h3 {
+        font-size: 1.1rem;
+    }
+    
+    .song-info p {
+        font-size: 0.9rem;
+    }
+    
+    .control-btn {
+        width: 42px;
+        height: 42px;
+    }
+    
+    .play-pause-btn {
+        width: 52px;
+        height: 52px;
+    }
+}
+
+/* Celulares pequenos (375px - 321px) - iPhone SE, Galaxy S8, etc */
+@media (max-width: 375px) {
+    .music-player {
+        max-width: 80%;
+        padding: 14px;
+    }
+    
+    .playlist-slide {
+        padding: 18px 10%;
+    }
+    
+    .album-cover {
+        width: 140px;
+        height: 140px;
+    }
+    
+    .song-info h3 {
+        font-size: 1rem;
+    }
+    
+    .song-info p {
+        font-size: 0.85rem;
+    }
+    
+    .control-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+    
+    .play-pause-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.1rem;
+    }
+    
+    .control-buttons {
+        gap: 15px;
+    }
+}
+
+/* Celulares muito pequenos (320px e abaixo) - iPhone 5/SE 1ª geração */
+@media (max-width: 320px) {
+    .music-player {
+        max-width: 78%;
+        padding: 12px;
+    }
+    
+    .playlist-slide {
+        padding: 15px 11%;
+    }
+    
+    .album-cover {
+        width: 130px;
+        height: 130px;
+    }
+    
+    .song-info h3 {
+        font-size: 0.95rem;
+    }
+    
+    .song-info p {
+        font-size: 0.8rem;
+    }
+    
+    .control-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 0.85rem;
+    }
+    
+    .play-pause-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 1rem;
+    }
+    
+    .control-buttons {
+        gap: 12px;
+    }
+    
+    .progress-bar-bg {
+        height: 3px;
     }
 }
 
@@ -616,29 +750,11 @@
     }
     
     /* Título de música responsivo */
-    .song-info h3 {
-        font-size: 1.1rem;
-    }
-    
-    .song-info p {
-        font-size: 0.9rem;
-    }
-    
     .music-player.playing .song-info h3 {
         animation-duration: 6s;
     }
     
     /* ✅ MOBILE: CENTRALIZAÇÃO E VISIBILIDADE */
-    .playlist-slide {
-        padding: 20px 0; 
-    }
-
-    .music-player {
-        max-width: 350px;
-        padding: 15px;
-        margin: 0 auto; 
-    }
-    
     .playlist-carousel {
         display: flex; 
         width: 100%;
