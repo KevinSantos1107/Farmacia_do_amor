@@ -1,9 +1,9 @@
-// ===== SISTEMA DE LAZY LOADING COMPLETO 100% =====
-console.log('🖼️ Sistema de Lazy Loading 100% inicializado');
+// ===== SISTEMA DE LAZY LOADING OTIMIZADO - SEM TRAVAMENTO =====
+console.log('🖼️ Sistema de Lazy Loading inicializado');
 
 /**
  * Gerenciador de Lazy Loading
- * Usa Intersection Observer + loading="lazy" para máxima performance
+ * ✅ OTIMIZADO: Carrega apenas imagens visíveis
  */
 const LazyLoadManager = {
     observer: null,
@@ -14,41 +14,37 @@ const LazyLoadManager = {
         errors: 0
     },
     
-    /**
-     * Inicializa o sistema de lazy loading
-     */
     init() {
         console.log('🔄 Configurando Lazy Loading...');
         
-        // Verificar suporte ao Intersection Observer
         if (!('IntersectionObserver' in window)) {
-            console.warn('⚠️ IntersectionObserver não suportado - carregando todas as imagens');
+            console.warn('⚠️ IntersectionObserver não suportado');
             this.fallbackLoadAll();
             return;
         }
         
-        // Criar observer
+        // ✅ CORREÇÃO: rootMargin maior para pré-carregar suavemente
         this.observer = new IntersectionObserver(
             (entries) => this.handleIntersection(entries),
             {
                 root: null,
-                rootMargin: '50px', // Começa a carregar 50px antes de aparecer
+                rootMargin: '200px', // Carregar quando estiver a 200px
                 threshold: 0.01
             }
         );
         
-        // Observar todas as imagens lazy existentes
+        // Observar imagens existentes
         this.observeExistingImages();
         
-        // Monitorar novas imagens (álbuns, timeline, etc)
+        // Monitorar novas imagens
         this.setupMutationObserver();
+        
+        // ✅ Integração LEVE com carrossel (só quando necessário)
+        this.setupCarouselIntegration();
         
         console.log('✅ Lazy Loading configurado');
     },
     
-    /**
-     * Observa todas as imagens que já existem na página
-     */
     observeExistingImages() {
         const images = document.querySelectorAll('img[data-lazy-src]');
         
@@ -62,9 +58,6 @@ const LazyLoadManager = {
         console.log(`👀 Observando ${images.length} imagens`);
     },
     
-    /**
-     * Handler quando imagem entra na viewport
-     */
     handleIntersection(entries) {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -74,71 +67,49 @@ const LazyLoadManager = {
         });
     },
     
-    /**
-     * Carrega uma imagem específica
-     */
     loadImage(img) {
         const src = img.getAttribute('data-lazy-src');
         
         if (!src || img.src === src) return;
         
-        console.log(`🔥 Carregando: ${src.substring(0, 50)}...`);
+        // ✅ CORREÇÃO: Não logar CADA imagem (evita spam no console)
+        // console.log(`🔥 Carregando: ${src.substring(0, 50)}...`);
         
-        // Adicionar classe de loading
         img.classList.add('lazy-loading');
-        
-        // Incrementar contador
         this.stats.total++;
         
-        // Criar nova imagem para preload
         const tempImg = new Image();
         
         tempImg.onload = () => {
-            // Aplicar src real
             img.src = src;
             img.classList.remove('lazy-loading');
             img.classList.add('lazy-loaded');
-            
-            // Remover atributos de lazy
             img.removeAttribute('data-lazy-src');
             
-            // Parar de observar
             if (this.observer) {
                 this.observer.unobserve(img);
             }
             
             this.observedImages.delete(img);
-            
-            // Atualizar estatísticas
             this.stats.loaded++;
-            console.log(`✅ Imagem carregada (${this.stats.loaded}/${this.stats.total})`);
         };
         
         tempImg.onerror = () => {
-            console.error('❌ Erro ao carregar imagem:', src);
+            console.error('❌ Erro ao carregar:', src.substring(0, 50));
             img.classList.remove('lazy-loading');
             img.classList.add('lazy-error');
-            
-            // Tentar carregar imagem padrão
             img.src = 'images/capas-albuns/default-music.jpg';
-            
-            // Atualizar estatísticas
             this.stats.errors++;
         };
         
-        // Iniciar carregamento
         tempImg.src = src;
     },
     
-    /**
-     * Monitora DOM para novas imagens (álbuns, timeline, etc)
-     */
     setupMutationObserver() {
         const mutationObserver = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === Node.ELEMENT_NODE) {
-                        // Verificar se é uma imagem
                         if (node.tagName === 'IMG' && node.hasAttribute('data-lazy-src')) {
                             if (!this.observedImages.has(node)) {
                                 this.observer.observe(node);
@@ -146,7 +117,6 @@ const LazyLoadManager = {
                             }
                         }
                         
-                        // Verificar imagens dentro do elemento
                         const images = node.querySelectorAll('img[data-lazy-src]');
                         images.forEach(img => {
                             if (!this.observedImages.has(img)) {
@@ -159,21 +129,71 @@ const LazyLoadManager = {
             });
         });
         
-        // Observar todo o body
         mutationObserver.observe(document.body, {
             childList: true,
             subtree: true
         });
-        
-        console.log('👁️ MutationObserver ativo para novas imagens');
     },
     
-    /**
-     * Fallback para navegadores sem Intersection Observer
-     */
+    // ===== ✅ INTEGRAÇÃO LEVE COM CARROSSEL =====
+    
+    setupCarouselIntegration() {
+        // Aguardar carrossel (SEM interval constante)
+        let attempts = 0;
+        const checkCarousel = setInterval(() => {
+            attempts++;
+            
+            if (typeof AlbumsCarousel3D !== 'undefined') {
+                clearInterval(checkCarousel);
+                this.patchCarouselRenderCards();
+                // ✅ REMOVIDO: setupCarouselObserver() que estava causando carregamento em massa
+                console.log('✅ Carrossel integrado (modo leve)');
+            }
+            
+            if (attempts > 10) {
+                clearInterval(checkCarousel);
+            }
+        }, 500);
+    },
+    
+    patchCarouselRenderCards() {
+        // ✅ APENAS sobrescrever renderCards - sem forçar carregamento
+        AlbumsCarousel3D.prototype.renderCards = function() {
+            this.track.innerHTML = '';
+            
+            window.albums.forEach((album, index) => {
+                const card = document.createElement('div');
+                card.className = 'carousel-album-card';
+                card.dataset.index = index;
+                card.dataset.id = album.id;
+                
+                // ✅ Usar createLazyImage (Observer natural carregará)
+                const img = createLazyImage(album.cover, album.title, 'carousel-album-cover');
+                img.style.width = '100%';
+                img.style.height = '65%';
+                img.style.objectFit = 'cover';
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'carousel-album-info';
+                infoDiv.innerHTML = `
+                    <h3>${album.title}</h3>
+                    <p class="carousel-album-date">
+                        <i class="far fa-calendar-alt"></i> ${album.date}
+                    </p>
+                    <p class="carousel-album-stats">
+                        <i class="far fa-images"></i> ${album.photoCount} ${album.photoCount === 1 ? 'foto' : 'fotos'}
+                    </p>
+                `;
+                
+                card.appendChild(img);
+                card.appendChild(infoDiv);
+                this.track.appendChild(card);
+            });
+        };
+    },
+    
     fallbackLoadAll() {
         const images = document.querySelectorAll('img[data-lazy-src]');
-        
         images.forEach(img => {
             const src = img.getAttribute('data-lazy-src');
             if (src) {
@@ -183,26 +203,12 @@ const LazyLoadManager = {
         });
     },
     
-    /**
-     * Força carregamento imediato de uma imagem
-     */
     forceLoad(img) {
-        if (img.hasAttribute('data-lazy-src')) {
+        if (img && img.hasAttribute('data-lazy-src')) {
             this.loadImage(img);
         }
     },
     
-    /**
-     * Força carregamento de todas as imagens (útil para modal de álbum)
-     */
-    forceLoadAll() {
-        const images = document.querySelectorAll('img[data-lazy-src]');
-        images.forEach(img => this.loadImage(img));
-    },
-    
-    /**
-     * Retorna estatísticas de carregamento
-     */
     getStats() {
         return {
             ...this.stats,
@@ -212,76 +218,50 @@ const LazyLoadManager = {
     }
 };
 
-// ===== HELPERS PARA INTEGRAÇÃO =====
+// ===== HELPER: CRIAR IMAGEM COM LAZY LOADING =====
 
-/**
- * Cria tag <img> com lazy loading
- * @param {string} src - URL da imagem
- * @param {string} alt - Texto alternativo
- * @param {string} className - Classes CSS
- * @returns {HTMLImageElement}
- */
 function createLazyImage(src, alt = '', className = '') {
     const img = document.createElement('img');
     
-    // IMPORTANTE: usar data-lazy-src ao invés de src
+    // ✅ data-lazy-src = Observer carregará naturalmente
     img.setAttribute('data-lazy-src', src);
     
-    // Placeholder baixa resolução (opcional)
-    img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3C/svg%3E';
+    // Placeholder SVG leve
+    img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23222" width="400" height="300"/%3E%3C/svg%3E';
     
-    // Atributo loading="lazy" nativo (dupla proteção)
     img.loading = 'lazy';
-    
     img.alt = alt;
     
     if (className) {
         img.className = className;
     }
     
-    // Adicionar ao observer automaticamente quando inserido no DOM
-    // (MutationObserver detectará)
-    
     return img;
 }
 
-/**
- * Converte imagem existente para lazy loading
- * @param {HTMLImageElement} img - Elemento de imagem
- */
 function convertToLazy(img) {
     const currentSrc = img.src;
     
     if (!currentSrc || currentSrc.startsWith('data:')) return;
     
-    // Mover src para data-lazy-src
     img.setAttribute('data-lazy-src', currentSrc);
-    
-    // Placeholder
-    img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3C/svg%3E';
-    
+    img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23222" width="400" height="300"/%3E%3C/svg%3E';
     img.loading = 'lazy';
     
-    // Adicionar ao observer
     if (LazyLoadManager.observer && !LazyLoadManager.observedImages.has(img)) {
         LazyLoadManager.observer.observe(img);
         LazyLoadManager.observedImages.add(img);
     }
 }
 
-// ===== ESTILOS CSS (adicionar ao styles.css) =====
+// ===== ESTILOS CSS =====
+
 const lazyLoadStyles = `
-/* Placeholder enquanto carrega */
 img[data-lazy-src] {
-    background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.1) 0%,
-        rgba(255, 255, 255, 0.05) 100%
-    );
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
     min-height: 100px;
 }
 
-/* Loading state */
 img.lazy-loading {
     opacity: 0.5;
     animation: pulse 1.5s ease-in-out infinite;
@@ -292,7 +272,6 @@ img.lazy-loading {
     50% { opacity: 0.7; }
 }
 
-/* Loaded state */
 img.lazy-loaded {
     animation: fadeIn 0.3s ease-in;
 }
@@ -302,14 +281,12 @@ img.lazy-loaded {
     to { opacity: 1; }
 }
 
-/* Error state */
 img.lazy-error {
     background: rgba(255, 50, 50, 0.1);
     border: 1px dashed rgba(255, 50, 50, 0.3);
 }
 `;
 
-// Injetar estilos
 if (!document.getElementById('lazy-load-styles')) {
     const styleTag = document.createElement('style');
     styleTag.id = 'lazy-load-styles';
@@ -329,14 +306,14 @@ function initLazyLoading() {
     }
 }
 
-// Inicializar automaticamente
 initLazyLoading();
 
 // ===== FUNÇÃO GLOBAL DE ESTATÍSTICAS =====
+
 window.getLazyLoadStats = function() {
     const stats = LazyLoadManager.getStats();
     
-    console.log('📊 ESTATÍSTICAS DE LAZY LOADING:');
+    console.log('📊 LAZY LOADING:');
     console.log(`   ✅ Carregadas: ${stats.loaded}`);
     console.log(`   ❌ Erros: ${stats.errors}`);
     console.log(`   ⏳ Pendentes: ${stats.pending}`);
@@ -346,10 +323,11 @@ window.getLazyLoadStats = function() {
     return stats;
 };
 
-// Exportar para uso global
+// ✅ REMOVIDO: Log periódico automático (evita spam no console)
+
 window.LazyLoadManager = LazyLoadManager;
 window.createLazyImage = createLazyImage;
 window.convertToLazy = convertToLazy;
 
-console.log('✅ Sistema de Lazy Loading 100% completo carregado!');
-console.log('🧪 Para ver estatísticas, digite: getLazyLoadStats()');
+console.log('✅ Lazy Loading otimizado carregado');
+console.log('🧪 Digite getLazyLoadStats() para estatísticas');
