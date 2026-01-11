@@ -387,9 +387,9 @@
 /* Tablets e celulares grandes (768px - 481px) */
 @media (max-width: 768px) {
     .music-player {
-        max-width: 85%;
+        max-width: 92%;
         margin: 0 auto;
-        padding: 18px;
+        padding: 20px;
         box-shadow: var(--theme-glow), inset 0 0 15px rgba(255, 255, 255, 0.08);
     }
     
@@ -398,24 +398,59 @@
     }
     
     .playlist-slide {
-        padding: 20px 7.5%; /* Espaço lateral para o neon */
+        padding: 20px 4%; /* Espaço lateral para o neon */
     }
     
     .album-cover {
-        width: 160px;
-        height: 160px;
+        width: 170px;
+        height: 170px;
     }
 }
 
 /* Celulares médios (480px - 376px) */
 @media (max-width: 480px) {
     .music-player {
-        max-width: 82%;
+        max-width: 90%;
+        padding: 18px;
+    }
+    
+    .playlist-slide {
+        padding: 20px 5%; /* Mais espaço lateral */
+    }
+    
+    .album-cover {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .song-info h3 {
+        font-size: 1.15rem;
+    }
+    
+    .song-info p {
+        font-size: 0.95rem;
+    }
+    
+    .control-btn {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .play-pause-btn {
+        width: 54px;
+        height: 54px;
+    }
+}
+
+/* Celulares pequenos (375px - 321px) - iPhone SE, Galaxy S8, etc */
+@media (max-width: 375px) {
+    .music-player {
+        max-width: 88%;
         padding: 16px;
     }
     
     .playlist-slide {
-        padding: 20px 9%; /* Mais espaço lateral */
+        padding: 18px 6%;
     }
     
     .album-cover {
@@ -434,23 +469,29 @@
     .control-btn {
         width: 42px;
         height: 42px;
+        font-size: 0.95rem;
     }
     
     .play-pause-btn {
         width: 52px;
         height: 52px;
+        font-size: 1.15rem;
+    }
+    
+    .control-buttons {
+        gap: 16px;
     }
 }
 
-/* Celulares pequenos (375px - 321px) - iPhone SE, Galaxy S8, etc */
-@media (max-width: 375px) {
+/* Celulares muito pequenos (320px e abaixo) - iPhone 5/SE 1ª geração */
+@media (max-width: 320px) {
     .music-player {
-        max-width: 80%;
+        max-width: 86%;
         padding: 14px;
     }
     
     .playlist-slide {
-        padding: 18px 10%;
+        padding: 15px 7%;
     }
     
     .album-cover {
@@ -459,7 +500,7 @@
     }
     
     .song-info h3 {
-        font-size: 1rem;
+        font-size: 1.05rem;
     }
     
     .song-info p {
@@ -479,48 +520,7 @@
     }
     
     .control-buttons {
-        gap: 15px;
-    }
-}
-
-/* Celulares muito pequenos (320px e abaixo) - iPhone 5/SE 1ª geração */
-@media (max-width: 320px) {
-    .music-player {
-        max-width: 78%;
-        padding: 12px;
-    }
-    
-    .playlist-slide {
-        padding: 15px 11%;
-    }
-    
-    .album-cover {
-        width: 130px;
-        height: 130px;
-    }
-    
-    .song-info h3 {
-        font-size: 0.95rem;
-    }
-    
-    .song-info p {
-        font-size: 0.8rem;
-    }
-    
-    .control-btn {
-        width: 38px;
-        height: 38px;
-        font-size: 0.85rem;
-    }
-    
-    .play-pause-btn {
-        width: 48px;
-        height: 48px;
-        font-size: 1rem;
-    }
-    
-    .control-buttons {
-        gap: 12px;
+        gap: 14px;
     }
     
     .progress-bar-bg {
