@@ -1353,80 +1353,57 @@ insertDotInOrder(newDot, newIndex) {
         
     }
     
-    // ===== NAVEGAÇÃO COM DEBOUNCE =====
+// ===== NAVEGAÇÃO RÁPIDA SEM DELAY =====
     
     next() {
-        if (!this.canNavigate()) return;
+        const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
+        if (timeSinceLastNav < 20) return; // Debounce de apenas 20ms
         
-        this.navigation.isAnimating = true;
         this.navigation.lastNavigationTime = Date.now();
         
         this.previousIndex = this.currentIndex;
         this.currentIndex = (this.currentIndex + 1) % window.albums.length;
         this.updatePositions();
-        this.renderIndicators('forward'); // ← ADICIONAR DIREÇÃO
-        
-        setTimeout(() => {
-            this.navigation.isAnimating = false;
-        }, this.navigation.animationDuration);
+        this.renderIndicators('forward');
         
         console.log('➡️ Próximo álbum');
     }
     
     prev() {
-        if (!this.canNavigate()) return;
+        const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
+        if (timeSinceLastNav < 20) return; // Debounce de apenas 20ms
         
-        this.navigation.isAnimating = true;
         this.navigation.lastNavigationTime = Date.now();
         
         this.previousIndex = this.currentIndex;
         this.currentIndex = (this.currentIndex - 1 + window.albums.length) % window.albums.length;
         this.updatePositions();
-        this.renderIndicators('backward'); // ← ADICIONAR DIREÇÃO
-        
-        setTimeout(() => {
-            this.navigation.isAnimating = false;
-        }, this.navigation.animationDuration);
+        this.renderIndicators('backward');
         
         console.log('⬅️ Álbum anterior');
     }
 
     goToSlide(index) {
-        if (!this.canNavigate() || index === this.currentIndex) return;
+        if (index === this.currentIndex) return;
         
-        this.navigation.isAnimating = true;
+        const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
+        if (timeSinceLastNav < 20) return; // Debounce de apenas 20ms
+        
         this.navigation.lastNavigationTime = Date.now();
         
         this.previousIndex = this.currentIndex;
         
-        // Detectar direção do click
         const direction = index > this.currentIndex ? 'forward' : 'backward';
         
         this.currentIndex = index;
         this.updatePositions();
-        this.renderIndicators(direction); // ← ADICIONAR DIREÇÃO
-        
-        setTimeout(() => {
-            this.navigation.isAnimating = false;
-        }, this.navigation.animationDuration);
+        this.renderIndicators(direction);
         
         console.log(`🎯 Indo para álbum ${index + 1}`);
     }
     
     canNavigate() {
-        const timeSinceLastNav = Date.now() - this.navigation.lastNavigationTime;
-        
-        if (this.navigation.isAnimating) {
-            console.log('⏳ Navegação bloqueada - animação em andamento');
-            return false;
-        }
-        
-        if (timeSinceLastNav < this.navigation.debounceTime) {
-            console.log('⏳ Navegação bloqueada - debounce ativo');
-            return false;
-        }
-        
-        return true;
+        return true; // Sempre permitir navegação
     }
     
     // ===== SISTEMA DE GESTOS PROFISSIONAL =====
@@ -1487,7 +1464,7 @@ insertDotInOrder(newDot, newIndex) {
     }
     
     handleCardClick(card) {
-        if (this.navigation.isAnimating || this.gesture.type === 'drag') return;
+        if (this.gesture.type === 'drag') return;
         
         const index = parseInt(card.dataset.index);
         const diff = index - this.currentIndex;
