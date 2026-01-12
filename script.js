@@ -1043,13 +1043,16 @@ renderIndicators(direction = 'forward') {
             end = current + 1;
         }
         
-    } else if (direction === 'backward') {
+} else if (direction === 'backward') {
         // VOLTANDO: índice atual fica na POSIÇÃO 1 (2ª bolinha)
         
         if (current >= total - 2) {
             start = total - 4;
             end = total - 1;
-        } else if (current <= 1) {
+        } else if (current === 0) {
+            start = 0;
+            end = 3;
+        } else if (current === 1) {
             start = 0;
             end = 3;
         } else {
