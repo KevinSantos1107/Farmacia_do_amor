@@ -575,7 +575,7 @@ function initTimelineForms() {
 
 async function loadAlbumsFromFirebase() {
     try {
-        const snapshot = await db.collection('albums').orderBy('createdAt', 'desc').get();
+        const snapshot = await db.collection('albums').orderBy('createdAt', 'asc').get();
         const firebaseAlbums = [];
         
         for (const doc of snapshot.docs) {
