@@ -1120,17 +1120,13 @@ body {
     transform: translateZ(0);
 }
 
-/* ===== ANIMAÇÕES DIRECIONAIS DOS INDICADORES - VERSÃO FLUIDA ===== */
+/* ===== ANIMAÇÕES DIRECIONAIS DOS INDICADORES - VERSÃO ULTRA FLUIDA ===== */
 
 /* ENTRADA PELA ESQUERDA (voltando) */
 @keyframes slideInLeft {
     0% {
         opacity: 0;
-        transform: translateX(-30px) scale(0.4);
-    }
-    60% {
-        opacity: 0.8;
-        transform: translateX(2px) scale(1.05);
+        transform: translateX(-20px) scale(0.6);
     }
     100% {
         opacity: 1;
@@ -1142,11 +1138,7 @@ body {
 @keyframes slideInRight {
     0% {
         opacity: 0;
-        transform: translateX(30px) scale(0.4);
-    }
-    60% {
-        opacity: 0.8;
-        transform: translateX(-2px) scale(1.05);
+        transform: translateX(20px) scale(0.6);
     }
     100% {
         opacity: 1;
@@ -1162,7 +1154,7 @@ body {
     }
     100% {
         opacity: 0;
-        transform: translateX(-30px) scale(0.4);
+        transform: translateX(-20px) scale(0.6);
     }
 }
 
@@ -1174,34 +1166,34 @@ body {
     }
     100% {
         opacity: 0;
-        transform: translateX(30px) scale(0.4);
+        transform: translateX(20px) scale(0.6);
     }
 }
 
-/* CLASSES COM ANIMAÇÃO - TIMING OTIMIZADO */
+/* CLASSES COM ANIMAÇÃO - TIMING ULTRA SUAVE */
 .carousel-indicator.slide-in-left {
-    animation: slideInLeft 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation: slideInLeft 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .carousel-indicator.slide-in-right {
-    animation: slideInRight 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation: slideInRight 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .carousel-indicator.slide-out-left {
-    animation: slideOutLeft 0.4s cubic-bezier(0.6, 0.04, 0.98, 0.335) forwards;
+    animation: slideOutLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .carousel-indicator.slide-out-right {
-    animation: slideOutRight 0.4s cubic-bezier(0.6, 0.04, 0.98, 0.335) forwards;
+    animation: slideOutRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* TRANSIÇÃO SUAVE DO ESTADO ATIVO */
 .carousel-indicator {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .carousel-indicator.active {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* REMOVER ANIMAÇÕES ANTIGAS */
