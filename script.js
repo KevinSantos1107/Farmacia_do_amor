@@ -1493,8 +1493,17 @@ insertDotInOrder(newDot, newIndex) {
         if (this.navigation.isAnimating || this.gesture.type === 'drag') return;
         
         const index = parseInt(card.dataset.index);
-        const diff = index - this.currentIndex;
         const total = window.albums.length;
+        
+        // CASO ESPECIAL: Apenas 1 álbum - sempre abre
+        if (total === 1) {
+            console.log('📖 Abrindo único álbum');
+            openAlbum(card.dataset.id);
+            return;
+        }
+        
+        // CASO NORMAL: Múltiplos álbuns
+        const diff = index - this.currentIndex;
         const normalizedDiff = ((diff % total) + total) % total;
         
         if (normalizedDiff === 1) {
@@ -1504,7 +1513,7 @@ insertDotInOrder(newDot, newIndex) {
         } else if (normalizedDiff === 0) {
             openAlbum(card.dataset.id);
         }
-    }
+    }   
     
     setupKeyboardNavigation() {
         document.addEventListener('keydown', (e) => {
