@@ -1044,23 +1044,23 @@ renderIndicators(direction = 'forward') {
         }
         
 } else if (direction === 'backward') {
-        // VOLTANDO: índice atual fica na POSIÇÃO 1 (2ª bolinha)
-        
-        if (current >= total - 2) {
-            start = total - 4;
-            end = total - 1;
-        } else if (current === 0) {
-            start = 0;
-            end = 3;
-        } else if (current === 1) {
-            start = 0;
-            end = 3;
-        } else {
-            start = current - 1;
-            end = current + 2;
-        }
-        
+    // VOLTANDO: índice atual fica na POSIÇÃO 1 (2ª bolinha)
+    
+    if (current <= 1) {
+        // Casos iniciais: sempre [0,1,2,3]
+        start = 0;
+        end = 3;
+    } else if (current >= total - 2) {
+        // Casos finais: últimos 4
+        start = total - 4;
+        end = total - 1;
     } else {
+        // Meio: current na 2ª posição
+        start = current - 1;
+        end = current + 2;
+    }
+    
+} else {
         // INICIAL/CLIQUE: centralizar o índice
         if (current <= 1) {
             start = 0;
