@@ -1,5 +1,5 @@
 // ===== JOGO DE PALAVRAS - SISTEMA COMPLETO E PROFISSIONAL =====
-// Versão otimizada e corrigida - 100% funcional - ADAPTÁVEL A PALAVRAS GRANDES
+// Versão otimizada - 100% funcional - SELEÇÃO DE QUADRADO POR CLIQUE
 
 console.log('🎮 Sistema de Jogo de Palavras carregado');
 
@@ -311,16 +311,14 @@ const WordGame = {
     },
     
     /**
-     * Cria o grid de letras com tamanho adaptável
+     * ✨ NOVA FEATURE: Cria o grid de letras com CLIQUE para selecionar quadrado
      */
     createGrid() {
         this.elements.grid.innerHTML = '';
         
-        // ✅ ADICIONA CLASSE DINÂMICA BASEADA NO TAMANHO DA PALAVRA
-        // Remove classes antigas
+        // Adiciona classe dinâmica baseada no tamanho da palavra
         this.elements.grid.className = 'word-game-grid';
         
-        // Adiciona classe específica do tamanho
         if (this.wordLength >= 8) {
             this.elements.grid.classList.add(`word-length-${this.wordLength}`);
             console.log(`📏 Grid configurado para ${this.wordLength} letras`);
@@ -337,6 +335,13 @@ const WordGame = {
                 box.className = 'letter-box';
                 box.dataset.row = row;
                 box.dataset.col = col;
+                
+                // ✨ ADICIONA EVENTO DE CLIQUE NO QUADRADO
+                box.addEventListener('click', () => this.handleBoxClick(row, col));
+                
+                // ✨ ADICIONA CURSOR POINTER NOS QUADRADOS DA LINHA ATUAL
+                box.style.cursor = 'pointer';
+                
                 rowDiv.appendChild(box);
             }
             
@@ -344,6 +349,30 @@ const WordGame = {
         }
         
         this.elements.grid.appendChild(fragment);
+        this.updateCurrentBox();
+    },
+    
+    /**
+     * ✨ NOVA FUNÇÃO: Trata clique em um quadrado
+     */
+    handleBoxClick(row, col) {
+        // Só permite clicar na linha atual
+        if (row !== this.currentRow) {
+            console.log(`🚫 Clique bloqueado: linha ${row} (atual: ${this.currentRow})`);
+            return;
+        }
+        
+        // Só permite se o jogo estiver ativo e não processando
+        if (!this.gameActive || this.isProcessing) {
+            console.log(`🚫 Clique bloqueado: jogo inativo ou processando`);
+            return;
+        }
+        
+        // Atualiza a coluna atual
+        this.currentCol = col;
+        console.log(`🖱️ Quadrado selecionado: linha ${row}, coluna ${col}`);
+        
+        // Atualiza visual
         this.updateCurrentBox();
     },
     
@@ -362,8 +391,24 @@ const WordGame = {
      */
     updateCurrentBox() {
         const boxes = this.elements.grid.querySelectorAll('.letter-box');
+        
+        // Remove classe 'current' de todos
         boxes.forEach(box => box.classList.remove('current'));
         
+        // ✨ REMOVE CLASSE 'clickable' de todas as linhas
+        boxes.forEach(box => box.classList.remove('clickable'));
+        
+        // ✨ ADICIONA 'clickable' apenas na linha atual
+        for (let col = 0; col < this.wordLength; col++) {
+            const box = this.elements.grid.querySelector(
+                `[data-row="${this.currentRow}"][data-col="${col}"]`
+            );
+            if (box && this.gameActive && !this.isProcessing) {
+                box.classList.add('clickable');
+            }
+        }
+        
+        // Adiciona classe 'current' na posição atual
         if (this.currentRow < this.maxAttempts && this.currentCol < this.wordLength) {
             const currentBox = this.elements.grid.querySelector(
                 `[data-row="${this.currentRow}"][data-col="${this.currentCol}"]`
@@ -395,7 +440,7 @@ const WordGame = {
     },
     
     /**
-     * Adiciona letra na posição atual
+     * ✨ MODIFICADO: Adiciona letra na posição atual (agora respeita seleção manual)
      */
     addLetter(letter) {
         if (this.currentCol >= this.wordLength) return;
@@ -408,18 +453,28 @@ const WordGame = {
         if (box) {
             box.textContent = normalizedLetter;
             box.classList.add('filled');
+            
+            // Avança para próximo quadrado vazio (ou final da linha)
             this.currentCol++;
             this.updateCurrentBox();
         }
     },
     
     /**
-     * Remove letra da posição atual
+     * ✨ MODIFICADO: Remove letra da posição atual
      */
     deleteLetter() {
-        if (this.currentCol === 0) return;
+        // Se estiver em uma posição vazia, volta para a anterior
+        const currentBox = this.elements.grid.querySelector(
+            `[data-row="${this.currentRow}"][data-col="${this.currentCol}"]`
+        );
         
-        this.currentCol--;
+        if (currentBox && currentBox.textContent === '' && this.currentCol > 0) {
+            // Quadrado atual vazio, volta para o anterior
+            this.currentCol--;
+        }
+        
+        // Remove letra da posição atual
         const box = this.elements.grid.querySelector(
             `[data-row="${this.currentRow}"][data-col="${this.currentCol}"]`
         );
@@ -449,18 +504,25 @@ const WordGame = {
             return;
         }
         
-        if (this.currentCol !== this.wordLength) {
+        // Verifica se a palavra está completa
+        const guess = this.getGuess(this.currentRow);
+        if (guess.length !== this.wordLength) {
             console.log('🚫 BLOQUEADO: Palavra incompleta');
             this.shakeRow(this.currentRow);
             return;
         }
         
+        // ✨ NOVO: Remove animação de seleção quando palavra completa é submetida
+        const boxes = this.elements.grid.querySelectorAll(`[data-row="${this.currentRow}"]`);
+        boxes.forEach(box => {
+            box.classList.remove('current', 'clickable');
+        });
+        console.log('✅ Animações de seleção removidas');
+        
         this.isProcessing = true;
         this.gameActive = false;
         console.log('🔒 JOGO BLOQUEADO - Processando...');
         
-        // Obter tentativa
-        const guess = this.getGuess(this.currentRow);
         console.log(`📝 Tentativa: "${guess}" | Resposta: "${this.currentWord}"`);
         
         // Avaliar tentativa (anima as cores)
@@ -648,38 +710,6 @@ const WordGame = {
                 box.style.animation = '';
             });
         }, 500);
-    },
-    
-    /**
-     * Mostra mensagem toast
-     */
-    showToast(message) {
-        const toast = document.createElement('div');
-        toast.className = 'word-game-toast';
-        toast.textContent = message;
-        toast.style.cssText = `
-            position: fixed;
-            top: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.95rem;
-            z-index: 10000;
-            animation: fadeIn 0.3s ease;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        `;
-        
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.style.animation = 'fadeOut 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }, 2000);
     }
 };
 
