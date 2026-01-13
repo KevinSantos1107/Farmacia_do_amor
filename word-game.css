@@ -233,6 +233,18 @@
     animation: pulse 1s infinite;
 }
 
+/* ✨ Quadrados clicáveis da linha atual */
+.letter-box.clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.letter-box.clickable:hover {
+    border-color: var(--theme-accent);
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.05);
+}
+
 /* ===== TECLADO VIRTUAL - SCROLLÁVEL ===== */
 .word-game-keyboard {
     position: relative;
