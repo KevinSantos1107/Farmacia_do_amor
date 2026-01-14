@@ -1,7 +1,7 @@
-// ===== JOGO DE PALAVRAS - SISTEMA COMPLETO E PROFISSIONAL =====
-// Versão otimizada - 100% funcional - SELEÇÃO DE QUADRADO POR CLIQUE
+// ===== JOGO DE PALAVRAS - SISTEMA COM MÚLTIPLAS PALAVRAS POR PERGUNTA =====
+// Versão completa e otimizada
 
-console.log('🎮 Sistema de Jogo de Palavras carregado');
+console.log('🎮 Sistema de Jogo de Palavras carregado (Múltiplas Palavras)');
 
 // ===== CONFIGURAÇÕES GLOBAIS =====
 const WordGame = {
@@ -16,9 +16,9 @@ const WordGame = {
     gameActive: false,
     isProcessing: false,
     
-    // Dados
-    words: [],
-    usedWordIds: new Set(),
+    // Dados - NOVA ESTRUTURA
+    questions: [], // Array de perguntas (cada uma com múltiplas palavras)
+    usedQuestionIds: new Set(), // Controla perguntas já usadas
     
     // Elementos DOM (cache para performance)
     elements: {
@@ -122,7 +122,7 @@ const WordGame = {
     },
     
     /**
-     * Carrega palavras do Firebase
+     * ✨ NOVO: Carrega perguntas com múltiplas palavras do Firebase
      */
     async loadWordsFromFirebase() {
         // Verifica se Firebase está disponível
@@ -133,90 +133,127 @@ const WordGame = {
         }
         
         try {
-            console.log('📥 Carregando palavras do Firebase...');
+            console.log('📥 Carregando perguntas do Firebase...');
             const snapshot = await db.collection('word_game').orderBy('createdAt', 'asc').get();
             
             if (snapshot.empty) {
-                console.log('ℹ️ Nenhuma palavra no Firebase - usando palavras padrão');
+                console.log('ℹ️ Nenhuma pergunta no Firebase - usando palavras padrão');
                 this.loadDefaultWords();
                 return;
             }
             
-            this.words = [];
+            this.questions = [];
             snapshot.forEach(doc => {
                 const data = doc.data();
-                // Validação de dados
-                if (data.palavra && data.pergunta && data.mensagem) {
-                    this.words.push({
+                
+                // ✨ VALIDAÇÃO NOVA ESTRUTURA (array de palavras)
+                if (data.pergunta && data.palavras && Array.isArray(data.palavras)) {
+                    // Valida cada palavra do array
+                    const palavrasValidas = data.palavras.filter(p => 
+                        p.palavra && p.mensagem
+                    );
+                    
+                    if (palavrasValidas.length > 0) {
+                        this.questions.push({
+                            id: doc.id,
+                            pergunta: data.pergunta,
+                            palavras: palavrasValidas
+                        });
+                    }
+                }
+                // ✨ BACKWARD COMPATIBILITY: Aceita estrutura antiga também
+                else if (data.palavra && data.pergunta && data.mensagem) {
+                    this.questions.push({
                         id: doc.id,
-                        ...data
+                        pergunta: data.pergunta,
+                        palavras: [{
+                            palavra: data.palavra,
+                            mensagem: data.mensagem
+                        }]
                     });
                 }
             });
             
-            console.log(`✅ ${this.words.length} palavras carregadas do Firebase`);
+            console.log(`✅ ${this.questions.length} perguntas carregadas do Firebase`);
             
-            // Fallback se não houver palavras válidas
-            if (this.words.length === 0) {
+            // Fallback se não houver perguntas válidas
+            if (this.questions.length === 0) {
                 this.loadDefaultWords();
             }
         } catch (error) {
-            console.error('❌ Erro ao carregar palavras:', error);
+            console.error('❌ Erro ao carregar perguntas:', error);
             this.loadDefaultWords();
         }
     },
     
-    /**
-     * Carrega palavras padrão (fallback)
-     */
-    loadDefaultWords() {
-        this.words = [
-            {
-                id: 'default-1',
-                pergunta: 'O que mais gosto em você?',
-                palavra: 'SORRISO',
-                mensagem: '✨ É isso que eu mais amo em você!'
-            },
-            {
-                id: 'default-2',
-                pergunta: 'O que sinto quando estou com você?',
-                palavra: 'FELIZ',
-                mensagem: '💕 Você me faz sentir completo!'
-            },
-            {
-                id: 'default-3',
-                pergunta: 'Como foi nosso primeiro encontro?',
-                palavra: 'MAGICO',
-                mensagem: '🌟 Foi mágico desde o primeiro momento!'
-            },
-            {
-                id: 'default-4',
-                pergunta: 'O que você é para mim?',
-                palavra: 'TUDO',
-                mensagem: '❤️ Você é tudo que eu sempre quis!'
-            },
-            {
-                id: 'default-5',
-                pergunta: 'O que quero construir com você?',
-                palavra: 'FUTURO',
-                mensagem: '🏡 Quero todos os meus dias ao seu lado!'
-            },
-            {
-                id: 'default-6',
-                pergunta: 'Como você me faz sentir?',
-                palavra: 'AMADO',
-                mensagem: '💖 Com você me sinto especial!'
-            },
-            {
-                id: 'default-7',
-                pergunta: 'O que é a nossa relação?',
-                palavra: 'PERFEITA',
-                mensagem: '🌹 Perfeita do jeito que é!'
-            }
-        ];
-        
-        console.log('✅ Palavras padrão carregadas');
-    },
+    /** ✨ MODIFICADO: Carrega palavras padrão com nova estrutura */
+
+loadDefaultWords() {
+    this.questions = [
+        {
+            id: 'default-1',
+            pergunta: 'O que mais gosto em você?',
+            palavras: [
+                { palavra: 'SORRISO', mensagem: '✨ É isso que eu mais amo em você!' },
+                { palavra: 'OLHOS', mensagem: '👀 Seus olhos me encantam!' },
+                { palavra: 'JEITO', mensagem: '💕 Seu jeito único me conquistou!' }
+            ]
+        },
+        {
+            id: 'default-2',
+            pergunta: 'O que sinto quando estou com você?',
+            palavras: [
+                { palavra: 'FELIZ', mensagem: '😊 Você me faz tão feliz!' },
+                { palavra: 'COMPLETO', mensagem: '🧩 Você completa minha vida!' },
+                { palavra: 'AMADO', mensagem: '❤️ Me sinto tão amado!' }
+            ]
+        },
+        {
+            id: 'default-3',
+            pergunta: 'Como foi nosso primeiro encontro?',
+            palavras: [
+                { palavra: 'MAGICO', mensagem: '🌟 Foi mágico desde o início!' },
+                { palavra: 'PERFEITO', mensagem: '✨ Foi simplesmente perfeito!' },
+                { palavra: 'INESQUECIVEL', mensagem: '💫 Nunca vou esquecer!' }
+            ]
+        },
+        {
+            id: 'default-4',
+            pergunta: 'O que você é para mim?',
+            palavras: [
+                { palavra: 'TUDO', mensagem: '❤️ Você é tudo que eu sempre quis!' },
+                { palavra: 'AMOR', mensagem: '💖 Você é meu grande amor!' }
+            ]
+        },
+        {
+            id: 'default-5',
+            pergunta: 'O que quero construir com você?',
+            palavras: [
+                { palavra: 'FUTURO', mensagem: '🏡 Quero todos os meus dias ao seu lado!' },
+                { palavra: 'SONHOS', mensagem: '💭 Nossos sonhos juntos!' },
+                { palavra: 'FAMILIA', mensagem: '👨‍👩‍👧‍👦 Nossa família feliz!' }
+            ]
+        },
+        {
+            id: 'default-6',
+            pergunta: 'Como você me faz sentir?',
+            palavras: [
+                { palavra: 'ESPECIAL', mensagem: '⭐ Você me faz sentir especial!' },
+                { palavra: 'IMPORTANTE', mensagem: '🌟 Me sinto importante com você!' }
+            ]
+        },
+        {
+            id: 'default-7',
+            pergunta: 'O que é a nossa relação?',
+            palavras: [
+                { palavra: 'PERFEITA', mensagem: '🌹 Perfeita do jeito que é!' },
+                { palavra: 'ESPECIAL', mensagem: '💝 Especial e única!' }
+            ]
+        }
+    ];
+    
+    console.log('✅ Palavras padrão carregadas (nova estrutura)');
+},
     
     /**
      * Abre o modal do jogo
@@ -248,7 +285,7 @@ const WordGame = {
     },
     
     /**
-     * Inicia uma nova rodada
+     * ✨ MODIFICADO: Inicia uma nova rodada (escolhe pergunta + palavra aleatória)
      */
     startNewGame() {
         console.log('🎮 === INICIANDO NOVA RODADA ===');
@@ -262,27 +299,33 @@ const WordGame = {
         
         console.log('✅ Estado resetado');
         
-        // Escolher palavra aleatória não jogada
-        const availableWords = this.words.filter(w => !this.usedWordIds.has(w.id));
+        // ✨ Escolher pergunta aleatória não jogada
+        const availableQuestions = this.questions.filter(q => !this.usedQuestionIds.has(q.id));
         
         // Se já jogou todas, resetar lista
-        if (availableWords.length === 0) {
-            console.log('🔄 Todas as palavras jogadas - resetando lista');
-            this.usedWordIds.clear();
+        if (availableQuestions.length === 0) {
+            console.log('🔄 Todas as perguntas jogadas - resetando lista');
+            this.usedQuestionIds.clear();
             return this.startNewGame();
         }
         
-        // Selecionar palavra aleatória
-        const randomWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+        // Selecionar pergunta aleatória
+        const randomQuestion = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+        this.usedQuestionIds.add(randomQuestion.id);
         
-        this.currentWord = this.normalizeWord(randomWord.palavra);
-        this.currentQuestion = randomWord.pergunta;
-        this.currentMessage = randomWord.mensagem;
+        // ✨ Escolher palavra aleatória dentro da pergunta
+        const randomWordData = randomQuestion.palavras[
+            Math.floor(Math.random() * randomQuestion.palavras.length)
+        ];
+        
+        this.currentWord = this.normalizeWord(randomWordData.palavra);
+        this.currentQuestion = randomQuestion.pergunta;
+        this.currentMessage = randomWordData.mensagem;
         this.wordLength = this.currentWord.length;
         
-        this.usedWordIds.add(randomWord.id);
-        
+        console.log(`🎯 Pergunta: "${this.currentQuestion}"`);
         console.log(`🎯 Palavra escolhida: "${this.currentWord}" (${this.wordLength} letras)`);
+        console.log(`💬 Mensagem: "${this.currentMessage}"`);
         
         // Atualizar UI
         this.elements.questionElement.textContent = this.currentQuestion;
@@ -311,7 +354,7 @@ const WordGame = {
     },
     
     /**
-     * ✨ NOVA FEATURE: Cria o grid de letras com CLIQUE para selecionar quadrado
+     * Cria o grid de letras com CLIQUE para selecionar quadrado
      */
     createGrid() {
         this.elements.grid.innerHTML = '';
@@ -336,10 +379,8 @@ const WordGame = {
                 box.dataset.row = row;
                 box.dataset.col = col;
                 
-                // ✨ ADICIONA EVENTO DE CLIQUE NO QUADRADO
+                // Adiciona evento de clique no quadrado
                 box.addEventListener('click', () => this.handleBoxClick(row, col));
-                
-                // ✨ ADICIONA CURSOR POINTER NOS QUADRADOS DA LINHA ATUAL
                 box.style.cursor = 'pointer';
                 
                 rowDiv.appendChild(box);
@@ -353,7 +394,7 @@ const WordGame = {
     },
     
     /**
-     * ✨ NOVA FUNÇÃO: Trata clique em um quadrado
+     * Trata clique em um quadrado
      */
     handleBoxClick(row, col) {
         // Só permite clicar na linha atual
@@ -395,10 +436,10 @@ const WordGame = {
         // Remove classe 'current' de todos
         boxes.forEach(box => box.classList.remove('current'));
         
-        // ✨ REMOVE CLASSE 'clickable' de todas as linhas
+        // Remove classe 'clickable' de todas as linhas
         boxes.forEach(box => box.classList.remove('clickable'));
         
-        // ✨ ADICIONA 'clickable' apenas na linha atual
+        // Adiciona 'clickable' apenas na linha atual
         for (let col = 0; col < this.wordLength; col++) {
             const box = this.elements.grid.querySelector(
                 `[data-row="${this.currentRow}"][data-col="${col}"]`
@@ -440,7 +481,7 @@ const WordGame = {
     },
     
     /**
-     * ✨ MODIFICADO: Adiciona letra na posição atual (agora respeita seleção manual)
+     * Adiciona letra na posição atual (respeita seleção manual)
      */
     addLetter(letter) {
         if (this.currentCol >= this.wordLength) return;
@@ -461,7 +502,7 @@ const WordGame = {
     },
     
     /**
-     * ✨ MODIFICADO: Remove letra da posição atual
+     * Remove letra da posição atual
      */
     deleteLetter() {
         // Se estiver em uma posição vazia, volta para a anterior
@@ -487,7 +528,7 @@ const WordGame = {
     },
     
     /**
-     * Submete tentativa
+     * Submete tentativa (com fix de animação)
      */
     submitGuess() {
         console.log('🔵 === SUBMIT GUESS ===');
@@ -512,7 +553,7 @@ const WordGame = {
             return;
         }
         
-        // ✨ NOVO: Remove animação de seleção quando palavra completa é submetida
+        // Remove animação de seleção quando palavra completa é submetida
         const boxes = this.elements.grid.querySelectorAll(`[data-row="${this.currentRow}"]`);
         boxes.forEach(box => {
             box.classList.remove('current', 'clickable');
@@ -763,53 +804,9 @@ if (typeof window !== 'undefined') {
     });
 }
 
-// ===== ADICIONAR ESTILOS DE ANIMAÇÃO =====
-function injectStyles() {
-    if (document.getElementById('word-game-animations')) return;
-    
-    const style = document.createElement('style');
-    style.id = 'word-game-animations';
-    style.textContent = `
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-        
-        @keyframes popIn {
-            0% {
-                transform: scale(0.8);
-                opacity: 0;
-            }
-            50% {
-                transform: scale(1.1);
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-    `;
-    
-    document.head.appendChild(style);
-}
-
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📦 DOMContentLoaded - inicializando sistema');
-    
-    // Injetar estilos
-    injectStyles();
     
     // Inicializar com delay para aguardar Firebase
     const initWordGame = () => {
