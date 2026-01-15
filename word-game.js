@@ -87,7 +87,17 @@ const WordGame = {
             this.elements.nextBtn.addEventListener('click', () => this.startNewGame());
         }
         
-        // Teclado virtual
+        // ✨ NOVO: Botões de ação (APAGAR e ENVIAR)
+        const actionButtons = document.querySelectorAll('.action-btn');
+        actionButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.key;
+                console.log(`🎯 Botão de ação clicado: ${key}`);
+                this.handleKeyPress(key);
+            });
+        });
+        
+        // Teclado virtual (letras A-Z)
         const keyBtns = this.elements.keyboard.querySelectorAll('.key-btn');
         keyBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -187,73 +197,72 @@ const WordGame = {
     },
     
     /** ✨ MODIFICADO: Carrega palavras padrão com nova estrutura */
-
-loadDefaultWords() {
-    this.questions = [
-        {
-            id: 'default-1',
-            pergunta: 'O que mais gosto em você?',
-            palavras: [
-                { palavra: 'SORRISO', mensagem: '✨ É isso que eu mais amo em você!' },
-                { palavra: 'OLHOS', mensagem: '👀 Seus olhos me encantam!' },
-                { palavra: 'JEITO', mensagem: '💕 Seu jeito único me conquistou!' }
-            ]
-        },
-        {
-            id: 'default-2',
-            pergunta: 'O que sinto quando estou com você?',
-            palavras: [
-                { palavra: 'FELIZ', mensagem: '😊 Você me faz tão feliz!' },
-                { palavra: 'COMPLETO', mensagem: '🧩 Você completa minha vida!' },
-                { palavra: 'AMADO', mensagem: '❤️ Me sinto tão amado!' }
-            ]
-        },
-        {
-            id: 'default-3',
-            pergunta: 'Como foi nosso primeiro encontro?',
-            palavras: [
-                { palavra: 'MAGICO', mensagem: '🌟 Foi mágico desde o início!' },
-                { palavra: 'PERFEITO', mensagem: '✨ Foi simplesmente perfeito!' },
-                { palavra: 'INESQUECIVEL', mensagem: '💫 Nunca vou esquecer!' }
-            ]
-        },
-        {
-            id: 'default-4',
-            pergunta: 'O que você é para mim?',
-            palavras: [
-                { palavra: 'TUDO', mensagem: '❤️ Você é tudo que eu sempre quis!' },
-                { palavra: 'AMOR', mensagem: '💖 Você é meu grande amor!' }
-            ]
-        },
-        {
-            id: 'default-5',
-            pergunta: 'O que quero construir com você?',
-            palavras: [
-                { palavra: 'FUTURO', mensagem: '🏡 Quero todos os meus dias ao seu lado!' },
-                { palavra: 'SONHOS', mensagem: '💭 Nossos sonhos juntos!' },
-                { palavra: 'FAMILIA', mensagem: '👨‍👩‍👧‍👦 Nossa família feliz!' }
-            ]
-        },
-        {
-            id: 'default-6',
-            pergunta: 'Como você me faz sentir?',
-            palavras: [
-                { palavra: 'ESPECIAL', mensagem: '⭐ Você me faz sentir especial!' },
-                { palavra: 'IMPORTANTE', mensagem: '🌟 Me sinto importante com você!' }
-            ]
-        },
-        {
-            id: 'default-7',
-            pergunta: 'O que é a nossa relação?',
-            palavras: [
-                { palavra: 'PERFEITA', mensagem: '🌹 Perfeita do jeito que é!' },
-                { palavra: 'ESPECIAL', mensagem: '💝 Especial e única!' }
-            ]
-        }
-    ];
-    
-    console.log('✅ Palavras padrão carregadas (nova estrutura)');
-},
+    loadDefaultWords() {
+        this.questions = [
+            {
+                id: 'default-1',
+                pergunta: 'O que mais gosto em você?',
+                palavras: [
+                    { palavra: 'SORRISO', mensagem: '✨ É isso que eu mais amo em você!' },
+                    { palavra: 'OLHOS', mensagem: '👀 Seus olhos me encantam!' },
+                    { palavra: 'JEITO', mensagem: '💕 Seu jeito único me conquistou!' }
+                ]
+            },
+            {
+                id: 'default-2',
+                pergunta: 'O que sinto quando estou com você?',
+                palavras: [
+                    { palavra: 'FELIZ', mensagem: '😊 Você me faz tão feliz!' },
+                    { palavra: 'COMPLETO', mensagem: '🧩 Você completa minha vida!' },
+                    { palavra: 'AMADO', mensagem: '❤️ Me sinto tão amado!' }
+                ]
+            },
+            {
+                id: 'default-3',
+                pergunta: 'Como foi nosso primeiro encontro?',
+                palavras: [
+                    { palavra: 'MAGICO', mensagem: '🌟 Foi mágico desde o início!' },
+                    { palavra: 'PERFEITO', mensagem: '✨ Foi simplesmente perfeito!' },
+                    { palavra: 'INESQUECIVEL', mensagem: '💫 Nunca vou esquecer!' }
+                ]
+            },
+            {
+                id: 'default-4',
+                pergunta: 'O que você é para mim?',
+                palavras: [
+                    { palavra: 'TUDO', mensagem: '❤️ Você é tudo que eu sempre quis!' },
+                    { palavra: 'AMOR', mensagem: '💖 Você é meu grande amor!' }
+                ]
+            },
+            {
+                id: 'default-5',
+                pergunta: 'O que quero construir com você?',
+                palavras: [
+                    { palavra: 'FUTURO', mensagem: '🏡 Quero todos os meus dias ao seu lado!' },
+                    { palavra: 'SONHOS', mensagem: '💭 Nossos sonhos juntos!' },
+                    { palavra: 'FAMILIA', mensagem: '👨‍👩‍👧‍👦 Nossa família feliz!' }
+                ]
+            },
+            {
+                id: 'default-6',
+                pergunta: 'Como você me faz sentir?',
+                palavras: [
+                    { palavra: 'ESPECIAL', mensagem: '⭐ Você me faz sentir especial!' },
+                    { palavra: 'IMPORTANTE', mensagem: '🌟 Me sinto importante com você!' }
+                ]
+            },
+            {
+                id: 'default-7',
+                pergunta: 'O que é a nossa relação?',
+                palavras: [
+                    { palavra: 'PERFEITA', mensagem: '🌹 Perfeita do jeito que é!' },
+                    { palavra: 'ESPECIAL', mensagem: '💝 Especial e única!' }
+                ]
+            }
+        ];
+        
+        console.log('✅ Palavras padrão carregadas (nova estrutura)');
+    },
     
     /**
      * Abre o modal do jogo
@@ -501,10 +510,13 @@ loadDefaultWords() {
         }
     },
     
-    /**
-     * Remove letra da posição atual
-     */
+    /** Remove letra da posição atual  */
     deleteLetter() {
+        //, ✨ NOVO: Se passou do final da linha, volta para última posição
+        if (this.currentCol >= this.wordLength) {
+            this.currentCol = this.wordLength - 1;
+        }
+        
         // Se estiver em uma posição vazia, volta para a anterior
         const currentBox = this.elements.grid.querySelector(
             `[data-row="${this.currentRow}"][data-col="${this.currentCol}"]`
@@ -526,7 +538,7 @@ loadDefaultWords() {
             this.updateCurrentBox();
         }
     },
-    
+
     /**
      * Submete tentativa (com fix de animação)
      */
