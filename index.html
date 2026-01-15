@@ -364,7 +364,17 @@
                 <!-- Gerado dinamicamente pelo JS -->
             </div>
 
-            <!-- Teclado Virtual - AGORA DENTRO DO SCROLLABLE -->
+            <!-- ✨ NOVO: Botões de Ação (Apagar e Enviar) -->
+            <div class="keyboard-action-buttons">
+                <button class="action-btn action-delete" data-key="BACKSPACE" title="Apagar">
+                    <i class="fas fa-backspace"></i>
+                </button>
+                <button class="action-btn action-submit" data-key="ENTER" title="Enviar">
+                    <i class="fas fa-check"></i>
+                </button>
+            </div>
+
+            <!-- Teclado Virtual - SEM botões ENVIAR/APAGAR -->
             <div class="word-game-keyboard" id="wordGameKeyboard">
                 <div class="keyboard-row">
                     <button class="key-btn" data-key="Q">Q</button>
@@ -390,9 +400,6 @@
                     <button class="key-btn" data-key="L">L</button>
                 </div>
                 <div class="keyboard-row">
-                    <button class="key-btn key-enter" data-key="ENTER">
-                        <i class="fas fa-check"></i> ENVIAR
-                    </button>
                     <button class="key-btn" data-key="Z">Z</button>
                     <button class="key-btn" data-key="X">X</button>
                     <button class="key-btn" data-key="C">C</button>
@@ -400,9 +407,6 @@
                     <button class="key-btn" data-key="B">B</button>
                     <button class="key-btn" data-key="N">N</button>
                     <button class="key-btn" data-key="M">M</button>
-                    <button class="key-btn key-backspace" data-key="BACKSPACE">
-                        <i class="fas fa-backspace"></i>
-                    </button>
                 </div>
             </div>
 
