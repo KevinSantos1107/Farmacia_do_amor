@@ -61,24 +61,23 @@
 
 /* Tema Inverno Mágico - CÉU INVERNAL COM NEVE */
 .theme-winter {
-    --theme-bg: #1a0f2e;
-    --theme-primary: #c084fc; /* Roxo gelo */
-    --theme-secondary: #a78bfa; /* Violeta suave */
-    --theme-accent: #60a5fa; /* Azul gelo */
+    --theme-bg: #0f172a;
+    --theme-primary: #60a5fa; /* Azul diamante */
+    --theme-secondary: #93c5fd; /* Azul claro brilhante */
+    --theme-accent: #3b82f6; /* Azul royal */
     --theme-text: #ffffff;
-    --theme-text-secondary: #e9d5ff;
-    --theme-card-bg: rgba(26, 15, 46, 0.95);
-    --theme-card-border: rgba(192, 132, 252, 0.4);
-    --theme-glow: 0 0 20px rgba(192, 132, 252, 0.6);
-    --theme-glow-strong: 0 0 30px rgba(192, 132, 252, 0.9);
+    --theme-text-secondary: #dbeafe;
+    --theme-card-bg: rgba(15, 23, 42, 0.95);
+    --theme-card-border: rgba(96, 165, 250, 0.5);
+    --theme-glow: 0 0 25px rgba(96, 165, 250, 0.7);
+    --theme-glow-strong: 0 0 35px rgba(96, 165, 250, 1);
     
-    /* Gradientes Roxo Gelado */
-    --gradient-primary: linear-gradient(135deg, #c084fc 0%, #a78bfa 50%, #60a5fa 100%);
-    --gradient-secondary: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
-    --gradient-neon: linear-gradient(135deg, #c084fc, #a78bfa, #60a5fa);
-    --gradient-text: linear-gradient(90deg, #c084fc, #60a5fa, #ffffff);
+    /* Gradientes Diamante */
+    --gradient-primary: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
+    --gradient-secondary: linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%);
+    --gradient-neon: linear-gradient(135deg, #60a5fa, #93c5fd, #dbeafe);
+    --gradient-text: linear-gradient(90deg, #60a5fa, #93c5fd, #ffffff);
 }
-
 
 /* Apenas cores - layout igual aos outros temas */
 .theme-winter .header,
@@ -95,11 +94,11 @@
 /* Brilho gelado nos textos principais */
 .theme-winter .name {
     text-shadow: 
-        0 0 10px rgba(192, 132, 252, 1),
-        0 0 20px rgba(167, 139, 250, 0.8),
-        0 0 30px rgba(96, 165, 250, 0.6),
+        0 0 10px rgba(96, 165, 250, 1),
+        0 0 20px rgba(59, 130, 246, 0.8),
+        0 0 30px rgba(147, 197, 253, 0.6),
         0 2px 4px rgba(0, 0, 0, 0.3);
-    filter: drop-shadow(0 0 5px rgba(192, 132, 252, 0.5));
+    filter: drop-shadow(0 0 5px rgba(96, 165, 250, 0.5));
 }
 
 /* Footer do tema Winter - estilo igual aos outros temas */
@@ -137,15 +136,15 @@
 .theme-winter .message-card {
     background-image: 
         linear-gradient(135deg,
-            rgba(26, 15, 46, 0.95) 0%,
-            rgba(40, 20, 60, 0.9) 100%
+            rgba(15, 23, 42, 0.95) 0%,
+            rgba(30, 41, 59, 0.9) 100%
         ),
         repeating-linear-gradient(
             45deg,
             transparent 0px,
             transparent 2px,
-            rgba(192, 132, 252, 0.03) 2px,
-            rgba(192, 132, 252, 0.03) 4px
+            rgba(96, 165, 250, 0.03) 2px,
+            rgba(96, 165, 250, 0.03) 4px
         );
 }
 
@@ -431,9 +430,9 @@ body {
 }
 
 .theme-card[data-theme="winter"].active {
-    background: linear-gradient(135deg, #c084fc, #a78bfa);
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
     color: #ffffff;
-    box-shadow: 0 0 20px rgba(192, 132, 252, 0.6);
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.6);
 }
 
 .theme-card.active i {
@@ -2838,6 +2837,6 @@ img[loading="lazy"] {
 }
 
 .theme-winter .acrostic-line.expanded {
-    background: rgba(192, 132, 252, 0.1);
-    box-shadow: 0 0 20px rgba(192, 132, 252, 0.2);
+    background: rgba(96, 165, 250, 0.1);
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.2);
 }
