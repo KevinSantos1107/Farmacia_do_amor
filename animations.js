@@ -49,26 +49,26 @@
             backgroundColor: '#001122',
             waveSpeed: 0.0008,
             particleSpeed: 0.6
-        }
-        ,
-    winter: {
+        },
+
+        winter: {
             name: 'Inverno Mágico',
             snowflakes: 80,
             smallSnow: 120,
             sparkles: 60,
             icePatches: 8,
             frostLines: 15,
-            snowColors: ['#ffffff', '#f0f8ff', '#e6f7ff', '#fafbfc'],
-            sparkleColors: ['#e3f2fd', '#b3e5fc', '#ffffff'],
-            iceColors: ['#e3f2fd', '#b3e5fc', '#81d4fa'],
+            snowColors: ['#ffffff', '#f0f0ff', '#e9d5ff', '#faf5ff'], // ← Tons de branco com leve roxo
+            sparkleColors: ['#c084fc', '#a78bfa', '#ffffff'], // ← Roxo gelo + branco
+            iceColors: ['#c084fc', '#a78bfa', '#60a5fa'], // ← Roxo gelo + azul gelo
             skyGradient: [
-                '#0f1c2e',
-                '#1a2839',
-                '#243447',
-                '#2d4057',
-                '#364a5f',
-                '#3f5268',
-                '#4a5d70'
+                '#1a0f2e', // ← Roxo escuro (topo)
+                '#251638',
+                '#2d1d42',
+                '#35244c',
+                '#3d2b56',
+                '#453260',
+                '#4d396a'  // ← Roxo mais claro (base)
             ],
             snowSpeed: 0.6,
             windStrength: 0.3,
@@ -1367,9 +1367,9 @@
             ctx.closePath();
             
             const gradient = ctx.createLinearGradient(0, yPos - 100, 0, yPos + 100);
-            gradient.addColorStop(0, `rgba(227, 242, 253, 0)`);
-            gradient.addColorStop(0.5, `rgba(227, 242, 253, ${config.fogOpacity * (1 - layer * 0.3)})`);
-            gradient.addColorStop(1, `rgba(227, 242, 253, 0)`);
+            gradient.addColorStop(0, `rgba(192, 132, 252, 0)`);
+            gradient.addColorStop(0.5, `rgba(192, 132, 252, ${config.fogOpacity * (1 - layer * 0.3)})`);
+            gradient.addColorStop(1, `rgba(192, 132, 252, 0)`);
             
             ctx.fillStyle = gradient;
             ctx.globalAlpha = 0.6;
@@ -1580,10 +1580,10 @@
         
         const gradient = ctx.createLinearGradient(0, canvas.height - 50, 0, canvas.height);
         gradient.addColorStop(0, '#ffffff');
-        gradient.addColorStop(0.3, '#f8f9fa');
-        gradient.addColorStop(0.6, '#e3f2fd');
-        gradient.addColorStop(1, '#cfe2f3');
-        
+        gradient.addColorStop(0.3, '#f5f3ff'); // Branco com leve roxo
+        gradient.addColorStop(0.6, '#e9d5ff'); // Roxo muito suave
+        gradient.addColorStop(1, '#ddd6fe'); // Roxo claro
+                
         ctx.fillStyle = gradient;
         ctx.fill();
         
@@ -1623,8 +1623,8 @@
                 ctx.arc(x, y, 1.5, 0, Math.PI * 2);
                 const sparkleGrad = ctx.createRadialGradient(x, y, 0, x, y, 4);
                 sparkleGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-                sparkleGrad.addColorStop(0.5, 'rgba(227, 242, 253, 0.5)');
-                sparkleGrad.addColorStop(1, 'rgba(227, 242, 253, 0)');
+                sparkleGrad.addColorStop(0.5, 'rgba(192, 132, 252, 0.5)'); // Roxo gelo
+                sparkleGrad.addColorStop(1, 'rgba(192, 132, 252, 0)');
                 ctx.fillStyle = sparkleGrad;
                 ctx.fill();
             }
