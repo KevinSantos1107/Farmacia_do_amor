@@ -2080,6 +2080,12 @@ function initHamburgerMenu() {
                         messagesSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                 }
+                else if (targetId === '#acrostico') {
+                    const acrosticSection = document.querySelector('.acrostic-section');
+                    if (acrosticSection) {
+                        acrosticSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
             }, 300);
         });
     });
@@ -2213,6 +2219,72 @@ function initHamburgerMenu() {
     console.log('✅ Auto-fechamento de menu configurado');
     return true;
 }
+
+// ===== ACRÓSTICO INTERATIVO =====
+function initAcrostic() {
+    const acrosticLines = document.querySelectorAll('.acrostic-line');
+    
+    if (acrosticLines.length === 0) {
+        console.log('ℹ️ Acróstico não encontrado');
+        return;
+    }
+    
+    acrosticLines.forEach(line => {
+        // Click/Touch event
+        line.addEventListener('click', function() {
+            // Adiciona efeito de clique
+            this.classList.add('clicked');
+            setTimeout(() => this.classList.remove('clicked'), 600);
+            
+            // Toggle expansão
+            this.classList.toggle('expanded');
+            
+            // Atualiza aria-expanded para acessibilidade
+            const isExpanded = this.classList.contains('expanded');
+            this.setAttribute('aria-expanded', isExpanded);
+            
+            console.log(`💌 Acróstico linha "${this.dataset.line}" ${isExpanded ? 'expandida' : 'recolhida'}`);
+        });
+        
+        // Suporte a teclado (acessibilidade)
+        line.setAttribute('tabindex', '0');
+        line.setAttribute('role', 'button');
+        line.setAttribute('aria-expanded', 'false');
+        
+        line.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+            }
+        });
+    });
+    
+    // Animação de entrada sequencial
+    acrosticLines.forEach((line, index) => {
+        setTimeout(() => {
+            line.style.opacity = '0';
+            line.style.transform = 'translateY(20px)';
+            line.style.transition = 'all 0.6s ease-out';
+            
+            setTimeout(() => {
+                line.style.opacity = '1';
+                line.style.transform = 'translateY(0)';
+            }, 50);
+        }, index * 150);
+    });
+    
+    console.log('✅ Acróstico interativo inicializado');
+}
+
+// Adicionar na inicialização do site
+document.addEventListener('DOMContentLoaded', function() {
+    // ... seu código existente ...
+    
+    // Adicionar após as outras inicializações
+    setTimeout(() => {
+        initAcrostic();
+    }, 400);
+});
 
 console.log(`
 ╔══════════════════════════════════════╗
