@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="admin-styles.css">
     <link rel="stylesheet" href="word-game.css">
     <link rel="stylesheet" href="playlist-styles.css">
+    <link rel="stylesheet" href="star-map.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Poppins:wght@300;400;500;600&family=Raleway:wght@300;400;500&display=swap" rel="stylesheet">
@@ -51,6 +52,7 @@
             <h3>INTERATIVOS</h3>
             <ul class="menu-nav">
                 <li><a href="#jogo"><i class="fas fa-gamepad"></i><span>Jogo de Palavras</span></a></li>
+                <li><a href="#" id="openStarMapBtn"><i class="fas fa-star"></i><span>Mapa das Estrelas</span></a></li>
                 <!-- Futuros interativos aqui -->
             </ul>
         </div>
@@ -500,6 +502,41 @@
     </div>
 </div>
 
+<!-- ===== MODAL DO MAPA DAS ESTRELAS ===== -->
+<div class="star-map-modal" id="starMapModal">
+    <div class="star-map-modal-content">
+        <button class="close-star-map-btn" id="closeStarMapBtn">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <h1 class="star-map-title">Kevin & Iara</h1>
+        
+        <div class="star-map-canvas-wrapper">
+            <canvas id="starMapCanvas"></canvas>
+        </div>
+        
+        <p class="star-map-quote">
+            "O céu quando nossos<br>
+            mundos se colidiram <span class="sparkle">✨</span><br>
+            ♥"
+        </p>
+        
+        <div class="star-map-details">
+            <span class="star-map-location">HARVARD, ILLINOIS, US</span><br>
+            <span class="star-map-date">18 DE JANEIRO DE 2026 - 22:00</span><br>
+            <span class="star-map-coordinates">42.4164°N 88.6137°W</span>
+        </div>
+        
+        <button class="star-warp-button" id="startStarWarp">
+            <i class="fas fa-rocket"></i> Iniciar Viagem
+        </button>
+        
+        <div class="star-map-footer">Mapa das Estrelas</div>
+    </div>
+
+    <div class="star-tunnel-effect" id="starTunnelEffect"></div>
+</div>
+
 <!-- ORDEM CORRETA DE CARREGAMENTO DOS SCRIPTS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -513,6 +550,7 @@
 <script src="playlist-manager.js"></script>
 <script src="script.js"></script>
 <script src="word-game.js"></script>
+<script src="star-map.js"></script>
 
 </body>
 </html>
