@@ -577,120 +577,6 @@ class StarMap {
         }
     }
     
-    drawInfiniteZoom() {
-        const gradient = this.ctx.createRadialGradient(this.centerX, this.centerY, 0, this.centerX, this.centerY, this.radius);
-        gradient.addColorStop(0, '#000814');
-        gradient.addColorStop(0.5, '#001d3d');
-        gradient.addColorStop(1, '#000000');
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        if (this.isZooming) {
-            this.zoomSpeed = Math.min(this.zoomSpeed + 0.002, this.maxZoomSpeed);
-            this.zoomDepth += this.zoomSpeed;
-        } else {
-            this.zoomSpeed = Math.max(this.zoomSpeed - 0.001, 0);
-            if (this.zoomSpeed > 0) {
-                this.zoomDepth += this.zoomSpeed;
-            }
-        }
-        
-        this.particles.forEach((p, index) => {
-            p.z -= this.zoomSpeed * 50 * p.speed;
-            
-            if (p.z <= 0) {
-                this.particles[index] = this.createParticle(true);
-            }
-            
-            const scale = 200 / (200 + p.z);
-            const x2d = this.centerX + p.x * scale;
-            const y2d = this.centerY + p.y * scale;
-            const size = p.size * scale * 3;
-            
-            if (this.zoomSpeed > 0.01) {
-                const trailLength = 20 * this.zoomSpeed / this.maxZoomSpeed;
-                const trailGradient = this.ctx.createLinearGradient(
-                    x2d, y2d,
-                    x2d + p.x * scale * trailLength * 0.1,
-                    y2d + p.y * scale * trailLength * 0.1
-                );
-                trailGradient.addColorStop(0, `rgba(255, 255, 255, ${p.brightness * scale})`);
-                trailGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                
-                this.ctx.strokeStyle = trailGradient;
-                this.ctx.lineWidth = size;
-                this.ctx.beginPath();
-                this.ctx.moveTo(x2d, y2d);
-                this.ctx.lineTo(
-                    x2d + p.x * scale * trailLength * 0.1,
-                    y2d + p.y * scale * trailLength * 0.1
-                );
-                this.ctx.stroke();
-            }
-            
-            const starBrightness = p.brightness * scale;
-            const glowSize = size * 4;
-            
-            const starGradient = this.ctx.createRadialGradient(x2d, y2d, 0, x2d, y2d, glowSize);
-            starGradient.addColorStop(0, `rgba(255, 255, 255, ${starBrightness})`);
-            starGradient.addColorStop(0.3, `rgba(255, 255, 255, ${starBrightness * 0.5})`);
-            starGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            
-            this.ctx.fillStyle = starGradient;
-            this.ctx.beginPath();
-            this.ctx.arc(x2d, y2d, glowSize, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
-        
-        this.loveMessages.forEach(msg => {
-            const msgDistance = msg.depth - (this.zoomDepth % 100);
-            
-            if (msgDistance > -10 && msgDistance < 25) {
-                const scale = Math.max(0, 1 - msgDistance / 25);
-                const opacity = scale * (1 - Math.abs(msgDistance) / 25);
-                
-                if (opacity > 0.05) {
-                    this.ctx.save();
-                    
-                    const msgScale = 0.5 + scale * 2;
-                    this.ctx.translate(this.centerX, this.centerY);
-                    this.ctx.scale(msgScale, msgScale);
-                    
-                    this.ctx.font = 'italic bold 48px Georgia, serif';
-                    this.ctx.fillStyle = msg.color.replace(')', `, ${opacity})`).replace('rgb', 'rgba');
-                    this.ctx.textAlign = 'center';
-                    this.ctx.shadowColor = msg.color;
-                    this.ctx.shadowBlur = 30 * scale;
-                    this.ctx.fillText(msg.text, 0, -30);
-                    
-                    this.ctx.font = 'italic 20px Georgia, serif';
-                    this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.7})`;
-                    this.ctx.shadowBlur = 15 * scale;
-                    this.ctx.fillText(`(${msg.lang})`, 0, 10);
-                    
-                    this.ctx.font = '30px Arial';
-                    this.ctx.fillStyle = `rgba(255, 105, 180, ${opacity * 0.6})`;
-                    this.ctx.shadowBlur = 20 * scale;
-                    this.ctx.fillText('♥', -100, 0);
-                    this.ctx.fillText('♥', 100, 0);
-                    
-                    this.ctx.restore();
-                }
-            }
-        });
-        
-        const vignette = this.ctx.createRadialGradient(this.centerX, this.centerY, this.radius * 0.3, this.centerX, this.centerY, this.radius);
-        vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        vignette.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
-        this.ctx.fillStyle = vignette;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        this.ctx.font = 'italic 14px Georgia, serif';
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        this.ctx.textAlign = 'right';
-        this.ctx.fillText(`Profundidade: ${Math.floor(this.zoomDepth)}`, this.canvas.width - 20, this.canvas.height - 20);
-    }
-    
     drawScene(progress) {
         if (this.returningToStart) {
             const returnElapsed = Date.now() - this.returnStartTime;
@@ -715,21 +601,12 @@ class StarMap {
                 this.animationProgress = 0;
                 this.startTime = null;
             }
-        } else if (this.warpEnded) {
-            const gradient = this.ctx.createRadialGradient(this.centerX, this.centerY, 0, this.centerX, this.centerY, this.radius);
-            gradient.addColorStop(0, '#000814');
-            gradient.addColorStop(0.5, '#001d3d');
-            gradient.addColorStop(1, '#000000');
-            this.ctx.fillStyle = gradient;
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        } else if (!this.isAnimationComplete) {
-            this.drawInitialAnimation(progress);
         } else if (this.warpActive) {
             this.drawWarpSpeed();
-        } else if (this.zoomDepth === 0 && !this.isZooming) {
-            this.drawInitialAnimation(1);
+        } else if (!this.isAnimationComplete) {
+            this.drawInitialAnimation(progress);
         } else {
-            this.drawInfiniteZoom();
+            this.drawInitialAnimation(1);
         }
     }
     
