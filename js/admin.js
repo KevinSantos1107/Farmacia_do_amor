@@ -2539,27 +2539,57 @@ function addPlaylistTabToAdmin() {
                 
                 <div class="form-group">
                     <label>📁 Arquivo de Áudio</label>
-                    <input type="file" id="musicAudioFile" accept="audio/*" required>
-                    <small style="color: var(--theme-text-secondary); display: block; margin-top: 5px;">
-                        MP3, M4A, WAV, OGG, FLAC (máximo 100MB)
-                    </small>
+<input type="file" id="musicAudioFile" accept="audio/*" multiple required>
+<small style="color: var(--theme-text-secondary); display: block; margin-top: 5px;">
+    MP3, M4A, WAV, OGG, FLAC (máximo 100MB)
+</small>
+
+<!-- ✨ NOVO: Preview de Múltiplas Músicas -->
+<div id="multiMusicPreviewContainer" class="multi-music-preview-container" style="display: none; margin-top: 15px;">
+    <div class="preview-header-multi">
+        <i class="fas fa-compact-disc"></i>
+        <span>Músicas Selecionadas (<span id="musicCount">0</span>)</span>
+    </div>
+    
+    <!-- Lista de músicas em miniatura -->
+    <div id="musicPreviewList" class="music-preview-list"></div>
+    
+    <!-- Detalhes da música selecionada -->
+    <div id="selectedMusicDetails" class="selected-music-details" style="display: none;">
+        <div class="details-header">
+            <i class="fas fa-info-circle"></i>
+            <span>Detalhes da Música</span>
+        </div>
+        <div class="details-content">
+            <img id="detailsCoverImage" class="details-cover" src="" alt="Capa">
+            <div class="details-info">
+                <div class="detail-row">
+                    <strong>📝 Título:</strong>
+                    <span id="detailsTitle">-</span>
+                </div>
+                <div class="detail-row">
+                    <strong>🎤 Artista:</strong>
+                    <span id="detailsArtist">-</span>
+                </div>
+                <div class="detail-row">
+                    <strong>💿 Álbum:</strong>
+                    <span id="detailsAlbum">-</span>
+                </div>
+                <div class="detail-row">
+                    <strong>📦 Tamanho:</strong>
+                    <span id="detailsSize">-</span>
+                </div>
+                <div class="detail-row">
+                    <strong>🖼️ Capa:</strong>
+                    <span id="detailsCoverStatus">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                 </div>
 
-                <div id="coverPreviewContainer" class="cover-preview-container" style="display: none; margin-top: 10px;">
-                    <div style="display: grid; grid-template-columns: 80px 1fr; gap: 12px; padding: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--theme-card-border); border-radius: 8px; align-items: center;">
-                        <img id="coverPreviewImage" 
-                            style="width: 80px; height: 80px; border-radius: 6px; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.4);" 
-                            alt="Capa da música">
-                        <div style="min-width: 0;">
-                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--theme-primary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                📀 Preview da Capa
-                            </div>
-                            <div id="coverPreviewInfo" style="font-size: 0.8rem; color: var(--theme-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;">
-                                Processando...
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
                 <button type="submit" class="submit-btn green">
                     <i class="fas fa-plus-circle"></i>
                     Adicionar à Playlist
@@ -2592,73 +2622,7 @@ function addPlaylistTabToAdmin() {
     document.getElementById('selectPlaylistForMusic').addEventListener('change', showMusicForm);
     document.getElementById('addMusicForm').addEventListener('submit', addMusicToPlaylist);
     
-setTimeout(() => {
-    const audioInput = document.getElementById('musicAudioFile');
-    
-    if (!audioInput) return;
-    
-    audioInput.addEventListener('change', async function(e) {
-        const file = e.target.files[0];
-        const previewContainer = document.getElementById('coverPreviewContainer');
-        
-        if (!file) {
-            if (previewContainer) previewContainer.style.display = 'none';
-            return;
-        }
-        
-        if (!file.type.includes('audio') && !file.name.match(/\.(mp3|m4a)$/i)) {
-            if (previewContainer) previewContainer.style.display = 'none';
-            return;
-        }
-        
-        if (previewContainer) {
-            previewContainer.style.display = 'block';
-            document.getElementById('coverPreviewInfo').textContent = '🔍 Extraindo capa...';
-        }
-        
-        try {
-            const extracted = await extractMP3Cover(file);
-            
-            if (extracted) {
-                document.getElementById('coverPreviewImage').src = extracted.coverUrl;
-                document.getElementById('coverPreviewInfo').innerHTML = `
-                    <strong>${extracted.title}</strong><br>
-                    ${extracted.artist}${extracted.album ? ` • ${extracted.album}` : ''}
-                `;
-                
-                const titleInput = document.getElementById('musicTitle');
-                const artistInput = document.getElementById('musicArtist');
-                
-                if (titleInput && !titleInput.value && extracted.title) {
-                    titleInput.value = extracted.title;
-                    titleInput.style.background = 'rgba(100, 255, 100, 0.1)';
-                    setTimeout(() => {
-                        titleInput.style.background = '';
-                    }, 2000);
-                }
-                
-                if (artistInput && !artistInput.value && extracted.artist) {
-                    artistInput.value = extracted.artist;
-                    artistInput.style.background = 'rgba(100, 255, 100, 0.1)';
-                    setTimeout(() => {
-                        artistInput.style.background = '';
-                    }, 2000);
-                }
-                
-                console.log('✅ Preview da capa carregado!');
-            } else {
-                document.getElementById('coverPreviewImage').src = 'images/capas-albuns/default-music.jpg';
-                document.getElementById('coverPreviewInfo').innerHTML = '⚠️ MP3 sem capa embutida<br>Será usada capa padrão';
-            }
-            
-        } catch (error) {
-            console.error('❌ Erro ao extrair preview:', error);
-            if (document.getElementById('coverPreviewInfo')) {
-                document.getElementById('coverPreviewInfo').textContent = '❌ Erro ao extrair capa';
-            }
-        }
-    });
-}, 1000);
+
     
     console.log('✅ Aba de playlists criada com design moderno');
 }
@@ -3032,18 +2996,25 @@ async function addMusicToPlaylist(e) {
     e.preventDefault();
     
     const playlistId = document.getElementById('selectPlaylistForMusic').value;
-    const audioFile = document.getElementById('musicAudioFile').files[0];
-    let title = document.getElementById('musicTitle').value.trim();
-    let artist = document.getElementById('musicArtist').value.trim();
+    const audioFiles = Array.from(document.getElementById('musicAudioFile').files); // ✅ Pega todas
     
     if (!playlistId) {
         alert('⚠️ Selecione uma playlist!');
         return;
     }
     
-    if (!audioFile) {
-        alert('⚠️ Selecione um arquivo de áudio!');
+    if (audioFiles.length === 0) {
+        alert('⚠️ Selecione pelo menos um arquivo de áudio!');
         return;
+    }
+    
+    // Confirmação para muitos arquivos
+    if (audioFiles.length > 20) {
+        const confirm = window.confirm(
+            `⚠️ Você selecionou ${audioFiles.length} músicas!\n\n` +
+            `Isso pode demorar bastante tempo.\nDeseja continuar?`
+        );
+        if (!confirm) return;
     }
     
     const btn = e.target.querySelector('button');
@@ -3051,90 +3022,108 @@ async function addMusicToPlaylist(e) {
     
     try {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
         
-        if (!audioFile.type.startsWith('audio/') && !audioFile.name.match(/\.(mp3|m4a|wav|ogg|flac)$/i)) {
-            alert('❌ Arquivo inválido! Use MP3, M4A, WAV, OGG ou FLAC.');
-            btn.disabled = false;
+        const uploadErrors = [];
+        const successfulTracks = [];
+        
+        // ===== PROCESSAR CADA MÚSICA =====
+        for (let i = 0; i < audioFiles.length; i++) {
+            const audioFile = audioFiles[i];
+            const currentNum = i + 1;
+            const totalNum = audioFiles.length;
+            
+            try {
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processando ${currentNum}/${totalNum}...`;
+                
+                // Validações
+                if (!audioFile.type.startsWith('audio/') && !audioFile.name.match(/\.(mp3|m4a|wav|ogg|flac)$/i)) {
+                    throw new Error('Formato inválido');
+                }
+                
+                if (audioFile.size > 100 * 1024 * 1024) {
+                    throw new Error('Arquivo maior que 100MB');
+                }
+                
+                // Extrair capa e metadados
+                btn.innerHTML = `<i class="fas fa-image fa-spin"></i> Extraindo capa ${currentNum}/${totalNum}...`;
+                
+                let coverUrl = 'images/capas-albuns/default-music.jpg';
+                let metadata = {
+                    title: audioFile.name.replace(/\.[^/.]+$/, ""),
+                    artist: 'Artista desconhecido',
+                    album: ''
+                };
+                
+                if (typeof extractAndUploadMP3Cover === 'function') {
+                    try {
+                        const extracted = await extractAndUploadMP3Cover(audioFile);
+                        
+                        if (extracted && extracted.coverUrl && !extracted.coverUrl.includes('default-music.jpg')) {
+                            coverUrl = extracted.coverUrl;
+                        }
+                        
+                        if (extracted.metadata.title) metadata.title = extracted.metadata.title;
+                        if (extracted.metadata.artist) metadata.artist = extracted.metadata.artist;
+                        if (extracted.metadata.album) metadata.album = extracted.metadata.album;
+                        
+                    } catch (extractError) {
+                        console.warn(`⚠️ Erro ao extrair capa da música ${currentNum}:`, extractError);
+                    }
+                }
+                
+                // Upload do áudio
+                btn.innerHTML = `<i class="fas fa-cloud-upload-alt fa-spin"></i> Enviando áudio ${currentNum}/${totalNum}...`;
+                
+                if (typeof uploadAudioToCloudinary === 'undefined') {
+                    throw new Error('Sistema de upload não disponível');
+                }
+                
+                const audioData = await uploadAudioToCloudinary(audioFile);
+                
+                if (!audioData || !audioData.url) {
+                    throw new Error('Falha no upload do áudio');
+                }
+                
+                // Música processada com sucesso
+                successfulTracks.push({
+                    title: metadata.title,
+                    artist: metadata.artist,
+                    album: metadata.album,
+                    src: audioData.url,
+                    cover: coverUrl,
+                    duration: audioData.duration || 0,
+                    cloudinaryId: audioData.publicId || null,
+                    source: 'upload',
+                    addedAt: Date.now() + i
+                });
+                
+                console.log(`✅ Música ${currentNum}/${totalNum} processada:`, metadata.title);
+                
+                // Pequeno delay entre músicas
+                if (i < audioFiles.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                
+            } catch (fileError) {
+                uploadErrors.push({
+                    file: audioFile.name,
+                    error: fileError.message
+                });
+                console.error(`❌ Erro na música ${currentNum}:`, fileError);
+            }
+        }
+        
+        // ===== SALVAR NO FIREBASE =====
+        if (successfulTracks.length === 0) {
+            alert('❌ Nenhuma música foi processada com sucesso!');
             btn.innerHTML = originalText;
+            btn.disabled = false;
             return;
         }
         
-        if (audioFile.size > 100 * 1024 * 1024) {
-            alert('❌ Arquivo muito grande! Máximo 100MB.');
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-            return;
-        }
-
-btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extraindo capa do MP3...';
-
-let coverUrl = 'images/capas-albuns/default-music.jpg';
-let metadata = {
-    title: title || audioFile.name.replace(/\.[^/.]+$/, ""),
-    artist: artist || 'Artista desconhecido',
-    album: ''
-};
-
-console.log('🎵 Tentando extrair capa do arquivo de áudio...');
-
-if (typeof extractAndUploadMP3Cover === 'function') {
-    try {
-        const extracted = await extractAndUploadMP3Cover(audioFile);
+        btn.innerHTML = '<i class="fas fa-database fa-spin"></i> Salvando no Firebase...';
         
-        if (extracted && extracted.coverUrl && !extracted.coverUrl.includes('default-music.jpg')) {
-            coverUrl = extracted.coverUrl;
-            console.log('✅ CAPA EXTRAÍDA E SALVA:', coverUrl);
-        } else {
-            console.warn('⚠️ Nenhuma capa embutida encontrada - usando padrão');
-        }
-        
-        if (!title && extracted.metadata.title) {
-            metadata.title = extracted.metadata.title;
-            document.getElementById('musicTitle').value = metadata.title;
-        }
-        
-        if (!artist && extracted.metadata.artist) {
-            metadata.artist = extracted.metadata.artist;
-            document.getElementById('musicArtist').value = metadata.artist;
-        }
-        
-        if (extracted.metadata.album) {
-            metadata.album = extracted.metadata.album;
-        }
-        
-    } catch (extractError) {
-        console.error('❌ Erro ao extrair capa:', extractError);
-        console.warn('⚠️ Usando capa padrão devido ao erro');
-    }
-} else {
-    console.error('❌ Função extractAndUploadMP3Cover não encontrada!');
-    alert('⚠️ Sistema de extração de capa não está carregado. Recarregue a página.');
-}
-
-console.log('📋 RESUMO DA EXTRAÇÃO:');
-console.log('   🖼️ Capa final:', coverUrl);
-console.log('   🎵 Título:', metadata.title);
-console.log('   🎤 Artista:', metadata.artist);
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fazendo upload do áudio...';
-        
-        if (typeof uploadAudioToCloudinary === 'undefined') {
-            throw new Error('Sistema de upload não está pronto. Recarregue a página.');
-        }
-        
-        const audioData = await uploadAudioToCloudinary(audioFile);
-        
-        if (!audioData || !audioData.url) {
-            throw new Error('Não foi possível obter a URL do áudio!');
-        }
-        
-        console.log('✅ Áudio enviado com sucesso:', audioData.url);
-        
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
-        
+        // Buscar músicas existentes
         const musicSnapshot = await db.collection('playlist_tracks')
             .where('playlistId', '==', playlistId)
             .get();
@@ -3148,33 +3137,11 @@ console.log('   🎤 Artista:', metadata.artist);
             const tracks = doc.data().tracks || [];
             currentTracks.push(...tracks);
         });
-
-        const newTrack = {
-            title: metadata.title,
-            artist: metadata.artist,
-            album: metadata.album,
-            src: audioData.url,
-            cover: coverUrl,
-            duration: audioData.duration || 0,
-            cloudinaryId: audioData.publicId || null,
-            source: 'upload',
-            addedAt: Date.now()
-        };
         
-        console.log('🎵 MÚSICA QUE SERÁ SALVA NO FIREBASE:');
-        console.log('   📝 Título:', newTrack.title);
-        console.log('   🎤 Artista:', newTrack.artist);
-        console.log('   🖼️ Capa:', newTrack.cover);
-        console.log('   🔊 Áudio:', newTrack.src);
+        // Adicionar novas músicas
+        currentTracks.push(...successfulTracks);
         
-        if (newTrack.cover.includes('default-music.jpg')) {
-            console.warn('⚠️ ATENÇÃO: Capa padrão será salva (capa não foi extraída)');
-        } else {
-            console.log('✅ Capa personalizada será salva!');
-        }
-        
-        currentTracks.push(newTrack);
-        
+        // Paginar (200 músicas por página)
         const TRACKS_PER_PAGE = 200;
         const pages = [];
         
@@ -3182,12 +3149,14 @@ console.log('   🎤 Artista:', metadata.artist);
             pages.push(currentTracks.slice(i, i + TRACKS_PER_PAGE));
         }
         
+        // Deletar páginas antigas
         const deletePromises = [];
         musicSnapshot.forEach(doc => {
             deletePromises.push(db.collection('playlist_tracks').doc(doc.id).delete());
         });
         await Promise.all(deletePromises);
         
+        // Criar novas páginas
         for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
             await db.collection('playlist_tracks').add({
                 playlistId: playlistId,
@@ -3197,30 +3166,41 @@ console.log('   🎤 Artista:', metadata.artist);
             });
         }
         
+        // Atualizar contador
         await db.collection('custom_playlists').doc(playlistId).update({
             trackCount: currentTracks.length
         });
         
-        alert(`✅ Música "${metadata.title}" adicionada com ${coverUrl.includes('default') ? 'capa padrão' : 'capa extraída do MP3'}!`);
+        // ===== FEEDBACK FINAL =====
+        let successMsg = `✅ ${successfulTracks.length} música(s) adicionada(s) com sucesso!`;
+        
+        if (uploadErrors.length > 0) {
+            successMsg += `\n\n⚠️ ${uploadErrors.length} música(s) falharam:\n`;
+            uploadErrors.slice(0, 5).forEach(err => {
+                successMsg += `\n• ${err.file}: ${err.error}`;
+            });
+            if (uploadErrors.length > 5) {
+                successMsg += `\n... e mais ${uploadErrors.length - 5}`;
+            }
+        }
+        
+        alert(successMsg);
         
         document.getElementById('addMusicForm').reset();
         btn.innerHTML = originalText;
         btn.disabled = false;
         
         await loadExistingPlaylists();
-
-const currentPlaylistIndex = window.PlaylistManager?.state?.currentPlaylistIndex || 0;
-console.log(`💾 Playlist atual antes do reload: ${currentPlaylistIndex}`);
-
-if (typeof PlaylistManager !== 'undefined' && PlaylistManager.reload) {
-    await PlaylistManager.reload();
-}
-
-console.log('✅ Música adicionada com sucesso!');
+        
+        // Recarregar player
+        if (typeof PlaylistManager !== 'undefined' && PlaylistManager.reload) {
+            await PlaylistManager.reload();
+        }
+        
+        console.log(`✅ ${successfulTracks.length} músicas adicionadas à playlist!`);
         
     } catch (error) {
-        console.error('❌ Erro ao adicionar música:', error);
-        console.error('Stack trace:', error.stack);
+        console.error('❌ Erro fatal:', error);
         alert(`❌ Erro: ${error.message}`);
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -3593,5 +3573,188 @@ if (document.readyState === 'loading') {
 } else {
     initStarMapAdminSystem();
 }
+
+// ===== SISTEMA DE PREVIEW MÚLTIPLO DE MÚSICAS =====
+console.log('🎵 Sistema de preview múltiplo carregado');
+
+let musicPreviews = []; // Armazena dados de cada música
+
+function initMultiMusicPreview() {
+    const audioInput = document.getElementById('musicAudioFile');
+    
+    if (!audioInput) {
+        console.warn('⚠️ Input de música não encontrado');
+        return;
+    }
+    
+    audioInput.addEventListener('change', async function(e) {
+        const files = Array.from(e.target.files);
+        const container = document.getElementById('multiMusicPreviewContainer');
+        const list = document.getElementById('musicPreviewList');
+        const countSpan = document.getElementById('musicCount');
+        
+        if (files.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        
+        // Mostrar container
+        container.style.display = 'block';
+        countSpan.textContent = files.length;
+        list.innerHTML = '';
+        musicPreviews = [];
+        
+        // Processar cada arquivo
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const itemId = `music-preview-${i}`;
+            
+            // Criar item na lista
+            const item = document.createElement('div');
+            item.className = 'music-preview-item loading';
+            item.id = itemId;
+            item.innerHTML = `
+                <div class="preview-mini-cover placeholder">
+                    <i class="fas fa-music"></i>
+                </div>
+                <div class="preview-mini-info">
+                    <div class="preview-mini-title">${file.name}</div>
+                    <div class="preview-mini-status">
+                        <i class="fas fa-spinner fa-spin"></i> Extraindo...
+                    </div>
+                </div>
+            `;
+            list.appendChild(item);
+            
+            // Extrair metadados em background
+            extractMusicMetadata(file, i, itemId);
+        }
+    });
+}
+
+async function extractMusicMetadata(file, index, itemId) {
+    const item = document.getElementById(itemId);
+    
+    try {
+        // Extrair capa e metadados
+        let coverUrl = 'images/capas-albuns/default-music.jpg';
+        let metadata = {
+            title: file.name.replace(/\.[^/.]+$/, ""),
+            artist: 'Artista desconhecido',
+            album: 'Álbum desconhecido'
+        };
+        
+        if (typeof extractMP3Cover === 'function') {
+            const extracted = await extractMP3Cover(file);
+            
+            if (extracted) {
+                coverUrl = extracted.coverUrl;
+                metadata.title = extracted.title || metadata.title;
+                metadata.artist = extracted.artist || metadata.artist;
+                metadata.album = extracted.album || metadata.album;
+            }
+        }
+        
+        // Salvar dados
+        musicPreviews[index] = {
+            file: file,
+            coverUrl: coverUrl,
+            metadata: metadata,
+            hasCover: coverUrl !== 'images/capas-albuns/default-music.jpg'
+        };
+        
+        // Atualizar item
+        item.classList.remove('loading');
+        item.innerHTML = `
+            <img class="preview-mini-cover" src="${coverUrl}" alt="Capa">
+            <div class="preview-mini-info">
+                <div class="preview-mini-title">${metadata.title}</div>
+                <div class="preview-mini-status success">
+                    <i class="fas fa-check"></i> ${metadata.artist}
+                </div>
+            </div>
+        `;
+        
+        // Adicionar evento de clique
+        item.addEventListener('click', () => showMusicDetails(index));
+        
+    } catch (error) {
+        console.error(`❌ Erro ao processar música ${index}:`, error);
+        
+        // Salvar com erro
+        musicPreviews[index] = {
+            file: file,
+            coverUrl: 'images/capas-albuns/default-music.jpg',
+            metadata: {
+                title: file.name.replace(/\.[^/.]+$/, ""),
+                artist: 'Erro ao processar',
+                album: '-'
+            },
+            hasCover: false,
+            error: true
+        };
+        
+        // Atualizar item
+        item.classList.remove('loading');
+        item.innerHTML = `
+            <div class="preview-mini-cover placeholder">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="preview-mini-info">
+                <div class="preview-mini-title">${file.name}</div>
+                <div class="preview-mini-status error">
+                    <i class="fas fa-times"></i> Erro ao processar
+                </div>
+            </div>
+        `;
+        
+        item.addEventListener('click', () => showMusicDetails(index));
+    }
+}
+
+function showMusicDetails(index) {
+    const music = musicPreviews[index];
+    
+    if (!music) {
+        console.warn('⚠️ Música não encontrada:', index);
+        return;
+    }
+    
+    // Remover seleção anterior
+    document.querySelectorAll('.music-preview-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Marcar como selecionada
+    const selectedItem = document.getElementById(`music-preview-${index}`);
+    if (selectedItem) {
+        selectedItem.classList.add('active');
+    }
+    
+    // Mostrar detalhes
+    const detailsContainer = document.getElementById('selectedMusicDetails');
+    detailsContainer.style.display = 'block';
+    
+    document.getElementById('detailsCoverImage').src = music.coverUrl;
+    document.getElementById('detailsTitle').textContent = music.metadata.title;
+    document.getElementById('detailsArtist').textContent = music.metadata.artist;
+    document.getElementById('detailsAlbum').textContent = music.metadata.album || 'Sem álbum';
+    document.getElementById('detailsSize').textContent = `${(music.file.size / 1024 / 1024).toFixed(2)} MB`;
+    
+    const coverStatus = music.hasCover ? 
+        '✅ Capa extraída do MP3' : 
+        '⚠️ Usando capa padrão';
+    
+    document.getElementById('detailsCoverStatus').textContent = coverStatus;
+    
+    // Scroll suave até os detalhes
+    detailsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Inicializar quando o admin abrir
+setTimeout(() => {
+    initMultiMusicPreview();
+    console.log('✅ Preview múltiplo de músicas inicializado');
+}, 1000);
 
 console.log('✅ Módulo de configuração do Star Map carregado!');
