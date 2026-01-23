@@ -2,7 +2,77 @@
 
 console.log('🔐 Sistema de Admin ILIMITADO carregado');
 
-// isAdminUnlocked is declared in script.js
+// ===== FUNÇÃO DE COMPRESSÃO CLIENT-SIDE =====
+async function compressImageIfNeeded(file, maxSizeMB = 10) {
+    if (file.size <= maxSizeMB * 1024 * 1024) {
+        console.log('✅ Imagem já está no tamanho adequado');
+        return file;
+    }
+    
+    console.log(`📦 Comprimindo ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)...`);
+    
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            const img = new Image();
+            
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                const maxDimension = 2048;
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = (height / width) * maxDimension;
+                        width = maxDimension;
+                    } else {
+                        width = (width / height) * maxDimension;
+                        height = maxDimension;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                let quality = 0.9;
+                const tryCompress = () => {
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            reject(new Error('Falha na compressão'));
+                            return;
+                        }
+                        
+                        if (blob.size <= maxSizeMB * 1024 * 1024 || quality <= 0.5) {
+                            const compressedFile = new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            
+                            console.log(`✅ Comprimido: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+                            resolve(compressedFile);
+                        } else {
+                            quality -= 0.1;
+                            tryCompress();
+                        }
+                    }, 'image/jpeg', quality);
+                };
+                
+                tryCompress();
+            };
+            
+            img.onerror = () => reject(new Error('Falha ao carregar imagem'));
+            img.src = e.target.result;
+        };
+        
+        reader.onerror = () => reject(new Error('Falha ao ler arquivo'));
+        reader.readAsDataURL(file);
+    });
+}
 
 // Utility function for debouncing
 function debounce(func, wait) {
@@ -396,12 +466,11 @@ function initAlbumForms() {
             btn.disabled = false;
         }
     });
-    
     addPhotoForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const albumId = selectAlbum.value;
-        const photoFiles = document.getElementById('photoFile').files;
+        const photoFiles = Array.from(document.getElementById('photoFile').files);
         
         if (!albumId) {
             alert('❌ Selecione um álbum primeiro!');
@@ -416,48 +485,91 @@ function initAlbumForms() {
         if (photoFiles.length > 100) {
             const confirm = window.confirm(
                 `⚠️ Você selecionou ${photoFiles.length} fotos!\n\n` +
-                `Isso pode demorar vários minutos para processar.\n` +
-                `Deseja continuar?`
+                `Isso pode demorar vários minutos.\nDeseja continuar?`
             );
             if (!confirm) return;
         }
         
+        const btn = document.querySelector('#addPhotoForm button');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        
         try {
-            const btn = addPhotoForm.querySelector('button');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            
             const photoUrls = [];
-            let uploadErrors = 0;
+            const uploadErrors = [];
+            const CONCURRENT_UPLOADS = 3;
             
+            // ETAPA 1: COMPRESSÃO
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparando fotos...';
+            
+            const compressedFiles = [];
             for (let i = 0; i < photoFiles.length; i++) {
-                if (photoFiles[i].size > 32 * 1024 * 1024) {
-                    uploadErrors++;
-                    console.warn(`⚠️ Foto ${i + 1} ignorada (maior que 32MB)`);
-                    continue;
-                }
-                
-                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Enviando ${i + 1}/${photoFiles.length} para ImgBB...`;
-                
                 try {
-                    const urls = await uploadImageToCloudinary(photoFiles[i], 1600, true);
+                    btn.innerHTML = `<i class="fas fa-compress"></i> Comprimindo ${i + 1}/${photoFiles.length}...`;
                     
-                    photoUrls.push({
-                        src: urls.medium,
-                        srcThumb: urls.thumb,
-                        srcLarge: urls.large,
-                        srcWebP: urls.webp,
-                        description: '',
-                        timestamp: Date.now() + i
+                    const compressed = await compressImageIfNeeded(photoFiles[i], 10);
+                    compressedFiles.push(compressed);
+                    
+                } catch (compressError) {
+                    console.error(`❌ Erro ao comprimir foto ${i + 1}:`, compressError);
+                    uploadErrors.push({
+                        file: photoFiles[i].name,
+                        error: 'Falha na compressão'
                     });
-                    
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                } catch (uploadError) {
-                    uploadErrors++;
-                    console.error(`❌ Erro no upload da foto ${i + 1}:`, uploadError);
                 }
             }
             
+            console.log(`✅ ${compressedFiles.length}/${photoFiles.length} fotos preparadas`);
+            
+            // ETAPA 2: UPLOAD PARALELO
+            for (let i = 0; i < compressedFiles.length; i += CONCURRENT_UPLOADS) {
+                const batch = compressedFiles.slice(i, i + CONCURRENT_UPLOADS);
+                
+                btn.innerHTML = `<i class="fas fa-cloud-upload-alt fa-spin"></i> Enviando ${Math.min(i + CONCURRENT_UPLOADS, compressedFiles.length)}/${compressedFiles.length}...`;
+                
+                const batchPromises = batch.map(async (file, idx) => {
+                    const globalIndex = i + idx;
+                    
+                    try {
+                        if (file.size > 32 * 1024 * 1024) {
+                            throw new Error('Arquivo ainda muito grande após compressão');
+                        }
+                        
+                        const urls = await uploadImageToCloudinary(file, 1600, true);
+                        
+                        return {
+                            src: urls.medium,
+                            srcThumb: urls.thumb,
+                            srcLarge: urls.large,
+                            srcWebP: urls.webp,
+                            description: '',
+                            timestamp: Date.now() + globalIndex
+                        };
+                        
+                    } catch (uploadError) {
+                        console.error(`❌ Erro no upload da foto ${globalIndex + 1}:`, uploadError);
+                        uploadErrors.push({
+                            file: file.name,
+                            error: uploadError.message
+                        });
+                        return null;
+                    }
+                });
+                
+                const results = await Promise.allSettled(batchPromises);
+                
+                results.forEach(result => {
+                    if (result.status === 'fulfilled' && result.value) {
+                        photoUrls.push(result.value);
+                    }
+                });
+                
+                if (i + CONCURRENT_UPLOADS < compressedFiles.length) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            
+            // ETAPA 3: SALVAR NO FIREBASE
             if (photoUrls.length === 0) {
                 alert('❌ Nenhuma foto foi enviada com sucesso!');
                 btn.innerHTML = originalText;
@@ -465,7 +577,7 @@ function initAlbumForms() {
                 return;
             }
             
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando no Firebase...';
+            btn.innerHTML = '<i class="fas fa-database fa-spin"></i> Salvando no Firebase...';
             
             const PHOTOS_PER_PAGE = 200;
             const pages = [];
@@ -490,13 +602,22 @@ function initAlbumForms() {
                 photoCount: currentCount + photoUrls.length
             });
             
-            let successMsg = `✅ ${photoUrls.length} foto(s) adicionada(s) ao ImgBB e Firebase!`;
-            if (uploadErrors > 0) {
-                successMsg += `\n\n⚠️ ${uploadErrors} foto(s) não foram enviadas (verifique o tamanho ou formato).`;
+            // FEEDBACK FINAL
+            let successMsg = `✅ ${photoUrls.length} foto(s) adicionada(s) com sucesso!`;
+            
+            if (uploadErrors.length > 0) {
+                successMsg += `\n\n⚠️ ${uploadErrors.length} foto(s) falharam:\n`;
+                uploadErrors.slice(0, 5).forEach(err => {
+                    successMsg += `\n• ${err.file}: ${err.error}`;
+                });
+                if (uploadErrors.length > 5) {
+                    successMsg += `\n... e mais ${uploadErrors.length - 5}`;
+                }
             }
+            
             alert(successMsg);
             
-            addPhotoForm.reset();
+            document.getElementById('addPhotoForm').reset();
             btn.innerHTML = originalText;
             btn.disabled = false;
             
@@ -504,10 +625,9 @@ function initAlbumForms() {
             await loadAlbumsFromFirebase();
             
         } catch (error) {
-            console.error('❌ Erro ao adicionar fotos:', error);
+            console.error('❌ Erro fatal:', error);
             alert('❌ Erro ao adicionar fotos: ' + error.message);
-            const btn = addPhotoForm.querySelector('button');
-            btn.innerHTML = '<i class="fas fa-upload"></i> Adicionar Fotos';
+            btn.innerHTML = originalText;
             btn.disabled = false;
         }
     });
