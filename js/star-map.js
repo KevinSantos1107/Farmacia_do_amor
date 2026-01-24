@@ -659,6 +659,12 @@ initBackgroundStars() {
     }
     
     startWarpEffect() {
+
+        if (!this.isAnimationComplete) {
+            console.log('⚠️ Aguarde a animação inicial terminar!');
+            return; // Não faz nada
+        }
+
         this.warpActive = true;
         this.warpStartTime = Date.now();
         this.warpTransitionStart = Date.now();
