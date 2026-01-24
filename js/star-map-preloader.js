@@ -157,13 +157,35 @@ window.forceReloadStarMapConfig = async function() {
     return true;
 };
 
-// ===== INICIALIZAR QUANDO A PÁGINA CARREGAR =====
+// ===== INICIALIZAR QUANDO A PÁGINA CARREGAR (OTIMIZADO PARA MOBILE) =====
+async function startPreloaderWhenReady() {
+    // 1. Aguardar Firebase estar 100% pronto
+    while (typeof db === 'undefined') {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    console.log('🔥 Firebase pronto - iniciando preloader...');
+    
+    // 2. Aguardar função selectVisibleConstellations estar disponível
+    let attempts = 0;
+    while (typeof selectVisibleConstellations !== 'function' && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+    }
+    
+    if (typeof selectVisibleConstellations === 'function') {
+        console.log('✅ star-map.js carregado - iniciando pré-cálculo...');
+        await initializeStarMapPreloader();
+    } else {
+        console.warn('⚠️ star-map.js não carregou a tempo - preloader pulado');
+    }
+}
+
+// Iniciar assim que possível
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(initializeStarMapPreloader, 2000); // 2 segundos após carregar
-    });
+    document.addEventListener('DOMContentLoaded', startPreloaderWhenReady);
 } else {
-    setTimeout(initializeStarMapPreloader, 2000);
+    startPreloaderWhenReady();
 }
 
 console.log('✅ Star Map Preloader carregado!');
