@@ -298,36 +298,73 @@ function initStarMapModal() {
         return;
     }
     
-    // Abrir modal
-    if (openBtn) {
-        openBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
+// Abrir modal
+if (openBtn) {
+    openBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        
+        // ✅ MOSTRAR MODAL IMEDIATAMENTE
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        
+        if (typeof HistoryManager !== 'undefined') {
+            HistoryManager.push('star-map-modal');
+        }
+        
+        console.log('🎬 Abrindo modal - resetando Star Map...');
+        
+        // ✅ DESTRUIR COMPLETAMENTE O STAR MAP ANTERIOR
+        if (window.starMap) {
+            window.starMap.destroy();
+            window.starMap = null;
+        }
+        
+        // ✅ MOSTRAR LOADING NO CANVAS ENQUANTO PREPARA
+        const canvas = document.getElementById('starMapCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 800, 800);
             
-            if (typeof HistoryManager !== 'undefined') {
-                HistoryManager.push('star-map-modal');
+            // Círculo de loading
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(400, 400, 50, 0, Math.PI * 1.5);
+            ctx.stroke();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '16px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Carregando...', 400, 480);
+        }
+        
+        // ✅ AGUARDAR PRELOADER (se ainda não carregou)
+        if (!window.starMapState || !window.starMapState.isLoaded) {
+            console.log('⏳ Aguardando preloader terminar...');
+            
+            let waitAttempts = 0;
+            while ((!window.starMapState || !window.starMapState.isLoaded) && waitAttempts < 30) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                waitAttempts++;
             }
             
-            console.log('🎬 Abrindo modal - resetando Star Map...');
-            
-            // ✅ DESTRUIR COMPLETAMENTE O STAR MAP ANTERIOR
-            if (window.starMap) {
-                window.starMap.destroy();
-                window.starMap = null;
+            if (waitAttempts >= 30) {
+                console.warn('⚠️ Preloader timeout - carregando dados agora...');
             }
-            
-            if (window.starMapState && window.starMapState.isLoaded) {
-                console.log('⚡ Usando dados pré-carregados (instantâneo)');
-            } else {
-                console.log('⏳ Carregando dados agora...');
-            }
-            
-            await initializeStarMapWithConfig();
-            
-            console.log('✨ Star Map criado do zero - animação iniciada');
-        });
-    }
+        }
+        
+        if (window.starMapState && window.starMapState.isLoaded) {
+            console.log('⚡ Usando dados pré-carregados (instantâneo)');
+        } else {
+            console.log('⏳ Carregando dados agora...');
+        }
+        
+        await initializeStarMapWithConfig();
+        
+        console.log('✨ Star Map criado do zero - animação iniciada');
+    });
+}
     
     // ✅ FECHAR MODAL - CORREÇÃO PRINCIPAL PARA MOBILE
     const closeStarMap = () => {
