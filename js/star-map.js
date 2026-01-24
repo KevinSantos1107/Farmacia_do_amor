@@ -145,7 +145,7 @@ const CONSTELLATIONS_DATA = {
 
 // ===== FUNÇÃO PARA CALCULAR ESTAÇÃO DO ANO =====
 function getSeason(date, latitude) {
-    const month = date.getMonth(); // 0-11
+    const month = date.getMonth();
     const isNorthern = latitude >= 0;
     
     if (isNorthern) {
@@ -172,14 +172,12 @@ function selectVisibleConstellations(date, latitude, longitude) {
     console.log(`   🍂 Estação: ${season}`);
     console.log(`   🌐 Hemisfério: ${hemisphere}`);
     
-    // Filtrar constelações visíveis (preferência para estação/hemisfério)
     const perfectMatch = Object.entries(CONSTELLATIONS_DATA).filter(([name, data]) => {
         const isSeasonMatch = data.season === season || data.season === 'ano_todo';
         const isHemisphereMatch = data.hemisphere === hemisphere || data.hemisphere === 'both';
         return isSeasonMatch && isHemisphereMatch;
     });
     
-    // Se não tiver 3, adicionar constelações de "both" de outras estações
     let available = [...perfectMatch];
     
     if (available.length < 3) {
@@ -190,7 +188,6 @@ function selectVisibleConstellations(date, latitude, longitude) {
         available = [...available, ...fallback];
     }
     
-    // Se ainda não tiver 3, adicionar qualquer uma do mesmo hemisfério
     if (available.length < 3) {
         const sameHemisphere = Object.entries(CONSTELLATIONS_DATA).filter(([name, data]) => {
             const alreadyIncluded = available.some(([n]) => n === name);
@@ -199,7 +196,6 @@ function selectVisibleConstellations(date, latitude, longitude) {
         available = [...available, ...sameHemisphere];
     }
     
-    // Última garantia: se ainda não tiver 3, pegar qualquer uma
     if (available.length < 3) {
         const any = Object.entries(CONSTELLATIONS_DATA).filter(([name, data]) => {
             const alreadyIncluded = available.some(([n]) => n === name);
@@ -208,10 +204,7 @@ function selectVisibleConstellations(date, latitude, longitude) {
         available = [...available, ...any];
     }
     
-    // Ordenar por magnitude (mais brilhantes primeiro)
     available.sort((a, b) => b[1].magnitude - a[1].magnitude);
-    
-    // SEMPRE pegar exatamente 3 (garantido)
     const selected = available.slice(0, 3);
     
     console.log(`✨ ${selected.length} constelações selecionadas:`);
@@ -219,43 +212,37 @@ function selectVisibleConstellations(date, latitude, longitude) {
         console.log(`   ⭐ ${name} (magnitude ${data.magnitude})`);
     });
     
-    // ✅ REDISTRIBUIR POSIÇÕES PARA OCUPAR MELHOR O ESPAÇO
     return redistributeConstellations(selected);
 }
 
 // ===== FUNÇÃO PARA REDISTRIBUIR CONSTELAÇÕES NO CANVAS =====
 function redistributeConstellations(constellations) {
-    const centerX = 400; // Centro do canvas 800x800
+    const centerX = 400;
     const centerY = 400;
-    const baseRadius = 200; // Raio médio das posições
+    const baseRadius = 200;
     
-    // Definir 3 setores (120° cada) para distribuição uniforme
     const sectors = [
-        { angle: 0, name: 'superior' },      // Topo
-        { angle: 120, name: 'inferior-esq' }, // Inferior esquerdo
-        { angle: 240, name: 'inferior-dir' }  // Inferior direito
+        { angle: 0, name: 'superior' },
+        { angle: 120, name: 'inferior-esq' },
+        { angle: 240, name: 'inferior-dir' }
     ];
     
     return constellations.map(([name, data], index) => {
         const sector = sectors[index];
         const angleRad = (sector.angle * Math.PI) / 180;
         
-        // Calcular offset do centro baseado no setor
         const offsetX = Math.sin(angleRad) * baseRadius;
         const offsetY = -Math.cos(angleRad) * baseRadius;
         
-        // Reposicionar todas as estrelas da constelação
         const redistributedStars = data.stars.map(star => {
-            // Calcular posição relativa ao centro original da constelação
             const originalCenterX = data.stars.reduce((sum, s) => sum + s.x, 0) / data.stars.length;
             const originalCenterY = data.stars.reduce((sum, s) => sum + s.y, 0) / data.stars.length;
             
             const relativeX = star.x - originalCenterX;
             const relativeY = star.y - originalCenterY;
             
-            // Nova posição = centro do canvas + offset do setor + posição relativa
             return {
-                x: centerX + offsetX + relativeX * 0.8, // 0.8 para escalar um pouco
+                x: centerX + offsetX + relativeX * 0.8,
                 y: centerY + offsetY + relativeY * 0.8
             };
         });
@@ -269,18 +256,16 @@ function redistributeConstellations(constellations) {
     });
 }
 
-// ===== FUNÇÃO PARA ATUALIZAR INFO DO MODAL (sem recriar o canvas) =====
+// ===== FUNÇÃO PARA ATUALIZAR INFO DO MODAL =====
 function updateStarMapModalInfo(specialDate, latitude, longitude, romanticQuote, config) {
     console.log('🔄 Atualizando informações do modal...');
     
-    // Atualizar frase romântica
     const quoteElement = document.querySelector('.star-map-quote');
     if (quoteElement) {
         quoteElement.innerHTML = `"${romanticQuote}" <span class="sparkle">✨</span>`;
         console.log('✅ Frase atualizada');
     }
     
-    // Atualizar detalhes (data, local, coordenadas)
     const detailsElement = document.querySelector('.star-map-details');
     if (detailsElement) {
         const locationName = config?.customLocation?.name || 'LOCALIZAÇÃO ATUAL';
@@ -313,23 +298,25 @@ function initStarMapModal() {
         return;
     }
     
-// Abrir modal
+    // Abrir modal
     if (openBtn) {
         openBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
             
-            // Adicionar ao histórico
             if (typeof HistoryManager !== 'undefined') {
                 HistoryManager.push('star-map-modal');
             }
             
-            // ✅ SEMPRE RESETAR E RECRIAR (GARANTE ANIMAÇÃO DO ZERO)
             console.log('🎬 Abrindo modal - resetando Star Map...');
-            window.starMap = null;
             
-            // Se houver config pré-carregada, usar
+            // ✅ DESTRUIR COMPLETAMENTE O STAR MAP ANTERIOR
+            if (window.starMap) {
+                window.starMap.destroy();
+                window.starMap = null;
+            }
+            
             if (window.starMapState && window.starMapState.isLoaded) {
                 console.log('⚡ Usando dados pré-carregados (instantâneo)');
             } else {
@@ -342,31 +329,50 @@ function initStarMapModal() {
         });
     }
     
-    // Fechar modal
-    closeBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-
-        // Parar animação para economizar recursos
-        if (window.starMap && typeof window.starMap.stop === 'function') {
-            try { window.starMap.stop(); } catch (e) { console.warn('Erro ao parar StarMap:', e); }
+    // ✅ FECHAR MODAL - CORREÇÃO PRINCIPAL PARA MOBILE
+    const closeStarMap = () => {
+        console.log('🛑 Fechando Star Map Modal...');
+        
+        // 1. PARAR E DESTRUIR COMPLETAMENTE A ANIMAÇÃO
+        if (window.starMap) {
+            window.starMap.destroy();
             window.starMap = null;
         }
-
-        console.log('✨ Star Map Modal fechado');
-    });
+        
+        // 2. LIMPAR O CANVAS COMPLETAMENTE
+        const canvas = document.getElementById('starMapCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Resetar transformações
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+        
+        // 3. ESCONDER MODAL E RESTAURAR SCROLL
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // 4. FORÇAR GARBAGE COLLECTION (mobile)
+        setTimeout(() => {
+            if (window.gc) window.gc(); // Se disponível
+        }, 100);
+        
+        console.log('✨ Star Map Modal fechado e limpo');
+    };
+    
+    closeBtn.addEventListener('click', closeStarMap);
     
     // Fechar ao clicar fora
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-            closeBtn.click();
+            closeStarMap();
         }
     });
     
     // Fechar com ESC
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.style.display === 'flex') {
-            closeBtn.click();
+            closeStarMap();
         }
     });
     
@@ -380,7 +386,6 @@ async function initializeStarMapWithConfig() {
         
         let specialDate, latitude, longitude, romanticQuote, config;
         
-        // ✅ USAR DADOS PRÉ-CARREGADOS SE DISPONÍVEIS
         if (window.starMapState && window.starMapState.isConfigLoaded) {
             console.log('⚡ Usando configurações pré-carregadas!');
             config = window.starMapState.config;
@@ -389,12 +394,12 @@ async function initializeStarMapWithConfig() {
             const configDoc = await db.collection('star_map_config').doc('settings').get();
             config = configDoc.exists ? configDoc.data() : null;
         }
-    if (config && config.specialDate) {
-            // ✅ CORRIGIDO: Adicionar horário para evitar problema de fuso horário
+        
+        if (config && config.specialDate) {
             specialDate = new Date(config.specialDate + 'T12:00:00');
             console.log(`📅 Data especial encontrada: ${specialDate.toLocaleDateString('pt-BR')}`);
         } else {
-            specialDate = new Date(); // Hoje
+            specialDate = new Date();
             console.log(`📅 Usando data atual: ${specialDate.toLocaleDateString('pt-BR')}`);
         }
         
@@ -403,14 +408,12 @@ async function initializeStarMapWithConfig() {
             longitude = config.customLocation.lng;
             console.log(`📍 Localização manual: ${latitude}, ${longitude}`);
         } else {
-            // Tentar geolocalização
             try {
                 const position = await getCurrentPosition();
                 latitude = position.coords.latitude;
                 longitude = position.coords.longitude;
                 console.log(`📍 Geolocalização detectada: ${latitude}, ${longitude}`);
             } catch (error) {
-                // Fallback: Harvard, Illinois
                 latitude = 42.4164;
                 longitude = -88.6137;
                 console.log(`📍 Usando localização padrão: Harvard, Illinois`);
@@ -419,10 +422,8 @@ async function initializeStarMapWithConfig() {
         
         romanticQuote = config?.romanticQuote || "Não importa as constelações nem o idioma, eu vou te amar de qualquer maneira.";
         
-        // ✅ ATUALIZAR ELEMENTOS DO MODAL COM AS NOVAS CONFIGURAÇÕES
         updateStarMapModalInfo(specialDate, latitude, longitude, romanticQuote, config);
         
-        // ✅ USAR CONSTELAÇÕES PRÉ-CALCULADAS OU CALCULAR AGORA
         let visibleConstellations;
         
         if (window.starMapState && window.starMapState.constellations) {
@@ -433,14 +434,12 @@ async function initializeStarMapWithConfig() {
             visibleConstellations = selectVisibleConstellations(specialDate, latitude, longitude);
         }
         
-        // ✅ SEMPRE CRIAR NOVO STAR MAP (REINICIA ANIMAÇÃO)
         console.log('🎬 Criando novo Star Map com animação do zero...');
         window.starMap = new StarMap(visibleConstellations);
 
     } catch (error) {
         console.error('❌ Erro ao inicializar Star Map:', error);
         
-        // Fallback: usar constelações padrão
         const fallbackConstellations = [
             { name: 'Cassiopeia', stars: CONSTELLATIONS_DATA['Cassiopeia'].stars },
             { name: 'Orion', stars: CONSTELLATIONS_DATA['Orion'].stars },
@@ -486,7 +485,6 @@ class StarMap {
         this.tunnelEffect = document.getElementById('starTunnelEffect');
         this.startWarpButton = document.getElementById('startStarWarp');
         
-        // Configurações do canvas
         this.canvas.width = 800;
         this.canvas.height = 800;
         
@@ -494,14 +492,12 @@ class StarMap {
         this.centerY = this.canvas.height / 2;
         this.radius = this.canvas.width / 2 - 20;
         
-        // Estado da animação
         this.animationProgress = 0;
         this.animationDuration = 6000;
         this.pulseDuration = 0.6;
         this.startTime = null;
         this.isAnimationComplete = false;
         
-        // Estado do warp
         this.warpActive = false;
         this.warpStartTime = 0;
         this.warpDuration = 30000;
@@ -512,17 +508,14 @@ class StarMap {
         this.returnDuration = 1000;
         this.warpEnded = false;
         
-        // Zoom
         this.zoomDepth = 0;
         this.isZooming = false;
         this.zoomSpeed = 0;
         this.maxZoomSpeed = 0.05;
         
-        // Partículas para efeito warp (reduzido para melhorar performance)
         this.particles = [];
         this.particleCount = 200;
         
-        // Mensagens "Eu te amo" em várias línguas
         this.loveMessages = [
             { depth: 5, text: "Eu te amo", lang: "Português", color: "#ff1493" },
             { depth: 12, text: "I love you", lang: "English", color: "#ff69b4" },
@@ -533,15 +526,15 @@ class StarMap {
             { depth: 47, text: "愛してる", lang: "Japonês", color: "#ffc2e0" },
         ];
         
-        // Estrelas de fundo
         this.backgroundStars = [];
         this.initBackgroundStars();
 
-        // Controle de execução da animação
         this.running = true;
         this.rafId = null;
         
-        // ✨ CONSTELAÇÕES DINÂMICAS (passadas no construtor)
+        // ✅ ARMAZENAR REFERÊNCIA DO EVENT LISTENER PARA REMOVER DEPOIS
+        this.warpButtonHandler = () => this.startWarpEffect();
+        
         this.constellations = constellations || [
             { name: 'Cassiopeia', stars: CONSTELLATIONS_DATA['Cassiopeia'].stars },
             { name: 'Orion', stars: CONSTELLATIONS_DATA['Orion'].stars },
@@ -556,16 +549,50 @@ class StarMap {
     init() {
         if (!this.canvas || !this.ctx) return;
         
-        // Event listener do botão warp
         if (this.startWarpButton) {
-            this.startWarpButton.addEventListener('click', () => this.startWarpEffect());
+            this.startWarpButton.addEventListener('click', this.warpButtonHandler);
         }
         
-        // Iniciar animação
         this.running = true;
         this.rafId = requestAnimationFrame((timestamp) => this.animate(timestamp));
         
         console.log('✨ Star Map inicializado');
+    }
+    
+    // ✅ MÉTODO DESTROY - LIMPAR TUDO COMPLETAMENTE
+    destroy() {
+        console.log('💥 Destruindo Star Map...');
+        
+        // 1. Parar animação
+        this.running = false;
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
+        
+        // 2. Remover event listeners
+        if (this.startWarpButton && this.warpButtonHandler) {
+            this.startWarpButton.removeEventListener('click', this.warpButtonHandler);
+        }
+        
+        // 3. Limpar canvas
+        if (this.ctx && this.canvas) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+        
+        // 4. Limpar arrays e objetos
+        this.particles = [];
+        this.backgroundStars = [];
+        this.constellations = [];
+        
+        // 5. Resetar estados
+        this.warpActive = false;
+        this.isZooming = false;
+        this.isAnimationComplete = false;
+        this.returningToStart = false;
+        
+        console.log('✅ Star Map destruído completamente');
     }
     
     initBackgroundStars() {
@@ -640,7 +667,6 @@ class StarMap {
         console.log('🚀 Viagem warp iniciada!');
     }
     
-    // ===== ANIMAÇÃO INICIAL DAS ESTRELAS (MANTIDA DO ORIGINAL) =====
     drawInitialAnimation(progress) {
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.fillStyle = '#000000';
@@ -651,14 +677,12 @@ class StarMap {
         this.ctx.scale(1, 1);
         this.ctx.translate(-this.centerX, -this.centerY);
         
-        // Círculo de borda
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         this.ctx.arc(this.centerX, this.centerY, this.radius, 0, Math.PI * 2);
         this.ctx.stroke();
         
-        // Estrelas de fundo
         const totalWaves = 5;
         this.backgroundStars.forEach((star, index) => {
             const waveIndex = Math.floor((index / this.backgroundStars.length) * totalWaves);
@@ -684,7 +708,6 @@ class StarMap {
                     this.ctx.beginPath();
                     this.ctx.arc(star.x, star.y, glowRadius, 0, Math.PI * 2);
                     this.ctx.fill();
-                    
                     this.ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * opacity})`;
                     this.ctx.beginPath();
                     this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
@@ -1054,16 +1077,6 @@ class StarMap {
             this.drawScene(1);
             this.rafId = requestAnimationFrame((ts) => this.continuousRender(ts));
         }
-    }
-
-    stop() {
-        this.running = false;
-        if (this.rafId) {
-            cancelAnimationFrame(this.rafId);
-            this.rafId = null;
-        }
-        this.particles = [];
-        console.log('🛑 StarMap animation stopped to save resources');
     }
 }
 
