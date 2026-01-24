@@ -251,7 +251,8 @@ body {
     left: -100%;
     width: 240px;
     max-width: 70vw;
-    height: 100dvh; /* ← Dynamic Viewport Height (ignora barra de endereço) */
+    height: 100vh; /* Fallback para navegadores antigos */
+    height: 100dvh; /* Altura dinâmica (ignora barra de endereço) */
     background: #0f172a;
     z-index: 1000;
     transition: left 0.3s ease;
@@ -265,10 +266,6 @@ body {
     /* Scroll mobile independente */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    
-    /* Fallback para navegadores antigos */
-    height: 100vh;
-    height: 100dvh;
 }
 .side-menu.active {
     left: 0;
