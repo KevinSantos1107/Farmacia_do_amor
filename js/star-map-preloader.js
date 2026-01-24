@@ -82,6 +82,10 @@ async function precalculateConstellations() {
                 ]);
                 latitude = position.coords.latitude;
                 longitude = position.coords.longitude;
+                
+                // ✅ ARMAZENAR LOCALIZAÇÃO DETECTADA PARA REUSO
+                window.starMapState.detectedLocation = { lat: latitude, lng: longitude };
+                console.log('📍 Localização detectada e armazenada:', latitude, longitude);
             } catch (geoError) {
                 // Fallback: Harvard, Illinois
                 latitude = 42.4164;
