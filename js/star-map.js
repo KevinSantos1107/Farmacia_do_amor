@@ -407,6 +407,10 @@ async function initializeStarMapWithConfig() {
             latitude = config.customLocation.lat;
             longitude = config.customLocation.lng;
             console.log(`📍 Localização manual: ${latitude}, ${longitude}`);
+        } else if (window.starMapState && window.starMapState.detectedLocation) {
+            latitude = window.starMapState.detectedLocation.lat;
+            longitude = window.starMapState.detectedLocation.lng;
+            console.log(`📍 Usando localização pré-detectada: ${latitude}, ${longitude}`);
         } else {
             try {
                 const position = await getCurrentPosition();
