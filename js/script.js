@@ -2041,22 +2041,32 @@ function initHamburgerMenu() {
 
     console.log('✅ Elementos do menu encontrados');
 
-    function closeMenu() {
-        hamburgerBtn.classList.remove('active');
-        sideMenu.classList.remove('active');
-        menuOverlay.classList.remove('active');
-        document.body.style.overflow = 'auto';
-        console.log('🔒 Menu fechado');
-    }
+function openMenu() {
+    hamburgerBtn.classList.add('active');
+    sideMenu.classList.add('active');
+    menuOverlay.classList.add('active');
+    
+    // 🔑 BLOQUEAR SCROLL DA PÁGINA COMPLETAMENTE
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    
+    HistoryManager.push('hamburger-menu');
+    console.log('🔓 Menu aberto');
+}
 
-    function openMenu() {
-        hamburgerBtn.classList.add('active');
-        sideMenu.classList.add('active');
-        menuOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        HistoryManager.push('hamburger-menu');
-        console.log('🔓 Menu aberto');
-    }
+function closeMenu() {
+    hamburgerBtn.classList.remove('active');
+    sideMenu.classList.remove('active');
+    menuOverlay.classList.remove('active');
+    
+    // 🔑 RESTAURAR SCROLL DA PÁGINA
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    
+    console.log('🔒 Menu fechado');
+}
 
     function toggleMenu() {
         const isActive = sideMenu.classList.contains('active');
