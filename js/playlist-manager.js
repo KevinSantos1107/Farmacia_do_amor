@@ -665,11 +665,16 @@ class MediaControlsManager {
         if (this.isInitialized) return;
         this.isInitialized = true;
 
+        console.log('🎵 Inicializando MediaControlsManager...');
+
         // Configurar Media Session API para notificações do celular
         this.setupMediaSession();
 
         // Configurar event listeners para controles externos
         this.setupExternalControls();
+
+        // Anexar listeners aos elementos de áudio existentes imediatamente
+        this.attachListenersToExistingAudios();
 
         console.log('🎵 MediaControlsManager inicializado');
     }
@@ -717,25 +722,22 @@ class MediaControlsManager {
         console.log('✅ Controles externos configurados');
     }
 
-    monitorAudioElements() {
-        // Usar MutationObserver para detectar novos elementos de áudio
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.tagName === 'AUDIO') {
-                        this.attachAudioListeners(node);
-                    }
-                });
-            });
-        });
+    attachListenersToExistingAudios() {
+        // Anexar listeners aos elementos de áudio que já existem
+        const existingAudios = document.querySelectorAll('audio');
+        console.log(`🎵 Anexando listeners a ${existingAudios.length} elementos de áudio existentes`);
 
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
+        existingAudios.forEach(audio => {
+            this.attachAudioListeners(audio);
         });
+    }
 
-        // Anexar listeners aos elementos de áudio existentes
-        document.querySelectorAll('audio').forEach(audio => {
+    attachListenersToExistingAudios() {
+        // Anexar listeners aos elementos de áudio que já existem
+        const existingAudios = document.querySelectorAll('audio');
+        console.log(`🎵 Anexando listeners a ${existingAudios.length} elementos de áudio existentes`);
+
+        existingAudios.forEach(audio => {
             this.attachAudioListeners(audio);
         });
     }
@@ -757,22 +759,32 @@ class MediaControlsManager {
         audio.addEventListener('pause', this.onAudioPause);
         audio.addEventListener('ended', this.onAudioEnded);
         audio.addEventListener('timeupdate', this.onAudioTimeUpdate);
+
+        console.log(`🎵 Event listeners anexados ao áudio: ${audio.id}`);
     }
 
     handleAudioPlay(audio) {
+        console.log('🎵 Evento play detectado no áudio:', audio.id);
         // Encontrar o player correspondente
         const player = this.findPlayerByAudio(audio);
         if (player) {
+            console.log('✅ Player encontrado, atualizando UI para playing');
             this.updatePlayerUI(player, 'playing');
             this.updateMediaSession(player);
+        } else {
+            console.log('❌ Player não encontrado para áudio:', audio.id);
         }
     }
 
     handleAudioPause(audio) {
+        console.log('⏸️ Evento pause detectado no áudio:', audio.id);
         // Encontrar o player correspondente
         const player = this.findPlayerByAudio(audio);
         if (player) {
+            console.log('✅ Player encontrado, atualizando UI para paused');
             this.updatePlayerUI(player, 'paused');
+        } else {
+            console.log('❌ Player não encontrado para áudio:', audio.id);
         }
     }
 
@@ -842,30 +854,59 @@ class MediaControlsManager {
     findPlayerByAudio(audio) {
         // Encontrar o player container baseado no elemento de áudio
         const audioId = audio.id;
+        console.log('🔍 Procurando player para áudio ID:', audioId);
+
         if (audioId) {
             const playerId = audioId.replace('custom-audio-', 'custom-player-');
-            return document.getElementById(playerId);
+            console.log('🎯 Player ID esperado:', playerId);
+            const player = document.getElementById(playerId);
+            if (player) {
+                console.log('✅ Player encontrado:', playerId);
+                return player;
+            } else {
+                console.log('❌ Player não encontrado com ID:', playerId);
+            }
         }
+
+        // Fallback: procurar pelo áudio dentro do player
+        console.log('🔄 Tentando fallback - procurando player que contém este áudio');
+        const players = document.querySelectorAll('.music-player');
+        for (const player of players) {
+            if (player.contains(audio)) {
+                console.log('✅ Player encontrado via fallback');
+                return player;
+            }
+        }
+
+        console.log('❌ Nenhum player encontrado');
         return null;
     }
 
     updatePlayerUI(player, state) {
+        console.log('🎨 Atualizando UI do player para estado:', state);
         const playPauseBtn = player.querySelector('.play-pause-btn');
         const playerContainer = player.closest('.music-player');
+
+        console.log('🔍 Botão play/pause encontrado:', !!playPauseBtn);
+        console.log('🔍 Container do player encontrado:', !!playerContainer);
 
         if (state === 'playing') {
             if (playPauseBtn) {
                 playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                console.log('✅ Ícone alterado para PAUSE');
             }
             if (playerContainer) {
                 playerContainer.classList.add('playing');
+                console.log('✅ Classe "playing" adicionada');
             }
         } else if (state === 'paused') {
             if (playPauseBtn) {
                 playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                console.log('✅ Ícone alterado para PLAY');
             }
             if (playerContainer) {
                 playerContainer.classList.remove('playing');
+                console.log('✅ Classe "playing" removida');
             }
         }
     }
@@ -925,9 +966,11 @@ const mediaControlsManager = new MediaControlsManager();
 
 // Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar imediatamente após os players serem criados
     setTimeout(() => {
         mediaControlsManager.init();
-    }, 2000); // Dar tempo para os players serem criados
+        console.log('🎵 MediaControlsManager inicializado após criação dos players');
+    }, 500); // Reduzido para 500ms
 });
 
 // Exportar para uso global
