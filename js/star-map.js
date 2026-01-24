@@ -600,9 +600,9 @@ class StarMap {
     }
     
 initBackgroundStars() {
-    // ✅ REDUZIR ESTRELAS NO MOBILE PARA MELHOR PERFORMANCE
+    // ✅ AUMENTAR ESTRELAS PARA DEIXAR MAIS BONITO (com cuidado para performance)
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const starCount = isMobile ? 150 : 250; // 150 no mobile, 250 no desktop
+    const starCount = isMobile ? 200 : 350; // 200 no mobile, 350 no desktop (aumento significativo!)
     
     for (let i = 0; i < starCount; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -617,7 +617,7 @@ initBackgroundStars() {
         this.backgroundStars.push({ x, y, type, size, baseOpacity, armLength });
     }
     
-    console.log(`⭐ ${starCount} estrelas de fundo criadas (${isMobile ? 'mobile' : 'desktop'})`);
+    console.log(`⭐ ${starCount} estrelas de fundo criadas (${isMobile ? 'mobile' : 'desktop'}) - céu mais denso!`);
 }
     
     drawDecorativeStar(x, y, size, opacity) {
