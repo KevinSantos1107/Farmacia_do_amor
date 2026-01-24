@@ -595,20 +595,26 @@ class StarMap {
         console.log('✅ Star Map destruído completamente');
     }
     
-    initBackgroundStars() {
-        for (let i = 0; i < 250; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = Math.sqrt(Math.random()) * this.radius;
-            const x = this.centerX + Math.cos(angle) * dist;
-            const y = this.centerY + Math.sin(angle) * dist;
-            const type = Math.random();
-            const size = Math.random() * 1.2 + 0.3;
-            const baseOpacity = Math.random() * 0.4 + 0.4;
-            const armLength = Math.random() * 2 + 1.5;
-            
-            this.backgroundStars.push({ x, y, type, size, baseOpacity, armLength });
-        }
+initBackgroundStars() {
+    // ✅ REDUZIR ESTRELAS NO MOBILE PARA MELHOR PERFORMANCE
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const starCount = isMobile ? 150 : 250; // 150 no mobile, 250 no desktop
+    
+    for (let i = 0; i < starCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.sqrt(Math.random()) * this.radius;
+        const x = this.centerX + Math.cos(angle) * dist;
+        const y = this.centerY + Math.sin(angle) * dist;
+        const type = Math.random();
+        const size = Math.random() * 1.2 + 0.3;
+        const baseOpacity = Math.random() * 0.4 + 0.4;
+        const armLength = Math.random() * 2 + 1.5;
+        
+        this.backgroundStars.push({ x, y, type, size, baseOpacity, armLength });
     }
+    
+    console.log(`⭐ ${starCount} estrelas de fundo criadas (${isMobile ? 'mobile' : 'desktop'})`);
+}
     
     drawDecorativeStar(x, y, size, opacity) {
         const points = 4;
