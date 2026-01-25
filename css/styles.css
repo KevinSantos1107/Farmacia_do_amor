@@ -2845,3 +2845,10 @@ img[loading="lazy"] {
     background: rgba(96, 165, 250, 0.1);
     box-shadow: 0 0 20px rgba(96, 165, 250, 0.2);
 }
+
+body.menu-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    top: calc(-1 * var(--menu-scroll-y, 0px));
+}
