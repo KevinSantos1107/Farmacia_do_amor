@@ -73,17 +73,7 @@ window.addEventListener('popstate', (e) => {
             break;
             
         case 'hamburger-menu':
-            const sideMenu = document.getElementById('sideMenu');
-            const menuOverlay = document.getElementById('menuOverlay');
-            const hamburgerBtn = document.getElementById('hamburgerBtn');
-            
-            if (sideMenu && sideMenu.classList.contains('active')) {
-                hamburgerBtn?.classList.remove('active');
-                sideMenu.classList.remove('active');
-                menuOverlay?.classList.remove('active');
-                document.body.style.overflow = 'auto';
-                console.log('🍔 Menu hambúrguer fechado pelo back');
-            }
+            closeMenu();
             break;
         
         case 'admin-modal':
@@ -139,7 +129,7 @@ window.addEventListener('popstate', (e) => {
             
         case 'star-map-modal':
             document.getElementById('closeStarMapBtn')?.click();
-        break;
+            break;
 
         case 'edit-tab':
             const editTab = document.getElementById('edit-tab');
@@ -202,12 +192,12 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         initThemeSelector();
         initTimeCounter();
-
         initMessages();
         initModal();
         initTimelineModal();
         initHamburgerMenu();
         updateCurrentDate();
+        initAcrostic();
         
         console.log('✅ Site inicializado com sucesso!');
     }, 300);
@@ -396,7 +386,6 @@ function updateTimeCounter() {
 }
 
 // ===== ÁLBUNS DE FOTOS (CARREGADOS DO FIREBASE) =====
-// Inicializar array vazio - será preenchido pelo Firebase
 window.albums = [];
 
 let currentAlbum = null;
@@ -815,7 +804,6 @@ function initModal() {
         }
     }, { passive: true });
     
-    
     modal.addEventListener('touchend', (e) => {
         if (!isPinching && !isDragging && !blockNavigation && zoomLevel === 1) {
             const swipeEndX = e.changedTouches[0].screenX;
@@ -899,30 +887,20 @@ class AlbumsCarousel3D {
         this.track = document.getElementById('carouselTrack');
         this.indicators = document.getElementById('carouselIndicators');
         
-        // ===== CONTROLES DE GESTO - SISTEMA PROFISSIONAL =====
         this.gesture = {
-            // Estado do gesto
             isActive: false,
-            type: null, // 'tap', 'drag', 'scroll'
-            
-            // Posições
+            type: null,
             startX: 0,
             startY: 0,
             currentX: 0,
             currentY: 0,
             lastX: 0,
             lastY: 0,
-            
-            // Medições
             distanceX: 0,
             distanceY: 0,
             velocity: 0,
-            
-            // Timing
             startTime: 0,
             lastMoveTime: 0,
-            
-            // Configurações
             tapMaxDistance: 10,
             tapMaxDuration: 200,
             dragThreshold: 80,
@@ -930,7 +908,6 @@ class AlbumsCarousel3D {
             velocityThreshold: 0.3
         };
         
-        // ===== CONTROLES DE NAVEGAÇÃO =====
         this.navigation = {
             isAnimating: false,
             animationDuration: 500,
@@ -938,7 +915,6 @@ class AlbumsCarousel3D {
             lastNavigationTime: 0
         };
         
-        // ===== CONTROLES DE CLIQUE EM CARDS =====
         this.cardClick = {
             enabled: true,
             tapData: new Map()
@@ -954,7 +930,7 @@ class AlbumsCarousel3D {
         }
         
         this.renderCards();
-        this.renderIndicators('forward')
+        this.renderIndicators('forward');
         this.updatePositions();
         this.attachEvents();
         
@@ -963,8 +939,6 @@ class AlbumsCarousel3D {
     
     renderCards() {
         console.log('🎨 Renderizando cards do carrossel...');
-        console.log('📊 window.albums:', window.albums);
-        console.log('📊 Número de álbuns:', window.albums ? window.albums.length : 'undefined');
         
         this.track.innerHTML = '';
         
@@ -975,7 +949,6 @@ class AlbumsCarousel3D {
         }
         
         window.albums.forEach((album, index) => {
-            console.log(`📸 Renderizando álbum ${index + 1}:`, album.title);
             const card = document.createElement('div');
             card.className = 'carousel-album-card';
             card.dataset.index = index;
@@ -1000,366 +973,206 @@ class AlbumsCarousel3D {
         console.log('✅ Cards renderizados com sucesso');
     }
 
-renderIndicators(direction = 'forward') {
-    if (!this.indicators) return;
-    
-    const VISIBLE = 4;
-    const total = window.albums.length;
-    
-    // ===== CASO SIMPLES: 4 OU MENOS ÁLBUNS =====
-    if (total <= VISIBLE) {
-        this.indicators.innerHTML = '';
-        for (let i = 0; i < total; i++) {
-            const dot = this.createDot(i);
-            this.indicators.appendChild(dot);
-        }
-        console.log('📍 Modo simples (≤4 álbuns)');
-        return;
-    }
-    
-    // ===== DETECTAR LOOP INFINITO (SALTO EXTREMO) =====
-    const current = this.currentIndex;
-    const prev = this.previousIndex;
-    
-    // Loop: última → primeira (voltando)
-    const isLoopBackward = prev === total - 1 && current === 0;
-    
-    // Loop: primeira → última (avançando)
-    const isLoopForward = prev === 0 && current === total - 1;
-    
-    if (isLoopBackward || isLoopForward) {
-        console.log(`🔁 LOOP DETECTADO: ${prev} → ${current}`);
+    renderIndicators(direction = 'forward') {
+        if (!this.indicators) return;
         
-        // RESET INSTANTÂNEO sem animação
-        this.indicators.innerHTML = '';
+        const VISIBLE = 4;
+        const total = window.albums.length;
+        
+        if (total <= VISIBLE) {
+            this.indicators.innerHTML = '';
+            for (let i = 0; i < total; i++) {
+                const dot = this.createDot(i);
+                this.indicators.appendChild(dot);
+            }
+            console.log('📍 Modo simples (≤4 álbuns)');
+            return;
+        }
+        
+        const current = this.currentIndex;
+        const prev = this.previousIndex;
+        
+        const isLoopBackward = prev === total - 1 && current === 0;
+        const isLoopForward = prev === 0 && current === total - 1;
+        
+        if (isLoopBackward || isLoopForward) {
+            console.log(`🔁 LOOP DETECTADO: ${prev} → ${current}`);
+            
+            this.indicators.innerHTML = '';
+            
+            let start, end;
+            
+            if (isLoopBackward) {
+                start = 0;
+                end = 3;
+            } else {
+                start = total - 4;
+                end = total - 1;
+            }
+            
+            for (let i = start; i <= end; i++) {
+                this.indicators.appendChild(this.createDot(i));
+            }
+            
+            console.log(`✨ Reset no loop: [${start}-${end}]`);
+            return;
+        }
         
         let start, end;
         
-        if (isLoopBackward) {
-            // Voltou para o início: mostrar [0,1,2,3]
-            start = 0;
-            end = 3;
+        if (direction === 'forward') {
+            if (current <= 2) {
+                start = 0;
+                end = 3;
+            } else if (current >= total - 1) {
+                start = total - 4;
+                end = total - 1;
+            } else {
+                start = current - 2;
+                end = current + 1;
+            }
+        } else if (direction === 'backward') {
+            if (current <= 1) {
+                start = 0;
+                end = 3;
+            } else if (current >= total - 2) {
+                start = total - 4;
+                end = total - 1;
+            } else {
+                start = current - 1;
+                end = current + 2;
+            }
         } else {
-            // Avançou para o final: mostrar últimos 4
-            start = total - 4;
-            end = total - 1;
+            if (current <= 1) {
+                start = 0;
+                end = 3;
+            } else if (current >= total - 2) {
+                start = total - 4;
+                end = total - 1;
+            } else {
+                start = current - 1;
+                end = current + 2;
+            }
         }
         
-        for (let i = start; i <= end; i++) {
-            this.indicators.appendChild(this.createDot(i));
+        start = Math.max(0, start);
+        end = Math.min(total - 1, end);
+        
+        console.log(`🎯 [${start}-${end}] | atual=${current} | dir=${direction}`);
+        
+        const oldDots = Array.from(this.indicators.children);
+        const oldIndices = oldDots.map(d => parseInt(d.dataset.index));
+        
+        let isReset = false;
+        
+        if (oldIndices.length > 0) {
+            const oldMin = Math.min(...oldIndices);
+            const oldMax = Math.max(...oldIndices);
+            
+            isReset = start > oldMax + 1 || end < oldMin - 1;
+            
+            if (isReset) {
+                console.log('🔄 RESET - Salto grande detectado');
+            }
         }
-        
-        console.log(`✨ Reset no loop: [${start}-${end}]`);
-        return;
-    }
-    
-    // ===== CALCULAR RANGE - LÓGICA NORMAL =====
-    
-    let start, end;
-    
-    if (direction === 'forward') {
-        // AVANÇANDO: índice atual fica na POSIÇÃO 2 (3ª bolinha)
-        
-        if (current <= 2) {
-            start = 0;
-            end = 3;
-        } else if (current >= total - 1) {
-            start = total - 4;
-            end = total - 1;
-        } else {
-            start = current - 2;
-            end = current + 1;
-        }
-        
-} else if (direction === 'backward') {
-    // VOLTANDO: índice atual fica na POSIÇÃO 1 (2ª bolinha)
-    
-    if (current <= 1) {
-        // Casos iniciais: sempre [0,1,2,3]
-        start = 0;
-        end = 3;
-    } else if (current >= total - 2) {
-        // Casos finais: últimos 4
-        start = total - 4;
-        end = total - 1;
-    } else {
-        // Meio: current na 2ª posição
-        start = current - 1;
-        end = current + 2;
-    }
-    
-} else {
-        // INICIAL/CLIQUE: centralizar o índice
-        if (current <= 1) {
-            start = 0;
-            end = 3;
-        } else if (current >= total - 2) {
-            start = total - 4;
-            end = total - 1;
-        } else {
-            start = current - 1;
-            end = current + 2;
-        }
-    }
-    
-    // Garantir limites válidos
-    start = Math.max(0, start);
-    end = Math.min(total - 1, end);
-    
-    console.log(`🎯 [${start}-${end}] | atual=${current} | dir=${direction}`);
-    
-    // ===== PEGAR ÍNDICES ANTIGOS =====
-    const oldDots = Array.from(this.indicators.children);
-    const oldIndices = oldDots.map(d => parseInt(d.dataset.index));
-    
-    // ===== DETECTAR RESET (SALTO GRANDE NORMAL) =====
-    let isReset = false;
-    
-    if (oldIndices.length > 0) {
-        const oldMin = Math.min(...oldIndices);
-        const oldMax = Math.max(...oldIndices);
-        
-        // Reset se o novo range está muito longe do antigo
-        isReset = start > oldMax + 1 || end < oldMin - 1;
         
         if (isReset) {
-            console.log('🔄 RESET - Salto grande detectado');
-        }
-    }
-    
-    // ===== APLICAR MUDANÇAS =====
-    
-    if (isReset) {
-        // RESET INSTANTÂNEO: limpar tudo
-        this.indicators.innerHTML = '';
-        
-        for (let i = start; i <= end; i++) {
-            this.indicators.appendChild(this.createDot(i));
-        }
-        
-        console.log('✨ Reset instantâneo normal');
-        
-    } else {
-        // ANIMAÇÃO SUAVE
-        
-        const newIndices = [];
-        for (let i = start; i <= end; i++) {
-            newIndices.push(i);
-        }
-        
-        // 1️⃣ REMOVER dots que saíram
-        oldDots.forEach(dot => {
-            const idx = parseInt(dot.dataset.index);
+            this.indicators.innerHTML = '';
             
-            if (!newIndices.includes(idx)) {
-                // Aplicar animação de saída
-                if (direction === 'forward') {
-                    dot.classList.add('slide-out-left');
-                } else {
-                    dot.classList.add('slide-out-right');
-                }
-                
-                // Remover após animação
-                setTimeout(() => {
-                    if (dot.parentNode) dot.parentNode.removeChild(dot);
-                }, 400);
-                
-                console.log(`🗑️ Remove ${idx} (${direction === 'forward' ? '←' : '→'})`);
+            for (let i = start; i <= end; i++) {
+                this.indicators.appendChild(this.createDot(i));
             }
-        });
-        
-        // 2️⃣ ADICIONAR dots novos
-        for (let i = start; i <= end; i++) {
-            if (!oldIndices.includes(i)) {
-                const dot = this.createDot(i);
-                
-                // Aplicar animação de entrada
-                if (direction === 'forward') {
-                    dot.classList.add('slide-in-right');
-                } else {
-                    dot.classList.add('slide-in-left');
-                }
-                
-                // Inserir na posição correta
-                const inserted = this.insertDotInOrder(dot, i);
-                
-                if (inserted) {
-                    console.log(`✅ Adiciona ${i} (${direction === 'forward' ? '→' : '←'})`);
-                }
-            }
-        }
-        
-        // 3️⃣ ATUALIZAR estado active
-        Array.from(this.indicators.children).forEach(dot => {
-            const idx = parseInt(dot.dataset.index);
             
-            if (idx === current) {
-                dot.classList.add('active');
-            } else {
-                dot.classList.remove('active');
+            console.log('✨ Reset instantâneo normal');
+        } else {
+            const newIndices = [];
+            for (let i = start; i <= end; i++) {
+                newIndices.push(i);
             }
-        });
-    }
-}
-
-// ===== FUNÇÃO AUXILIAR: CRIAR DOT =====
-createDot(index) {
-    const dot = document.createElement('div');
-    dot.className = 'carousel-indicator';
-    dot.dataset.index = index;
-    
-    if (index === this.currentIndex) {
-        dot.classList.add('active');
-    }
-    
-    dot.addEventListener('click', () => this.goToSlide(index));
-    
-    return dot;
-}
-
-// ===== FUNÇÃO AUXILIAR: INSERIR NA ORDEM =====
-insertDotInOrder(newDot, newIndex) {
-    const children = Array.from(this.indicators.children);
-    
-    // Encontrar posição correta
-    let inserted = false;
-    
-    for (let i = 0; i < children.length; i++) {
-        const existingIndex = parseInt(children[i].dataset.index);
-        
-        if (newIndex < existingIndex) {
-            this.indicators.insertBefore(newDot, children[i]);
-            inserted = true;
-            break;
+            
+            oldDots.forEach(dot => {
+                const idx = parseInt(dot.dataset.index);
+                
+                if (!newIndices.includes(idx)) {
+                    if (direction === 'forward') {
+                        dot.classList.add('slide-out-left');
+                    } else {
+                        dot.classList.add('slide-out-right');
+                    }
+                    
+                    setTimeout(() => {
+                        if (dot.parentNode) dot.parentNode.removeChild(dot);
+                    }, 400);
+                    
+                    console.log(`🗑️ Remove ${idx} (${direction === 'forward' ? '←' : '→'})`);
+                }
+            });
+            
+            for (let i = start; i <= end; i++) {
+                if (!oldIndices.includes(i)) {
+                    const dot = this.createDot(i);
+                    
+                    if (direction === 'forward') {
+                        dot.classList.add('slide-in-right');
+                    } else {
+                        dot.classList.add('slide-in-left');
+                    }
+                    
+                    const inserted = this.insertDotInOrder(dot, i);
+                    
+                    if (inserted) {
+                        console.log(`✅ Adiciona ${i} (${direction === 'forward' ? '→' : '←'})`);
+                    }
+                }
+            }
+            
+            Array.from(this.indicators.children).forEach(dot => {
+                const idx = parseInt(dot.dataset.index);
+                
+                if (idx === current) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
         }
     }
-    
-    // Se não inseriu, adiciona no final
-    if (!inserted) {
-        this.indicators.appendChild(newDot);
-    }
-    
-    return true;
-}
 
-// ===== FUNÇÃO AUXILIAR: CRIAR DOT =====
-createDot(index) {
-    const dot = document.createElement('div');
-    dot.className = 'carousel-indicator';
-    dot.dataset.index = index;
-    
-    if (index === this.currentIndex) {
-        dot.classList.add('active');
-    }
-    
-    dot.addEventListener('click', () => this.goToSlide(index));
-    
-    return dot;
-}
-
-// ===== FUNÇÃO AUXILIAR: INSERIR NA ORDEM =====
-insertDotInOrder(newDot, newIndex) {
-    const children = Array.from(this.indicators.children);
-    
-    // Encontrar posição correta
-    let inserted = false;
-    
-    for (let i = 0; i < children.length; i++) {
-        const existingIndex = parseInt(children[i].dataset.index);
+    createDot(index) {
+        const dot = document.createElement('div');
+        dot.className = 'carousel-indicator';
+        dot.dataset.index = index;
         
-        if (newIndex < existingIndex) {
-            this.indicators.insertBefore(newDot, children[i]);
-            inserted = true;
-            break;
+        if (index === this.currentIndex) {
+            dot.classList.add('active');
         }
-    }
-    
-    // Se não inseriu, adiciona no final
-    if (!inserted) {
-        this.indicators.appendChild(newDot);
-    }
-    
-    return true;
-}
-// ===== FUNÇÃO AUXILIAR: CRIAR DOT =====
-createDot(index) {
-    const dot = document.createElement('div');
-    dot.className = 'carousel-indicator';
-    dot.dataset.index = index;
-    
-    if (index === this.currentIndex) {
-        dot.classList.add('active');
-    }
-    
-    dot.addEventListener('click', () => this.goToSlide(index));
-    
-    return dot;
-}
-
-// ===== FUNÇÃO AUXILIAR: INSERIR NA ORDEM =====
-insertDotInOrder(newDot, newIndex) {
-    const children = Array.from(this.indicators.children);
-    
-    // Encontrar posição correta
-    let inserted = false;
-    
-    for (let i = 0; i < children.length; i++) {
-        const existingIndex = parseInt(children[i].dataset.index);
         
-        if (newIndex < existingIndex) {
-            this.indicators.insertBefore(newDot, children[i]);
-            inserted = true;
-            break;
-        }
-    }
-    
-    // Se não inseriu, adiciona no final
-    if (!inserted) {
-        this.indicators.appendChild(newDot);
-    }
-    
-    return true;
-}
-
-// ===== FUNÇÃO AUXILIAR: CRIAR DOT =====
-createDot(index) {
-    const dot = document.createElement('div');
-    dot.className = 'carousel-indicator';
-    dot.dataset.index = index;
-    
-    if (index === this.currentIndex) {
-        dot.classList.add('active');
-    }
-    
-    dot.addEventListener('click', () => this.goToSlide(index));
-    
-    return dot;
-}
-
-// ===== FUNÇÃO AUXILIAR: INSERIR NA ORDEM =====
-insertDotInOrder(newDot, newIndex) {
-    const children = Array.from(this.indicators.children);
-    
-    // Encontrar posição correta
-    let inserted = false;
-    
-    for (let i = 0; i < children.length; i++) {
-        const existingIndex = parseInt(children[i].dataset.index);
+        dot.addEventListener('click', () => this.goToSlide(index));
         
-        if (newIndex < existingIndex) {
-            this.indicators.insertBefore(newDot, children[i]);
-            inserted = true;
-            break;
+        return dot;
+    }
+
+    insertDotInOrder(newDot, newIndex) {
+        const children = Array.from(this.indicators.children);
+        
+        let inserted = false;
+        
+        for (let i = 0; i < children.length; i++) {
+            const existingIndex = parseInt(children[i].dataset.index);
+            
+            if (newIndex < existingIndex) {
+                this.indicators.insertBefore(newDot, children[i]);
+                inserted = true;
+                break;
+            }
         }
+        
+        if (!inserted) {
+            this.indicators.appendChild(newDot);
+        }
+        
+        return true;
     }
-    
-    // Se não inseriu, adiciona no final
-    if (!inserted) {
-        this.indicators.appendChild(newDot);
-    }
-    
-    return true;
-}
 
     updatePositions() {
         const cards = this.track.querySelectorAll('.carousel-album-card');
@@ -1381,10 +1194,7 @@ insertDotInOrder(newDot, newIndex) {
                 card.classList.add('hidden');
             }
         });
-        
     }
-    
-    // ===== NAVEGAÇÃO COM DEBOUNCE =====
     
     next() {
         if (!this.canNavigate()) return;
@@ -1395,7 +1205,7 @@ insertDotInOrder(newDot, newIndex) {
         this.previousIndex = this.currentIndex;
         this.currentIndex = (this.currentIndex + 1) % window.albums.length;
         this.updatePositions();
-        this.renderIndicators('forward'); // ← ADICIONAR DIREÇÃO
+        this.renderIndicators('forward');
         
         setTimeout(() => {
             this.navigation.isAnimating = false;
@@ -1413,7 +1223,7 @@ insertDotInOrder(newDot, newIndex) {
         this.previousIndex = this.currentIndex;
         this.currentIndex = (this.currentIndex - 1 + window.albums.length) % window.albums.length;
         this.updatePositions();
-        this.renderIndicators('backward'); // ← ADICIONAR DIREÇÃO
+        this.renderIndicators('backward');
         
         setTimeout(() => {
             this.navigation.isAnimating = false;
@@ -1430,12 +1240,11 @@ insertDotInOrder(newDot, newIndex) {
         
         this.previousIndex = this.currentIndex;
         
-        // Detectar direção do click
         const direction = index > this.currentIndex ? 'forward' : 'backward';
         
         this.currentIndex = index;
         this.updatePositions();
-        this.renderIndicators(direction); // ← ADICIONAR DIREÇÃO
+        this.renderIndicators(direction);
         
         setTimeout(() => {
             this.navigation.isAnimating = false;
@@ -1460,8 +1269,6 @@ insertDotInOrder(newDot, newIndex) {
         return true;
     }
     
-    // ===== SISTEMA DE GESTOS PROFISSIONAL =====
-    
     attachEvents() {
         this.setupCardClicks();
         this.setupKeyboardNavigation();
@@ -1474,7 +1281,6 @@ insertDotInOrder(newDot, newIndex) {
         cards.forEach(card => {
             const cardIndex = parseInt(card.dataset.index);
             
-            // Touch start - registrar dados do tap
             card.addEventListener('touchstart', (e) => {
                 this.cardClick.tapData.set(cardIndex, {
                     startTime: Date.now(),
@@ -1483,7 +1289,6 @@ insertDotInOrder(newDot, newIndex) {
                 });
             }, { passive: true });
             
-            // Touch end - validar tap
             card.addEventListener('touchend', (e) => {
                 if (!this.cardClick.enabled) return;
                 
@@ -1498,7 +1303,6 @@ insertDotInOrder(newDot, newIndex) {
                 const moveY = Math.abs(touchEndY - tapData.startY);
                 const totalMove = Math.sqrt(moveX * moveX + moveY * moveY);
                 
-                // Validar se foi um tap limpo
                 if (totalMove < 15 && duration < 300) {
                     this.handleCardClick(card);
                 }
@@ -1506,7 +1310,6 @@ insertDotInOrder(newDot, newIndex) {
                 this.cardClick.tapData.delete(cardIndex);
             }, { passive: true });
             
-            // Click (desktop)
             card.addEventListener('click', (e) => {
                 if (this.gesture.type === 'drag') {
                     e.preventDefault();
@@ -1523,14 +1326,12 @@ insertDotInOrder(newDot, newIndex) {
         const index = parseInt(card.dataset.index);
         const total = window.albums.length;
         
-        // CASO ESPECIAL: Apenas 1 álbum - sempre abre
         if (total === 1) {
             console.log('📖 Abrindo único álbum');
             openAlbum(card.dataset.id);
             return;
         }
         
-        // CASO NORMAL: Múltiplos álbuns
         const diff = index - this.currentIndex;
         const normalizedDiff = ((diff % total) + total) % total;
         
@@ -1551,18 +1352,14 @@ insertDotInOrder(newDot, newIndex) {
     }
     
     setupGestureListeners() {
-        // Mouse
         this.track.addEventListener('mousedown', (e) => this.onGestureStart(e));
         document.addEventListener('mousemove', (e) => this.onGestureMove(e));
         document.addEventListener('mouseup', (e) => this.onGestureEnd(e));
         
-        // Touch
         this.track.addEventListener('touchstart', (e) => this.onGestureStart(e), { passive: true });
         document.addEventListener('touchmove', (e) => this.onGestureMove(e), { passive: true });
         document.addEventListener('touchend', (e) => this.onGestureEnd(e), { passive: true });
     }
-    
-    // ===== HANDLERS DE GESTO =====
     
     onGestureStart(e) {
         if (this.navigation.isAnimating) return;
@@ -1570,7 +1367,6 @@ insertDotInOrder(newDot, newIndex) {
         const isTouch = e.type.includes('touch');
         const point = isTouch ? e.touches[0] : e;
         
-        // Reset do estado
         this.gesture.isActive = true;
         this.gesture.type = null;
         this.gesture.startX = point.clientX;
@@ -1594,51 +1390,39 @@ insertDotInOrder(newDot, newIndex) {
         const isTouch = e.type.includes('touch');
         const point = isTouch ? e.touches[0] : e;
         
-        // Atualizar posições
         this.gesture.currentX = point.clientX;
         this.gesture.currentY = point.clientY;
         
-        // Calcular distâncias desde o início
         this.gesture.distanceX = this.gesture.currentX - this.gesture.startX;
         this.gesture.distanceY = this.gesture.currentY - this.gesture.startY;
         
         const absDistanceX = Math.abs(this.gesture.distanceX);
         const absDistanceY = Math.abs(this.gesture.distanceY);
         
-        // ===== DETECÇÃO DE TIPO DE GESTO =====
-        
         if (this.gesture.type === null) {
-            // Aguardar movimento mínimo antes de decidir
             if (absDistanceX < this.gesture.directionThreshold && 
                 absDistanceY < this.gesture.directionThreshold) {
                 return;
             }
             
-            // Determinar tipo baseado na direção DOMINANTE
             const ratio = absDistanceX / absDistanceY;
             
             if (ratio > 2.0) {
-                // Movimento CLARAMENTE horizontal
                 this.gesture.type = 'drag';
                 this.cardClick.enabled = false;
                 console.log('↔️ DRAG horizontal detectado');
             } else if (ratio < 0.5) {
-                // Movimento CLARAMENTE vertical
                 this.gesture.type = 'scroll';
                 console.log('↕️ SCROLL vertical detectado');
                 return;
             } else {
-                // Movimento diagonal - interpretar como scroll
                 this.gesture.type = 'scroll';
                 console.log('↗️ Movimento diagonal - interpretado como scroll');
                 return;
             }
         }
         
-        // ===== PROCESSAR APENAS SE FOR DRAG =====
-        
         if (this.gesture.type === 'drag') {
-            // Calcular velocidade
             const now = Date.now();
             const deltaTime = now - this.gesture.lastMoveTime;
             
@@ -1660,12 +1444,9 @@ insertDotInOrder(newDot, newIndex) {
         
         console.log(`🏁 Gesto finalizado - Tipo: ${this.gesture.type}, Duração: ${gestureDuration}ms`);
         
-        // ===== PROCESSAR BASEADO NO TIPO =====
-        
         if (this.gesture.type === 'drag') {
             this.processDrag();
         } else if (this.gesture.type === null) {
-            // Gesto muito pequeno - pode ser um tap
             const totalDistance = Math.sqrt(
                 this.gesture.distanceX ** 2 + 
                 this.gesture.distanceY ** 2
@@ -1677,7 +1458,6 @@ insertDotInOrder(newDot, newIndex) {
             }
         }
         
-        // Reset
         this.resetGesture();
     }
     
@@ -1687,7 +1467,6 @@ insertDotInOrder(newDot, newIndex) {
         
         console.log(`📊 Drag - Distância: ${absDistance}px, Velocidade: ${this.gesture.velocity.toFixed(3)}, Swipe: ${isSwipe}`);
         
-        // Navegação por distância OU velocidade
         const shouldNavigate = absDistance > this.gesture.dragThreshold || isSwipe;
         
         if (shouldNavigate) {
@@ -1710,14 +1489,12 @@ insertDotInOrder(newDot, newIndex) {
         this.gesture.distanceY = 0;
         this.gesture.velocity = 0;
         
-        // Reabilitar cliques após delay
         setTimeout(() => {
             this.cardClick.enabled = true;
         }, 50);
     }
 }
 
-// Instância global do carrossel
 let albumsCarousel = null;
 
 function initAlbums() {
@@ -1726,7 +1503,6 @@ function initAlbums() {
         return;
     }
     
-    // Limpar carrossel anterior se existir
     if (albumsCarousel) {
         console.log('🧹 Limpando carrossel anterior...');
         albumsCarousel = null;
@@ -2015,6 +1791,7 @@ function updateTimelineProgress() {
     });
 }
 
+// ===== MENU HAMBÚRGUER - VERSÃO 100% FUNCIONAL =====
 function initHamburgerMenu() {
     console.log('🍔 Inicializando menu hambúrguer premium...');
     
@@ -2041,35 +1818,58 @@ function initHamburgerMenu() {
 
     console.log('✅ Elementos do menu encontrados');
 
-function openMenu() {
-    hamburgerBtn.classList.add('active');
-    sideMenu.classList.add('active');
-    menuOverlay.classList.add('active');
-    
-    // 🔑 BLOQUEAR SCROLL DA PÁGINA COMPLETAMENTE
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    
-    HistoryManager.push('hamburger-menu');
-    console.log('🔓 Menu aberto');
-}
+    function openMenu() {
+        // Salvar posição atual do scroll
+        const currentScroll = window.scrollY;
+        
+        // Definir variável CSS para o scroll
+        document.body.style.setProperty('--menu-scroll-y', currentScroll + 'px');
+        
+        // Adicionar classe para fixar o body
+        document.body.classList.add('menu-open');
+        
+        // Ativar elementos do menu
+        hamburgerBtn.classList.add('active');
+        sideMenu.classList.add('active');
+        menuOverlay.classList.add('active');
+        
+        // Remover foco atual para evitar scrolls automáticos
+        document.activeElement.blur();
+        
+        // Salvar posição para restaurar ao fechar
+        window.menuScrollPosition = currentScroll;
+        
+        // Adicionar ao histórico
+        HistoryManager.push('hamburger-menu');
+        
+        console.log('🍔 Menu aberto - scroll salvo em:', currentScroll);
+    }
 
-function closeMenu() {
-    hamburgerBtn.classList.remove('active');
-    sideMenu.classList.remove('active');
-    menuOverlay.classList.remove('active');
-    
-    // 🔑 RESTAURAR SCROLL DA PÁGINA
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width = '';
-    
-    console.log('🔒 Menu fechado');
-}
+    function closeMenu() {
+        // Desativar elementos do menu
+        hamburgerBtn.classList.remove('active');
+        sideMenu.classList.remove('active');
+        menuOverlay.classList.remove('active');
+        
+        // Remover classe e restaurar scroll
+        document.body.classList.remove('menu-open');
+        document.body.style.removeProperty('--menu-scroll-y');
+        
+        // Voltar instantaneamente à posição salva
+        if (window.menuScrollPosition !== undefined) {
+            document.documentElement.style.scrollBehavior = 'auto';
+            window.scrollTo(0, window.menuScrollPosition);
+            document.documentElement.style.scrollBehavior = '';
+            console.log('🍔 Menu fechado - scroll restaurado para:', window.menuScrollPosition);
+        }
+    }
+
+    // Tornar closeMenu acessível globalmente para o popstate handler
+    window.closeMenu = closeMenu;
 
     function toggleMenu() {
         const isActive = sideMenu.classList.contains('active');
+        console.log('toggleMenu called, isActive:', isActive);
         if (isActive) {
             closeMenu();
         } else {
@@ -2177,11 +1977,9 @@ function closeMenu() {
                     closeMenu();
                     
                     setTimeout(async () => {
-                        // Load admin.js dynamically if not loaded
                         if (!window.adminLoaded) {
                             await loadScript('js/admin.js');
                             window.adminLoaded = true;
-                            // Initialize admin after loading
                             if (typeof initAdmin === 'function') {
                                 await initAdmin();
                             }
@@ -2198,7 +1996,7 @@ function closeMenu() {
                             
                             adminModal.style.display = 'block';
                             document.body.style.overflow = 'hidden';
-                            HistoryManager.push('admin-modal'); // ← ADICIONAR ESTA LINHA
+                            HistoryManager.push('admin-modal');
                             
                             if (typeof loadExistingContent === 'function') {
                                 loadExistingContent();
@@ -2216,7 +2014,6 @@ function closeMenu() {
                 setTimeout(() => {
                     const adminModal = document.getElementById('adminModal');
                     if (adminModal) {
-                        // ← LIMPAR O ESTADO DO MENU ANTES
                         HistoryManager.remove('hamburger-menu');
                         
                         adminModal.style.display = 'block';
@@ -2284,23 +2081,18 @@ function initAcrostic() {
     }
     
     acrosticLines.forEach(line => {
-        // Click/Touch event
         line.addEventListener('click', function() {
-            // Adiciona efeito de clique
             this.classList.add('clicked');
             setTimeout(() => this.classList.remove('clicked'), 600);
             
-            // Toggle expansão
             this.classList.toggle('expanded');
             
-            // Atualiza aria-expanded para acessibilidade
             const isExpanded = this.classList.contains('expanded');
             this.setAttribute('aria-expanded', isExpanded);
             
             console.log(`💌 Acróstico linha "${this.dataset.line}" ${isExpanded ? 'expandida' : 'recolhida'}`);
         });
         
-        // Suporte a teclado (acessibilidade)
         line.setAttribute('tabindex', '0');
         line.setAttribute('role', 'button');
         line.setAttribute('aria-expanded', 'false');
@@ -2313,7 +2105,6 @@ function initAcrostic() {
         });
     });
     
-    // Animação de entrada sequencial
     acrosticLines.forEach((line, index) => {
         setTimeout(() => {
             line.style.opacity = '0';
@@ -2330,15 +2121,18 @@ function initAcrostic() {
     console.log('✅ Acróstico interativo inicializado');
 }
 
-// Adicionar na inicialização do site
-document.addEventListener('DOMContentLoaded', function() {
-    // ... seu código existente ...
-    
-    // Adicionar após as outras inicializações
-    setTimeout(() => {
-        initAcrostic();
-    }, 400);
-});
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('Service Worker registrado com sucesso:', registration);
+            })
+            .catch(error => {
+                console.log('Falha ao registrar Service Worker:', error);
+            });
+    });
+}
 
 console.log(`
 ╔══════════════════════════════════════╗
@@ -2349,5 +2143,6 @@ console.log(`
 ║   📸 ${window.albums ? window.albums.length : 0} álbuns organizados        ║
 ║   🎨 ${Object.keys(themes).length} temas disponíveis            ║
 ║   💾 Tema persistente                ║
+║   🍔 Menu 100% CORRIGIDO             ║
 ╚══════════════════════════════════════╝
 `);
