@@ -130,22 +130,24 @@
     50% { opacity: 1; }
 }
 
-/* Adicionar textura de gelo sutil */
-.theme-winter .main-card,
-.theme-winter .music-player,
-.theme-winter .message-card {
-    background-image: 
-        linear-gradient(135deg,
-            rgba(15, 23, 42, 0.95) 0%,
-            rgba(30, 41, 59, 0.9) 100%
-        ),
-        repeating-linear-gradient(
-            45deg,
-            transparent 0px,
-            transparent 2px,
-            rgba(96, 165, 250, 0.03) 2px,
-            rgba(96, 165, 250, 0.03) 4px
-        );
+/* Textura de gelo em desktop apenas - corrigido para evitar problemas de scroll em mobile */
+@media (min-width: 768px) {
+    .theme-winter .main-card,
+    .theme-winter .music-player,
+    .theme-winter .message-card {
+        background-image: 
+            linear-gradient(135deg,
+                rgba(15, 23, 42, 0.95) 0%,
+                rgba(30, 41, 59, 0.9) 100%
+            ),
+            repeating-linear-gradient(
+                45deg,
+                transparent 0px,
+                transparent 2px,
+                rgba(96, 165, 250, 0.03) 2px,
+                rgba(96, 165, 250, 0.03) 4px
+            );
+    }
 }
 
 /* ===== RESET MOBILE-FIRST ===== */
