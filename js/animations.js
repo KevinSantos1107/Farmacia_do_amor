@@ -4,6 +4,7 @@
     let canvas, ctx;
     let particles = [];
     let stars = [];
+    let snowAccumulation = [];
     let resizeTimeout = null;
     // viewWidth/viewHeight representam a área visível atual (visualViewport)
     let viewWidth = 0;
@@ -232,7 +233,7 @@
     function createElements() {
         particles = [];
         stars = [];
-        
+        snowAccumulation = [];
         
         if (currentAnimation === 'meteors') {
             createStars();
@@ -939,6 +940,7 @@
             createFrostLine();
         }
         
+        initSnowAccumulation();
     }
 
     function createMainSnowflake() {
@@ -948,8 +950,8 @@
         particles.push({
             type: 'mainSnow',
             snowType: types[Math.floor(Math.random() * types.length)],
-            x: Math.random() * viewWidth,
-            y: Math.random() * viewHeight, // ← MUDANÇA: Começar em posições aleatórias na área visível
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
             size: Math.random() * 8 + 6,
             speedY: Math.random() * config.snowSpeed + 0.4,
             speedX: (Math.random() - 0.5) * config.windStrength,
@@ -974,8 +976,8 @@
         
         particles.push({
             type: 'smallSnow',
-            x: Math.random() * viewWidth,
-            y: Math.random() * viewHeight,
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
             size: Math.random() * 3 + 1,
             speedY: Math.random() * 0.3 + 0.1,
             speedX: (Math.random() - 0.5) * 0.2,
@@ -993,8 +995,8 @@
         
         stars.push({
             type: 'winterSparkle',
-            x: Math.random() * viewWidth,
-            y: Math.random() * viewHeight * 0.7,
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height * 0.7,
             size: Math.random() * 2 + 0.5,
             speedY: Math.random() * 0.2 + 0.05,
             speedX: (Math.random() - 0.5) * 0.15,
@@ -1013,8 +1015,8 @@
         
         particles.push({
             type: 'icePatch',
-            x: Math.random() * viewWidth,
-            y: Math.random() * viewHeight * 0.6,
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height * 0.6,
             width: Math.random() * 80 + 40,
             height: Math.random() * 50 + 30,
             speedY: Math.random() * 0.15 + 0.05,
@@ -1035,8 +1037,8 @@
         
         stars.push({
             type: 'frostLine',
-            x: Math.random() * viewWidth,
-            y: Math.random() * viewHeight * 0.8,
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height * 0.8,
             length: Math.random() * 150 + 80,
             thickness: Math.random() * 1.5 + 0.5,
             angle: isHorizontal ? (Math.random() - 0.5) * 0.3 : Math.PI / 2 + (Math.random() - 0.5) * 0.3,
@@ -1062,6 +1064,19 @@
         }
     }
 
+    function initSnowAccumulation() {
+        const segments = Math.floor(canvas.width / 15);
+        
+        for (let i = 0; i <= segments; i++) {
+            snowAccumulation.push({
+                x: i * 15,
+                height: 0,
+                maxHeight: Math.random() * 30 + 20,
+                growthRate: 0.02
+            });
+        }
+    }
+
     function drawWinterScene() {
         const time = Date.now();
         const config = settings.winter;
@@ -1071,7 +1086,7 @@
         drawWinterSparkles();
         drawSmallSnowflakes();
         drawMainSnowflakes();
-        
+        drawSnowAccumulation();
     }
 
     function drawSmallSnowflakes() {
@@ -1083,12 +1098,12 @@
             particle.x += particle.speedX;
             particle.rotation += particle.rotationSpeed;
             
-            if (particle.y > viewHeight + 20) {
+            if (particle.y > canvas.height + 20) {
                 particle.y = -20;
-                particle.x = Math.random() * viewWidth;
+                particle.x = Math.random() * canvas.width;
             }
-            if (particle.x < -20) particle.x = viewWidth + 20;
-            if (particle.x > viewWidth + 20) particle.x = -20;
+            if (particle.x < -20) particle.x = canvas.width + 20;
+            if (particle.x > canvas.width + 20) particle.x = -20;
             
             ctx.save();
             ctx.translate(particle.x, particle.y);
@@ -1129,7 +1144,8 @@
             particle.rotation += particle.rotationSpeed;
             particle.rotation += Math.sin(time * particle.wobble + particle.wobbleOffset) * 0.01;
             
-            if (particle.y > viewHeight - 60) {
+            if (particle.y > canvas.height - 60) {
+                accumulateSnow(particle);
                 particle.landed = true;
                 
                 setTimeout(() => {
@@ -1138,8 +1154,8 @@
                 return;
             }
             
-            if (particle.x < -50) particle.x = viewWidth + 50;
-            if (particle.x > viewWidth + 50) particle.x = -50;
+            if (particle.x < -50) particle.x = canvas.width + 50;
+            if (particle.x > canvas.width + 50) particle.x = -50;
             
             ctx.save();
             ctx.translate(particle.x, particle.y);
@@ -1327,12 +1343,12 @@
             const pulse = Math.sin(time * star.pulseSpeed + star.pulseOffset) * 0.3 + 0.7;
             const brightness = star.brightness * twinkle * pulse;
             
-            if (star.y > viewHeight + 30) {
+            if (star.y > canvas.height + 30) {
                 star.y = -30;
-                star.x = Math.random() * viewWidth;
+                star.x = Math.random() * canvas.width;
             }
-            if (star.x < -30) star.x = viewWidth + 30;
-            if (star.x > viewWidth + 30) star.x = -30;
+            if (star.x < -30) star.x = canvas.width + 30;
+            if (star.x > canvas.width + 30) star.x = -30;
             
             ctx.beginPath();
             ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
@@ -1377,19 +1393,19 @@
         const config = settings.winter;
         
         for (let layer = 0; layer < 3; layer++) {
-            const yPos = viewHeight * 0.3 + layer * (viewHeight * 0.25);
+            const yPos = canvas.height * 0.3 + layer * (canvas.height * 0.25);
             const waveOffset = Math.sin(time * 0.0003 + layer) * 50;
             
             ctx.beginPath();
             ctx.moveTo(0, yPos);
             
-            for (let x = 0; x <= viewWidth; x += 20) {
+            for (let x = 0; x <= canvas.width; x += 20) {
                 const wave = Math.sin((x + waveOffset) * 0.01 + time * 0.0002) * 20;
                 ctx.lineTo(x, yPos + wave);
             }
             
-            ctx.lineTo(viewWidth, viewHeight);
-            ctx.lineTo(0, viewHeight);
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
             ctx.closePath();
             
             const gradient = ctx.createLinearGradient(0, yPos - 100, 0, yPos + 100);
@@ -1417,12 +1433,12 @@
             
             const wobble = Math.sin(time * particle.wobble + particle.wobbleOffset) * 5;
             
-            if (particle.y > viewHeight + particle.height) {
+            if (particle.y > canvas.height + particle.height) {
                 particle.y = -particle.height;
-                particle.x = Math.random() * viewWidth;
+                particle.x = Math.random() * canvas.width;
             }
-            if (particle.x < -particle.width) particle.x = viewWidth + particle.width;
-            if (particle.x > viewWidth + particle.width) particle.x = -particle.width;
+            if (particle.x < -particle.width) particle.x = canvas.width + particle.width;
+            if (particle.x > canvas.width + particle.width) particle.x = -particle.width;
             
             ctx.save();
             ctx.translate(particle.x, particle.y + wobble);
@@ -1488,12 +1504,12 @@
             
             const shimmer = Math.sin(time * star.shimmer + star.shimmerOffset) * 0.4 + 0.6;
             
-            if (star.y > viewHeight + 50) {
+            if (star.y > canvas.height + 50) {
                 star.y = -50;
-                star.x = Math.random() * viewWidth;
+                star.x = Math.random() * canvas.width;
             }
-            if (star.x < -100) star.x = viewWidth + 100;
-            if (star.x > viewWidth + 100) star.x = -100;
+            if (star.x < -100) star.x = canvas.width + 100;
+            if (star.x > canvas.width + 100) star.x = -100;
             
             ctx.save();
             ctx.globalAlpha = star.opacity * shimmer;
@@ -1564,6 +1580,100 @@
     }
     }
 
+    function accumulateSnow(snowflake) {
+        const segmentIndex = Math.floor(snowflake.x / 15);
+        
+        if (segmentIndex >= 0 && segmentIndex < snowAccumulation.length) {
+            const segment = snowAccumulation[segmentIndex];
+            
+            if (segment.height < segment.maxHeight) {
+                segment.height += segment.growthRate * snowflake.size * 0.3;
+            }
+        }
+    }
+
+    function drawSnowAccumulation() {
+        if (snowAccumulation.length === 0) return;
+        
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height);
+        
+        for (let i = 0; i < snowAccumulation.length; i++) {
+            const segment = snowAccumulation[i];
+            const x = segment.x;
+            const y = canvas.height - segment.height;
+            
+            if (i === 0) {
+                ctx.lineTo(x, y);
+            } else {
+                const prevSegment = snowAccumulation[i - 1];
+                const prevX = prevSegment.x;
+                const prevY = canvas.height - prevSegment.height;
+                
+                const cpX = (prevX + x) / 2;
+                const cpY = (prevY + y) / 2;
+                
+                ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
+            }
+        }
+        
+        ctx.lineTo(canvas.width, canvas.height);
+        ctx.lineTo(0, canvas.height);
+        ctx.closePath();
+        
+        const gradient = ctx.createLinearGradient(0, canvas.height - 50, 0, canvas.height);
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(0.3, '#f0f9ff'); // Branco com leve azul
+        gradient.addColorStop(0.6, '#dbeafe'); // Azul muito suave
+        gradient.addColorStop(1, '#bfdbfe'); // Azul claro
+                
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height);
+        
+        for (let i = 0; i < snowAccumulation.length; i++) {
+            const segment = snowAccumulation[i];
+            const x = segment.x;
+            const y = canvas.height - segment.height;
+            
+            if (i === 0) {
+                ctx.lineTo(x, y);
+            } else {
+                const prevSegment = snowAccumulation[i - 1];
+                const prevX = prevSegment.x;
+                const prevY = canvas.height - prevSegment.height;
+                
+                const cpX = (prevX + x) / 2;
+                const cpY = (prevY + y) / 2;
+                
+                ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
+            }
+        }
+        
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        for (let i = 0; i < snowAccumulation.length; i += 3) {
+            const segment = snowAccumulation[i];
+            if (segment.height > 5) {
+                const x = segment.x + (Math.random() - 0.5) * 10;
+                const y = canvas.height - segment.height - Math.random() * 5;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                const sparkleGrad = ctx.createRadialGradient(x, y, 0, x, y, 4);
+                sparkleGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                sparkleGrad.addColorStop(0.5, 'rgba(96, 165, 250, 0.5)'); // Azul diamante
+                sparkleGrad.addColorStop(1, 'rgba(96, 165, 250, 0)');
+                ctx.fillStyle = sparkleGrad;
+                ctx.fill();
+            }
+        }
+    }
+
     // ===== ANIMAÇÃO PRINCIPAL =====
     function animate() {
         if (!ctx || !canvas) return;
@@ -1607,7 +1717,7 @@
         // Limpar arrays
         particles = [];
         stars = [];
-        
+        snowAccumulation = [];
         // Criar elementos baseado no tema atual
         createElements();
         
@@ -1633,7 +1743,7 @@
         // Limpar arrays
         particles = [];
         stars = [];
-        
+        snowAccumulation = [];
         // Recriar elementos
         createElements();
         
