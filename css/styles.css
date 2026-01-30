@@ -59,12 +59,14 @@
     --gradient-text: linear-gradient(90deg, #00ffaa, #00ccff, #aa00ff);
 }
 
+/* ===== CORREÇÃO: TEMA INVERNO MÁGICO - SEM BARRA AZUL NO SCROLL ===== */
+
 /* Tema Inverno Mágico - CÉU INVERNAL COM NEVE */
 .theme-winter {
     --theme-bg: #0f172a;
-    --theme-primary: #60a5fa; /* Azul diamante */
-    --theme-secondary: #93c5fd; /* Azul claro brilhante */
-    --theme-accent: #3b82f6; /* Azul royal */
+    --theme-primary: #60a5fa;
+    --theme-secondary: #93c5fd;
+    --theme-accent: #3b82f6;
     --theme-text: #ffffff;
     --theme-text-secondary: #dbeafe;
     --theme-card-bg: rgba(15, 23, 42, 0.95);
@@ -72,26 +74,27 @@
     --theme-glow: 0 0 25px rgba(96, 165, 250, 0.7);
     --theme-glow-strong: 0 0 35px rgba(96, 165, 250, 1);
     
-    /* Gradientes Diamante */
     --gradient-primary: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
     --gradient-secondary: linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%);
     --gradient-neon: linear-gradient(135deg, #60a5fa, #93c5fd, #dbeafe);
     --gradient-text: linear-gradient(90deg, #60a5fa, #93c5fd, #ffffff);
 }
 
-/* Apenas cores - layout igual aos outros temas */
+/* ✅ CORREÇÃO: Cards com layout igual aos outros temas */
 .theme-winter .header,
 .theme-winter .main-card,
 .theme-winter .music-player,
 .theme-winter .message-card,
 .theme-winter .album-card {
-    border: 1px solid var(--theme-card-border); /* ← 1px IGUAL aos outros */
-    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1); /* ← IGUAL aos outros */
-    backdrop-filter: blur(10px); /* ← 10px IGUAL aos outros */
-    background: var(--theme-card-bg); /* ← VAR padrão IGUAL aos outros */
+    border: 1px solid var(--theme-card-border);
+    box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    background: var(--theme-card-bg);
+    /* ✅ REMOVER qualquer overflow ou position que cause problemas */
+    overflow: visible; /* ← MUDANÇA CRÍTICA */
 }
 
-/* Brilho gelado nos textos principais */
+/* ✅ CORREÇÃO: Brilho gelado nos textos principais */
 .theme-winter .name {
     text-shadow: 
         0 0 10px rgba(96, 165, 250, 1),
@@ -101,7 +104,7 @@
     filter: drop-shadow(0 0 5px rgba(96, 165, 250, 0.5));
 }
 
-/* Footer do tema Winter - estilo igual aos outros temas */
+/* ✅ CORREÇÃO: Footer com estilo igual aos outros temas */
 .theme-winter .footer {
     margin-top: 40px;
     padding: 25px 15px;
@@ -110,8 +113,9 @@
     border-top: 1px solid var(--theme-card-border);
     animation: fadeIn 0.8s ease-out 1.2s both;
     position: relative;
-    overflow: hidden;
     box-shadow: var(--theme-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    /* ✅ REMOVER overflow que causa problemas */
+    overflow: visible; /* ← MUDANÇA CRÍTICA */
 }
 
 .theme-winter .footer::before {
@@ -125,12 +129,7 @@
     box-shadow: 0 0 10px var(--theme-primary);
 }
 
-@keyframes winterSparkle {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-}
-
-/* Textura de gelo em desktop apenas - corrigido para evitar problemas de scroll em mobile */
+/* ✅ CORREÇÃO: Textura de gelo APENAS em desktop */
 @media (min-width: 768px) {
     .theme-winter .main-card,
     .theme-winter .music-player,
@@ -147,6 +146,126 @@
                 rgba(96, 165, 250, 0.03) 2px,
                 rgba(96, 165, 250, 0.03) 4px
             );
+    }
+}
+
+/* ===== CORREÇÃO PRINCIPAL: TIMELINE NO TEMA WINTER ===== */
+
+/* ✅ Linha vertical central - SEM z-index negativo */
+.theme-winter .timeline-container::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(96, 165, 250, 0.2); /* ← Tom mais suave */
+    transform: translateX(-50%);
+    z-index: 0; /* ← MUDANÇA CRÍTICA: De -1 para 0 */
+    
+    /* Máscara para suavizar o fim */
+    -webkit-mask: linear-gradient(to bottom, 
+        white 0%, 
+        white calc(100% - 150px),
+        transparent calc(100% - 80px)
+    );
+    mask: linear-gradient(to bottom, 
+        white 0%, 
+        white calc(100% - 150px),
+        transparent calc(100% - 80px)
+    );
+}
+
+/* ✅ Barra de progresso - SEM z-index negativo */
+.theme-winter .timeline-container::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: var(--progress-height, 0%);
+    max-height: calc(100% - 150px);
+    
+    /* Gradiente azul do tema */
+    background: linear-gradient(to bottom,
+        #60a5fa 0%,
+        #93c5fd 50%,
+        #3b82f6 100%
+    );
+    
+    transform: translateX(-50%);
+    box-shadow: 0 0 15px rgba(96, 165, 250, 0.6);
+    z-index: 1; /* ← MUDANÇA CRÍTICA: De -1 para 1 */
+    transition: height 0.1s linear;
+    
+    /* Suavizar o fim */
+    -webkit-mask: linear-gradient(to bottom, 
+        white 0%, 
+        white calc(100% - 30px),
+        transparent 100%
+    );
+    mask: linear-gradient(to bottom, 
+        white 0%, 
+        white calc(100% - 30px),
+        transparent 100%
+    );
+}
+
+/* ✅ Garantir que fotos fiquem ACIMA da linha */
+.theme-winter .timeline-photo {
+    position: relative;
+    z-index: 15; /* ← AUMENTADO para garantir visibilidade */
+}
+
+.theme-winter .photo-polaroid {
+    position: relative;
+    z-index: 15; /* ← AUMENTADO */
+    background: white;
+    padding: 12px 12px 35px 12px;
+    border-radius: 8px;
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.5),
+        0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+/* ✅ Ponto pulsante na linha */
+.theme-winter .timeline-line::after {
+    z-index: 5; /* ← Acima da linha, mas abaixo das fotos */
+}
+
+/* ✅ Coração do final da timeline */
+.theme-winter .timeline-heart {
+    position: relative;
+    z-index: 25; /* ← MUITO ACIMA de tudo */
+    background: var(--gradient-primary);
+    border: 3px solid var(--theme-bg);
+    outline: 2px solid var(--theme-primary);
+}
+
+/* ===== ANIMAÇÃO DE SPARKLE (sem interferir) ===== */
+@keyframes winterSparkle {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* ===== RESPONSIVO DESKTOP ===== */
+@media (min-width: 768px) {
+    .theme-winter .timeline-container::before,
+    .theme-winter .timeline-container::after {
+        -webkit-mask: linear-gradient(to bottom, 
+            white 0%, 
+            white calc(100% - 180px),
+            transparent calc(100% - 100px)
+        );
+        mask: linear-gradient(to bottom, 
+            white 0%, 
+            white calc(100% - 180px),
+            transparent calc(100% - 100px)
+        );
+    }
+    
+    .theme-winter .timeline-container::after {
+        max-height: calc(100% - 180px);
     }
 }
 
