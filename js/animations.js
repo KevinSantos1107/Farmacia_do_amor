@@ -948,8 +948,8 @@
         particles.push({
             type: 'mainSnow',
             snowType: types[Math.floor(Math.random() * types.length)],
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height, // ← MUDANÇA: Começar em posições aleatórias na tela inteira
+            x: Math.random() * viewWidth,
+            y: Math.random() * viewHeight, // ← MUDANÇA: Começar em posições aleatórias na área visível
             size: Math.random() * 8 + 6,
             speedY: Math.random() * config.snowSpeed + 0.4,
             speedX: (Math.random() - 0.5) * config.windStrength,
@@ -974,8 +974,8 @@
         
         particles.push({
             type: 'smallSnow',
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
+            x: Math.random() * viewWidth,
+            y: Math.random() * viewHeight,
             size: Math.random() * 3 + 1,
             speedY: Math.random() * 0.3 + 0.1,
             speedX: (Math.random() - 0.5) * 0.2,
@@ -993,8 +993,8 @@
         
         stars.push({
             type: 'winterSparkle',
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height * 0.7,
+            x: Math.random() * viewWidth,
+            y: Math.random() * viewHeight * 0.7,
             size: Math.random() * 2 + 0.5,
             speedY: Math.random() * 0.2 + 0.05,
             speedX: (Math.random() - 0.5) * 0.15,
@@ -1013,8 +1013,8 @@
         
         particles.push({
             type: 'icePatch',
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height * 0.6,
+            x: Math.random() * viewWidth,
+            y: Math.random() * viewHeight * 0.6,
             width: Math.random() * 80 + 40,
             height: Math.random() * 50 + 30,
             speedY: Math.random() * 0.15 + 0.05,
@@ -1035,8 +1035,8 @@
         
         stars.push({
             type: 'frostLine',
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height * 0.8,
+            x: Math.random() * viewWidth,
+            y: Math.random() * viewHeight * 0.8,
             length: Math.random() * 150 + 80,
             thickness: Math.random() * 1.5 + 0.5,
             angle: isHorizontal ? (Math.random() - 0.5) * 0.3 : Math.PI / 2 + (Math.random() - 0.5) * 0.3,
@@ -1083,12 +1083,12 @@
             particle.x += particle.speedX;
             particle.rotation += particle.rotationSpeed;
             
-            if (particle.y > canvas.height + 20) {
+            if (particle.y > viewHeight + 20) {
                 particle.y = -20;
-                particle.x = Math.random() * canvas.width;
+                particle.x = Math.random() * viewWidth;
             }
-            if (particle.x < -20) particle.x = canvas.width + 20;
-            if (particle.x > canvas.width + 20) particle.x = -20;
+            if (particle.x < -20) particle.x = viewWidth + 20;
+            if (particle.x > viewWidth + 20) particle.x = -20;
             
             ctx.save();
             ctx.translate(particle.x, particle.y);
@@ -1129,7 +1129,7 @@
             particle.rotation += particle.rotationSpeed;
             particle.rotation += Math.sin(time * particle.wobble + particle.wobbleOffset) * 0.01;
             
-            if (particle.y > canvas.height - 60) {
+            if (particle.y > viewHeight - 60) {
                 particle.landed = true;
                 
                 setTimeout(() => {
@@ -1138,8 +1138,8 @@
                 return;
             }
             
-            if (particle.x < -50) particle.x = canvas.width + 50;
-            if (particle.x > canvas.width + 50) particle.x = -50;
+            if (particle.x < -50) particle.x = viewWidth + 50;
+            if (particle.x > viewWidth + 50) particle.x = -50;
             
             ctx.save();
             ctx.translate(particle.x, particle.y);
@@ -1327,12 +1327,12 @@
             const pulse = Math.sin(time * star.pulseSpeed + star.pulseOffset) * 0.3 + 0.7;
             const brightness = star.brightness * twinkle * pulse;
             
-            if (star.y > canvas.height + 30) {
+            if (star.y > viewHeight + 30) {
                 star.y = -30;
-                star.x = Math.random() * canvas.width;
+                star.x = Math.random() * viewWidth;
             }
-            if (star.x < -30) star.x = canvas.width + 30;
-            if (star.x > canvas.width + 30) star.x = -30;
+            if (star.x < -30) star.x = viewWidth + 30;
+            if (star.x > viewWidth + 30) star.x = -30;
             
             ctx.beginPath();
             ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
@@ -1377,19 +1377,19 @@
         const config = settings.winter;
         
         for (let layer = 0; layer < 3; layer++) {
-            const yPos = canvas.height * 0.3 + layer * (canvas.height * 0.25);
+            const yPos = viewHeight * 0.3 + layer * (viewHeight * 0.25);
             const waveOffset = Math.sin(time * 0.0003 + layer) * 50;
             
             ctx.beginPath();
             ctx.moveTo(0, yPos);
             
-            for (let x = 0; x <= canvas.width; x += 20) {
+            for (let x = 0; x <= viewWidth; x += 20) {
                 const wave = Math.sin((x + waveOffset) * 0.01 + time * 0.0002) * 20;
                 ctx.lineTo(x, yPos + wave);
             }
             
-            ctx.lineTo(canvas.width, canvas.height);
-            ctx.lineTo(0, canvas.height);
+            ctx.lineTo(viewWidth, viewHeight);
+            ctx.lineTo(0, viewHeight);
             ctx.closePath();
             
             const gradient = ctx.createLinearGradient(0, yPos - 100, 0, yPos + 100);
@@ -1417,12 +1417,12 @@
             
             const wobble = Math.sin(time * particle.wobble + particle.wobbleOffset) * 5;
             
-            if (particle.y > canvas.height + particle.height) {
+            if (particle.y > viewHeight + particle.height) {
                 particle.y = -particle.height;
-                particle.x = Math.random() * canvas.width;
+                particle.x = Math.random() * viewWidth;
             }
-            if (particle.x < -particle.width) particle.x = canvas.width + particle.width;
-            if (particle.x > canvas.width + particle.width) particle.x = -particle.width;
+            if (particle.x < -particle.width) particle.x = viewWidth + particle.width;
+            if (particle.x > viewWidth + particle.width) particle.x = -particle.width;
             
             ctx.save();
             ctx.translate(particle.x, particle.y + wobble);
@@ -1488,12 +1488,12 @@
             
             const shimmer = Math.sin(time * star.shimmer + star.shimmerOffset) * 0.4 + 0.6;
             
-            if (star.y > canvas.height + 50) {
+            if (star.y > viewHeight + 50) {
                 star.y = -50;
-                star.x = Math.random() * canvas.width;
+                star.x = Math.random() * viewWidth;
             }
-            if (star.x < -100) star.x = canvas.width + 100;
-            if (star.x > canvas.width + 100) star.x = -100;
+            if (star.x < -100) star.x = viewWidth + 100;
+            if (star.x > viewWidth + 100) star.x = -100;
             
             ctx.save();
             ctx.globalAlpha = star.opacity * shimmer;
@@ -1570,13 +1570,13 @@
         
         // Desenhar fundo
         if (currentAnimation === 'winter') {
-            // Gradiente de céu invernal
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            // Gradiente de céu invernal (usar área visível)
+            const gradient = ctx.createLinearGradient(0, 0, 0, viewHeight);
             settings.winter.skyGradient.forEach((color, index) => {
                 gradient.addColorStop(index / (settings.winter.skyGradient.length - 1), color);
             });
             ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, viewWidth, viewHeight);
         } else {
             const bgColor = settings[currentAnimation].backgroundColor;
             ctx.fillStyle = bgColor;
