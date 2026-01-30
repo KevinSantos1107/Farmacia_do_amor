@@ -144,7 +144,8 @@
     }
 
     function setupCanvas() {
-        resizeCanvas();
+        // Garantir que o canvas já fique com o tamanho correto agora
+        handleResize();
         // Preferir Visual Viewport quando disponível — responde a mudanças da barra do navegador
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', handleResize);
@@ -162,9 +163,13 @@
             // usar valores inteiros para evitar sub-pixel issues no canvas
             canvas.width = Math.floor(window.visualViewport.width);
             canvas.height = Math.floor(window.visualViewport.height);
+            canvas.style.width = canvas.width + 'px';
+            canvas.style.height = canvas.height + 'px';
         } else {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            canvas.style.width = canvas.width + 'px';
+            canvas.style.height = canvas.height + 'px';
         }
         
         // Não recriar elementos, apenas ajustar posições se necessário
@@ -197,9 +202,18 @@
 
     function resizeCanvas() {
         if (!canvas) return;
-        
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        // Compatível com visualViewport para obter a área visível real em mobile
+        if (window.visualViewport) {
+            canvas.width = Math.floor(window.visualViewport.width);
+            canvas.height = Math.floor(window.visualViewport.height);
+            canvas.style.width = canvas.width + 'px';
+            canvas.style.height = canvas.height + 'px';
+        } else {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.style.width = canvas.width + 'px';
+            canvas.style.height = canvas.height + 'px';
+        }
     }
 
     // ===== CRIAÇÃO DE ELEMENTOS =====
