@@ -1045,7 +1045,7 @@
         drawWinterSparkles();
         drawSmallSnowflakes();
         drawMainSnowflakes();
-        drawSnowAccumulation();
+        // Desabilitado: drawSnowAccumulation() causava barra visível em mobile durante scroll
     }
 
     function drawSmallSnowflakes() {
