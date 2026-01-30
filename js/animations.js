@@ -135,7 +135,9 @@
         canvas.style.top = '0';
         canvas.style.left = '0';
         canvas.style.width = '100%';
-        canvas.style.height = '100%';
+        // Usar dynamic viewport height para evitar discrepância quando a barra de endereço
+        // do mobile aparece/desaparece (evita a 'barra' inferior desenhada)
+        canvas.style.height = '100dvh';
         canvas.style.zIndex = '-1';
         canvas.style.pointerEvents = 'none';
         document.body.insertBefore(canvas, document.body.firstChild);
@@ -143,14 +145,27 @@
 
     function setupCanvas() {
         resizeCanvas();
-        window.addEventListener('resize', handleResize);
+        // Preferir Visual Viewport quando disponível — responde a mudanças da barra do navegador
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleResize);
+            window.visualViewport.addEventListener('scroll', handleResize);
+        } else {
+            window.addEventListener('resize', handleResize);
+        }
+        window.addEventListener('orientationchange', handleResize);
     }
 
     function handleResize() {
         if (!canvas) return;
-        
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        // Se disponível, usar visualViewport para obter a área visível real em mobile (endereço/URL bar)
+        if (window.visualViewport) {
+            // usar valores inteiros para evitar sub-pixel issues no canvas
+            canvas.width = Math.floor(window.visualViewport.width);
+            canvas.height = Math.floor(window.visualViewport.height);
+        } else {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
         
         // Não recriar elementos, apenas ajustar posições se necessário
         if (currentAnimation === 'hearts') {
