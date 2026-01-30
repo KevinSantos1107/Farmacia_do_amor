@@ -5,6 +5,7 @@
     let particles = [];
     let stars = [];
     let snowAccumulation = [];
+    let resizeTimeout = null;
     let animationId = null;
     let currentAnimation = 'meteors';
 
@@ -145,7 +146,7 @@
 
     function setupCanvas() {
         // Garantir que o canvas já fique com o tamanho correto agora
-        handleResize();
+        resizeCanvas();
         // Preferir Visual Viewport quando disponível — responde a mudanças da barra do navegador
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', handleResize);
@@ -158,19 +159,14 @@
 
     function handleResize() {
         if (!canvas) return;
-        // Se disponível, usar visualViewport para obter a área visível real em mobile (endereço/URL bar)
-        if (window.visualViewport) {
-            // usar valores inteiros para evitar sub-pixel issues no canvas
-            canvas.width = Math.floor(window.visualViewport.width);
-            canvas.height = Math.floor(window.visualViewport.height);
-            canvas.style.width = canvas.width + 'px';
-            canvas.style.height = canvas.height + 'px';
-        } else {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            canvas.style.width = canvas.width + 'px';
-            canvas.style.height = canvas.height + 'px';
-        }
+        // Debounce redimensionamento para evitar clears rápidos do canvas quando a barra do navegador
+        // aparece/desaparece (pequenas mudanças rápidas causavam flash porque alterar
+        // canvas.width/height limpa o conteúdo)
+        if (resizeTimeout) clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            resizeCanvas();
+            resizeTimeout = null;
+        }, 120);
         
         // Não recriar elementos, apenas ajustar posições se necessário
         if (currentAnimation === 'hearts') {
@@ -208,11 +204,14 @@
             canvas.height = Math.floor(window.visualViewport.height);
             canvas.style.width = canvas.width + 'px';
             canvas.style.height = canvas.height + 'px';
+            // Ajustar posição vertical caso o visualViewport esteja deslocado
+            canvas.style.top = (window.visualViewport.offsetTop || 0) + 'px';
         } else {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             canvas.style.width = canvas.width + 'px';
             canvas.style.height = canvas.height + 'px';
+            canvas.style.top = '0px';
         }
     }
 
