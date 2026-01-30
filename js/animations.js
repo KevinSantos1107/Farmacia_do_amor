@@ -4,8 +4,10 @@
     let canvas, ctx;
     let particles = [];
     let stars = [];
-    let snowAccumulation = [];
     let resizeTimeout = null;
+    // viewWidth/viewHeight representam a área visível atual (visualViewport)
+    let viewWidth = 0;
+    let viewHeight = 0;
     let animationId = null;
     let currentAnimation = 'meteors';
 
@@ -142,10 +144,21 @@
         canvas.style.zIndex = '-1';
         canvas.style.pointerEvents = 'none';
         document.body.insertBefore(canvas, document.body.firstChild);
+
+        // Inicializar tamanho físico do canvas UMA vez para evitar clears repetidos
+        const initialWidth = window.innerWidth || document.documentElement.clientWidth;
+        const initialHeight = window.innerHeight || document.documentElement.clientHeight;
+        canvas.width = initialWidth;
+        canvas.height = initialHeight;
+        viewWidth = initialWidth;
+        viewHeight = initialHeight;
+        // Ajustar estilos para corresponder
+        canvas.style.width = viewWidth + 'px';
+        canvas.style.height = viewHeight + 'px';
     }
 
     function setupCanvas() {
-        // Garantir que o canvas já fique com o tamanho correto agora
+        // Garantir que as variáveis de visualização já fiquem corretas
         resizeCanvas();
         // Preferir Visual Viewport quando disponível — responde a mudanças da barra do navegador
         if (window.visualViewport) {
@@ -198,19 +211,19 @@
 
     function resizeCanvas() {
         if (!canvas) return;
-        // Compatível com visualViewport para obter a área visível real em mobile
+        // Atualizar apenas a área visível (viewWidth/viewHeight) e estilos,
+        // mas NÃO modificar canvas.width/height para evitar limpar o conteúdo.
         if (window.visualViewport) {
-            canvas.width = Math.floor(window.visualViewport.width);
-            canvas.height = Math.floor(window.visualViewport.height);
-            canvas.style.width = canvas.width + 'px';
-            canvas.style.height = canvas.height + 'px';
-            // Ajustar posição vertical caso o visualViewport esteja deslocado
+            viewWidth = Math.floor(window.visualViewport.width);
+            viewHeight = Math.floor(window.visualViewport.height);
+            canvas.style.width = viewWidth + 'px';
+            canvas.style.height = viewHeight + 'px';
             canvas.style.top = (window.visualViewport.offsetTop || 0) + 'px';
         } else {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            canvas.style.width = canvas.width + 'px';
-            canvas.style.height = canvas.height + 'px';
+            viewWidth = window.innerWidth;
+            viewHeight = window.innerHeight;
+            canvas.style.width = viewWidth + 'px';
+            canvas.style.height = viewHeight + 'px';
             canvas.style.top = '0px';
         }
     }
@@ -219,7 +232,7 @@
     function createElements() {
         particles = [];
         stars = [];
-        snowAccumulation = []; // ← ADICIONAR
+        
         
         if (currentAnimation === 'meteors') {
             createStars();
@@ -232,7 +245,6 @@
             createAuroraStars();
     } else if (currentAnimation === 'winter') {
             createWinterScene();
-    } 
     }
 
 
@@ -927,7 +939,6 @@
             createFrostLine();
         }
         
-        initSnowAccumulation();
     }
 
     function createMainSnowflake() {
@@ -1051,19 +1062,6 @@
         }
     }
 
-    function initSnowAccumulation() {
-        const segments = Math.floor(canvas.width / 15);
-        
-        for (let i = 0; i <= segments; i++) {
-            snowAccumulation.push({
-                x: i * 15,
-                height: 0,
-                maxHeight: Math.random() * 30 + 20,
-                growthRate: 0.02
-            });
-        }
-    }
-
     function drawWinterScene() {
         const time = Date.now();
         const config = settings.winter;
@@ -1073,7 +1071,7 @@
         drawWinterSparkles();
         drawSmallSnowflakes();
         drawMainSnowflakes();
-        // Desabilitado: drawSnowAccumulation() causava barra visível em mobile durante scroll
+        
     }
 
     function drawSmallSnowflakes() {
@@ -1132,7 +1130,6 @@
             particle.rotation += Math.sin(time * particle.wobble + particle.wobbleOffset) * 0.01;
             
             if (particle.y > canvas.height - 60) {
-                accumulateSnow(particle);
                 particle.landed = true;
                 
                 setTimeout(() => {
@@ -1565,99 +1562,6 @@
             ctx.restore();
         });
     }
-
-    function accumulateSnow(snowflake) {
-        const segmentIndex = Math.floor(snowflake.x / 15);
-        
-        if (segmentIndex >= 0 && segmentIndex < snowAccumulation.length) {
-            const segment = snowAccumulation[segmentIndex];
-            
-            if (segment.height < segment.maxHeight) {
-                segment.height += segment.growthRate * snowflake.size * 0.3;
-            }
-        }
-    }
-
-    function drawSnowAccumulation() {
-        if (snowAccumulation.length === 0) return;
-        
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height);
-        
-        for (let i = 0; i < snowAccumulation.length; i++) {
-            const segment = snowAccumulation[i];
-            const x = segment.x;
-            const y = canvas.height - segment.height;
-            
-            if (i === 0) {
-                ctx.lineTo(x, y);
-            } else {
-                const prevSegment = snowAccumulation[i - 1];
-                const prevX = prevSegment.x;
-                const prevY = canvas.height - prevSegment.height;
-                
-                const cpX = (prevX + x) / 2;
-                const cpY = (prevY + y) / 2;
-                
-                ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
-            }
-        }
-        
-        ctx.lineTo(canvas.width, canvas.height);
-        ctx.lineTo(0, canvas.height);
-        ctx.closePath();
-        
-        const gradient = ctx.createLinearGradient(0, canvas.height - 50, 0, canvas.height);
-        gradient.addColorStop(0, '#ffffff');
-        gradient.addColorStop(0.3, '#f0f9ff'); // Branco com leve azul
-        gradient.addColorStop(0.6, '#dbeafe'); // Azul muito suave
-        gradient.addColorStop(1, '#bfdbfe'); // Azul claro
-                
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height);
-        
-        for (let i = 0; i < snowAccumulation.length; i++) {
-            const segment = snowAccumulation[i];
-            const x = segment.x;
-            const y = canvas.height - segment.height;
-            
-            if (i === 0) {
-                ctx.lineTo(x, y);
-            } else {
-                const prevSegment = snowAccumulation[i - 1];
-                const prevX = prevSegment.x;
-                const prevY = canvas.height - prevSegment.height;
-                
-                const cpX = (prevX + x) / 2;
-                const cpY = (prevY + y) / 2;
-                
-                ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
-            }
-        }
-        
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        for (let i = 0; i < snowAccumulation.length; i += 3) {
-            const segment = snowAccumulation[i];
-            if (segment.height > 5) {
-                const x = segment.x + (Math.random() - 0.5) * 10;
-                const y = canvas.height - segment.height - Math.random() * 5;
-                
-                ctx.beginPath();
-                ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-                const sparkleGrad = ctx.createRadialGradient(x, y, 0, x, y, 4);
-                sparkleGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-                sparkleGrad.addColorStop(0.5, 'rgba(96, 165, 250, 0.5)'); // Azul diamante
-                sparkleGrad.addColorStop(1, 'rgba(96, 165, 250, 0)');
-                ctx.fillStyle = sparkleGrad;
-                ctx.fill();
-            }
-        }
     }
 
     // ===== ANIMAÇÃO PRINCIPAL =====
@@ -1703,7 +1607,6 @@
         // Limpar arrays
         particles = [];
         stars = [];
-        snowAccumulation = [];
         
         // Criar elementos baseado no tema atual
         createElements();
@@ -1730,7 +1633,6 @@
         // Limpar arrays
         particles = [];
         stars = [];
-        snowAccumulation = [];
         
         // Recriar elementos
         createElements();
