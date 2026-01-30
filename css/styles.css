@@ -178,7 +178,8 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    /* usar dynamic viewport height para corresponder à área visível real em mobile */
+    height: 100dvh;
     z-index: -1;
     pointer-events: none;
 }
