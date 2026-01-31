@@ -1,4 +1,4 @@
-// ===== CONFIGURAÇÃO DO FIREBASE (SEM IMGBB) =====
+// ===== CONFIGURAÇÃO DO FIREBASE (COM CLOUDINARY PARA IMAGENS) =====
 
 // Suas credenciais do Firebase
 const firebaseConfig = {
@@ -13,14 +13,245 @@ const firebaseConfig = {
 // Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 
-// Inicializar APENAS Firestore (sem Storage)
+// Inicializar APENAS Firestore (storage no Cloudinary)
 const db = firebase.firestore();
 
-console.log('🔥 Firebase inicializado!');
+console.log('🔥 Firebase inicializado! Cloudinary para imagens.');
 
-// ===== FUNÇÕES DE UPLOAD - AGORA USAM O IMGBB DO imgbb-config.js =====
+// ===== FUNÇÕES DE OTIMIZAÇÃO CLOUDINARY =====
+
+/**
+ * Otimiza URL do Cloudinary com parâmetros de transformação
+ * @param {string} originalUrl - URL original da imagem
+ * @param {object} options - Opções de otimização
+ * @returns {string} URL otimizada
+ */
+function getOptimizedCloudinaryUrl(originalUrl, options = {}) {
+    // Se não for URL do Cloudinary, retornar original
+    if (!originalUrl || !originalUrl.includes('cloudinary.com')) {
+        console.warn('⚠️ URL não é do Cloudinary:', originalUrl?.substring(0, 50));
+        return originalUrl;
+    }
+    
+    const {
+        width = null,
+        height = null,
+        quality = 'auto',
+        format = 'auto',
+        crop = 'fill',
+        gravity = 'auto',
+        effect = null,
+        blur = null
+    } = options;
+    
+    // Extrair partes da URL do Cloudinary
+    // Formato esperado: https://res.cloudinary.com/NOME/image/upload/vTIMESTAMP/FOLDER/IMAGE.jpg
+    
+    try {
+        const urlParts = originalUrl.split('/upload/');
+        if (urlParts.length !== 2) return originalUrl;
+        
+        const [base, path] = urlParts;
+        
+        // Construir transformações
+        const transformations = [];
+        
+        if (width && height) {
+            transformations.push(`c_${crop},g_${gravity},w_${width},h_${height}`);
+        } else if (width) {
+            transformations.push(`w_${width}`);
+        } else if (height) {
+            transformations.push(`h_${height}`);
+        }
+        
+        if (quality) {
+            transformations.push(`q_${quality}`);
+        }
+        
+        if (format && format !== 'auto') {
+            transformations.push(`f_${format}`);
+        }
+        
+        if (effect) {
+            transformations.push(`e_${effect}`);
+        }
+        
+        if (blur) {
+            transformations.push(`e_blur:${blur}`);
+        }
+        
+        // Montar URL final
+        if (transformations.length > 0) {
+            return `${base}/upload/${transformations.join(',')}/${path}`;
+        }
+        
+        return originalUrl;
+        
+    } catch (error) {
+        console.error('❌ Erro ao otimizar URL Cloudinary:', error);
+        return originalUrl;
+    }
+}
+
+/**
+ * Obtém URL da thumbnail (pequena e rápida)
+ */
+function getThumbnailUrl(originalUrl) {
+    return getOptimizedCloudinaryUrl(originalUrl, {
+        width: 400,
+        height: 300,
+        quality: 40,
+        crop: 'fill',
+        gravity: 'auto',
+        format: 'webp'
+    });
+}
+
+/**
+ * Obtém URL da imagem média (para carrossel)
+ */
+function getMediumImageUrl(originalUrl) {
+    return getOptimizedCloudinaryUrl(originalUrl, {
+        width: 800,
+        height: 600,
+        quality: 70,
+        crop: 'fill',
+        gravity: 'auto',
+        format: 'webp'
+    });
+}
+
+/**
+ * Obtém URL da imagem grande (para modal)
+ */
+function getLargeImageUrl(originalUrl) {
+    return getOptimizedCloudinaryUrl(originalUrl, {
+        width: 1200,
+        quality: 85,
+        format: 'webp'
+    });
+}
+
+/**
+ * Obtém URL para placeholder borrado (LQIP - Low Quality Image Placeholder)
+ */
+function getBlurredPlaceholderUrl(originalUrl) {
+    return getOptimizedCloudinaryUrl(originalUrl, {
+        width: 100,
+        quality: 10,
+        effect: 'blur:1000',
+        format: 'webp'
+    });
+}
+
+// ===== FUNÇÃO AUXILIAR: CRIAR IMAGEM COM CLOUDINARY =====
+
+function createCloudinaryImage(album) {
+    const img = document.createElement('img');
+    img.alt = album.title;
+    img.loading = 'lazy';
+    img.className = 'album-cover-img';
+    
+    // Se não tiver URL ou não for Cloudinary
+    if (!album.cover || !album.cover.includes('cloudinary.com')) {
+        console.warn(`⚠️ Álbum "${album.title}" não tem URL Cloudinary`);
+        img.src = album.cover || 'images/capas-albuns/default-music.jpg';
+        return img;
+    }
+    
+    // ✅ USANDO CLOUDINARY COM VERSÕES OTIMIZADAS
+    
+    // 1. Começar com placeholder borrado (instantâneo)
+    const placeholderUrl = getBlurredPlaceholderUrl(album.cover);
+    img.src = placeholderUrl;
+    
+    // 2. Pré-carregar thumbnail
+    const thumbUrl = getThumbnailUrl(album.cover);
+    const thumbImg = new Image();
+    thumbImg.src = thumbUrl;
+    
+    thumbImg.onload = () => {
+        // Mostrar thumbnail
+        img.src = thumbUrl;
+        img.classList.add('lazy-thumb-loaded');
+        
+        // 3. Pré-carregar imagem média em background
+        const mediumUrl = getMediumImageUrl(album.cover);
+        const mediumImg = new Image();
+        mediumImg.src = mediumUrl;
+        
+        mediumImg.onload = () => {
+            img.src = mediumUrl;
+            img.classList.remove('lazy-thumb-loaded');
+            img.classList.add('lazy-medium-loaded');
+            
+            // 4. Opcional: carregar imagem grande se for importante
+            if (album.isFeatured) {
+                const largeUrl = getLargeImageUrl(album.cover);
+                const largeImg = new Image();
+                largeImg.src = largeUrl;
+                
+                largeImg.onload = () => {
+                    img.src = largeUrl;
+                    img.classList.remove('lazy-medium-loaded');
+                    img.classList.add('lazy-full-loaded');
+                };
+            }
+        };
+    };
+    
+    return img;
+}
 
 // ===== SISTEMA DE RENDERIZAÇÃO DE ÁLBUNS =====
+
+function renderAlbums(albums) {
+    const container = document.getElementById('albumsCarousel');
+    
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (albums.length === 0) {
+        container.innerHTML = `<div>Nenhum álbum criado ainda</div>`;
+        return;
+    }
+    
+    const fragment = document.createDocumentFragment();
+    
+    albums.forEach(album => {
+        const albumCard = document.createElement('div');
+        albumCard.className = 'album-card';
+        albumCard.dataset.id = album.id;
+        
+        // ✅ USAR CLOUDINARY PARA OTIMIZAÇÃO
+        const coverImg = createCloudinaryImage(album);
+        
+        albumCard.innerHTML = `
+            <div class="album-cover-container"></div>
+            <div class="album-info">
+                <h3>${album.title}</h3>
+                <p class="album-date">
+                    <i class="far fa-calendar-alt"></i> ${album.date}
+                </p>
+                <p>${album.description}</p>
+                <div class="album-stats">
+                    <span>
+                        <i class="far fa-images"></i> ${album.photoCount || 0} ${album.photoCount === 1 ? 'foto' : 'fotos'}
+                    </span>
+                </div>
+            </div>
+        `;
+        
+        // Adicionar imagem ao container
+        albumCard.querySelector('.album-cover-container').appendChild(coverImg);
+        albumCard.addEventListener('click', () => openAlbum(album.id));
+        
+        fragment.appendChild(albumCard);
+    });
+    
+    container.appendChild(fragment);
+}
 
 // ===== FUNÇÃO PARA ABRIR MODAL DO ÁLBUM =====
 function openAlbumModal(album) {
@@ -42,7 +273,7 @@ function openAlbumModal(album) {
     modalTitle.textContent = album.title;
     totalPhotosSpan.textContent = album.photos.length;
     
-    // Mostrar primeira foto
+    // Mostrar primeira foto COM OTIMIZAÇÃO CLOUDINARY
     updateModalPhoto();
     
     // Abrir modal
@@ -60,8 +291,31 @@ function updateModalPhoto() {
     if (!window.currentAlbum || !window.currentAlbum.photos) return;
     
     const photo = window.currentAlbum.photos[window.currentPhotoIndex];
+    const photoUrl = photo.src || photo.url || photo;
     
-    modalPhoto.src = photo.src || photo;
+    // Se for Cloudinary, otimizar
+    let optimizedUrl = photoUrl;
+    if (photoUrl && photoUrl.includes('cloudinary.com')) {
+        optimizedUrl = getLargeImageUrl(photoUrl);
+    }
+    
+    // Aplicar placeholder e carregamento progressivo
+    modalPhoto.classList.add('lazy-loading');
+    
+    // Primeiro mostrar thumbnail
+    const thumbUrl = getThumbnailUrl(photoUrl);
+    modalPhoto.src = thumbUrl;
+    
+    // Depois carregar imagem completa
+    const fullImg = new Image();
+    fullImg.src = optimizedUrl;
+    
+    fullImg.onload = () => {
+        modalPhoto.src = optimizedUrl;
+        modalPhoto.classList.remove('lazy-loading');
+        modalPhoto.classList.add('lazy-full-loaded');
+    };
+    
     modalPhoto.alt = photo.description || `Foto ${window.currentPhotoIndex + 1}`;
     currentPhotoSpan.textContent = window.currentPhotoIndex + 1;
 }
@@ -91,7 +345,9 @@ async function loadAlbumsFromFirebase() {
             const allPhotos = [];
             photoPagesSnapshot.forEach(pageDoc => {
                 const pageData = pageDoc.data();
-                allPhotos.push(...pageData.photos);
+                if (pageData.photos && Array.isArray(pageData.photos)) {
+                    allPhotos.push(...pageData.photos);
+                }
             });
             
             console.log(`   ✅ ${allPhotos.length} fotos carregadas`);
@@ -103,53 +359,16 @@ async function loadAlbumsFromFirebase() {
                 cover: albumData.cover,
                 description: albumData.description,
                 photoCount: allPhotos.length,
-                photos: allPhotos
+                photos: allPhotos,
+                isFeatured: albumData.isFeatured || false
             });
         }
         
         console.log(`✅ Total de álbuns carregados: ${firebaseAlbums.length}`);
         
-        // 🧪 TESTE: Adicionar álbuns de teste se nenhum foi carregado
-        if (firebaseAlbums.length === 0) {
-            console.log('🧪 Nenhum álbum no Firebase, adicionando álbuns de teste...');
-            firebaseAlbums.push(
-                {
-                    id: 'test1',
-                    title: 'Nosso Primeiro Encontro',
-                    date: '15 Jan 2024',
-                    cover: 'https://via.placeholder.com/400x300/FF69B4/FFFFFF?text=Album+1',
-                    description: 'Momentos especiais do nosso primeiro encontro',
-                    photoCount: 5,
-                    photos: [
-                        { url: 'https://via.placeholder.com/800x600/FF69B4/FFFFFF?text=Foto+1', alt: 'Foto 1' },
-                        { url: 'https://via.placeholder.com/800x600/FF1493/FFFFFF?text=Foto+2', alt: 'Foto 2' },
-                        { url: 'https://via.placeholder.com/800x600/DC143C/FFFFFF?text=Foto+3', alt: 'Foto 3' },
-                        { url: 'https://via.placeholder.com/800x600/C71585/FFFFFF?text=Foto+4', alt: 'Foto 4' },
-                        { url: 'https://via.placeholder.com/800x600/DB7093/FFFFFF?text=Foto+5', alt: 'Foto 5' }
-                    ]
-                },
-                {
-                    id: 'test2',
-                    title: 'Viagem Romântica',
-                    date: '20 Fev 2024',
-                    cover: 'https://via.placeholder.com/400x300/FF1493/FFFFFF?text=Album+2',
-                    description: 'Nossa viagem inesquecível',
-                    photoCount: 3,
-                    photos: [
-                        { url: 'https://via.placeholder.com/800x600/FF1493/FFFFFF?text=Viagem+1', alt: 'Viagem 1' },
-                        { url: 'https://via.placeholder.com/800x600/DC143C/FFFFFF?text=Viagem+2', alt: 'Viagem 2' },
-                        { url: 'https://via.placeholder.com/800x600/C71585/FFFFFF?text=Viagem+3', alt: 'Viagem 3' }
-                    ]
-                }
-            );
-        }
-
-        // Atualizar álbuns globais (APENAS Firebase)
+        // Atualizar álbuns globais
         window.albums = firebaseAlbums;
 
-        // RENDERIZAR OS ÁLBUNS - REMOVIDO: renderAlbums é feito pelo AlbumsCarousel3D
-        // renderAlbums(firebaseAlbums);
-        
         // ✅ INICIALIZAR O CARROSSEL APÓS CARREGAR OS ÁLBUNS
         if (typeof initAlbums === 'function') {
             setTimeout(() => {
@@ -175,331 +394,7 @@ async function loadAlbumsFromFirebase() {
     }
 }
 
-// ===== FUNÇÃO AUXILIAR: CRIAR IMAGEM COM FALLBACK INTELIGENTE =====
-function createAlbumCoverImage(album) {
-    const coverImg = document.createElement('img');
-    coverImg.alt = album.title;
-    coverImg.loading = 'lazy';
-    coverImg.className = 'album-cover-img';
-    
-    // ✅ VERIFICAR SE TEM VERSÕES RESPONSIVAS
-    if (album.coverThumb && album.coverLarge) {
-        // ✅ TEM versões - usar createResponsiveImage
-        console.log(`✅ Álbum "${album.title}" com versões responsivas`);
-        
-        coverImg.src = album.cover;  // Padrão (medium)
-        
-        coverImg.srcset = `
-            ${album.coverThumb} 400w,
-            ${album.cover} 800w,
-            ${album.coverLarge} 1600w
-        `.trim();
-        
-        coverImg.sizes = `
-            (max-width: 400px) 400px,
-            (max-width: 800px) 800px,
-            1600px
-        `.trim();
-        
-        // Blur placeholder
-        coverImg.style.filter = 'blur(10px)';
-        coverImg.style.transition = 'filter 0.3s ease';
-        
-        coverImg.addEventListener('load', () => {
-            coverImg.style.filter = 'none';
-        }, { once: true });
-        
-    } else {
-        // ❌ NÃO TEM versões - usar fallback inteligente
-        console.warn(`⚠️ Álbum "${album.title}" sem versões - aplicando fallback`);
-        
-        // Tentar otimizar URL antiga
-        if (typeof optimizeExistingUrl === 'function') {
-            coverImg.src = optimizeExistingUrl(album.cover, 800);
-            console.log(`♻️ URL otimizada para "${album.title}"`);
-        } else {
-            coverImg.src = album.cover;
-            console.warn(`⚠️ Função optimizeExistingUrl não disponível`);
-        }
-        
-        // Aplicar blur placeholder mesmo sem versões
-        coverImg.style.filter = 'blur(10px)';
-        coverImg.style.transition = 'filter 0.3s ease';
-        
-        coverImg.addEventListener('load', () => {
-            coverImg.style.filter = 'none';
-        }, { once: true });
-    }
-    
-    return coverImg;
-}
-
-function renderAlbums(albums) {
-    const container = document.getElementById('albumsCarousel');
-    
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    if (albums.length === 0) {
-        container.innerHTML = `<div>Nenhum álbum criado ainda</div>`;
-        return;
-    }
-    
-    const fragment = document.createDocumentFragment();
-    
-    albums.forEach(album => {
-        const albumCard = document.createElement('div');
-        albumCard.className = 'album-card';
-        albumCard.dataset.id = album.id;
-        
-        // ✅ USAR FUNÇÃO AUXILIAR (cria imagem com fallback automático)
-        const coverImg = createAlbumCoverImage(album);
-        
-        albumCard.innerHTML = `
-            <div class="album-cover-container"></div>
-            <div class="album-info">
-                <h3>${album.title}</h3>
-                <p class="album-date">
-                    <i class="far fa-calendar-alt"></i> ${album.date}
-                </p>
-                <p>${album.description}</p>
-                <div class="album-stats">
-                    <span>
-                        <i class="far fa-images"></i> ${album.photoCount || 0} ${album.photoCount === 1 ? 'foto' : 'fotos'}
-                    </span>
-                </div>
-            </div>
-        `;
-        
-        // Adicionar imagem ao container
-        albumCard.querySelector('.album-cover-container').appendChild(coverImg);
-        albumCard.addEventListener('click', () => openAlbum(album.id));
-        
-        fragment.appendChild(albumCard);
-    });
-    
-    container.appendChild(fragment);
-}
-
-
-// ===== FORÇAR CARREGAMENTO DOS ÁLBUNS =====
-async function forceLoadAlbums() {
-    console.log('🔄 FORÇANDO carregamento de álbuns...');
-    
-    // Aguardar Firebase estar pronto
-    if (typeof firebase === 'undefined' || !firebase.apps.length) {
-        console.warn('⚠️ Firebase ainda não está pronto, aguardando...');
-        setTimeout(forceLoadAlbums, 500);
-        return;
-    }
-    
-    try {
-        await loadAlbumsFromFirebase();
-    } catch (error) {
-        console.error('❌ Erro ao forçar carregamento:', error);
-    }
-}
-
-// ===== INICIALIZAR QUANDO A PÁGINA CARREGAR =====
-console.log('📋 Estado do documento:', document.readyState);
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('📋 DOMContentLoaded disparado');
-        setTimeout(async () => {
-            console.log('🚀 Iniciando carregamento de álbuns...');
-            await forceLoadAlbums();
-            await loadTimelineFromFirebase();
-        }, 1000);
-    });
-} else {
-    console.log('📋 Documento já carregado, iniciando imediatamente');
-    setTimeout(async () => {
-        console.log('🚀 Iniciando carregamento de álbuns...');
-        await forceLoadAlbums();
-        await loadTimelineFromFirebase();
-    }, 1000);
-}
-
-// ===== CARREGAR TIMELINE DO FIREBASE =====
-async function loadTimelineFromFirebase() {
-    try {
-        console.log('📖 Carregando timeline do Firebase...');
-        
-        // Aguardar admin.js ser carregado se necessário
-        if (typeof rebuildTimeline !== 'function') {
-            console.log('⏳ Aguardando carregamento do admin.js para rebuildTimeline...');
-            // Tentar novamente em intervalos até que admin seja carregado
-            const checkInterval = setInterval(async () => {
-                if (typeof rebuildTimeline === 'function') {
-                    clearInterval(checkInterval);
-                    await window.rebuildTimeline();
-                }
-            }, 500);
-            
-            // Timeout após 10 segundos
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                console.warn('⚠️ Timeout aguardando rebuildTimeline - timeline pode não ser atualizada');
-            }, 10000);
-        } else {
-            await window.rebuildTimeline();
-        }
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar timeline:', error);
-    }
-}
-
-console.log('✅ Sistema de renderização de álbuns carregado!');
-
-// ===== FUNÇÃO AUXILIAR: CARREGAR CONFIGURAÇÕES DO STAR MAP =====
-
-/**
- * Carrega as configurações do Mapa das Estrelas do Firebase
- * @returns {Promise<Object|null>} Configurações ou null se não existir
- */
-async function loadStarMapConfigFromFirebase() {
-    try {
-        const doc = await db.collection('star_map_config').doc('settings').get();
-        
-        if (doc.exists) {
-            const config = doc.data();
-            console.log('✅ Configurações do Star Map carregadas do Firebase');
-            console.log('   📅 Data especial:', config.specialDate || 'Não definida');
-            console.log('   📍 Localização:', config.customLocation ? 'Manual' : 'Automática');
-            console.log('   💬 Frase:', config.romanticQuote);
-            return config;
-        } else {
-            console.log('⚠️ Nenhuma configuração do Star Map encontrada');
-            return null;
-        }
-    } catch (error) {
-        console.error('❌ Erro ao carregar configurações do Star Map:', error);
-        return null;
-    }
-}
-
-/**
- * Salva as configurações do Mapa das Estrelas no Firebase
- * @param {Object} config - Objeto com specialDate, customLocation, romanticQuote
- * @returns {Promise<boolean>} True se salvou com sucesso
- */
-async function saveStarMapConfigToFirebase(config) {
-    try {
-        await db.collection('star_map_config').doc('settings').set({
-            specialDate: config.specialDate || null,
-            customLocation: config.customLocation || null,
-            romanticQuote: config.romanticQuote || "O céu quando nossos mundos se colidiram",
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        console.log('✅ Configurações do Star Map salvas com sucesso');
-        return true;
-    } catch (error) {
-        console.error('❌ Erro ao salvar configurações do Star Map:', error);
-        return false;
-    }
-}
-
-/**
- * ✨ FORÇA ATUALIZAÇÃO COMPLETA DO STAR MAP
- * Recarrega todas as configurações e recria o mapa
- */
-async function forceReloadStarMap() {
-    try {
-        console.log('🔄 Forçando reload completo do Star Map...');
-        
-        // 1. Resetar o objeto global
-        window.starMap = null;
-        
-        // 2. Recarregar configurações do Firebase
-        const config = await loadStarMapConfigFromFirebase();
-        
-        // 3. Reinicializar o Star Map com novas configurações
-        if (typeof initializeStarMapWithConfig === 'function') {
-            await initializeStarMapWithConfig();
-            console.log('✅ Star Map recarregado com sucesso!');
-        } else {
-            console.warn('⚠️ Função initializeStarMapWithConfig não encontrada');
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('❌ Erro ao forçar reload do Star Map:', error);
-        return false;
-    }
-}
-
-// ✅ TORNAR FUNÇÃO GLOBAL
-window.forceReloadStarMap = forceReloadStarMap;
-
-console.log('✅ Funções auxiliares do Star Map carregadas');
-
-// ===== FUNÇÕES DA TIMELINE (MOVIDAS DE admin.js PARA DISPONIBILIDADE GLOBAL) =====
-
-async function rebuildTimeline() {
-    const container = document.querySelector('.timeline-container');
-    if (!container) {
-        console.warn('⚠️ Container da timeline não encontrado');
-        return;
-    }
-    
-    try {
-        const snapshot = await db.collection('timeline').orderBy('createdAt', 'asc').limit(50).get();
-        
-        const allItems = container.querySelectorAll('.timeline-item');
-        allItems.forEach(item => item.remove());
-        
-        let timelineEnd = container.querySelector('.timeline-end');
-        
-        if (!timelineEnd) {
-            timelineEnd = document.createElement('div');
-            timelineEnd.className = 'timeline-end';
-            timelineEnd.innerHTML = `
-                <div class="timeline-heart"><i class="fas fa-infinity"></i></div>
-                <p>E nossa história continua...</p>
-            `;
-            container.appendChild(timelineEnd);
-        }
-        
-        if (snapshot.empty) {
-            console.log('📖 Nenhum evento na timeline');
-            return;
-        }
-        
-        const fragment = document.createDocumentFragment();
-        
-        snapshot.forEach((doc, index) => {
-            const event = doc.data();
-            const item = window.createTimelineItem(event, doc.id, index);
-            fragment.appendChild(item);
-        });
-        
-        container.insertBefore(fragment, timelineEnd);
-        
-        applyTimelineIntercalation();
-        
-        const secretBtns = document.querySelectorAll('.secret-message-btn');
-        secretBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const message = btn.getAttribute('data-message');
-                if (message && typeof showSecretMessage === 'function') {
-                    showSecretMessage(message);
-                }
-            });
-        });
-        
-        console.log(`✅ Timeline reconstruída com ${snapshot.size} eventos`);
-        
-    } catch (error) {
-        console.error('❌ Erro ao reconstruir timeline:', error);
-    }
-}
-
-window.rebuildTimeline = rebuildTimeline;
+// ===== FUNÇÃO TIMELINE OTIMIZADA CLOUDINARY =====
 
 function createTimelineItem(event, id, index) {
     const item = document.createElement('div');
@@ -533,12 +428,23 @@ function createTimelineItem(event, id, index) {
 
     const img = document.createElement('img');
     
-    if (event.photoLarge) {
-        img.src = event.photoLarge;
-    } else if (event.photo) {
-        if (typeof optimizeExistingUrl === 'function') {
-            img.src = optimizeExistingUrl(event.photo, 1600);
+    // ✅ OTIMIZAR COM CLOUDINARY
+    if (event.photo) {
+        if (event.photo.includes('cloudinary.com')) {
+            // Usar thumbnail para timeline
+            const thumbUrl = getThumbnailUrl(event.photo);
+            img.src = thumbUrl;
+            
+            // Pré-carregar versão média
+            const mediumImg = new Image();
+            mediumImg.src = getMediumImageUrl(event.photo);
+            
+            mediumImg.onload = () => {
+                img.src = mediumImg.src;
+                img.classList.add('loaded');
+            };
         } else {
+            // Fallback para URLs não-Cloudinary
             img.src = event.photo;
         }
     } else {
@@ -548,11 +454,11 @@ function createTimelineItem(event, id, index) {
     img.alt = event.title;
     img.loading = 'lazy';
     img.decoding = 'async';
-    img.style.filter = 'blur(10px)';
-    img.style.transition = 'filter 0.4s ease-out';
-
+    img.classList.add('img-placeholder');
+    
     img.addEventListener('load', () => {
-        img.style.filter = 'none';
+        img.classList.remove('img-placeholder');
+        img.classList.add('lazy-loaded');
     }, { once: true });
 
     const polaroid = item.querySelector('.photo-polaroid');
@@ -562,42 +468,58 @@ function createTimelineItem(event, id, index) {
     return item;
 }
 
-window.createTimelineItem = createTimelineItem;
+// ===== INICIALIZAR QUANDO A PÁGINA CARREGAR =====
+console.log('📋 Estado do documento:', document.readyState);
 
-function applyTimelineIntercalation() {
-    const items = document.querySelectorAll('.timeline-item[data-id]');
-    
-    if (items.length === 0) return;
-    
-    items.forEach(item => {
-        item.classList.remove('left', 'right');
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('📋 DOMContentLoaded disparado');
+        setTimeout(async () => {
+            console.log('🚀 Iniciando carregamento de álbuns...');
+            await loadAlbumsFromFirebase();
+            await loadTimelineFromFirebase();
+        }, 1000);
     });
-    
-    items.forEach((item, index) => {
-        const side = index % 2 === 0 ? 'left' : 'right';
-        item.classList.add(side);
-        
-        updateFirebaseSide(item.getAttribute('data-id'), side);
-    });
-    
-    console.log(`✅ Timeline intercalada: ${items.length} eventos`);
+} else {
+    console.log('📋 Documento já carregado, iniciando imediatamente');
+    setTimeout(async () => {
+        console.log('🚀 Iniciando carregamento de álbuns...');
+        await loadAlbumsFromFirebase();
+        await loadTimelineFromFirebase();
+    }, 1000);
 }
 
-window.applyTimelineIntercalation = applyTimelineIntercalation;
-
-window.applyTimelineIntercalation = applyTimelineIntercalation;
-
-async function updateFirebaseSide(eventId, side) {
+// ===== CARREGAR TIMELINE DO FIREBASE =====
+async function loadTimelineFromFirebase() {
     try {
-        await db.collection('timeline').doc(eventId).update({
-            side: side,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        console.log('📖 Carregando timeline do Firebase...');
+        
+        if (typeof rebuildTimeline !== 'function') {
+            console.log('⏳ Aguardando carregamento do admin.js para rebuildTimeline...');
+            const checkInterval = setInterval(async () => {
+                if (typeof rebuildTimeline === 'function') {
+                    clearInterval(checkInterval);
+                    await window.rebuildTimeline();
+                }
+            }, 500);
+            
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                console.warn('⚠️ Timeout aguardando rebuildTimeline');
+            }, 10000);
+        } else {
+            await window.rebuildTimeline();
+        }
+        
     } catch (error) {
-        console.warn(`⚠️ Não foi possível atualizar lado do evento ${eventId}:`, error);
+        console.error('❌ Erro ao carregar timeline:', error);
     }
 }
 
-window.updateFirebaseSide = updateFirebaseSide;
+// ===== EXPORTAR FUNÇÕES DE OTIMIZAÇÃO =====
+window.getOptimizedCloudinaryUrl = getOptimizedCloudinaryUrl;
+window.getThumbnailUrl = getThumbnailUrl;
+window.getMediumImageUrl = getMediumImageUrl;
+window.getLargeImageUrl = getLargeImageUrl;
 
-console.log('✅ Sistema de renderização de álbuns e timeline carregado!');
+console.log('✅ Sistema Firebase com Cloudinary carregado!');
