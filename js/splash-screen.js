@@ -17,6 +17,20 @@ class SplashScreen {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
 
+        // Bloqueia a rolagem da página enquanto o splash estiver visível
+        try {
+            this._prevBodyOverflow = document.body.style.overflow || '';
+            document.body.style.overflow = 'hidden';
+
+            this._preventTouchMove = (e) => { e.preventDefault(); };
+            this._preventWheel = (e) => { e.preventDefault(); };
+            document.addEventListener('touchmove', this._preventTouchMove, { passive: false });
+            document.addEventListener('wheel', this._preventWheel, { passive: false });
+        } catch (err) {
+            // Falha segura em ambientes sem DOM completo
+            console.warn('Não foi possível bloquear a rolagem do body durante o splash.', err);
+        }
+
         this.initStars();
         this.startAnimation();
         this.startLoading();
@@ -246,6 +260,20 @@ class SplashScreen {
         this.splashScreen.classList.add('fade-out');
 
         setTimeout(() => {
+            // Restaurar rolagem da página
+            try {
+                if (typeof this._prevBodyOverflow !== 'undefined') {
+                    document.body.style.overflow = this._prevBodyOverflow || '';
+                } else {
+                    document.body.style.overflow = '';
+                }
+
+                if (this._preventTouchMove) document.removeEventListener('touchmove', this._preventTouchMove);
+                if (this._preventWheel) document.removeEventListener('wheel', this._preventWheel);
+            } catch (err) {
+                console.warn('Não foi possível restaurar a rolagem do body após o splash.', err);
+            }
+
             this.splashScreen.style.display = 'none';
             console.log('✨ Splash screen oculto - site pronto!');
         }, 1000);
