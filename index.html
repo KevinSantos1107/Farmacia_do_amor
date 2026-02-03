@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<!-- ===== BLOQUEIO IMEDIATO DE SCROLL - MOBILE + DESKTOP ===== -->
+<script>
+    (function() {
+        if (!sessionStorage.getItem('splashShown')) {
+            // Adiciona classes imediatamente
+            document.documentElement.classList.add('splash-active');
+            
+            // Previne TODOS os tipos de scroll (mobile precisa de mais eventos)
+            const preventScroll = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            };
+            
+            // Desktop
+            window.addEventListener('scroll', preventScroll, { passive: false });
+            window.addEventListener('wheel', preventScroll, { passive: false });
+            
+            // Mobile (CRÍTICO)
+            document.addEventListener('touchmove', preventScroll, { passive: false });
+            document.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            }, { passive: false });
+            
+            // Adiciona classe no body quando ele existir
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.body.classList.add('splash-active');
+                    
+                    // Salva posição do scroll no mobile
+                    const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+                    document.body.style.top = `-${scrollY}px`;
+                });
+            } else {
+                document.body.classList.add('splash-active');
+                const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+                document.body.style.top = `-${scrollY}px`;
+            }
+            
+            // Observer para limpar quando o splash sumir
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.attributeName === 'style') {
+                        const splash = document.getElementById('splashScreen');
+                        if (splash && splash.style.display === 'none') {
+                            // Remove tudo
+                            document.documentElement.classList.remove('splash-active');
+                            document.body.classList.remove('splash-active');
+                            
+                            // Restaura scroll
+                            const scrollY = document.body.style.top;
+                            document.body.style.top = '';
+                            if (scrollY) {
+                                window.scrollTo(0, parseInt(scrollY || '0') * -1);
+                            }
+                            
+                            window.removeEventListener('scroll', preventScroll);
+                            window.removeEventListener('wheel', preventScroll);
+                            document.removeEventListener('touchmove', preventScroll);
+                            observer.disconnect();
+                            console.log('🔓 Scroll liberado (mobile + desktop)!');
+                        }
+                    }
+                });
+            });
+            
+            // Observa mudanças no splash
+            window.addEventListener('DOMContentLoaded', function() {
+                const splash = document.getElementById('splashScreen');
+                if (splash) {
+                    observer.observe(splash, { attributes: true, attributeFilter: ['style'] });
+                }
+            });
+        } else {
+            // Se já mostrou antes, garante que não há bloqueio
+            document.documentElement.classList.remove('splash-active');
+            if (document.body) {
+                document.body.classList.remove('splash-active');
+            }
+        }
+    })();
+</script>
+
+    <title>Kevin & Iara - Nosso Amor</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+
+    <link rel="stylesheet" href="css/admin-styles.css">
+    <link rel="stylesheet" href="css/word-game.css">
+    <link rel="stylesheet" href="css/playlist-styles.css">
+    <link rel="stylesheet" href="css/star-map.css">
+    <link rel="stylesheet" href="css/splash-screen.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Poppins:wght@300;400;500;600&family=Raleway:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
+</head>
+<body>
+
+<!-- ===== SPLASH SCREEN - CARREGAMENTO ESTELAR ===== -->
+<div id="splashScreen" class="splash-screen">
+    <div class="splash-background">
+        <canvas id="splashCanvas" class="splash-canvas"></canvas>
+    </div>
+    
+    <div class="splash-content">
+        <div class="splash-logo">
+            <h1 class="splash-title">
+                <span class="name-part kevin">Kevin</span>
+                <i class="fas fa-heart splash-heart"></i>
+                <span class="name-part iara">Iara</span>
+            </h1>
+            <p class="splash-subtitle">Carregando memórias...</p>
+        </div>
+        
+        <div class="splash-loading">
+            <div class="loading-bar-container">
+                <div class="loading-bar" id="loadingBar"></div>
+            </div>
+            <div class="loading-text" id="loadingText">Preparando constelações...</div>
+        </div>
+        
+        <div class="splash-quote">
+            <p>"Não importa as constelações nem o idioma, eu vou te amar de qualquer maneira."</p>
+            <div class="sparkle-container">
+                <span class="sparkle">✨</span>
+                <span class="sparkle">💫</span>
+                <span class="sparkle">✨</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MENU HAMBÚRGUER MINIMALISTA ===== -->
+<div class="hamburger-menu">
+    <button class="hamburger-button" id="hamburgerBtn">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <nav class="side-menu" id="sideMenu">
+        <div class="menu-header">
+            <h2>Menu</h2>
+            <button class="menu-close-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="menu-section">
+            <h3>NAVEGAÇÃO</h3>
+            <ul class="menu-nav">
+                <li><a href="#home"><i class="fas fa-home"></i><span>Início</span></a></li>
+                <li><a href="#contador"><i class="fas fa-clock"></i><span>Contador</span></a></li>
+                <li><a href="#musicas"><i class="fas fa-music"></i><span>Músicas</span></a></li>
+                <li><a href="#albuns"><i class="fas fa-images"></i><span>Álbuns</span></a></li>
+                <li><a href="#acrostico"><i class="fas fa-wand-magic-sparkles"></i><span>Acróstico</span></a></li>
+                <li><a href="#mensagens"><i class="fas fa-envelope"></i><span>Mensagens</span></a></li>
+            </ul>
+        </div>
+
+        <!-- ✨ NOVA SEÇÃO: INTERATIVOS -->
+        <div class="menu-section">
+            <h3>INTERATIVOS</h3>
+            <ul class="menu-nav">
+                <li><a href="#jogo"><i class="fas fa-gamepad"></i><span>Jogo de Palavras</span></a></li>
+                <li><a href="#" id="openStarMapBtn"><i class="fas fa-star"></i><span>Mapa das Estrelas</span></a></li>
+                <!-- Futuros interativos aqui -->
+            </ul>
+        </div>
+
+        <div class="menu-section">
+            <h3>TEMA</h3>
+            <div class="theme-grid">
+                <button class="theme-card active" data-theme="meteors"><i class="fas fa-meteor"></i></button>
+                <button class="theme-card" data-theme="hearts"><i class="fas fa-heart"></i></button>
+                <button class="theme-card" data-theme="aurora"><i class="fas fa-spa"></i></button>
+                <button class="theme-card" data-theme="winter"><i class="fas fa-snowflake"></i></button>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <button class="admin-menu-btn" id="adminMenuBtn">
+                <i class="fas fa-shield-alt"></i>
+                <span>Admin</span>
+                <i class="fas fa-lock admin-lock-icon"></i>
+            </button>
+        </div>
+    </nav>
+</div>
+
+<div class="container">
+    <header class="header">
+        <div class="names-container">
+            <h1 class="name kevin">Kevin</h1>
+            <div class="heart-separator"><i class="fas fa-heart"></i></div>
+            <h1 class="name iara">Iara</h1>
+        </div>
+        <p class="subtitle">Uma história escrita a cada momento juntos</p>
+    </header>
+
+    <section class="main-section">
+        <div class="main-card">
+            <div class="couple-photo">
+                <img src="images/capa_principal.jpg" alt="Kevin e Iara" id="mainPhoto">
+            </div>
+            
+            <div class="love-message">
+                <h2><i class="fas fa-quote-left"></i> Para Minha Amada <i class="fas fa-quote-right"></i></h2>
+                <div class="message-content">
+                    <p>Iara, desde o momento em que nossos caminhos se cruzaram, minha vida ganhou cores mais vivas, significados mais profundos e um amor que cresce a cada dia.</p>
+                    <p>Você é a melodia que embala meus dias, o sorriso que ilumina meus momentos e a paz que acalma minha alma. Cada instante ao seu lado é um tesouro que guardo no coração.</p>
+                </div>
+                <div class="signature">
+                    <p>Com todo meu amor,</p>
+                    <p class="signature-name">Kevin</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="time-counter-section">
+        <h2><i class="far fa-clock"></i> Nossa Linha do Tempo</h2>
+        <p class="section-subtitle">Desde que nossas histórias se entrelaçaram</p>
+        
+        <div class="time-counter">
+            <div class="time-unit">
+                <div class="time-box"><span class="time-value" id="years">0</span></div>
+                <span class="time-label">Anos</span>
+            </div>
+            <div class="time-unit">
+                <div class="time-box"><span class="time-value" id="months">0</span></div>
+                <span class="time-label">Meses</span>
+            </div>
+            <div class="time-unit">
+                <div class="time-box"><span class="time-value" id="days">0</span></div>
+                <span class="time-label">Dias</span>
+            </div>
+            <div class="time-unit">
+                <div class="time-box"><span class="time-value" id="hours">0</span></div>
+                <span class="time-label">Horas</span>
+            </div>
+            <div class="time-unit">
+                <div class="time-box"><span class="time-value" id="minutes">0</span></div>
+                <span class="time-label">Minutos</span>
+            </div>
+            <div class="time-unit">
+                <div class="time-box"><span class="time-value" id="seconds">0</span></div>
+                <span class="time-label">Segundos</span>
+            </div>
+        </div>
+        
+        <div class="start-date">
+            <p><i class="far fa-calendar-alt"></i> Desde: <span id="startDateDisplay">15/06/2023</span></p>
+        </div>
+    </section>
+
+    <!-- ✅ PLAYER GERENCIADO 100% PELO PLAYLIST-MANAGER.JS -->
+    <section class="music-player-section">
+        <h2><i class="fas fa-music"></i> Nossa Trilha Sonora</h2>
+        <!-- O conteúdo é criado automaticamente pelo playlist-manager.js -->
+    </section>
+
+    <section class="albums-section">
+        <h2><i class="fas fa-images"></i> Nossas Memórias</h2>
+        
+        <!-- NOVO: Carrossel 3D -->
+        <div class="albums-carousel-container" id="albumsCarousel">
+            <div class="albums-carousel-viewport">
+                <div class="albums-carousel-track" id="carouselTrack">
+                    <!-- Cards serão inseridos aqui pelo JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Indicadores -->
+        <div class="carousel-indicators" id="carouselIndicators"></div>
+    </section>
+
+    <div class="album-modal" id="albumModal">
+        <div class="modal-content">
+            <div class="photo-progress-bar" id="photoProgressBar"></div>
+            <div class="modal-header">
+                <h3 id="modalAlbumTitle">Álbum</h3>
+                <button class="close-modal" id="closeModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="album-viewer">
+                    <img id="modalPhoto" src="" alt="Foto">
+                </div>
+                <button class="album-control-btn prev-btn" id="prevPhotoBtn" style="display: none;"><i class="fas fa-chevron-left"></i></button>
+                <button class="album-control-btn next-btn" id="nextPhotoBtn" style="display: none;"><i class="fas fa-chevron-right"></i></button>
+                <div class="album-controls">
+                    <div class="photo-info">
+                        <div class="photo-counter">
+                            <span id="currentPhoto">1</span> / <span id="totalPhotos">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== NOVA SEÇÃO: ACRÓSTICO IARA ===== -->
+    <section class="acrostic-section" id="acrostico">
+        <h2><i class="fas fa-wand-magic-sparkles"></i> Acróstico</h2>
+
+        
+        <div class="acrostic-container">
+            <!-- Linha I -->
+            <div class="acrostic-line" data-line="i">
+                <div class="initial-letter i">I</div>
+                <div class="line-content">
+                    <div class="short-text">
+                        <strong>I</strong>lumina cada momento da minha vida
+                    </div>
+                    <div class="expanded-text">
+                        Com a luz dos seus olhos, transformando dias comuns em extraordinários. Você é o sol que aquece meu coração e a estrela que guia meus passos.
+                    </div>
+                </div>
+                <i class="fas fa-chevron-down expand-icon"></i>
+            </div>
+
+            <!-- Linha A -->
+            <div class="acrostic-line" data-line="a1">
+                <div class="initial-letter a1">A</div>
+                <div class="line-content">
+                    <div class="short-text">
+                        <strong>A</strong>conchego que me faz sentir completo
+                    </div>
+                    <div class="expanded-text">
+                        Seu abraço é meu lugar favorito no mundo, onde todos os problemas desaparecem. Em seus braços encontro paz, segurança e o verdadeiro significado de lar.
+                    </div>
+                </div>
+                <i class="fas fa-chevron-down expand-icon"></i>
+            </div>
+
+            <!-- Linha R -->
+            <div class="acrostic-line" data-line="r">
+                <div class="initial-letter r">R</div>
+                <div class="line-content">
+                    <div class="short-text">
+                        <strong>R</strong>azão de todos os meus sorrisos
+                    </div>
+                    <div class="expanded-text">
+                        Você tem o dom de arrancar sorrisos de mim sem nem tentar. Sua forma de ser, seus gestos simples e seu jeito único fazem cada dia valer a pena.
+                    </div>
+                </div>
+                <i class="fas fa-chevron-down expand-icon"></i>
+            </div>
+
+            <!-- Linha A -->
+            <div class="acrostic-line" data-line="a2">
+                <div class="initial-letter a2">A</div>
+                <div class="line-content">
+                    <div class="short-text">
+                        <strong>A</strong>mor que cresce a cada segundo
+                    </div>
+                    <div class="expanded-text">
+                        Superando o que eu achava ser impossível, provando que o infinito existe. Meu amor por você não tem limites, fronteiras ou fim.
+                    </div>
+                </div>
+                <i class="fas fa-chevron-down expand-icon"></i>
+            </div>
+        </div>
+    </section>
+    <!-- ===== FIM DO ACRÓSTICO ===== -->
+
+    <section class="messages-section">
+        <h2><i class="fas fa-envelope"></i> Mensagem Especial</h2>
+        <div class="message-card">
+            <div class="message-content" id="dailyMessage">
+                <p class="message-text">"O amor verdadeiro não é sobre perfeição, mas sobre aceitação."</p>
+                <p class="message-author">— Para minha Iara</p>
+            </div>
+            <button class="new-message-btn" id="newMessageBtn">
+                <i class="fas fa-sync-alt"></i> Nova Mensagem
+            </button>
+        </div>
+    </section>
+
+    <section class="timeline-button-section">
+        <button class="open-timeline-btn" id="openTimelineBtn">
+            <i class="fas fa-clock-rotate-left"></i>
+            <span>Nossa Linha do Tempo</span>
+        </button>
+    </section>
+
+    <div class="timeline-modal" id="timelineModal">
+        <div class="timeline-modal-content">
+            <div class="timeline-modal-header">
+                <h2><i class="fas fa-heart"></i> Nossa História</h2>
+                <button class="close-timeline-btn" id="closeTimelineBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="timeline-scroll">
+                <div class="timeline-container">
+
+                <!-- Eventos serão carregados automaticamente do Firebase -->
+                    <div class="timeline-end">
+                        <div class="timeline-heart"><i class="fas fa-infinity"></i></div>
+                        <p>E nossa história continua...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="secret-modal" id="secretModal">
+        <div class="secret-modal-content">
+            <button class="close-secret-btn" id="closeSecretBtn"><i class="fas fa-times"></i></button>
+            <div class="secret-icon"><i class="fas fa-heart"></i></div>
+            <div class="secret-message" id="secretMessageText"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-heart"><i class="fas fa-heart"></i></div>
+            <p class="footer-text">Feito com 💖 para você, Iara</p>
+            <p class="footer-date" id="currentDate">Carregando...</p>
+            <div class="footer-names">
+                <span>Kevin</span> 
+                <i class="fas fa-heart"></i> 
+                <span>Iara</span>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<!-- ===== BOTÃO FLUTUANTE DE ADMIN (ESCONDIDO - ACESSÍVEL PELO MENU) ===== -->
+<button class="admin-toggle-btn" id="adminToggleBtn" title="Modo Admin" style="display: none !important;">
+    <i class="fas fa-lock"></i>
+</button>
+
+<!-- ===== MODAL DE ADMIN COMPLETO ===== -->
+<div class="admin-modal" id="adminModal">
+    <div class="admin-modal-content">
+        <div class="admin-header">
+            <h2><i class="fas fa-user-shield"></i> Painel de Admin</h2>
+            <button class="close-admin-btn" id="closeAdminBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="albums">
+                <i class="fas fa-images"></i> Álbuns
+            </button>
+            <button class="admin-tab" data-tab="timeline">
+                <i class="fas fa-clock"></i> Timeline
+            </button>
+        </div>
+        
+        <!-- TAB: Gerenciar Álbuns -->
+        <div class="admin-content active" id="albums-tab">
+            <div class="admin-section">
+                <h3><i class="fas fa-plus-circle"></i> Adicionar Novo Álbum</h3>
+                <form id="addAlbumForm">
+                    <label for="albumTitle" style="display: none;">Título do Álbum</label>
+                    <input type="text" id="albumTitle" placeholder="Título do Álbum" required>
+                    
+                    <label for="albumDate" style="display: none;">Data</label>
+                    <input type="text" id="albumDate" placeholder="Data (ex: Junho 2023)" required>
+                    
+                    <label for="albumDescription" style="display: none;">Descrição</label>
+                    <textarea id="albumDescription" placeholder="Descrição do álbum" rows="3" required></textarea>
+                    
+                    <label for="albumCover" style="display: none;">Capa do Álbum</label>
+                    <input type="file" id="albumCover" accept="image/*" required>
+                    
+                    <button type="submit" class="admin-btn">
+                        <i class="fas fa-save"></i> Criar Álbum
+                    </button>
+                </form>
+            </div>
+            
+            <div class="admin-section">
+                <h3><i class="fas fa-photo-video"></i> Adicionar Fotos ao Álbum</h3>
+                <label for="selectAlbum" style="display: none;">Selecionar Álbum</label>
+                <select id="selectAlbum" class="admin-select" aria-label="Selecionar álbum">
+                    <option value="">Selecione um álbum</option>
+                </select>
+                <form id="addPhotoForm">
+                    <label for="photoFile" style="display: none;">Selecionar Fotos</label>
+                    <input type="file" id="photoFile" accept="image/*" multiple required>
+                    <button type="submit" class="admin-btn">
+                        <i class="fas fa-upload"></i> Adicionar Fotos
+                    </button>
+                </form>
+            </div>
+            
+            <div class="admin-section">
+                <h3><i class="fas fa-list"></i> Álbuns Existentes</h3>
+                <div id="existingAlbums" class="existing-items"></div>
+            </div>
+        </div>
+        
+        <!-- TAB: Gerenciar Timeline -->
+        <div class="admin-content" id="timeline-tab">
+            <div class="admin-section">
+                <h3><i class="fas fa-plus-circle"></i> Adicionar Evento na Timeline</h3>
+                <form id="addTimelineForm">
+                    <label for="eventDate" style="display: none;">Data do Evento</label>
+                    <input type="text" id="eventDate" placeholder="Data (ex: Setembro 2022)" required>
+                    
+                    <label for="eventTitle" style="display: none;">Título do Evento</label>
+                    <input type="text" id="eventTitle" placeholder="Título do Evento" required>
+                    
+                    <label for="eventSecret" style="display: none;">Mensagem Secreta</label>
+                    <textarea id="eventSecret" placeholder="Mensagem secreta (opcional)" rows="3"></textarea>
+                    
+                    <label for="eventPhoto" style="display: none;">Foto do Evento</label>
+                    <input type="file" id="eventPhoto" accept="image/*" required>
+                    
+                    <label for="photoCaption" style="display: none;">Legenda da Foto</label>
+                    <input type="text" id="photoCaption" placeholder="Legenda da foto">
+                    
+                    <button type="submit" class="admin-btn">
+                        <i class="fas fa-save"></i> Adicionar Evento
+                    </button>
+                </form>
+            </div>
+            
+            <div class="admin-section">
+                <h3><i class="fas fa-list"></i> Eventos Existentes</h3>
+                <div id="existingEvents" class="existing-items"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL DO JOGO DE PALAVRAS ===== -->
+<div class="word-game-modal" id="wordGameModal">
+    <div class="word-game-content">
+        <!-- Área Scrollável -->
+        <div class="word-game-scrollable">
+            <!-- Header -->
+            <div class="word-game-header">
+                <h2><i class="fas fa-gamepad"></i> Jogo de Palavras</h2>
+                <button class="close-word-game-btn" id="closeWordGameBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Pergunta/Dica -->
+            <div class="word-game-question">
+                <p id="wordGameQuestion">Carregando...</p>
+            </div>
+
+            <!-- Grid de Letras -->
+            <div class="word-game-grid" id="wordGameGrid">
+                <!-- Gerado dinamicamente pelo JS -->
+            </div>
+
+            <!-- ✨ NOVO: Botões de Ação (Apagar e Enviar) -->
+            <div class="keyboard-action-buttons">
+                <button class="action-btn action-delete" data-key="BACKSPACE" title="Apagar">
+                    <i class="fas fa-backspace"></i>
+                </button>
+                <button class="action-btn action-submit" data-key="ENTER" title="Enviar">
+                    <i class="fas fa-check"></i>
+                </button>
+            </div>
+
+            <!-- Teclado Virtual - SEM botões ENVIAR/APAGAR -->
+            <div class="word-game-keyboard" id="wordGameKeyboard">
+                <div class="keyboard-row">
+                    <button class="key-btn" data-key="Q">Q</button>
+                    <button class="key-btn" data-key="W">W</button>
+                    <button class="key-btn" data-key="E">E</button>
+                    <button class="key-btn" data-key="R">R</button>
+                    <button class="key-btn" data-key="T">T</button>
+                    <button class="key-btn" data-key="Y">Y</button>
+                    <button class="key-btn" data-key="U">U</button>
+                    <button class="key-btn" data-key="I">I</button>
+                    <button class="key-btn" data-key="O">O</button>
+                    <button class="key-btn" data-key="P">P</button>
+                </div>
+                <div class="keyboard-row">
+                    <button class="key-btn" data-key="A">A</button>
+                    <button class="key-btn" data-key="S">S</button>
+                    <button class="key-btn" data-key="D">D</button>
+                    <button class="key-btn" data-key="F">F</button>
+                    <button class="key-btn" data-key="G">G</button>
+                    <button class="key-btn" data-key="H">H</button>
+                    <button class="key-btn" data-key="J">J</button>
+                    <button class="key-btn" data-key="K">K</button>
+                    <button class="key-btn" data-key="L">L</button>
+                </div>
+                <div class="keyboard-row">
+                    <button class="key-btn" data-key="Z">Z</button>
+                    <button class="key-btn" data-key="X">X</button>
+                    <button class="key-btn" data-key="C">C</button>
+                    <button class="key-btn" data-key="V">V</button>
+                    <button class="key-btn" data-key="B">B</button>
+                    <button class="key-btn" data-key="N">N</button>
+                    <button class="key-btn" data-key="M">M</button>
+                </div>
+            </div>
+
+            <!-- Resultado (overlay sobre tudo) -->
+            <div class="word-game-result" id="wordGameResult" style="display: none;">
+                <div class="result-icon" id="resultIcon">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <h3 id="resultTitle">Parabéns!</h3>
+                <p id="resultMessage">Mensagem especial aqui</p>
+                <button class="result-btn" id="nextWordBtn">
+                    <i class="fas fa-play"></i> Próxima Palavra
+                </button>
+            </div>
+        </div>
+        <!-- FIM da área scrollável -->
+    </div>
+</div>
+
+<!-- ===== MODAL DO MAPA DAS ESTRELAS ===== -->
+<div class="star-map-modal" id="starMapModal">
+    <div class="star-map-modal-content">
+        <button class="close-star-map-btn" id="closeStarMapBtn">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <h1 class="star-map-title">Kevin & Iara</h1>
+        
+        <div class="star-map-canvas-wrapper">
+            <canvas id="starMapCanvas"></canvas>
+        </div>
+        
+        <p class="star-map-quote">
+            "Não importa as constelações nem o idioma,<br>
+            eu vou te amar de qualquer maneira."
+        </p>
+
+        
+        <div class="star-map-details">
+            <span class="star-map-location">HARVARD, ILLINOIS, US</span><br>
+            <span class="star-map-date">18 DE JANEIRO DE 2026</span><br>
+            <span class="star-map-coordinates">42.4164°N 88.6137°W</span>
+        </div>
+        
+        <button class="star-warp-button" id="startStarWarp">
+            <i class="fas fa-rocket"></i> Iniciar Viagem
+        </button>
+        
+        <div class="star-map-footer">Mapa das Estrelas</div>
+    </div>
+
+    <div class="star-tunnel-effect" id="starTunnelEffect"></div>
+</div>
+
+<!-- ORDEM CORRETA DE CARREGAMENTO DOS SCRIPTS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/splash-screen.js"></script>
+<script src="js/cloudinary-config.js"></script>
+<script src="js/lazy-loading.js"></script>
+<script src="js/lazy-loading-album-navigation.js"></script> 
+<script src="js/mp3-cover-extractor.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/playlist-manager.js"></script>
+<script src="js/script.js"></script>
+<script src="js/word-game.js"></script>
+<script src="js/star-map-preloader.js"></script>
+<script src="js/star-map.js"></script>
+
+
+<!-- ===== FALLBACK PARA CSS NÃO CRÍTICO ===== -->
+<script>
+    // Fallback para navegadores que não suportam preload
+    if (!('relList' in document.createElement('link'))) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'styles.css';
+        document.head.appendChild(link);
+    }
+</script>
+
+</body>
+</html>
