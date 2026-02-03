@@ -7,6 +7,7 @@
     let snowAccumulation = [];
     let animationId = null;
     let currentAnimation = 'meteors';
+    let skyGradientCache = null; // Cache do gradiente do céu
 
     // Configurações avançadas para cada tema
     const settings = {
@@ -54,11 +55,11 @@
 
         winter: {
             name: 'Inverno Mágico',
-            snowflakes: 80,
-            smallSnow: 120,
-            sparkles: 60,
+            snowflakes: 50,
+            smallSnow: 80,
+            sparkles: 30,
             icePatches: 8,
-            frostLines: 15,
+            frostLines: 0,
             snowColors: ['#ffffff', '#f0f9ff', '#dbeafe', '#e0f2fe'], // ← Tons de branco com leve azul
             sparkleColors: ['#60a5fa', '#93c5fd', '#ffffff'], // ← Azul diamante + branco
             iceColors: ['#60a5fa', '#93c5fd', '#3b82f6'], // ← Azul diamante + azul royal
@@ -75,8 +76,8 @@
             windStrength: 0.3,
             rotationSpeed: 0.02,
             accumulation: true,
-            glowIntensity: 0.4,
-            fogOpacity: 0.15
+            glowIntensity: 0.2,
+            fogOpacity: 0.1
         },
     };
 
@@ -921,9 +922,10 @@ function resizeCanvas() {
             createWinterSparkle();
         }
         
-        for (let i = 0; i < config.frostLines; i++) {
-            createFrostLine();
-        }
+        // Desabilitar frostLines por performance
+        // for (let i = 0; i < config.frostLines; i++) {
+        //     createFrostLine();
+        // }
         
         initSnowAccumulation();
     }
@@ -951,8 +953,7 @@ function resizeCanvas() {
             wobbleOffset: Math.random() * Math.PI * 2,
             depth: Math.random() * 0.5 + 0.7,
             glow: Math.random() * config.glowIntensity + 0.1,
-            age: 0,
-            landed: false
+            age: 0
         });
     }
 
@@ -1067,7 +1068,8 @@ function resizeCanvas() {
         const config = settings.winter;
         
         drawWinterFog();
-        drawFrostLines();
+        // Desabilitar drawFrostLines para melhor performance
+        // drawFrostLines();
         drawWinterSparkles();
         drawSmallSnowflakes();
         drawMainSnowflakes();
@@ -1090,23 +1092,12 @@ function resizeCanvas() {
             if (particle.x < -20) particle.x = canvas.width + 20;
             if (particle.x > canvas.width + 20) particle.x = -20;
             
-            ctx.save();
-            ctx.translate(particle.x, particle.y);
-            ctx.rotate(particle.rotation);
-            ctx.globalAlpha = particle.opacity * particle.depth;
-            
             ctx.beginPath();
-            ctx.arc(0, 0, particle.size * particle.depth, 0, Math.PI * 2);
-            
-            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, particle.size * particle.depth * 2);
-            gradient.addColorStop(0, particle.color);
-            gradient.addColorStop(0.5, particle.color + 'aa');
-            gradient.addColorStop(1, particle.color + '00');
-            
-            ctx.fillStyle = gradient;
+            ctx.arc(particle.x, particle.y, particle.size * particle.depth, 0, Math.PI * 2);
+            ctx.fillStyle = particle.color;
+            ctx.globalAlpha = particle.opacity * particle.depth;
             ctx.fill();
-            
-            ctx.restore();
+            ctx.globalAlpha = 1;
         });
     }
 
@@ -1116,8 +1107,6 @@ function resizeCanvas() {
         
         particles.forEach((particle, index) => {
             if (particle.type !== 'mainSnow') return;
-            
-            if (particle.landed) return;
             
             particle.age += 0.01;
             particle.speedY += 0.002;
@@ -1129,25 +1118,30 @@ function resizeCanvas() {
             particle.rotation += particle.rotationSpeed;
             particle.rotation += Math.sin(time * particle.wobble + particle.wobbleOffset) * 0.01;
             
+            // RECICLAGEM: Quando atinge o fundo, volta para o topo
             if (particle.y > canvas.height - 60) {
                 accumulateSnow(particle);
-                particle.landed = true;
                 
-                setTimeout(() => {
-                    createMainSnowflake();
-                }, Math.random() * 2000);
+                // Resetar o floco para o topo (RECICLAGEM)
+                particle.y = -20;
+                particle.x = Math.random() * canvas.width;
+                particle.speedY = Math.random() * config.snowSpeed + 0.4;
+                particle.rotation = Math.random() * Math.PI * 2;
                 return;
             }
             
             if (particle.x < -50) particle.x = canvas.width + 50;
             if (particle.x > canvas.width + 50) particle.x = -50;
             
-            ctx.save();
-            ctx.translate(particle.x, particle.y);
-            ctx.rotate(particle.rotation);
             ctx.globalAlpha = particle.opacity;
             
             const scale = particle.size * particle.depth;
+            const cosRot = Math.cos(particle.rotation);
+            const sinRot = Math.sin(particle.rotation);
+            
+            ctx.save();
+            ctx.translate(particle.x, particle.y);
+            ctx.rotate(particle.rotation);
             
             switch(particle.snowType) {
                 case 'detailed':
@@ -1162,10 +1156,12 @@ function resizeCanvas() {
             }
             
             ctx.restore();
+            ctx.globalAlpha = 1;
         });
     }
 
     function drawDetailedSnowflake(size, color, glow) {
+        // Versão SIMPLIFICADA - apenas desenha um padrão simples de 6 pontos
         for (let i = 0; i < 6; i++) {
             ctx.save();
             ctx.rotate((Math.PI * 2 * i) / 6);
@@ -1174,30 +1170,20 @@ function resizeCanvas() {
             ctx.moveTo(0, 0);
             ctx.lineTo(0, -size);
             ctx.strokeStyle = color;
-            ctx.lineWidth = size * 0.12;
+            ctx.lineWidth = size * 0.1;
             ctx.lineCap = 'round';
             ctx.stroke();
             
-            for (let j = 1; j <= 3; j++) {
-                const y = -size * (j / 3.5);
-                const branchSize = size * 0.25;
+            // Apenas 2 branches ao invés de 3
+            for (let j = 1; j <= 2; j++) {
+                const y = -size * (j / 3);
+                const branchSize = size * 0.2;
                 
                 ctx.beginPath();
                 ctx.moveTo(-branchSize, y);
                 ctx.lineTo(branchSize, y);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = size * 0.08;
+                ctx.lineWidth = size * 0.06;
                 ctx.stroke();
-                
-                if (j === 3) {
-                    ctx.beginPath();
-                    ctx.moveTo(-branchSize * 0.6, y - branchSize * 0.5);
-                    ctx.lineTo(0, y);
-                    ctx.lineTo(branchSize * 0.6, y - branchSize * 0.5);
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = size * 0.06;
-                    ctx.stroke();
-                }
             }
             
             ctx.restore();
@@ -1205,22 +1191,8 @@ function resizeCanvas() {
         
         ctx.beginPath();
         ctx.arc(0, 0, size * 0.15, 0, Math.PI * 2);
-        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.3);
-        gradient.addColorStop(0, '#ffffff');
-        gradient.addColorStop(0.5, color + 'cc');
-        gradient.addColorStop(1, color + '00');
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = color;
         ctx.fill();
-        
-        if (glow > 0.2) {
-            ctx.beginPath();
-            ctx.arc(0, 0, size * 1.3, 0, Math.PI * 2);
-            const glowGradient = ctx.createRadialGradient(0, 0, size * 0.8, 0, 0, size * 1.3);
-            glowGradient.addColorStop(0, color + Math.floor(glow * 60).toString(16).padStart(2, '0'));
-            glowGradient.addColorStop(1, color + '00');
-            ctx.fillStyle = glowGradient;
-            ctx.fill();
-        }
     }
 
     function drawStarSnowflake(size, color, glow) {
@@ -1230,40 +1202,23 @@ function resizeCanvas() {
             
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.lineTo(0, -size * 0.9);
-            ctx.lineTo(-size * 0.15, -size * 0.7);
-            ctx.lineTo(0, -size);
-            ctx.lineTo(size * 0.15, -size * 0.7);
-            ctx.lineTo(0, -size * 0.9);
-            ctx.closePath();
-            
-            const gradient = ctx.createLinearGradient(0, 0, 0, -size);
-            gradient.addColorStop(0, color);
-            gradient.addColorStop(0.7, color);
-            gradient.addColorStop(1, '#ffffff');
-            
-            ctx.fillStyle = gradient;
-            ctx.fill();
-            
-            ctx.strokeStyle = '#ffffff88';
-            ctx.lineWidth = size * 0.04;
+            ctx.lineTo(0, -size * 0.8);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = size * 0.08;
+            ctx.lineCap = 'round';
             ctx.stroke();
             
             ctx.restore();
         }
         
         ctx.beginPath();
-        ctx.arc(0, 0, size * 0.2, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.arc(0, 0, size * 0.12, 0, Math.PI * 2);
+        ctx.arc(0, 0, size * 0.15, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
     }
 
     function drawCrystalSnowflake(size, color, glow) {
+        // Versão simplificada - apenas hexágono + círculos
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
             const angle = (Math.PI * 2 * i) / 6;
@@ -1278,40 +1233,14 @@ function resizeCanvas() {
         }
         ctx.closePath();
         
-        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.8);
-        gradient.addColorStop(0, '#ffffff');
-        gradient.addColorStop(0.4, color + 'ee');
-        gradient.addColorStop(0.7, color + 'aa');
-        gradient.addColorStop(1, color + '66');
-        
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.7;
         ctx.fill();
+        ctx.globalAlpha = 1;
         
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = size * 0.08;
+        ctx.lineWidth = size * 0.06;
         ctx.stroke();
-        
-        for (let i = 0; i < 6; i++) {
-            ctx.save();
-            ctx.rotate((Math.PI * 2 * i) / 6);
-            
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(0, -size * 0.5);
-            ctx.strokeStyle = '#ffffffaa';
-            ctx.lineWidth = size * 0.06;
-            ctx.stroke();
-            
-            ctx.restore();
-        }
-        
-        for (let i = 0; i < 3; i++) {
-            ctx.beginPath();
-            ctx.arc(0, 0, size * (0.15 + i * 0.15), 0, Math.PI * 2);
-            ctx.strokeStyle = '#ffffff44';
-            ctx.lineWidth = size * 0.03;
-            ctx.stroke();
-        }
     }
 
     function drawWinterSparkles() {
@@ -1325,8 +1254,6 @@ function resizeCanvas() {
             star.x += star.speedX;
             
             const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
-            const pulse = Math.sin(time * star.pulseSpeed + star.pulseOffset) * 0.3 + 0.7;
-            const brightness = star.brightness * twinkle * pulse;
             
             if (star.y > canvas.height + 30) {
                 star.y = -30;
@@ -1337,72 +1264,31 @@ function resizeCanvas() {
             
             ctx.beginPath();
             ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-            
-            const gradient = ctx.createRadialGradient(
-                star.x, star.y, 0,
-                star.x, star.y, star.size * 4
-            );
-            gradient.addColorStop(0, `rgba(255, 255, 255, ${brightness})`);
-            gradient.addColorStop(0.3, `${star.color}${Math.floor(brightness * 180).toString(16).padStart(2, '0')}`);
-            gradient.addColorStop(0.7, `${star.color}${Math.floor(brightness * 80).toString(16).padStart(2, '0')}`);
-            gradient.addColorStop(1, `${star.color}00`);
-            
-            ctx.fillStyle = gradient;
+            ctx.fillStyle = star.color;
+            ctx.globalAlpha = star.brightness * twinkle;
             ctx.fill();
-            
-            if (star.size > 1.2 && brightness > 0.6) {
-                ctx.save();
-                ctx.translate(star.x, star.y);
-                ctx.rotate(time * 0.001);
-                
-                for (let i = 0; i < 4; i++) {
-                    const angle = (i * Math.PI) / 2;
-                    const length = star.size * 3 * brightness;
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${brightness * 0.4})`;
-                    ctx.lineWidth = 1;
-                    ctx.lineCap = 'round';
-                    ctx.stroke();
-                }
-                
-                ctx.restore();
-            }
+            ctx.globalAlpha = 1;
         });
     }
 
+    // Cache para fog gradient (otimização de performance)
+    let fogGradientCache = null;
+    let fogGradientCacheTime = 0;
+    
     function drawWinterFog() {
         const time = Date.now();
         const config = settings.winter;
         
-        for (let layer = 0; layer < 3; layer++) {
-            const yPos = canvas.height * 0.3 + layer * (canvas.height * 0.25);
-            const waveOffset = Math.sin(time * 0.0003 + layer) * 50;
-            
-            ctx.beginPath();
-            ctx.moveTo(0, yPos);
-            
-            for (let x = 0; x <= canvas.width; x += 20) {
-                const wave = Math.sin((x + waveOffset) * 0.01 + time * 0.0002) * 20;
-                ctx.lineTo(x, yPos + wave);
-            }
-            
-            ctx.lineTo(canvas.width, canvas.height);
-            ctx.lineTo(0, canvas.height);
-            ctx.closePath();
-            
-            const gradient = ctx.createLinearGradient(0, yPos - 100, 0, yPos + 100);
-            gradient.addColorStop(0, `rgba(96, 165, 250, 0)`);
-            gradient.addColorStop(0.5, `rgba(96, 165, 250, ${config.fogOpacity * (1 - layer * 0.3)})`);
-            gradient.addColorStop(1, `rgba(96, 165, 250, 0)`);
-            
-            ctx.fillStyle = gradient;
-            ctx.globalAlpha = 0.6;
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
+        // Desenhar fog simplificado - apenas 1 layer ao invés de 3
+        const yPos = canvas.height * 0.4;
+        const waveOffset = Math.sin(time * 0.0003) * 40;
+        
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = 'rgba(96, 165, 250, 0.15)';
+        
+        ctx.fillRect(0, yPos, canvas.width, canvas.height - yPos);
+        
+        ctx.globalAlpha = 1;
     }
 
     function drawIcePatches() {
@@ -1579,80 +1465,16 @@ function resizeCanvas() {
     function drawSnowAccumulation() {
         if (snowAccumulation.length === 0) return;
         
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height);
-        
-        for (let i = 0; i < snowAccumulation.length; i++) {
-            const segment = snowAccumulation[i];
-            const x = segment.x;
-            const y = canvas.height - segment.height;
-            
-            if (i === 0) {
-                ctx.lineTo(x, y);
-            } else {
-                const prevSegment = snowAccumulation[i - 1];
-                const prevX = prevSegment.x;
-                const prevY = canvas.height - prevSegment.height;
-                
-                const cpX = (prevX + x) / 2;
-                const cpY = (prevY + y) / 2;
-                
-                ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
-            }
-        }
-        
-        ctx.lineTo(canvas.width, canvas.height);
-        ctx.lineTo(0, canvas.height);
-        ctx.closePath();
-        
-        const gradient = ctx.createLinearGradient(0, canvas.height - 50, 0, canvas.height);
-        gradient.addColorStop(0, '#ffffff');
-        gradient.addColorStop(0.3, '#f0f9ff'); // Branco com leve azul
-        gradient.addColorStop(0.6, '#dbeafe'); // Azul muito suave
-        gradient.addColorStop(1, '#bfdbfe'); // Azul claro
-                
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height);
-        
-        for (let i = 0; i < snowAccumulation.length; i++) {
-            const segment = snowAccumulation[i];
-            const x = segment.x;
-            const y = canvas.height - segment.height;
-            
-            if (i === 0) {
-                ctx.lineTo(x, y);
-            } else {
-                const prevSegment = snowAccumulation[i - 1];
-                const prevX = prevSegment.x;
-                const prevY = canvas.height - prevSegment.height;
-                
-                const cpX = (prevX + x) / 2;
-                const cpY = (prevY + y) / 2;
-                
-                ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
-            }
-        }
-        
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        for (let i = 0; i < snowAccumulation.length; i += 3) {
+        // Apenas desenha sparkles SIMPLES no acúmulo, sem silhueta pesada
+        for (let i = 0; i < snowAccumulation.length; i += 4) {
             const segment = snowAccumulation[i];
             if (segment.height > 5) {
-                const x = segment.x + (Math.random() - 0.5) * 10;
-                const y = canvas.height - segment.height - Math.random() * 5;
+                const x = segment.x + (Math.random() - 0.5) * 8;
+                const y = canvas.height - segment.height - Math.random() * 3;
                 
                 ctx.beginPath();
-                ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-                const sparkleGrad = ctx.createRadialGradient(x, y, 0, x, y, 4);
-                sparkleGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-                sparkleGrad.addColorStop(0.5, 'rgba(96, 165, 250, 0.5)'); // Azul diamante
-                sparkleGrad.addColorStop(1, 'rgba(96, 165, 250, 0)');
-                ctx.fillStyle = sparkleGrad;
+                ctx.arc(x, y, 1, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
                 ctx.fill();
             }
         }
@@ -1664,12 +1486,15 @@ function resizeCanvas() {
         
         // Desenhar fundo
         if (currentAnimation === 'winter') {
-            // Gradiente de céu invernal
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            settings.winter.skyGradient.forEach((color, index) => {
-                gradient.addColorStop(index / (settings.winter.skyGradient.length - 1), color);
-            });
-            ctx.fillStyle = gradient;
+            // Reusar gradiente cacheado (criar apenas 1x)
+            if (!skyGradientCache || skyGradientCache.height !== canvas.height) {
+                skyGradientCache = { gradient: null, height: canvas.height };
+                skyGradientCache.gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                settings.winter.skyGradient.forEach((color, index) => {
+                    skyGradientCache.gradient.addColorStop(index / (settings.winter.skyGradient.length - 1), color);
+                });
+            }
+            ctx.fillStyle = skyGradientCache.gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         } else {
             const bgColor = settings[currentAnimation].backgroundColor;
