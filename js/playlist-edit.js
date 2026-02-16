@@ -1,4 +1,4 @@
-// ===== SISTEMA DE EDIÇÃO DE PLAYLISTS - DRAG AND DROP COM SAVE AUTOMÁTICO =====
+// ===== SISTEMA DE EDIÇÃO DE PLAYLISTS - MENU DE 3 PONTOS + MODO REORDENAÇÃO =====
 
 class PlaylistEditManager {
     constructor() {
@@ -24,6 +24,11 @@ class PlaylistEditManager {
         this.saveQueue = [];
         this.isProcessingQueue = false;
         this.pendingSaveType = null; // 'info' ou 'tracks'
+        
+        // 🆕 MODO REORDENAÇÃO
+        this.reorderMode = false;
+        this.currentOpenMenuId = null;
+        this.initialReorderState = null; // Armazena ordem inicial para comparar
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.init());
@@ -191,6 +196,18 @@ class PlaylistEditManager {
                                 </div>
                             </div>
 
+                            <!-- CONTROLES DO MODO REORDENAÇÃO -->
+                            <div class="reorder-mode-controls" id="reorderModeControls">
+                                <div class="reorder-mode-text">
+                                    <i class="fas fa-arrows-alt"></i>
+                                    <span>Modo Reordenação Ativo</span>
+                                </div>
+                                <button class="finish-reorder-btn" onclick="playlistEditManager.toggleReorderMode()">
+                                    <i class="fas fa-check"></i>
+                                    Concluir
+                                </button>
+                            </div>
+
                             <div id="musicGridContainer">
                                 <div class="empty-state">
                                     <div class="empty-state-icon">
@@ -203,6 +220,9 @@ class PlaylistEditManager {
                     </div>
                 </div>
             </div>
+
+            <!-- OVERLAY PARA FECHAR MENUS -->
+            <div class="menu-overlay" id="menuOverlay" onclick="playlistEditManager.closeAllMenus()"></div>
         `;
 
         const musicEditModalHTML = `
@@ -282,6 +302,7 @@ class PlaylistEditManager {
             if (e.key === 'Escape') {
                 this.closeModal();
                 this.closeMusicEditModal();
+                this.closeAllMenus();
             }
         });
     }
@@ -310,8 +331,9 @@ class PlaylistEditManager {
             document.getElementById('editPlaylistIcon').value = this.currentPlaylistData.icon || 'fa-heart';
             document.getElementById('playlistCoverPreview').src = this.currentPlaylistData.cover || 'images/capas-albuns/default-playlist.jpg';
 
-            // Resetar newCoverData ao abrir
+            // Resetar estados
             this.newCoverData = null;
+            this.reorderMode = false;
 
             const modal = document.getElementById('playlistEditModal');
             modal.classList.add('active');
@@ -570,7 +592,88 @@ class PlaylistEditManager {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SISTEMA DE DRAG AND DROP COM TROCA DE POSIÇÕES
+    // MODO REORDENAÇÃO
+    // ═══════════════════════════════════════════════════════════
+
+    async toggleReorderMode() {
+        this.reorderMode = !this.reorderMode;
+        
+        const musicList = document.getElementById('musicList');
+        const controls = document.getElementById('reorderModeControls');
+        
+        if (this.reorderMode) {
+            console.log('🔄 Modo reordenação ATIVADO');
+            musicList?.classList.add('reorder-mode');
+            controls?.classList.add('active');
+            this.closeAllMenus();
+            
+            // Armazenar ordem inicial para comparar depois
+            this.initialReorderState = this.allTracks.map(t => t.id);
+            console.log('📋 Ordem inicial salva:', this.initialReorderState.length, 'tracks');
+        } else {
+            console.log('✅ Modo reordenação DESATIVADO');
+            musicList?.classList.remove('reorder-mode');
+            controls?.classList.remove('active');
+            
+            // Verificar se houve mudanças na ordem
+            const currentOrder = this.allTracks.map(t => t.id);
+            const hasChanges = JSON.stringify(this.initialReorderState) !== JSON.stringify(currentOrder);
+            
+            if (hasChanges) {
+                console.log('🔄 Ordem foi alterada, salvando...');
+                console.log('   Ordem inicial:', this.initialReorderState);
+                console.log('   Ordem final:', currentOrder);
+                
+                // SAVE AUTOMÁTICO ao sair do modo reordenação
+                await this.autoSave('Ordem atualizada');
+            } else {
+                console.log('ℹ️ Nenhuma mudança na ordem');
+            }
+            
+            // Limpar estado inicial
+            this.initialReorderState = null;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MENU DE 3 PONTOS
+    // ═══════════════════════════════════════════════════════════
+
+    toggleMenu(trackId, event) {
+        event.stopPropagation();
+        
+        // Se clicar no mesmo menu, fecha
+        if (this.currentOpenMenuId === trackId) {
+            this.closeAllMenus();
+            return;
+        }
+        
+        // Fechar qualquer menu aberto
+        this.closeAllMenus();
+        
+        // Abrir novo menu
+        const menu = document.getElementById(`menu-${trackId}`);
+        const overlay = document.getElementById('menuOverlay');
+        
+        if (menu) {
+            menu.classList.add('active');
+            overlay.classList.add('active');
+            this.currentOpenMenuId = trackId;
+            console.log('📋 Menu aberto:', trackId);
+        }
+    }
+
+    closeAllMenus() {
+        const allMenus = document.querySelectorAll('.music-dropdown-menu');
+        const overlay = document.getElementById('menuOverlay');
+        
+        allMenus.forEach(menu => menu.classList.remove('active'));
+        overlay?.classList.remove('active');
+        this.currentOpenMenuId = null;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDERIZAÇÃO DA GRID
     // ═══════════════════════════════════════════════════════════
     
     renderMusicGrid() {
@@ -594,6 +697,11 @@ class PlaylistEditManager {
         const list = document.createElement('div');
         list.className = 'music-list';
         list.id = 'musicList';
+        
+        // Aplicar modo reordenação se estiver ativo
+        if (this.reorderMode) {
+            list.classList.add('reorder-mode');
+        }
 
         this.allTracks.forEach((track, index) => {
             const item = document.createElement('div');
@@ -602,23 +710,41 @@ class PlaylistEditManager {
             item.dataset.index = index;
 
             item.innerHTML = `
+                <!-- DRAG HANDLE (visível apenas no modo reordenação) -->
                 <div class="drag-handle">
                     <div class="bars"><span></span><span></span><span></span></div>
                 </div>
+                
+                <!-- CAPA -->
                 <div class="music-list-cover">
                     <img src="${track.cover || 'images/capas-albuns/default-music.jpg'}" alt="${track.title}">
                 </div>
+                
+                <!-- INFORMAÇÕES -->
                 <div class="music-list-info">
                     <div class="music-list-title">${track.title || 'Sem título'}</div>
                     <div class="music-list-artist">${track.artist || 'Artista desconhecido'}</div>
                 </div>
-                <div class="music-list-actions">
-                    <button class="music-action-btn edit" onclick="playlistEditManager.editMusicMetadata('${track.id}')" title="Editar">
+                
+                <!-- BOTÃO DE MENU (3 pontos) -->
+                <button class="music-menu-btn" onclick="playlistEditManager.toggleMenu('${track.id}', event)">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                
+                <!-- DROPDOWN MENU -->
+                <div class="music-dropdown-menu" id="menu-${track.id}">
+                    <div class="menu-item reorder-item" onclick="playlistEditManager.toggleReorderMode(); playlistEditManager.closeAllMenus();">
+                        <i class="fas fa-arrows-alt"></i>
+                        <span>Reordenar</span>
+                    </div>
+                    <div class="menu-item edit-item" onclick="playlistEditManager.editMusicMetadata('${track.id}'); playlistEditManager.closeAllMenus();">
                         <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="music-action-btn delete" onclick="playlistEditManager.deleteTrack('${track.id}')" title="Deletar">
+                        <span>Editar</span>
+                    </div>
+                    <div class="menu-item delete-item" onclick="playlistEditManager.deleteTrack('${track.id}'); playlistEditManager.closeAllMenus();">
                         <i class="fas fa-trash-alt"></i>
-                    </button>
+                        <span>Deletar</span>
+                    </div>
                 </div>
             `;
 
@@ -633,6 +759,10 @@ class PlaylistEditManager {
         console.log('✅ Grid renderizado:', this.allTracks.length, 'itens');
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // SISTEMA DE DRAG AND DROP (funciona apenas no modo reordenação)
+    // ═══════════════════════════════════════════════════════════
+
     initSwapDragAndDrop() {
         const items = document.querySelectorAll('.music-list-item');
         
@@ -641,17 +771,19 @@ class PlaylistEditManager {
             if (!handle) return;
 
             handle.addEventListener('mousedown', (e) => {
+                if (!this.reorderMode) return; // Só funciona no modo reordenação
                 e.preventDefault();
                 this.startSwapDrag(item, e);
             });
 
             handle.addEventListener('touchstart', (e) => {
+                if (!this.reorderMode) return; // Só funciona no modo reordenação
                 e.preventDefault();
                 this.startSwapDrag(item, e.touches[0]);
             }, { passive: false });
         });
 
-        console.log('🎯 Drag and drop (swap) configurado para', items.length, 'itens');
+        console.log('🎯 Drag and drop configurado');
     }
 
     startSwapDrag(item, event) {
@@ -756,9 +888,9 @@ class PlaylistEditManager {
         if (this.draggedIndex !== this.lastSwapIndex) {
             console.log('📋 Posição mudou de', this.draggedIndex, 'para', this.lastSwapIndex);
             console.log('📋 Nova ordem:', this.allTracks.map(t => t.title));
-
-            // SAVE AUTOMÁTICO após drag and drop
-            await this.autoSave('Ordem atualizada');
+            
+            // ✅ NÃO FAZ SAVE AQUI - só quando clicar em "Concluir"
+            console.log('ℹ️ Aguardando clicar em "Concluir" para salvar...');
         } else {
             console.log('ℹ️ Mesma posição - sem reordenação');
         }
@@ -901,7 +1033,7 @@ class PlaylistEditManager {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // EDIÇÃO DE METADADOS (mantém igual - com botão manual)
+    // EDIÇÃO DE METADADOS
     // ═══════════════════════════════════════════════════════════
 
     editMusicMetadata(trackId) {
@@ -1058,6 +1190,8 @@ class PlaylistEditManager {
         this.selectedTracks.clear();
         this.allTracks = [];
         this.newCoverData = null;
+        this.reorderMode = false;
+        this.closeAllMenus();
     }
 }
 
