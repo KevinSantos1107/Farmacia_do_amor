@@ -596,7 +596,7 @@
     transition: all 0.2s ease;
     cursor: default;
     user-select: none;
-    position: relative;
+    position: relative; /* IMPORTANTE para o menu se posicionar corretamente */
     min-height: 70px;
 }
 
@@ -773,7 +773,6 @@
 .music-dropdown-menu {
     position: absolute;
     right: 12px;
-    top: 50px;
     background: var(--theme-card-bg);
     border: 1px solid var(--theme-card-border);
     border-radius: 12px;
@@ -782,17 +781,39 @@
     min-width: 180px;
     overflow: hidden;
     display: none;
-    animation: slideDown 0.2s ease;
 }
 
 .music-dropdown-menu.active {
     display: block;
 }
 
+/* Abre para BAIXO (padrão) */
+.music-dropdown-menu.open-downward {
+    top: calc(100% + 8px);
+    animation: slideDown 0.2s ease;
+}
+
+/* Abre para CIMA */
+.music-dropdown-menu.open-upward {
+    bottom: calc(100% + 8px);
+    animation: slideUp 0.2s ease;
+}
+
 @keyframes slideDown {
     from {
         opacity: 0;
         transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
     }
     to {
         opacity: 1;
