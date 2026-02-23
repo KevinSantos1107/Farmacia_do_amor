@@ -2101,72 +2101,22 @@ function initHamburgerMenu() {
         }
     });
 
-    let isAdminUnlocked = false;
-
     if (adminMenuBtn) {
-        adminMenuBtn.addEventListener('click', (e) => {
+        adminMenuBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            console.log('🔐 Botão admin clicado');
-            
-            if (!isAdminUnlocked) {
-                const password = prompt('🔐 Digite a senha de admin:');
-                
-                if (password === 'iara2023') {
-                    isAdminUnlocked = true;
-                    adminMenuBtn.classList.add('unlocked');
-                    adminMenuBtn.innerHTML = '<i class="fas fa-lock-open"></i><span>Admin</span>';
-                    
-                    closeMenu();
-                    
-                    setTimeout(async () => {
-                        if (!window.adminLoaded) {
-                            await loadScript('js/admin.js');
-                            window.adminLoaded = true;
-                            if (typeof initAdmin === 'function') {
-                                await initAdmin();
-                            }
-                        }
-                        
-                        const adminModal = document.getElementById('adminModal');
-                        const adminToggleBtn = document.getElementById('adminToggleBtn');
-                        
-                        if (adminModal) {
-                            if (adminToggleBtn) {
-                                adminToggleBtn.classList.add('unlocked');
-                                adminToggleBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
-                            }
-                            
-                            adminModal.style.display = 'block';
-                            document.body.style.overflow = 'hidden';
-                            HistoryManager.push('admin-modal');
-                            
-                            if (typeof loadExistingContent === 'function') {
-                                loadExistingContent();
-                            }
-                        }
-                        
-                        console.log('✅ Admin desbloqueado');
-                    }, 300);
-                } else if (password !== null) {
-                    alert('❌ Senha incorreta!');
-                }
-            } else {
-                closeMenu();
-                
-                setTimeout(() => {
-                    const adminModal = document.getElementById('adminModal');
-                    if (adminModal) {
-                        HistoryManager.remove('hamburger-menu');
-                        
-                        adminModal.style.display = 'block';
-                        document.body.style.overflow = 'hidden';
-                        HistoryManager.push('admin-modal');
-                        
-                        if (typeof loadExistingContent === 'function') {
-                            loadExistingContent();
-                        }
-                    }
-                }, 300);
+            console.log('🔐 Botão admin clicado (delegando para admin.js)');
+            closeMenu();
+
+            if (!window.adminLoaded) {
+                await loadScript('js/admin.js');
+                window.adminLoaded = true;
+            }
+
+            if (typeof openAdminLogin === 'function') {
+                openAdminLogin();
+            } else if (typeof initAdmin === 'function') {
+                await initAdmin();
+                if (typeof showAdminPanel === 'function') showAdminPanel();
             }
         });
     }
