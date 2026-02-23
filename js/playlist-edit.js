@@ -322,43 +322,61 @@ class PlaylistEditManager {
 
     async openModal(playlistId) {
         try {
+            // 🚀 GARANTIR QUE O MODAL EXISTE (sem setTimeout)
             if (!document.getElementById('playlistEditModal')) {
                 this.createModalHTML();
-                await new Promise(resolve => setTimeout(resolve, 100));
             }
 
             this.currentPlaylistId = playlistId;
             this.selectedTracks.clear();
             
-            const playlistDoc = await db.collection('custom_playlists').doc(playlistId).get();
-            if (!playlistDoc.exists) {
-                this.showToast('Playlist não encontrada', 'error');
-                return;
-            }
+            // 🔥 ABRIR MODAL IMEDIATAMENTE (antes de carregar dados)
+            const modal = document.getElementById('playlistEditModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
 
-            this.currentPlaylistData = { id: playlistId, ...playlistDoc.data() };
-            await this.loadPlaylistTracks();
-
-            document.getElementById('editModalTitle').textContent = `Editar: ${this.currentPlaylistData.name}`;
-            document.getElementById('editPlaylistName').value = this.currentPlaylistData.name || '';
-            document.getElementById('editPlaylistIcon').value = this.currentPlaylistData.icon || 'fa-heart';
-            document.getElementById('playlistCoverPreview').src = this.currentPlaylistData.cover || 'images/capas-albuns/default-playlist.jpg';
+            // Mostrar loading state
+            const container = document.getElementById('musicGridContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <div class="empty-state-text">Carregando músicas...</div>
+                </div>
+            `;
 
             // Resetar estados
             this.newCoverData = null;
             this.reorderMode = false;
 
-            const modal = document.getElementById('playlistEditModal');
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
+            // 📋 CARREGAR DADOS DA PLAYLIST (em paralelo)
+            const playlistDoc = await db.collection('custom_playlists').doc(playlistId).get();
+            if (!playlistDoc.exists) {
+                this.showToast('Playlist não encontrada', 'error');
+                this.closeModal();
+                return;
+            }
+
+            this.currentPlaylistData = { id: playlistId, ...playlistDoc.data() };
+
+            // 🎨 ATUALIZAR INTERFACE COM DADOS DA PLAYLIST
+            document.getElementById('editModalTitle').textContent = `Editar: ${this.currentPlaylistData.name}`;
+            document.getElementById('editPlaylistName').value = this.currentPlaylistData.name || '';
+            document.getElementById('editPlaylistIcon').value = this.currentPlaylistData.icon || 'fa-heart';
+            document.getElementById('playlistCoverPreview').src = this.currentPlaylistData.cover || 'images/capas-albuns/default-playlist.jpg';
+
+            // 🎵 CARREGAR TRACKS (pode demorar, mas modal já está aberto)
+            await this.loadPlaylistTracks();
 
             // Re-adicionar event listeners após renderizar o modal
             this.setupEventListeners();
 
-            console.log('✅ Modal aberto');
+            console.log('✅ Modal aberto e dados carregados');
         } catch (error) {
             console.error('❌ Erro ao abrir modal:', error);
             this.showToast('Erro ao abrir modal: ' + error.message, 'error');
+            this.closeModal();
         }
     }
 
@@ -394,9 +412,11 @@ class PlaylistEditManager {
             });
 
             this.allTracks = flattened;
+            
+            // 🚀 RENDERIZAR IMEDIATAMENTE (sem aguardar nada)
             this.renderMusicGrid();
             
-            console.log(`✅ ${this.allTracks.length} músicas carregadas`);
+            console.log(`✅ ${this.allTracks.length} músicas carregadas e renderizadas`);
         } catch (error) {
             console.error('❌ Erro ao carregar:', error);
             this.allTracks = [];
