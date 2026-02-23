@@ -666,11 +666,43 @@ class PlaylistEditManager {
         
         // Abrir novo menu
         const menu = document.getElementById(`menu-${trackId}`);
+        const button = event.currentTarget;
         
-        if (menu) {
+        if (menu && button) {
             menu.classList.add('active');
             this.currentOpenMenuId = trackId;
+            
+            // 🆕 POSICIONAMENTO DINÂMICO (cima ou baixo)
+            this.positionMenuDynamically(menu, button);
+            
             console.log('📋 Menu aberto:', trackId);
+        }
+    }
+
+    positionMenuDynamically(menu, button) {
+        // Obter posições
+        const buttonRect = button.getBoundingClientRect();
+        const menuHeight = menu.offsetHeight || 150; // Altura estimada do menu
+        const viewportHeight = window.innerHeight;
+        
+        // Calcular espaço disponível embaixo e em cima
+        const spaceBelow = viewportHeight - buttonRect.bottom;
+        const spaceAbove = buttonRect.top;
+        
+        console.log('📐 Espaço embaixo:', spaceBelow, 'px');
+        console.log('📐 Espaço em cima:', spaceAbove, 'px');
+        console.log('📐 Altura do menu:', menuHeight, 'px');
+        
+        // Remover classes anteriores
+        menu.classList.remove('open-upward', 'open-downward');
+        
+        // Decidir posição: se não tem espaço embaixo, abre para cima
+        if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+            menu.classList.add('open-upward');
+            console.log('⬆️ Abrindo menu para CIMA');
+        } else {
+            menu.classList.add('open-downward');
+            console.log('⬇️ Abrindo menu para BAIXO');
         }
     }
 
