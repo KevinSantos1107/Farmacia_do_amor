@@ -705,9 +705,24 @@ class PlaylistEditManager {
         const menuHeight = menu.offsetHeight || 150; // Altura estimada do menu
         const viewportHeight = window.innerHeight;
         
+        // 🆕 VERIFICAR O CONTAINER SCROLLÁVEL
+        const container = document.querySelector('.playlist-edit-container');
+        const containerRect = container ? container.getBoundingClientRect() : null;
+        
         // Calcular espaço disponível embaixo e em cima
-        const spaceBelow = viewportHeight - buttonRect.bottom;
+        let spaceBelow = viewportHeight - buttonRect.bottom;
         const spaceAbove = buttonRect.top;
+        
+        // 🔥 AJUSTAR spaceBelow SE O CONTAINER TEM LIMITE
+        if (containerRect) {
+            // Se o bottom do container está visível e é menor que o viewport
+            const containerBottom = containerRect.bottom;
+            if (containerBottom < viewportHeight) {
+                // Recalcular espaço embaixo baseado no container, não no viewport
+                spaceBelow = containerBottom - buttonRect.bottom;
+                console.log('📐 Container tem limite! Ajustando spaceBelow para:', spaceBelow, 'px');
+            }
+        }
         
         console.log('📐 Espaço embaixo:', spaceBelow, 'px');
         console.log('📐 Espaço em cima:', spaceAbove, 'px');
@@ -717,7 +732,8 @@ class PlaylistEditManager {
         menu.classList.remove('open-upward', 'open-downward');
         
         // Decidir posição: se não tem espaço embaixo, abre para cima
-        if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+        // 🆕 Adicionar margem de segurança de 20px
+        if (spaceBelow < (menuHeight + 20) && spaceAbove > spaceBelow) {
             menu.classList.add('open-upward');
             console.log('⬆️ Abrindo menu para CIMA');
         } else {
