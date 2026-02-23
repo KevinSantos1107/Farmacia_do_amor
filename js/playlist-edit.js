@@ -1081,13 +1081,24 @@ class PlaylistEditManager {
         const track = this.allTracks.find(t => t.id === trackId);
         if (!track) return;
 
+        // Fechar menus imediatamente
+        this.closeAllMenus();
+
+        // Preencher dados do modal
         this.currentEditTrackId = trackId;
         document.getElementById('editMusicTitle').value = track.title || '';
         document.getElementById('editMusicArtist').value = track.artist || '';
         document.getElementById('editMusicAlbum').value = track.album || '';
         document.getElementById('musicEditCoverPreview').src = track.cover || 'images/capas-albuns/default-music.jpg';
 
-        document.getElementById('musicEditModal').classList.add('active');
+        // Abrir modal IMEDIATAMENTE (sem setTimeout)
+        const modal = document.getElementById('musicEditModal');
+        modal.classList.add('active');
+        
+        // Focar no primeiro input após abrir (melhora UX)
+        setTimeout(() => {
+            document.getElementById('editMusicTitle')?.focus();
+        }, 100);
     }
 
     async saveMusicEdit() {
