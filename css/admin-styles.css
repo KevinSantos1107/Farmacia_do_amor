@@ -44,6 +44,66 @@
     75% { transform: rotate(10deg); }
 }
 
+/* ===== LOGIN ADMIN PERSONALIZADO ===== */
+.admin-login-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 6000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.admin-login-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--theme-card-bg);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 30px var(--theme-primary);
+}
+
+.admin-login-card h3 {
+    margin: 0 0 12px 0;
+    font-family: 'Poppins', sans-serif;
+    color: var(--theme-text);
+}
+
+.login-input-group label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--theme-text-secondary);
+    margin-bottom: 6px;
+}
+
+.login-input-group input[type="password"] {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--theme-card-border);
+    background: rgba(255,255,255,0.03);
+    color: var(--theme-text);
+    box-sizing: border-box;
+}
+
+.login-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.admin-login-card .cancel-btn {
+    background: rgba(255,255,255,0.06);
+    color: var(--theme-text);
+}
+
+.login-error { font-size: 0.95rem; }
+
+
 /* Modal de Admin */
 .admin-modal {
     display: none;
