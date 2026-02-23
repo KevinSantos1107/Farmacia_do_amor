@@ -2,6 +2,103 @@
 
 console.log('🔐 Sistema de Admin carregado');
 
+// Estado de desbloqueio (gerenciado aqui)
+let isAdminUnlocked = false;
+
+// Senha de admin centralizada
+const ADMIN_PASSWORD = 'iara2025';
+
+/**
+ * Abre o painel de login admin (modal personalizado) e trata autenticação.
+ * Quando a senha estiver correta, abre o painel de admin completo.
+ */
+function openAdminLogin() {
+    const loginModal = document.getElementById('adminLoginModal');
+    const loginForm = document.getElementById('adminLoginForm');
+    const passwordInput = document.getElementById('adminPasswordInput');
+    const cancelBtn = document.getElementById('adminLoginCancel');
+    const errorDiv = document.getElementById('adminLoginError');
+
+    if (!loginModal || !loginForm || !passwordInput) {
+        // Fallback para prompt se o modal não existir
+        const password = prompt('🔐 Digite a senha de admin:');
+        if (password === ADMIN_PASSWORD) {
+            isAdminUnlocked = true;
+            showAdminPanel();
+        } else if (password !== null) {
+            alert('❌ Senha incorreta!');
+        }
+        return;
+    }
+
+    loginModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    passwordInput.value = '';
+    passwordInput.focus();
+
+    const cleanUp = () => {
+        loginModal.style.display = 'none';
+        document.body.style.overflow = '';
+        loginForm.removeEventListener('submit', onSubmit);
+        if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+        document.removeEventListener('keydown', onKey);
+    };
+
+    const onSubmit = async (evt) => {
+        evt.preventDefault();
+        const pwd = passwordInput.value || '';
+        if (pwd === ADMIN_PASSWORD) {
+            cleanUp();
+            isAdminUnlocked = true;
+            showAdminPanel();
+        } else {
+            if (errorDiv) {
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = '❌ Senha incorreta!';
+            } else {
+                alert('❌ Senha incorreta!');
+            }
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    };
+
+    const onCancel = () => {
+        cleanUp();
+    };
+
+    const onKey = (ev) => {
+        if (ev.key === 'Escape') onCancel();
+    };
+
+    loginForm.addEventListener('submit', onSubmit);
+    if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+    document.addEventListener('keydown', onKey);
+}
+
+function showAdminPanel() {
+    const adminModal = document.getElementById('adminModal');
+    const adminToggleBtn = document.getElementById('adminToggleBtn');
+
+    if (adminToggleBtn) {
+        adminToggleBtn.classList.add('unlocked');
+        adminToggleBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
+    }
+
+    if (adminModal) {
+        adminModal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        if (typeof loadExistingContent === 'function') {
+            loadExistingContent();
+        }
+        if (typeof HistoryManager !== 'undefined' && HistoryManager.push) {
+            HistoryManager.push('admin-modal');
+        }
+    }
+
+    console.log('✅ Admin desbloqueado (via admin.js)');
+}
+
 // ===== FUNÇÃO DE COMPRESSÃO CLIENT-SIDE =====
 async function compressImageIfNeeded(file, maxSizeMB = 10) {
     if (file.size <= maxSizeMB * 1024 * 1024) {
@@ -345,23 +442,13 @@ async function initAdmin() {
     
     adminToggleBtn.addEventListener('click', () => {
         if (!isAdminUnlocked) {
-            const password = prompt('🔐 Digite a senha de admin:');
-            
-            if (password === 'iara2023') {
-                isAdminUnlocked = true;
-                adminToggleBtn.classList.add('unlocked');
-                adminToggleBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
+            openAdminLogin();
+        } else {
+            if (adminModal) {
                 adminModal.style.display = 'block';
                 document.body.style.overflow = 'hidden';
-                loadExistingContent();
-                console.log('✅ Admin desbloqueado');
-            } else {
-                alert('❌ Senha incorreta!');
+                if (typeof loadExistingContent === 'function') loadExistingContent();
             }
-        } else {
-            adminModal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-            loadExistingContent();
         }
     });
     
