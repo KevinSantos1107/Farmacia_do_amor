@@ -918,6 +918,7 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
+    animation: fadeInFast 0.15s ease-out; /* Animação mais rápida */
 }
 
 .music-edit-modal.active {
@@ -931,9 +932,31 @@
     max-width: 500px;
     width: 100%;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    animation: slideUp 0.4s ease-out;
+    animation: slideUpFast 0.2s ease-out; /* Animação mais rápida */
     max-height: 90vh;
     overflow-y: auto;
+    will-change: transform, opacity; /* Otimiza performance */
+}
+
+/* Animações mais rápidas */
+@keyframes fadeInFast {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUpFast {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .music-edit-header {
