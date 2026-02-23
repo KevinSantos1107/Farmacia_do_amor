@@ -1206,6 +1206,24 @@
     <div class="star-tunnel-effect" id="starTunnelEffect"></div>
 </div>
 
+<!-- ===== PAINEL DE LOGIN ADMIN PERSONALIZADO ===== -->
+<div class="admin-login-modal" id="adminLoginModal" style="display: none;">
+    <div class="admin-login-card">
+        <h3>🔐 Acesso Admin</h3>
+        <form id="adminLoginForm">
+            <div class="login-input-group">
+                <label for="adminPasswordInput">Senha</label>
+                <input type="password" id="adminPasswordInput" placeholder="Digite a senha de admin" autocomplete="current-password" required>
+            </div>
+            <div class="login-actions">
+                <button type="submit" class="admin-btn">Entrar</button>
+                <button type="button" class="admin-btn cancel-btn" id="adminLoginCancel">Cancelar</button>
+            </div>
+            <div class="login-error" id="adminLoginError" aria-live="polite" style="display:none;color:#ff6b6b;margin-top:10px;"></div>
+        </form>
+    </div>
+</div>
+
 <!-- ORDEM CORRETA DE CARREGAMENTO DOS SCRIPTS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
