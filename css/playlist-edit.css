@@ -850,18 +850,6 @@
     color: #ff6b6b;
 }
 
-/* OVERLAY PARA FECHAR MENU */
-.menu-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 999;
-    display: none;
-}
-
-.menu-overlay.active {
-    display: block;
-}
-
 /* EMPTY STATE */
 .empty-state {
     text-align: center;
