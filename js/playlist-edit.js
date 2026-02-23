@@ -220,9 +220,6 @@ class PlaylistEditManager {
                     </div>
                 </div>
             </div>
-
-            <!-- OVERLAY PARA FECHAR MENUS -->
-            <div class="menu-overlay" id="menuOverlay" onclick="playlistEditManager.closeAllMenus()"></div>
         `;
 
         const musicEditModalHTML = `
@@ -298,10 +295,26 @@ class PlaylistEditManager {
             iconSelect.addEventListener('change', () => this.savePlaylistInfo('Ícone atualizado'));
         }
 
+        // Fechar menus ao pressionar ESC
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeModal();
                 this.closeMusicEditModal();
+                this.closeAllMenus();
+            }
+        });
+
+        // 🆕 FECHAR MENUS AO CLICAR FORA
+        document.addEventListener('click', (e) => {
+            // Se não há menu aberto, não fazer nada
+            if (!this.currentOpenMenuId) return;
+
+            // Verificar se o clique foi dentro de um menu ou botão de menu
+            const clickedInsideMenu = e.target.closest('.music-dropdown-menu');
+            const clickedMenuButton = e.target.closest('.music-menu-btn');
+
+            // Se clicou fora do menu e fora do botão, fechar
+            if (!clickedInsideMenu && !clickedMenuButton) {
                 this.closeAllMenus();
             }
         });
@@ -653,11 +666,9 @@ class PlaylistEditManager {
         
         // Abrir novo menu
         const menu = document.getElementById(`menu-${trackId}`);
-        const overlay = document.getElementById('menuOverlay');
         
         if (menu) {
             menu.classList.add('active');
-            overlay.classList.add('active');
             this.currentOpenMenuId = trackId;
             console.log('📋 Menu aberto:', trackId);
         }
@@ -665,10 +676,8 @@ class PlaylistEditManager {
 
     closeAllMenus() {
         const allMenus = document.querySelectorAll('.music-dropdown-menu');
-        const overlay = document.getElementById('menuOverlay');
         
         allMenus.forEach(menu => menu.classList.remove('active'));
-        overlay?.classList.remove('active');
         this.currentOpenMenuId = null;
     }
 
