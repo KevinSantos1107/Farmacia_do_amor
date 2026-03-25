@@ -678,7 +678,9 @@ initBackgroundStars() {
         this.warpEnded = false;
         this.initParticles();
         if (this.startWarpButton) {
-            this.startWarpButton.style.display = 'none';
+            this.startWarpButton.disabled = true;
+            this.startWarpButton.style.opacity = '0.5';
+            this.startWarpButton.style.cursor = 'not-allowed';
         }
         console.log('🚀 Viagem warp iniciada!');
     }
@@ -1000,7 +1002,9 @@ initBackgroundStars() {
             this.returnStartTime = Date.now();
             this.zoomDepth = 0;
             if (this.startWarpButton) {
-                this.startWarpButton.style.display = 'block';
+                this.startWarpButton.disabled = false;
+                this.startWarpButton.style.opacity = '1';
+                this.startWarpButton.style.cursor = 'pointer';
             }
         }
         
@@ -1018,7 +1022,9 @@ initBackgroundStars() {
             this.returnStartTime = Date.now();
             this.zoomDepth = 0;
             if (this.startWarpButton) {
-                this.startWarpButton.style.display = 'block';
+                this.startWarpButton.disabled = false;
+                this.startWarpButton.style.opacity = '1';
+                this.startWarpButton.style.cursor = 'pointer';
             }
         }
     }
