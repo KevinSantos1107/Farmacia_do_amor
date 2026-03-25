@@ -554,6 +554,9 @@ class StarMap {
         if (!this.canvas || !this.ctx) return;
         
         if (this.startWarpButton) {
+            this.startWarpButton.disabled = false;
+            this.startWarpButton.style.opacity = '1';
+            this.startWarpButton.style.cursor = 'pointer';
             this.startWarpButton.addEventListener('click', this.warpButtonHandler);
         }
         
