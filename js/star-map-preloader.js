@@ -186,12 +186,15 @@ async function startPreloaderWhenReady() {
 }
 
 // Iniciar assim que possível
-window.startStarMapPreloader = async function() {
-    if (window.starMapPreloaderStarted) {
-        return;
+window.startStarMapPreloader = function() {
+    if (!window.starMapPreloaderPromise) {
+        window.starMapPreloaderStarted = true;
+        window.starMapPreloaderPromise = startPreloaderWhenReady()
+            .catch((error) => {
+                console.error('❌ Star Map preloader falhou:', error);
+            });
     }
-    window.starMapPreloaderStarted = true;
-    await startPreloaderWhenReady();
+    return window.starMapPreloaderPromise;
 };
 
 console.log('✅ Star Map Preloader carregado e aguardando início explícito!');
