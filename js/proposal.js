@@ -398,9 +398,6 @@
 
         fadeVol(S.music?.volume || 0, CONFIG.VOL_MID, 500);
 
-        // Flash de tela
-        flashScreen(160);
-
         // 3 ondas de choque
         [0, 120, 250].forEach((delay, i) => {
             setTimeout(() => {
@@ -447,13 +444,20 @@
         const btnYes = $('btnYes');
         if (!btnNo || !btnYes) return;
 
-        // "Não" — foge no hover e no toque
+        // "Não" — no desktop foge no hover, no mobile foge no touchstart
+        // IMPORTANTE: não usar 'click' junto com 'touchstart' — no mobile disparariam os dois
         btnNo.addEventListener('mouseenter', handleNo);
-        btnNo.addEventListener('touchstart',  e => handleNo(e), { passive: true });
-        btnNo.addEventListener('click',       handleNo);
+        btnNo.addEventListener('touchstart', e => {
+            e.preventDefault(); // impede que o touchstart gere um click posterior
+            handleNo(e);
+        }, { passive: false });
 
         // "Sim"
         btnYes.addEventListener('click', startPhase3);
+        btnYes.addEventListener('touchend', e => {
+            e.preventDefault();
+            startPhase3();
+        }, { passive: false });
     }
 
     function handleNo(ev) {
@@ -591,8 +595,6 @@
         const cx = window.innerWidth  / 2;
         const cy = window.innerHeight / 2;
 
-        flashScreen(220);
-
         // 4 ondas de choque
         [0, 100, 210, 340].forEach((delay, i) => {
             setTimeout(() => {
@@ -631,7 +633,8 @@
                 const b = document.createElement('div');
                 b.className   = 'heart-bubble';
                 b.textContent = HEARTS[Math.floor(Math.random() * HEARTS.length)];
-                b.style.cssText = `left:${Math.random()*100}vw;bottom:0;font-size:${1.3+Math.random()*2.6}rem;animation-duration:${2.2+Math.random()*3.8}s;`;
+                // top:100vh = começa fora da tela embaixo; a animação translateY(-110vh) sobe para cima
+                b.style.cssText = `left:${Math.random()*100}vw;top:100vh;font-size:${1.3+Math.random()*2.6}rem;animation-duration:${2.2+Math.random()*3.8}s;`;
                 document.body.appendChild(b);
                 b.addEventListener('animationend', () => b.remove());
             }, i * 55);
@@ -708,4 +711,4 @@
         init();
     }
 
-})();   
+})();
