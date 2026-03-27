@@ -2103,7 +2103,7 @@ function initHamburgerMenu() {
 
     if (adminMenuBtn) {
         // Verifica se admin já está unlocked na inicialização
-        if (localStorage.getItem('adminUnlocked') === 'true') {
+        if (sessionStorage.getItem('adminUnlocked') === 'true') {
             adminMenuBtn.classList.add('unlocked');
         }
 
@@ -2118,7 +2118,7 @@ function initHamburgerMenu() {
             }
 
             // Verifica se admin já está unlocked
-            if (localStorage.getItem('adminUnlocked') === 'true') {
+            if (sessionStorage.getItem('adminUnlocked') === 'true') {
                 if (typeof showAdminPanel === 'function') {
                     showAdminPanel();
                 }
