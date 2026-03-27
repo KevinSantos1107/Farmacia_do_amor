@@ -47,31 +47,6 @@ function loadScript(src) {
     });
 }
 
-function preloadStarMapImmediately() {
-    const preload = async () => {
-        if (window.starMapLoaded) return;
-
-        console.log('🚀 Carregando Star Map agora (primeiro paint)...');
-        try {
-            await loadScript('js/star-map-preloader.js');
-            await loadScript('js/star-map.js');
-            if (typeof window.startStarMapPreloader === 'function') {
-                await window.startStarMapPreloader();
-            }
-            window.starMapLoaded = true;
-            console.log('✅ Star Map pré-carregado imediatamente');
-        } catch (error) {
-            console.error('❌ Falha no preload imediato do Star Map:', error);
-        }
-    };
-
-    if ('requestAnimationFrame' in window) {
-        requestAnimationFrame(() => preload());
-    } else {
-        setTimeout(() => preload(), 0);
-    }
-}
-
 function preloadInteractiveModules() {
     const preload = async () => {
         console.log('⏳ Preload de módulos interativos iniciado');
@@ -263,7 +238,6 @@ document.addEventListener('DOMContentLoaded', function() {
         initAcrostic();
         
         console.log('✅ Site inicializado com sucesso!');
-        preloadStarMapImmediately();
         preloadInteractiveModules();
     }, 300);
 });
