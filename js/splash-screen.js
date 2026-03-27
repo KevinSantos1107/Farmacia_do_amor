@@ -17,50 +17,50 @@ class SplashScreen {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
 
-// Bloqueia a rolagem da página enquanto o splash estiver visível
-document.documentElement.classList.add('splash-active');
-document.body.classList.add('splash-active');
+        // Bloqueia a rolagem da página enquanto o splash estiver visível
+        document.documentElement.classList.add('splash-active');
+        document.body.classList.add('splash-active');
 
-// Salva posição atual do scroll
-this._scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-document.body.style.top = `-${this._scrollPosition}px`;
+        // Salva posição atual do scroll
+        this._scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+        document.body.style.top = `-${this._scrollPosition}px`;
 
-// Previne todos os tipos de scroll (MOBILE + DESKTOP)
-this._preventTouchMove = (e) => { 
-    e.preventDefault(); 
-    e.stopPropagation();
-    return false;
-};
+        // Previne todos os tipos de scroll (MOBILE + DESKTOP)
+        this._preventTouchMove = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        };
 
-this._preventWheel = (e) => { 
-    e.preventDefault(); 
-    e.stopPropagation();
-    return false;
-};
+        this._preventWheel = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        };
 
-this._preventScroll = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    return false;
-};
+        this._preventScroll = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        };
 
-this._preventTouchStart = (e) => {
-    // Permite toques no splash, mas não no conteúdo abaixo
-    if (!e.target.closest('#splashScreen')) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-    }
-};
+        this._preventTouchStart = (e) => {
+            // Permite toques no splash, mas não no conteúdo abaixo
+            if (!e.target.closest('#splashScreen')) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        };
 
-// Adiciona TODOS os listeners (mobile precisa de mais)
-document.addEventListener('touchmove', this._preventTouchMove, { passive: false });
-document.addEventListener('touchstart', this._preventTouchStart, { passive: false });
-document.addEventListener('wheel', this._preventWheel, { passive: false });
-document.addEventListener('scroll', this._preventScroll, { passive: false });
-window.addEventListener('scroll', this._preventScroll, { passive: false });
+        // Adiciona TODOS os listeners (mobile precisa de mais)
+        document.addEventListener('touchmove', this._preventTouchMove, { passive: false });
+        document.addEventListener('touchstart', this._preventTouchStart, { passive: false });
+        document.addEventListener('wheel', this._preventWheel, { passive: false });
+        document.addEventListener('scroll', this._preventScroll, { passive: false });
+        window.addEventListener('scroll', this._preventScroll, { passive: false });
 
-console.log('🔒 Scroll bloqueado (mobile + desktop)');
+        console.log('🔒 Scroll bloqueado (mobile + desktop)');
 
         this.initStars();
         this.startAnimation();
@@ -281,26 +281,68 @@ console.log('🔒 Scroll bloqueado (mobile + desktop)');
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-hideSplash() {
-    this.isLoading = false;
+    hideSplash() {
+        this.isLoading = false;
 
-    if (this.animationId) {
-        cancelAnimationFrame(this.animationId);
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+        }
+
+        // ===== INTEGRAÇÃO COM A PROPOSTA =====
+        // Se a proposta ainda não foi respondida, delega o controle para ela
+        if (localStorage.getItem('proposal_answered') !== 'true') {
+            console.log('💍 Proposta pendente — delegando controle para proposal.js');
+
+            // Fade out suave do splash
+            this.splashScreen.style.transition = 'opacity 0.8s ease';
+            this.splashScreen.style.opacity = '0';
+
+            setTimeout(() => {
+                // Remove classes e listeners de scroll (igual ao fluxo normal)
+                this._releaseScroll();
+
+                // Esconde o splash
+                this.splashScreen.style.display = 'none';
+
+                console.log('✨ Splash oculto — aguardando proposta');
+
+                // Notifica o proposal.js que pode começar
+                if (window.proposalAPI && typeof window.proposalAPI.onSplashEnd === 'function') {
+                    window.proposalAPI.onSplashEnd();
+                } else {
+                    // Segurança: se o proposal.js não carregou por algum motivo,
+                    // libera o site normalmente para não deixar tela preta
+                    console.warn('⚠️ proposalAPI não encontrado — liberando site normalmente');
+                }
+
+            }, 900); // espera o fade out de 0.8s terminar
+
+            return; // interrompe aqui, não executa o fluxo normal abaixo
+        }
+
+        // ===== FLUXO NORMAL (proposta já respondida) =====
+        this.splashScreen.classList.add('fade-out');
+
+        setTimeout(() => {
+            this._releaseScroll();
+            this.splashScreen.style.display = 'none';
+            console.log('✨ Splash screen oculto - scroll liberado! (mobile + desktop)');
+        }, 1000);
     }
 
-    this.splashScreen.classList.add('fade-out');
-
-    setTimeout(() => {
+    // ===== MÉTODO AUXILIAR: libera scroll e remove listeners =====
+    // Extraído para evitar duplicação entre o fluxo normal e o da proposta
+    _releaseScroll() {
         // Remove classes de bloqueio
         document.documentElement.classList.remove('splash-active');
         document.body.classList.remove('splash-active');
-        
+
         // Restaura estilos inline
         document.documentElement.style.overflow = '';
         document.documentElement.style.position = '';
         document.documentElement.style.width = '';
         document.documentElement.style.height = '';
-        
+
         document.body.style.overflow = '';
         document.body.style.position = '';
         document.body.style.width = '';
@@ -310,12 +352,12 @@ hideSplash() {
         document.body.style.right = '';
         document.body.style.bottom = '';
         document.body.style.touchAction = '';
-        
+
         // Restaura posição do scroll
         if (this._scrollPosition !== undefined) {
             window.scrollTo(0, this._scrollPosition);
         }
-        
+
         // Remove TODOS os listeners
         if (this._preventTouchMove) {
             document.removeEventListener('touchmove', this._preventTouchMove);
@@ -330,13 +372,7 @@ hideSplash() {
             document.removeEventListener('scroll', this._preventScroll);
             window.removeEventListener('scroll', this._preventScroll);
         }
-        
-        // Esconde splash
-        this.splashScreen.style.display = 'none';
-        
-        console.log('✨ Splash screen oculto - scroll liberado! (mobile + desktop)');
-    }, 1000);
-}
+    }
 }
 
 // Initialize splash screen when DOM is ready
