@@ -2179,9 +2179,11 @@ function initHamburgerMenu() {
                 await loadScript('js/star-map-preloader.js');
                 await loadScript('js/star-map.js');
                 if (typeof window.startStarMapPreloader === 'function') {
-                    window.startStarMapPreloader();
+                    await window.startStarMapPreloader();
                 }
                 window.starMapLoaded = true;
+            } else if (typeof window.startStarMapPreloader === 'function') {
+                await window.startStarMapPreloader();
             }
 
             if (typeof window.openStarMap === 'function') {
