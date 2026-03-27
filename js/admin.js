@@ -3,7 +3,8 @@
 console.log('🔐 Sistema de Admin carregado');
 
 // Estado de desbloqueio (gerenciado aqui)
-let isAdminUnlocked = localStorage.getItem('adminUnlocked') === 'true';
+let isAdminUnlocked = false;
+window.adminUnlocked = isAdminUnlocked;
 
 // Senha de admin centralizada
 const ADMIN_PASSWORD = 'iara2025';
@@ -24,6 +25,7 @@ function openAdminLogin() {
         const password = prompt('🔐 Digite a senha de admin:');
         if (password === ADMIN_PASSWORD) {
             isAdminUnlocked = true;
+            window.adminUnlocked = true;
             showAdminPanel();
         } else if (password !== null) {
             alert('❌ Senha incorreta!');
@@ -50,7 +52,7 @@ function openAdminLogin() {
         if (pwd === ADMIN_PASSWORD) {
             cleanUp();
             isAdminUnlocked = true;
-            localStorage.setItem('adminUnlocked', 'true');
+            window.adminUnlocked = true;
             showAdminPanel();
         } else {
             if (errorDiv) {
