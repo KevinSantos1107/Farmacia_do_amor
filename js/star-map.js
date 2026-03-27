@@ -288,39 +288,6 @@ function updateStarMapModalInfo(specialDate, latitude, longitude, romanticQuote,
 }
 
 // ===== GERENCIAMENTO DO MODAL =====
-async function openStarMap() {
-    const modal = document.getElementById('starMapModal');
-    if (!modal) {
-        console.warn('⚠️ Modal do Star Map não encontrado');
-        return;
-    }
-
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-
-    if (typeof HistoryManager !== 'undefined') {
-        HistoryManager.push('star-map-modal');
-    }
-
-    console.log('🎬 Abrindo modal - resetando Star Map...');
-
-    if (window.starMap) {
-        window.starMap.destroy();
-        window.starMap = null;
-    }
-
-    if (window.starMapState && window.starMapState.isLoaded) {
-        console.log('⚡ Usando dados pré-carregados (instantâneo)');
-    } else {
-        console.log('⏳ Carregando dados agora...');
-    }
-
-    await initializeStarMapWithConfig();
-    console.log('✨ Star Map criado do zero - animação iniciada');
-}
-
-window.openStarMap = openStarMap;
-
 function initStarMapModal() {
     const modal = document.getElementById('starMapModal');
     const closeBtn = document.getElementById('closeStarMapBtn');
@@ -335,7 +302,30 @@ function initStarMapModal() {
     if (openBtn) {
         openBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            await openStarMap();
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            if (typeof HistoryManager !== 'undefined') {
+                HistoryManager.push('star-map-modal');
+            }
+            
+            console.log('🎬 Abrindo modal - resetando Star Map...');
+            
+            // ✅ DESTRUIR COMPLETAMENTE O STAR MAP ANTERIOR
+            if (window.starMap) {
+                window.starMap.destroy();
+                window.starMap = null;
+            }
+            
+            if (window.starMapState && window.starMapState.isLoaded) {
+                console.log('⚡ Usando dados pré-carregados (instantâneo)');
+            } else {
+                console.log('⏳ Carregando dados agora...');
+            }
+            
+            await initializeStarMapWithConfig();
+            
+            console.log('✨ Star Map criado do zero - animação iniciada');
         });
     }
     
@@ -1116,16 +1106,9 @@ initBackgroundStars() {
 }
 
 // Inicializar Star Map Modal quando DOM estiver pronto
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(() => {
-            initStarMapModal();
-            console.log('✨ Star Map Modal pronto para uso');
-        }, 500);
-    });
-} else {
+document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         initStarMapModal();
         console.log('✨ Star Map Modal pronto para uso');
     }, 500);
-}
+});
