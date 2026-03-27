@@ -1,76 +1,106 @@
 /* ===================================================
    PROPOSAL.JS — Sistema de Pedido de Namoro
    Kevin & Iara 💍
-   Anel com Segurar (Hold Ring Interaction)
+   Versão Final — Integrado com splash-screen.js
    =================================================== */
 
 (function () {
     'use strict';
 
+    // ===== CONFIGURAÇÃO =====
+    const CONFIG = {
+        HOLD_MS:       1900,  // ms para completar o hold
+        SIM_REVEAL_AT: 4,     // tentativas no "Não" antes do "Sim" aparecer
+        VOL_INIT:      0.20,
+        VOL_MID:       0.45,
+        VOL_FULL:      1.00,
+    };
+
     // ===== ESTADO =====
-    const proposal = {
-        noAttempts: 0,
-        simVisible: false,
+    const S = {
+        phase:        0,      // 0=aguardando splash, 1=anel, 2=pedido, 3=aceito, 4=entrada
+        noCount:      0,
+        settled:      false,
+        holding:      false,
+        noMsgEl:      null,
+        noMsgTimer:   null,
+        music:        null,
         musicPlaying: false,
-        phase: 0,
-        music: null,
-        noMsgEl: null,
-        noMsgTimeout: null,
-        settled: false,
     };
 
-    // ===== ESTADO DO ANEL =====
-    const ring = {
-        holding: false,
-        holdStart: null,
-        rafId: null,
-        lastStage: -1,
-    };
+    // Hold
+    let holdStart = null;
+    let holdRaf   = null;
+    let lastStage = -1;
 
-    // ===== CONSTANTES DO HOLD =====
-    const HOLD_MS = 1900;
-    const SIM_REVEAL_AT = 4;
-
-    const SHAKE_STAGES = [
-        { at: 0.00, cls: '',         glowA: 0.65, glowB: 0.35, auraScale: 1.0, orbitColor: 'rgba(255,140,200,.18)' },
-        { at: 0.20, cls: 'shake-s',  glowA: 0.85, glowB: 0.50, auraScale: 1.2, orbitColor: 'rgba(255,140,200,.35)' },
-        { at: 0.45, cls: 'shake-m',  glowA: 1.10, glowB: 0.75, auraScale: 1.5, orbitColor: 'rgba(255,160,220,.55)' },
-        { at: 0.70, cls: 'shake-l',  glowA: 1.40, glowB: 1.00, auraScale: 1.9, orbitColor: 'rgba(255,180,230,.75)' },
-        { at: 0.88, cls: 'shake-xl', glowA: 2.00, glowB: 1.50, auraScale: 2.5, orbitColor: 'rgba(255,210,240,.95)' },
+    // Estágios progressivos do shake + brilho ao segurar o anel
+    const STAGES = [
+        { at:0.00, cls:'',         gA:0.65, gB:0.35, aura:1.0, orbit:'rgba(255,140,200,.18)' },
+        { at:0.20, cls:'shake-s',  gA:0.85, gB:0.50, aura:1.2, orbit:'rgba(255,140,200,.35)' },
+        { at:0.45, cls:'shake-m',  gA:1.10, gB:0.75, aura:1.5, orbit:'rgba(255,160,220,.55)' },
+        { at:0.70, cls:'shake-l',  gA:1.40, gB:1.00, aura:1.9, orbit:'rgba(255,180,230,.75)' },
+        { at:0.88, cls:'shake-xl', gA:2.00, gB:1.50, aura:2.5, orbit:'rgba(255,210,240,.95)' },
     ];
 
-    const noMessages = [
-        { text: 'Ops, fugiu! 😂',                      emoji: '😂' },
-        { text: 'Aqui não, tente de novo!',             emoji: '🏃' },
-        { text: 'Esse botão tem vida própria...',       emoji: '😅' },
-        { text: 'Tá ficando difícil né? 😄',            emoji: '😄' },
-        { text: 'Ok, talvez o Sim seja melhor opção 💕',emoji: '💕' },
-        { text: 'Definitivamente não clicável!',        emoji: '⚡' },
-        { text: 'Apenas o Sim funciona aqui 💕',        emoji: '💕' },
+    // Mensagens do botão "Não"
+    const NO_MSGS = [
+        { t:'Ei, eu fugi! 😂',                       e:'😂' },
+        { t:'Aqui não, tente de novo!',               e:'🏃' },
+        { t:'Esse botão tem vida própria...',         e:'😅' },
+        { t:'Tá ficando difícil né? 😄',              e:'😄' },
+        { t:'Ok, talvez o Sim seja melhor opção 💕',  e:'💕' },
+        { t:'Definitivamente não clicável!',          e:'⚡' },
+        { t:'Só o Sim funciona aqui 💕',              e:'💕' },
     ];
 
-    const hintMsgs = ['', 'Hmm... tem certeza? 🤔', 'Pensa bem...', 'Só mais uma chance...', 'Última oportunidade! 😄'];
+    // Hints progressivos enquanto o Sim não aparece
+    const HINTS = [
+        '',
+        'Hmm... tem certeza? 🤔',
+        'Pensa bem...',
+        'Só mais uma chance...',
+        'Última oportunidade! 😄',
+    ];
 
-    function $(id) { return document.getElementById(id); }
+    // Paletas de partículas
+    const SPARKS   = ['#ffb3d9','#ff80c0','#fff','#ffd700','#ff60a0','#ffc0e8','#c0a0ff','#80d0ff'];
+    const CONFETTI = ['#ff80b0','#ffb3d4','#fff','#ffd0e8','#ffccff','#ff60a0','#ffa0c8','#ffe0f0','#ffd700','#c0a0ff'];
+    const HEARTS   = ['💕','💗','💖','💝','❤️','🌹','✨','💫','🌸','💍'];
+
+    // ===== HELPERS =====
+    const $ = id => document.getElementById(id);
 
     function activateLayer(id) {
-        document.querySelectorAll('.proposal-layer').forEach(el => el.classList.remove('active'));
-        const t = $(id);
-        if (t) t.classList.add('active');
+        document.querySelectorAll('.proposal-layer').forEach(el => {
+            if (el.id === id) {
+                el.classList.remove('fading-out-layer');
+                el.classList.add('active');
+            } else if (el.classList.contains('active')) {
+                el.classList.remove('active');
+                el.classList.add('fading-out-layer');
+                setTimeout(() => el.classList.remove('fading-out-layer'), 900);
+            }
+        });
     }
 
     // ===== INIT =====
+    // Monta o DOM e registra o hook que o splash-screen.js vai chamar
     function init() {
+        // Se já respondeu, oculta a tela e sai
         if (localStorage.getItem('proposal_answered') === 'true') {
             const s = $('proposalScreen');
             if (s) s.classList.add('hidden');
             return;
         }
+
         buildDOM();
+        setupStars();
         setupMusic();
-        setupParticles();
+
+        // Expõe o hook — o splash-screen.js chama proposalAPI.onSplashEnd()
         window.proposalAPI = { onSplashEnd };
-        console.log('💍 Proposta inicializada');
+
+        console.log('💍 proposal.js pronto — aguardando splash');
     }
 
     // ===== BUILD DOM =====
@@ -80,12 +110,13 @@
 
         screen.innerHTML = `
             <canvas id="proposalCanvas"></canvas>
+            <div id="proposalFlash"></div>
 
-            <!-- FASE 2: Segurar o Anel -->
+            <!-- FASE 1: ANEL -->
             <div class="proposal-layer" id="phaseRing">
-                <p class="eyebrow">✨ Tenho algo especial para você ✨</p>
+                <p class="proposal-eyebrow">Eu tenho algo para te mostrar...</p>
                 <div class="ring-wrap" id="ringWrap">
-                    <div class="ring-aura" id="ringAura"></div>
+                    <div class="ring-aura"  id="ringAura"></div>
                     <div class="ring-orbit" id="ringOrbit"></div>
                     <span class="ring-emoji" id="ringEmoji">💍</span>
                 </div>
@@ -95,31 +126,31 @@
                 <p class="hold-hint" id="holdHint">Pressione e segure o anel...</p>
             </div>
 
-            <!-- FASE 3: Pedido -->
+            <!-- FASE 2: PEDIDO -->
             <div class="proposal-layer" id="phaseProposal">
-                <p class="proposal-text" id="proposalText">
+                <p class="proposal-text">
                     Cada conversa, cada risada,<br>
                     cada momento ao seu lado<br>
                     me mostrou que é você<br>
                     que eu quero ao meu lado.<br>
                     <span class="proposal-highlight">Você aceita ser a minha namorada?</span>
                 </p>
-                <div class="buttons-area" id="buttonsArea">
-                    <button class="btn-no" id="btnNo">Não 😅</button>
+                <div class="buttons-area">
+                    <button class="btn-no"  id="btnNo">Não 😅</button>
                     <button class="btn-yes" id="btnYes">Sim 💕</button>
                 </div>
                 <p class="attempt-hint" id="attemptHint"></p>
-                <p class="phase35-text" id="phase35Text"></p>
+                <p class="phase35-text"  id="phase35Text">Deixando claro que o "não"\nnunca será uma opção entre nós 😄</p>
             </div>
 
-            <!-- FASE 4: Aceita -->
+            <!-- FASE 3: ACEITO -->
             <div class="proposal-layer" id="phaseAccepted">
-                <div class="big-ring">💍</div>
-                <h1 class="accepted-title" id="acceptedTitle">Ela disse SIM! 🎉</h1>
-                <p class="accepted-subtitle" id="acceptedSubtitle"></p>
+                <div class="heart-explosion">💍</div>
+                <h1 class="accepted-title">Ela disse SIM! 🎉</h1>
+                <p class="accepted-subtitle">O amor à primeira vista está\nvirando amor para a vida toda 💕</p>
             </div>
 
-            <!-- FASE 5: Entrada -->
+            <!-- FASE 4: ENTRADA -->
             <div class="proposal-layer" id="phaseEntrance">
                 <p class="welcome-text">Bem-vinda ao nosso mundo, meu amor 💕</p>
             </div>
@@ -133,217 +164,23 @@
             </div>
         `;
 
-        setupRingEvents();
+        // Eventos registrados logo após o DOM existir
+        setupHoldEvents();
         setupButtonEvents();
     }
 
-    // ===== SETUP RING EVENTS =====
-    function setupRingEvents() {
-        const wrap = $('ringWrap');
-        if (!wrap) return;
-        wrap.addEventListener('mousedown', startHold);
-        wrap.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(e.touches[0]); }, { passive: false });
-        document.addEventListener('mouseup', cancelHold);
-        document.addEventListener('touchend', cancelHold);
-    }
-
-    // ===== HOLD: INICIAR =====
-    function startHold(e) {
-        if (proposal.phase !== 2 || ring.holding) return;
-        ring.holding  = true;
-        ring.holdStart = performance.now();
-
-        const trackEl = $('holdTrack');
-        const hintEl  = $('holdHint');
-        if (trackEl) trackEl.classList.add('visible');
-        if (hintEl)  hintEl.style.opacity = '0';
-
-        const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? window.innerWidth  / 2;
-        const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? window.innerHeight / 2;
-        spawnSparks({ clientX, clientY }, 6, ['#ffb3d9', '#ff80c0', '#fff', '#ffccee']);
-
-        ring.rafId = requestAnimationFrame(tickHold);
-    }
-
-    // ===== HOLD: CANCELAR =====
-    function cancelHold() {
-        if (!ring.holding) return;
-        ring.holding = false;
-        if (ring.rafId) cancelAnimationFrame(ring.rafId);
-        ring.lastStage = -1;
-
-        const fillEl  = $('holdFill');
-        const trackEl = $('holdTrack');
-        const hintEl  = $('holdHint');
-        const wrap    = $('ringWrap');
-        const emojiEl = $('ringEmoji');
-        const auraEl  = $('ringAura');
-        const orbitEl = $('ringOrbit');
-
-        if (fillEl)  fillEl.style.width = '0%';
-        if (wrap)    wrap.classList.remove('shake-s', 'shake-m', 'shake-l', 'shake-xl');
-        if (emojiEl) { emojiEl.style.filter = ''; emojiEl.style.fontSize = ''; }
-        if (auraEl)  { auraEl.style.transform = 'scale(1)'; auraEl.style.opacity = '0.55'; }
-        if (orbitEl) { orbitEl.style.borderColor = 'rgba(255,140,200,.18)'; orbitEl.style.boxShadow = ''; }
-
-        if (proposal.phase === 2) {
-            if (trackEl) trackEl.classList.remove('visible');
-            if (hintEl)  hintEl.style.opacity = '1';
-        }
-    }
-
-    // ===== HOLD: TICK (RAF) =====
-    function tickHold(now) {
-        if (!ring.holding) return;
-
-        const fillEl  = $('holdFill');
-        const wrap    = $('ringWrap');
-        const emojiEl = $('ringEmoji');
-        const auraEl  = $('ringAura');
-        const orbitEl = $('ringOrbit');
-
-        const pct = Math.min(1, (now - ring.holdStart) / HOLD_MS);
-        if (fillEl) fillEl.style.width = (pct * 100) + '%';
-
-        // Determina estágio
-        let stage = SHAKE_STAGES[0];
-        for (let i = SHAKE_STAGES.length - 1; i >= 0; i--) {
-            if (pct >= SHAKE_STAGES[i].at) { stage = SHAKE_STAGES[i]; break; }
-        }
-        const idx = SHAKE_STAGES.indexOf(stage);
-
-        if (idx !== ring.lastStage) {
-            ring.lastStage = idx;
-            if (wrap) {
-                wrap.classList.remove('shake-s', 'shake-m', 'shake-l', 'shake-xl');
-                if (stage.cls) wrap.classList.add(stage.cls);
-            }
-            if (orbitEl) {
-                orbitEl.style.borderColor = stage.orbitColor;
-                if (idx >= 2) orbitEl.style.boxShadow = `0 0 ${idx * 8}px rgba(255,160,220,${idx * 0.18})`;
-            }
-            if (idx > 0 && wrap) {
-                const r = wrap.getBoundingClientRect();
-                spawnSparks(
-                    { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 },
-                    idx * 4,
-                    ['#ffb3d9', '#ff80c0', '#fff', '#ffd700']
-                );
-            }
-        }
-
-        // Glow e tamanho do emoji
-        const gA = stage.glowA, gB = stage.glowB;
-        if (emojiEl) {
-            emojiEl.style.filter = `drop-shadow(0 0 ${18 * gA}px rgba(255,130,200,${Math.min(0.95, gA * 0.7)})) drop-shadow(0 0 ${38 * gB}px rgba(220,80,180,${Math.min(0.8, gB * 0.6)})) drop-shadow(0 0 ${60 * pct}px rgba(255,200,240,${pct * 0.5}))`;
-            emojiEl.style.fontSize = (90 + pct * 18) + 'px';
-        }
-        if (auraEl) {
-            auraEl.style.transform = `scale(${stage.auraScale})`;
-            auraEl.style.opacity   = String(Math.min(1, 0.55 + pct * 0.7));
-        }
-
-        if (pct < 1) {
-            ring.rafId = requestAnimationFrame(tickHold);
-        } else {
-            onHoldComplete();
-        }
-    }
-
-    // ===== HOLD COMPLETO → explosão + fase 3 =====
-    function onHoldComplete() {
-        ring.holding   = false;
-        ring.lastStage = -1;
-        const wrap = $('ringWrap');
-        if (wrap) wrap.classList.remove('shake-s', 'shake-m', 'shake-l', 'shake-xl');
-
-        const rect = wrap ? wrap.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 };
-        const cx = rect.left + rect.width  / 2;
-        const cy = rect.top  + rect.height / 2;
-
-        // Anéis expansivos
-        [0, 120, 250].forEach((delay, i) => {
-            setTimeout(() => {
-                const el = document.createElement('div');
-                el.className = 'burst-ring';
-                const size = (180 + i * 120) + 'px';
-                el.style.cssText = `left:${cx}px;top:${cy}px;width:${size};height:${size};animation-duration:${0.55 + i * 0.15}s;border-color:rgba(255,${140 + i * 30},220,${0.9 - i * 0.25})`;
-                document.body.appendChild(el);
-                el.addEventListener('animationend', () => el.remove());
-            }, delay);
-        });
-
-        const sparkColors = ['#ffb3d9', '#ff80c0', '#fff', '#ffd700', '#ff60a0', '#ffc0e8', '#c0a0ff', '#80d0ff'];
-        spawnSparks({ clientX: cx, clientY: cy }, 55, sparkColors);
-        setTimeout(() => spawnSparks({ clientX: cx, clientY: cy }, 40, sparkColors), 80);
-        setTimeout(() => spawnSparks({ clientX: cx, clientY: cy }, 30, ['#fff', '#ffd700', '#ffe0f0']), 180);
-
-        const fwPositions = [
-            { x: cx - 180, y: cy - 120 }, { x: cx + 180, y: cy - 120 },
-            { x: cx - 220, y: cy + 80  }, { x: cx + 220, y: cy + 80  },
-            { x: cx, y: cy - 200 },
-            { x: cx - 100, y: cy + 150 }, { x: cx + 100, y: cy + 150 },
-        ];
-        fwPositions.forEach((pos, i) => {
-            setTimeout(() => fireworkBurst(pos.x, pos.y, sparkColors), i * 60 + 40);
-        });
-
-        spawnReaction('✨', cx, cy - 90);
-        setTimeout(() => spawnReaction('💕', cx - 55, cy - 60),  80);
-        setTimeout(() => spawnReaction('🌸', cx + 55, cy - 60), 160);
-        setTimeout(() => spawnReaction('💖', cx,       cy - 130), 240);
-
-        if (proposal.music) fadeVolume(proposal.music, proposal.music.volume, 0.4, 800);
-        setTimeout(() => startPhase3(), 700);
-    }
-
-    // ===== MÚSICA =====
-    function setupMusic() {
-        const audio   = document.createElement('audio');
-        audio.loop    = true;
-        audio.volume  = 0;
-        audio.src     = 'audio/proposal-music.mp3';
-        audio.preload = 'auto';
-        document.body.appendChild(audio);
-        proposal.music = audio;
-    }
-
-    function playMusic(vol = 0.3) {
-        if (!proposal.music) return;
-        proposal.music.play().then(() => {
-            proposal.musicPlaying = true;
-            fadeVolume(proposal.music, 0, vol, 2000);
-            $('musicIndicator')?.classList.add('visible');
-        }).catch(() => {});
-    }
-
-    function fadeVolume(audio, from, to, dur) {
-        const steps = 40, dt = dur / steps, delta = (to - from) / steps;
-        let cur = from;
-        audio.volume = Math.max(0, Math.min(1, from));
-        const iv = setInterval(() => {
-            cur += delta;
-            if ((delta > 0 && cur >= to) || (delta < 0 && cur <= to)) {
-                audio.volume = Math.max(0, Math.min(1, to));
-                clearInterval(iv);
-            } else {
-                audio.volume = Math.max(0, Math.min(1, cur));
-            }
-        }, dt);
-    }
-
-    // ===== PARTÍCULAS DE FUNDO (estrelas) =====
-    function setupParticles() {
+    // ===== ESTRELAS DE FUNDO =====
+    function setupStars() {
         const canvas = $('proposalCanvas');
         if (!canvas) return;
-        const ctx  = canvas.getContext('2d');
-        let stars  = [];
+        const ctx = canvas.getContext('2d');
+        let stars = [];
 
         function resize() {
             canvas.width  = window.innerWidth;
             canvas.height = window.innerHeight;
             stars = [];
-            const n = Math.floor((canvas.width * canvas.height) / 4800);
+            const n = Math.floor((canvas.width * canvas.height) / 4200);
             for (let i = 0; i < n; i++) {
                 stars.push({
                     x: Math.random() * canvas.width,
@@ -363,7 +200,7 @@
                 const fl = Math.sin(t * 0.001 * s.s + s.p) * 0.22;
                 ctx.beginPath();
                 ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${s.hue}, ${Math.max(0, Math.min(1, s.o + fl))})`;
+                ctx.fillStyle = `rgba(${s.hue},${Math.max(0, Math.min(1, s.o + fl))})`;
                 ctx.fill();
             });
             requestAnimationFrame(loop);
@@ -374,336 +211,501 @@
         loop(0);
     }
 
-    // ===== UTILITÁRIOS DE PARTÍCULAS =====
-    function spawnSparks(ev, count, colors) {
-        let x = window.innerWidth / 2, y = window.innerHeight / 2;
-        if (ev?.clientX) { x = ev.clientX; y = ev.clientY; }
-        for (let i = 0; i < count; i++) {
-            const sp    = document.createElement('div');
-            sp.className = 'spark';
-            const angle = (Math.PI * 2 * i) / count + Math.random() * 0.8;
-            const dist  = 50 + Math.random() * 130;
-            const col   = colors[Math.floor(Math.random() * colors.length)];
-            const size  = 3 + Math.random() * 6;
-            sp.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${size}px;height:${size}px;box-shadow:0 0 5px ${col};--tx:${Math.cos(angle) * dist}px;--ty:${Math.sin(angle) * dist - 30}px;animation-duration:${0.45 + Math.random() * 0.6}s;`;
-            document.body.appendChild(sp);
-            sp.addEventListener('animationend', () => sp.remove());
-        }
+    // ===== MÚSICA =====
+    function setupMusic() {
+        const audio   = document.createElement('audio');
+        audio.loop    = true;
+        audio.volume  = 0;
+        audio.preload = 'auto';
+        audio.src     = 'audio/proposal-music.mp3';
+        document.body.appendChild(audio);
+        S.music = audio;
     }
 
-    function spawnReaction(emo, x, y) {
-        const el       = document.createElement('div');
-        el.className   = 'reaction-emoji';
-        el.textContent = emo;
-        el.style.cssText = `left:${x - 18}px;top:${y - 18}px;`;
-        document.body.appendChild(el);
-        el.addEventListener('animationend', () => el.remove());
+    function playMusic(vol) {
+        if (!S.music || S.musicPlaying) return;
+        S.music.play().then(() => {
+            S.musicPlaying = true;
+            fadeVol(0, vol || CONFIG.VOL_INIT, 2000);
+            $('musicIndicator')?.classList.add('visible');
+        }).catch(() => {});
     }
 
-    function fireworkBurst(x, y, colors) {
-        const count = 18;
-        for (let i = 0; i < count; i++) {
-            const fw   = document.createElement('div');
-            fw.className = 'firework';
-            const angle = (Math.PI * 2 * i) / count;
-            const dist  = 70 + Math.random() * 80;
-            const col   = colors[Math.floor(Math.random() * colors.length)];
-            const size  = 3 + Math.random() * 4;
-            fw.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${size}px;height:${size}px;box-shadow:0 0 6px ${col};--tx:${Math.cos(angle) * dist}px;--ty:${Math.sin(angle) * dist}px;animation-duration:${0.55 + Math.random() * 0.3}s;`;
-            document.body.appendChild(fw);
-            fw.addEventListener('animationend', () => fw.remove());
-        }
+    function fadeVol(from, to, dur) {
+        if (!S.music) return;
+        const steps = 40, dt = dur / steps, delta = (to - from) / steps;
+        let cur = from;
+        S.music.volume = Math.max(0, Math.min(1, from));
+        const iv = setInterval(() => {
+            cur += delta;
+            if ((delta > 0 && cur >= to) || (delta < 0 && cur <= to)) {
+                S.music.volume = Math.max(0, Math.min(1, to));
+                clearInterval(iv);
+            } else {
+                S.music.volume = Math.max(0, Math.min(1, cur));
+            }
+        }, dt);
     }
 
     // ===== SPLASH TERMINOU =====
+    // O splash-screen.js chama window.proposalAPI.onSplashEnd() após o fade-out
     function onSplashEnd() {
-        setTimeout(() => startPhase2(), 400);
+        console.log('✨ onSplashEnd() recebido — iniciando fase 1');
+        // Pequeno delay para garantir que o DOM do splash já saiu da tela
+        setTimeout(startPhase1, 300);
     }
 
-    // ===== FASE 2 — ANEL =====
-    function startPhase2() {
-        proposal.phase = 2;
+    // ===== FASE 1 — ANEL =====
+    function startPhase1() {
+        S.phase = 1;
         activateLayer('phaseRing');
-        playMusic(0.2);
-        console.log('💍 Fase 2: Anel — segure para revelar');
+        playMusic(CONFIG.VOL_INIT);
     }
 
-    // ===== FASE 3 — PEDIDO =====
-    function startPhase3() {
-        proposal.phase = 3;
-        activateLayer('phaseProposal');
+    // ===== HOLD — PRESSIONAR E SEGURAR =====
+    function setupHoldEvents() {
+        const wrap = $('ringWrap');
+        if (!wrap) return;
 
+        // Mouse
+        wrap.addEventListener('mousedown', onHoldStart);
+        document.addEventListener('mouseup', onHoldCancel);
+
+        // Touch — suporte mobile completo
+        wrap.addEventListener('touchstart', e => {
+            e.preventDefault();
+            onHoldStart(e.touches[0]);
+        }, { passive: false });
+        document.addEventListener('touchend',    onHoldCancel, { passive: true });
+        document.addEventListener('touchcancel', onHoldCancel, { passive: true });
+    }
+
+    function onHoldStart(e) {
+        if (S.phase !== 1 || S.holding) return;
+        S.holding = true;
+        holdStart = performance.now();
+        lastStage = -1;
+
+        $('holdTrack')?.classList.add('visible');
+        const hint = $('holdHint');
+        if (hint) hint.style.opacity = '0';
+
+        spawnSparks(e, 6, ['#ffb3d9','#ff80c0','#fff','#ffccee']);
+        holdRaf = requestAnimationFrame(tickHold);
+    }
+
+    function tickHold(now) {
+        if (!S.holding) return;
+
+        const pct   = Math.min(1, (now - holdStart) / CONFIG.HOLD_MS);
+        const fill  = $('holdFill');
+        const emoji = $('ringEmoji');
+        const aura  = $('ringAura');
+        const orbit = $('ringOrbit');
+        const wrap  = $('ringWrap');
+
+        if (fill) fill.style.width = (pct * 100) + '%';
+
+        // Determina estágio atual
+        let stage = STAGES[0], stageIdx = 0;
+        for (let i = STAGES.length - 1; i >= 0; i--) {
+            if (pct >= STAGES[i].at) { stage = STAGES[i]; stageIdx = i; break; }
+        }
+
+        // Aplica só quando muda de estágio
+        if (stageIdx !== lastStage) {
+            lastStage = stageIdx;
+            if (wrap) {
+                wrap.classList.remove('shake-s','shake-m','shake-l','shake-xl');
+                if (stage.cls) wrap.classList.add(stage.cls);
+            }
+            if (orbit) {
+                orbit.style.borderColor = stage.orbit;
+                orbit.style.boxShadow   = stageIdx >= 2
+                    ? `0 0 ${stageIdx * 8}px rgba(255,160,220,${stageIdx * 0.18})`
+                    : '';
+            }
+            // Faíscas espontâneas ao subir de estágio
+            if (stageIdx > 0 && wrap) {
+                const r = wrap.getBoundingClientRect();
+                spawnSparks(
+                    { clientX: r.left + r.width/2, clientY: r.top + r.height/2 },
+                    stageIdx * 4, SPARKS
+                );
+            }
+        }
+
+        // Brilho do emoji interpolado suavemente
+        if (emoji) {
+            emoji.style.filter = `
+                drop-shadow(0 0 ${18 * stage.gA}px rgba(255,130,200,${Math.min(.95, stage.gA * .7)}))
+                drop-shadow(0 0 ${38 * stage.gB}px rgba(220,80,180,${Math.min(.8,  stage.gB * .6)}))
+                drop-shadow(0 0 ${60 * pct}px rgba(255,200,240,${pct * .5}))
+            `;
+            emoji.style.fontSize = (90 + pct * 18) + 'px';
+        }
+
+        // Aura cresce com o progresso
+        if (aura) {
+            aura.style.transform = `scale(${stage.aura})`;
+            aura.style.opacity   = String(Math.min(1, .55 + pct * .7));
+        }
+
+        if (pct < 1) {
+            holdRaf = requestAnimationFrame(tickHold);
+        } else {
+            onHoldComplete();
+        }
+    }
+
+    function onHoldCancel() {
+        if (!S.holding) return;
+        S.holding = false;
+        cancelAnimationFrame(holdRaf);
+        lastStage = -1;
+
+        const wrap  = $('ringWrap');
+        const emoji = $('ringEmoji');
+        const aura  = $('ringAura');
+        const orbit = $('ringOrbit');
+        const fill  = $('holdFill');
+        const track = $('holdTrack');
+        const hint  = $('holdHint');
+
+        if (fill)  fill.style.width   = '0%';
+        if (wrap)  wrap.classList.remove('shake-s','shake-m','shake-l','shake-xl');
+        if (emoji) { emoji.style.filter = ''; emoji.style.fontSize = '90px'; }
+        if (aura)  { aura.style.transform = 'scale(1)'; aura.style.opacity = '.55'; }
+        if (orbit) { orbit.style.borderColor = 'rgba(255,140,200,.18)'; orbit.style.boxShadow = ''; }
+
+        if (S.phase === 1) {
+            track?.classList.remove('visible');
+            if (hint) hint.style.opacity = '1';
+        }
+    }
+
+    function onHoldComplete() {
+        S.holding = false;
+        lastStage = -1;
+        $('ringWrap')?.classList.remove('shake-s','shake-m','shake-l','shake-xl');
+
+        const wrap = $('ringWrap');
+        const rect = wrap
+            ? wrap.getBoundingClientRect()
+            : { left: window.innerWidth/2, top: window.innerHeight/2, width:0, height:0 };
+        const cx = rect.left + rect.width  / 2;
+        const cy = rect.top  + rect.height / 2;
+
+        fadeVol(S.music?.volume || 0, CONFIG.VOL_MID, 500);
+
+        // Flash de tela
+        flashScreen(160);
+
+        // 3 ondas de choque
+        [0, 120, 250].forEach((delay, i) => {
+            setTimeout(() => {
+                const ring = document.createElement('div');
+                ring.className = 'burst-ring';
+                const sz = (180 + i * 120) + 'px';
+                ring.style.cssText = `left:${cx}px;top:${cy}px;width:${sz};height:${sz};animation-duration:${.55 + i * .15}s;border-color:rgba(255,${140 + i*30},220,${.9 - i*.25})`;
+                document.body.appendChild(ring);
+                ring.addEventListener('animationend', () => ring.remove());
+            }, delay);
+        });
+
+        // 3 rajadas de faíscas
+        spawnSparks({ clientX:cx, clientY:cy }, 55, SPARKS);
+        setTimeout(() => spawnSparks({ clientX:cx, clientY:cy }, 40, SPARKS), 80);
+        setTimeout(() => spawnSparks({ clientX:cx, clientY:cy }, 30, ['#fff','#ffd700','#ffe0f0']), 180);
+
+        // Fogos ao redor
+        [
+            {x:cx-180,y:cy-120},{x:cx+180,y:cy-120},
+            {x:cx-220,y:cy+80 },{x:cx+220,y:cy+80 },
+            {x:cx,    y:cy-200},{x:cx-100,y:cy+150},{x:cx+100,y:cy+150},
+        ].forEach((p, i) => setTimeout(() => fireworkBurst(p.x, p.y, SPARKS), i * 60 + 40));
+
+        // Reações flutuantes
+        spawnReaction('✨', cx,      cy - 90);
+        setTimeout(() => spawnReaction('💕', cx - 55, cy - 60),  80);
+        setTimeout(() => spawnReaction('🌸', cx + 55, cy - 60), 160);
+        setTimeout(() => spawnReaction('💖', cx,      cy - 130), 240);
+
+        setTimeout(() => startPhase2(), 700);
+    }
+
+    // ===== FASE 2 — PEDIDO =====
+    function startPhase2() {
+        S.phase = 2;
+        activateLayer('phaseProposal');
+        updateHint();
+    }
+
+    // ===== BOTÕES =====
+    function setupButtonEvents() {
         const btnNo  = $('btnNo');
         const btnYes = $('btnYes');
-        if (btnNo)  { btnNo.style.position = 'relative'; btnNo.style.left = 'auto'; btnNo.style.top = 'auto'; }
-        if (btnYes) { /* oculto via CSS (max-width: 0 / opacity: 0) */ }
+        if (!btnNo || !btnYes) return;
 
-        setTimeout(() => {
-            const text = $('proposalText');
-            if (text) text.classList.add('visible');
-        }, 300);
+        // "Não" — foge no hover e no toque
+        btnNo.addEventListener('mouseenter', handleNo);
+        btnNo.addEventListener('touchstart',  e => handleNo(e), { passive: true });
+        btnNo.addEventListener('click',       handleNo);
 
-        updateHintText();
-        console.log('💬 Fase 3: Pedido');
+        // "Sim"
+        btnYes.addEventListener('click', startPhase3);
     }
 
-    function updateHintText() {
+    function handleNo(ev) {
+        if (S.phase !== 2) return;
+        S.noCount++;
+
+        let x = window.innerWidth / 2, y = window.innerHeight / 2;
+        if (ev?.clientX != null)   { x = ev.clientX; y = ev.clientY; }
+        else if (ev?.touches?.[0]) { x = ev.touches[0].clientX; y = ev.touches[0].clientY; }
+
+        const msg = NO_MSGS[Math.min(S.noCount - 1, NO_MSGS.length - 1)];
+        showNoMsg(msg.t, x, y);
+        spawnReaction(msg.e, x, y - 50);
+
+        // Botão foge enquanto Sim ainda não apareceu
+        if (!S.settled) {
+            const btn = $('btnNo');
+            if (btn) {
+                btn.style.position  = 'fixed';
+                btn.style.left      = (50 + Math.random() * (window.innerWidth  - (btn.offsetWidth  || 110) - 100)) + 'px';
+                btn.style.top       = (50 + Math.random() * (window.innerHeight - (btn.offsetHeight || 46)  - 100)) + 'px';
+                btn.style.transform = 'none';
+                btn.style.zIndex    = '9990';
+            }
+        }
+
+        updateHint();
+
+        // Revela o Sim após N tentativas
+        if (S.noCount >= CONFIG.SIM_REVEAL_AT && !S.settled) {
+            S.settled = true;
+            setTimeout(revealYes, 700);
+        }
+    }
+
+    function revealYes() {
+        const btnNo  = $('btnNo');
+        const btnYes = $('btnYes');
+        const note   = $('phase35Text');
+        const hint   = $('attemptHint');
+
+        // Reposiciona o "Não"
+        if (btnNo) {
+            btnNo.style.position  = 'relative';
+            btnNo.style.left      = 'auto';
+            btnNo.style.top       = 'auto';
+            btnNo.style.zIndex    = '';
+        }
+
+        // Aparece o "Sim" com fanfarra
+        if (btnYes) {
+            btnYes.classList.add('revealed');
+            const r = btnYes.getBoundingClientRect();
+            spawnSparks(
+                { clientX: r.left + r.width/2, clientY: r.top + r.height/2 },
+                22, ['#ffb3d9','#ff80c0','#fff','#ffd700']
+            );
+            spawnReaction('💕', r.left + r.width/2, r.top - 30);
+        }
+
+        if (note) note.classList.add('visible');
+        if (hint) hint.textContent = '';
+
+        fadeVol(S.music?.volume || 0, 0.6, 1000);
+    }
+
+    function updateHint() {
         const el = $('attemptHint');
         if (!el) return;
-        if (proposal.noAttempts === 0) {
-            el.textContent = '';
-            el.classList.remove('nudge');
-        } else if (proposal.noAttempts < SIM_REVEAL_AT) {
-            el.textContent = hintMsgs[Math.min(proposal.noAttempts, hintMsgs.length - 1)];
+        const rem = Math.max(0, CONFIG.SIM_REVEAL_AT - S.noCount);
+        if (S.noCount === 0) {
+            el.textContent = ''; el.classList.remove('nudge');
+        } else if (rem > 0) {
+            el.textContent = HINTS[Math.min(S.noCount, HINTS.length - 1)];
             el.classList.add('nudge');
         } else {
             el.textContent = '';
         }
     }
 
-    // ===== BOTÕES =====
-    function setupButtonEvents() {
-        // Fuga ao hover (desktop)
-        document.addEventListener('mouseenter', (e) => {
-            if (e.target?.id === 'btnNo' && proposal.phase === 3) handleNoApproach(e);
-        }, true);
-
-        // Fuga ao toque próximo (mobile)
-        document.addEventListener('touchstart', (e) => {
-            const b = $('btnNo');
-            if (!b || proposal.phase !== 3) return;
-            const t = e.touches[0];
-            const r = b.getBoundingClientRect();
-            const pad = 30;
-            if (t.clientX >= r.left - pad && t.clientX <= r.right  + pad &&
-                t.clientY >= r.top  - pad && t.clientY <= r.bottom + pad) {
-                handleNoApproach(e);
-            }
-        }, { passive: true });
-
-        document.addEventListener('click', (e) => {
-            if (e.target?.id === 'btnNo'  && proposal.phase === 3) handleNoClick(e);
-            if (e.target?.id === 'btnYes' && proposal.phase === 3) startPhase4();
-        });
-    }
-
-    function getEventCoords(e) {
-        if (e?.clientX  !== undefined) return { x: e.clientX, y: e.clientY };
-        if (e?.touches?.[0])           return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    }
-
-    function handleNoApproach(e) {
-        if (proposal.settled) { addBtnShake($('btnNo')); return; }
-        proposal.noAttempts++;
-        const msg = noMessages[Math.min(proposal.noAttempts - 1, noMessages.length - 1)];
-        const { x, y } = getEventCoords(e);
-        showNoMessage(msg.text, x, y);
-        spawnReaction(msg.emoji, x, y - 50);
-        runAwayBtn($('btnNo'));
-        updateHintText();
-        if (proposal.noAttempts >= SIM_REVEAL_AT && !proposal.simVisible) {
-            setTimeout(() => startPhase35(), 600);
-        }
-    }
-
-    function handleNoClick(e) {
-        if (!proposal.settled) return;
-        proposal.noAttempts++;
-        const btnNo = $('btnNo');
-        if (btnNo) runAwayBtn(btnNo);
-        const msg = noMessages[Math.min((proposal.noAttempts - 1) % noMessages.length, noMessages.length - 1)];
-        const { x, y } = getEventCoords(e);
-        showNoMessage(msg.text, x, y);
-        spawnReaction(msg.emoji, x, y - 50);
-    }
-
-    function runAwayBtn(btnNo) {
-        if (!btnNo) return;
-        btnNo.style.position = 'fixed';
-        const m = 50, bw = btnNo.offsetWidth || 110, bh = btnNo.offsetHeight || 46;
-        btnNo.style.left      = (m + Math.random() * (window.innerWidth  - bw - m * 2)) + 'px';
-        btnNo.style.top       = (m + Math.random() * (window.innerHeight - bh - m * 2)) + 'px';
-        btnNo.style.transform = 'none';
-        btnNo.style.zIndex    = '9990';
-        addBtnShake(btnNo);
-    }
-
-    function addBtnShake(btnNo) {
-        if (!btnNo) return;
-        btnNo.classList.remove('shaking-btn');
-        void btnNo.offsetWidth;
-        btnNo.classList.add('shaking-btn');
-        setTimeout(() => btnNo.classList.remove('shaking-btn'), 400);
-    }
-
-    function showNoMessage(text, x, y) {
-        if (proposal.noMsgEl) {
-            proposal.noMsgEl.classList.add('fading');
-            const old = proposal.noMsgEl;
+    function showNoMsg(text, x, y) {
+        if (S.noMsgEl) {
+            S.noMsgEl.classList.add('fading');
+            const old = S.noMsgEl;
             setTimeout(() => old.remove(), 380);
         }
-        clearTimeout(proposal.noMsgTimeout);
-        const msg       = document.createElement('div');
-        msg.className   = 'no-attempt-msg';
-        msg.textContent = text;
-        msg.style.left  = Math.max(10, Math.min(window.innerWidth  - 240, x - 90)) + 'px';
-        msg.style.top   = Math.max(10, Math.min(window.innerHeight -  60, y - 58)) + 'px';
-        document.body.appendChild(msg);
-        proposal.noMsgEl = msg;
-        proposal.noMsgTimeout = setTimeout(() => {
-            msg.classList.add('fading');
-            setTimeout(() => msg.remove(), 380);
+        clearTimeout(S.noMsgTimer);
+
+        const el = document.createElement('div');
+        el.className   = 'no-attempt-msg';
+        el.textContent = text;
+        el.style.left  = Math.max(10, Math.min(window.innerWidth  - 250, x - 90)) + 'px';
+        el.style.top   = Math.max(10, Math.min(window.innerHeight -  60, y - 58)) + 'px';
+        document.body.appendChild(el);
+        S.noMsgEl = el;
+
+        S.noMsgTimer = setTimeout(() => {
+            el.classList.add('fading');
+            setTimeout(() => el.remove(), 380);
         }, 2100);
     }
 
-    // ===== FASE 3.5 — SIM REVELADO =====
-    function startPhase35() {
-        if (proposal.simVisible) return;
-        proposal.simVisible = true;
-        proposal.settled    = true;
-
-        const btnNo  = $('btnNo');
-        const btnYes = $('btnYes');
-        const p35    = $('phase35Text');
-        const hint   = $('attemptHint');
-
-        if (btnNo) {
-            btnNo.style.position  = 'relative';
-            btnNo.style.left      = 'auto';
-            btnNo.style.top       = 'auto';
-            btnNo.style.transform = 'none';
-            btnNo.style.zIndex    = '';
-        }
-        if (btnYes) setTimeout(() => btnYes.classList.add('visible'), 100);
-        if (p35) {
-            p35.textContent = 'Deixando claro que o "não"\nnunca será uma opção entre nós 😄';
-            setTimeout(() => p35.classList.add('visible'), 400);
-        }
-        if (hint) hint.textContent = '';
-
-        setTimeout(() => {
-            const rectBtn = $('btnYes')?.getBoundingClientRect();
-            if (rectBtn) {
-                spawnSparks(
-                    { clientX: rectBtn.left + rectBtn.width / 2, clientY: rectBtn.top + rectBtn.height / 2 },
-                    22,
-                    ['#ffb3d9', '#ff80c0', '#fff', '#ffd700']
-                );
-                spawnReaction('💕', rectBtn.left + rectBtn.width / 2, rectBtn.top - 30);
-            }
-        }, 800);
-
-        if (proposal.music) fadeVolume(proposal.music, proposal.music.volume, 0.55, 1500);
-    }
-
-    // ===== FASE 4 — SIM! =====
-    function startPhase4() {
-        proposal.phase = 4;
+    // ===== FASE 3 — ACEITO =====
+    function startPhase3() {
+        if (S.phase !== 2) return;
+        S.phase = 3;
         activateLayer('phaseAccepted');
-        if (proposal.music) fadeVolume(proposal.music, proposal.music.volume, 1.0, 800);
-
+        fadeVol(S.music?.volume || 0, CONFIG.VOL_FULL, 600);
         launchBigExplosion();
-
-        setTimeout(() => {
-            const s = $('acceptedSubtitle');
-            if (s) {
-                s.textContent = 'O amor à primeira vista está\nvirando amor para a vida toda 💍';
-                s.classList.add('visible');
-            }
-        }, 3500);
-
-        setTimeout(() => { if (proposal.music) fadeVolume(proposal.music, proposal.music.volume, 0, 2000); }, 5500);
-        setTimeout(() => startPhase5(), 7000);
+        setTimeout(startPhase4, 7000);
     }
 
-    function launchBigExplosion() {
-        const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    // ===== FASE 4 — ENTRADA =====
+    function startPhase4() {
+        S.phase = 4;
+        activateLayer('phaseEntrance');
+        fadeVol(S.music?.volume || 0, 0, 2500);
+        localStorage.setItem('proposal_answered', 'true');
 
-        [0, 100, 200, 320].forEach((delay, i) => {
+        setTimeout(() => {
+            const screen = $('proposalScreen');
+            if (!screen) return;
+            screen.classList.add('fading-out');
+            screen.addEventListener('animationend', () => {
+                screen.classList.add('hidden');
+                // Troca tema para "hearts" se a função existir no script.js
+                if (typeof changeTheme === 'function') changeTheme('hearts', true);
+                else localStorage.setItem('kevinIaraTheme', 'hearts');
+            }, { once: true });
+        }, 3000);
+    }
+
+    // ===== GRANDE EXPLOSÃO — ao clicar Sim =====
+    function launchBigExplosion() {
+        const cx = window.innerWidth  / 2;
+        const cy = window.innerHeight / 2;
+
+        flashScreen(220);
+
+        // 4 ondas de choque
+        [0, 100, 210, 340].forEach((delay, i) => {
             setTimeout(() => {
-                const el = document.createElement('div');
-                el.className = 'burst-ring';
-                const size = (200 + i * 160) + 'px';
-                el.style.cssText = `left:${cx}px;top:${cy}px;width:${size};height:${size};animation-duration:${0.6 + i * 0.15}s;border-color:rgba(255,${120 + i * 25},${180 + i * 15},${0.9 - i * 0.2})`;
-                document.body.appendChild(el);
-                el.addEventListener('animationend', () => el.remove());
+                const ring = document.createElement('div');
+                ring.className = 'burst-ring';
+                const sz = (200 + i * 160) + 'px';
+                ring.style.cssText = `left:${cx}px;top:${cy}px;width:${sz};height:${sz};animation-duration:${.6 + i * .15}s;border-color:rgba(255,${120 + i*25},${180 + i*15},${.9 - i*.2})`;
+                document.body.appendChild(ring);
+                ring.addEventListener('animationend', () => ring.remove());
             }, delay);
         });
 
-        const fwColors = ['#ff80b0', '#ffb3d4', '#fff', '#ffd700', '#ff60a0', '#ffa0c8', '#c0a0ff', '#80d0ff', '#ffccff'];
-        const positions = [];
+        // 12 fogos espalhados pela tela
         for (let i = 0; i < 12; i++) {
-            positions.push({ x: 80 + Math.random() * (window.innerWidth - 160), y: 60 + Math.random() * (window.innerHeight * 0.65) });
+            setTimeout(() => fireworkBurst(
+                80 + Math.random() * (window.innerWidth  - 160),
+                60 + Math.random() * (window.innerHeight * 0.65),
+                CONFETTI
+            ), i * 55);
         }
-        positions.forEach((p, i) => setTimeout(() => fireworkBurst(p.x, p.y, fwColors), i * 55));
 
-        const hearts = ['💕', '💗', '💖', '💝', '❤️', '🌹', '✨', '💫', '🌸', '💍'];
+        // Segunda onda de fogos
+        setTimeout(() => {
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => fireworkBurst(
+                    80 + Math.random() * (window.innerWidth  - 160),
+                    60 + Math.random() * (window.innerHeight * 0.6),
+                    CONFETTI
+                ), i * 70);
+            }
+        }, 950);
+
+        // 40 corações subindo
         for (let i = 0; i < 40; i++) {
             setTimeout(() => {
-                const hDiv       = document.createElement('div');
-                hDiv.className   = 'heart-bubble';
-                hDiv.textContent = hearts[Math.floor(Math.random() * hearts.length)];
-                hDiv.style.cssText = `left:${Math.random() * 100}vw;bottom:0;font-size:${1.3 + Math.random() * 2.6}rem;animation-duration:${2.2 + Math.random() * 3.8}s;`;
-                document.body.appendChild(hDiv);
-                hDiv.addEventListener('animationend', () => hDiv.remove());
+                const b = document.createElement('div');
+                b.className   = 'heart-bubble';
+                b.textContent = HEARTS[Math.floor(Math.random() * HEARTS.length)];
+                b.style.cssText = `left:${Math.random()*100}vw;bottom:0;font-size:${1.3+Math.random()*2.6}rem;animation-duration:${2.2+Math.random()*3.8}s;`;
+                document.body.appendChild(b);
+                b.addEventListener('animationend', () => b.remove());
             }, i * 55);
         }
 
-        const confettiColors = ['#ff80b0', '#ffb3d4', '#fff', '#ffd0e8', '#ffccff', '#ff60a0', '#ffa0c8', '#ffe0f0', '#ffd700', '#c0a0ff'];
+        // 160 confetes caindo
         for (let i = 0; i < 160; i++) {
             setTimeout(() => {
-                const conf       = document.createElement('div');
-                conf.className   = 'confetti-piece';
-                conf.style.cssText = `left:${Math.random() * 100}vw;top:-20px;background:${confettiColors[Math.floor(Math.random() * confettiColors.length)]};width:${5 + Math.random() * 10}px;height:${5 + Math.random() * 10}px;border-radius:${Math.random() > 0.5 ? '50%' : '3px'};animation-duration:${2.5 + Math.random() * 4}s;`;
-                document.body.appendChild(conf);
-                conf.addEventListener('animationend', () => conf.remove());
+                const p = document.createElement('div');
+                p.className = 'confetti-piece';
+                const col = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+                p.style.cssText = `left:${Math.random()*100}vw;top:-20px;background:${col};width:${5+Math.random()*10}px;height:${5+Math.random()*10}px;border-radius:${Math.random()>.5?'50%':'3px'};animation-duration:${2.5+Math.random()*4}s;`;
+                document.body.appendChild(p);
+                p.addEventListener('animationend', () => p.remove());
             }, i * 15);
         }
-
-        setTimeout(() => {
-            for (let i = 0; i < 8; i++) {
-                setTimeout(() => fireworkBurst(80 + Math.random() * (window.innerWidth - 160), 60 + Math.random() * (window.innerHeight * 0.6), fwColors), i * 70);
-            }
-        }, 900);
     }
 
-    // ===== FASE 5 — ENTRADA =====
-    function startPhase5() {
-        proposal.phase = 5;
-        activateLayer('phaseEntrance');
-        localStorage.setItem('proposal_answered', 'true');
-        setTimeout(() => {
-            const screen = $('proposalScreen');
-            if (screen) {
-                screen.classList.add('fading-out');
-                screen.addEventListener('animationend', () => {
-                    screen.classList.add('hidden');
-                    if (typeof changeTheme === 'function') changeTheme('hearts', true);
-                    else localStorage.setItem('kevinIaraTheme', 'hearts');
-                }, { once: true });
-            }
-        }, 2500);
+    // ===== FOGOS DE ARTIFÍCIO =====
+    function fireworkBurst(x, y, colors) {
+        for (let i = 0; i < 18; i++) {
+            const fw  = document.createElement('div');
+            fw.className = 'firework';
+            const angle = (Math.PI * 2 * i) / 18;
+            const dist  = 70 + Math.random() * 80;
+            const col   = colors[Math.floor(Math.random() * colors.length)];
+            const sz    = 3 + Math.random() * 4;
+            fw.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 6px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;animation-duration:${.55+Math.random()*.3}s;`;
+            document.body.appendChild(fw);
+            fw.addEventListener('animationend', () => fw.remove());
+        }
     }
 
-    // ===== HOOK SPLASH =====
-    function hookSplashEnd() {
-        const iv = setInterval(() => {
-            if (window.SplashScreen && typeof window.SplashScreen.onEnd === 'function') {
-                window.SplashScreen.onEnd = () => onSplashEnd();
-                clearInterval(iv);
-            }
-        }, 50);
-        // Fallback: se o splash não chamar em 10s, inicia direto
-        setTimeout(() => { clearInterval(iv); if (proposal.phase < 2) onSplashEnd(); }, 10000);
+    // ===== FAÍSCAS =====
+    function spawnSparks(ev, count, colors) {
+        let x = window.innerWidth / 2, y = window.innerHeight / 2;
+        if (ev?.clientX != null) { x = ev.clientX; y = ev.clientY; }
+
+        for (let i = 0; i < count; i++) {
+            const sp = document.createElement('div');
+            sp.className = 'spark';
+            const angle = (Math.PI * 2 * i) / count + Math.random() * 0.8;
+            const dist  = 50 + Math.random() * 130;
+            const col   = colors[Math.floor(Math.random() * colors.length)];
+            const sz    = 3 + Math.random() * 6;
+            sp.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 5px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist-30}px;animation-duration:${.45+Math.random()*.6}s;`;
+            document.body.appendChild(sp);
+            sp.addEventListener('animationend', () => sp.remove());
+        }
+    }
+
+    // ===== REAÇÕES FLUTUANTES =====
+    function spawnReaction(emoji, x, y) {
+        const el = document.createElement('div');
+        el.className   = 'reaction-emoji';
+        el.textContent = emoji;
+        el.style.cssText = `left:${x - 18}px;top:${y - 18}px;`;
+        document.body.appendChild(el);
+        el.addEventListener('animationend', () => el.remove());
+    }
+
+    // ===== FLASH DE TELA =====
+    function flashScreen(dur) {
+        const fl = $('proposalFlash');
+        if (!fl) return;
+        fl.classList.add('flash');
+        setTimeout(() => fl.classList.remove('flash'), dur || 160);
     }
 
     // ===== START =====
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => { init(); hookSplashEnd(); });
+        document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
-        hookSplashEnd();
     }
 
-})();
+})();   
