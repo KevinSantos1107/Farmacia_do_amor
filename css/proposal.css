@@ -31,20 +31,7 @@
     z-index: 0;
 }
 
-/* Flash de explosão */
-#proposalFlash {
-    position: fixed;
-    inset: 0;
-    background: #fff;
-    opacity: 0;
-    pointer-events: none;
-    z-index: 99997;
-    transition: opacity 0.08s ease;
-}
-
-#proposalFlash.flash {
-    opacity: 0.45;
-}
+/* Flash removido — efeito não utilizado */
 
 /* ===== LAYERS ===== */
 .proposal-layer {
@@ -468,7 +455,7 @@
     position: fixed;
     border-radius: 50%;
     pointer-events: none;
-    z-index: 99998;
+    z-index: 100001;
     animation: sparkFly linear forwards;
 }
 
@@ -482,7 +469,7 @@
     position: fixed;
     border-radius: 50%;
     pointer-events: none;
-    z-index: 99997;
+    z-index: 100000;
     border: 3px solid rgba(255, 160, 220, 0.9);
     animation: burstRing ease-out forwards;
 }
@@ -496,7 +483,7 @@
 .confetti-piece {
     position: fixed;
     pointer-events: none;
-    z-index: 99998;
+    z-index: 100001;
     animation: confettiFall linear forwards;
 }
 
@@ -509,7 +496,7 @@
 .heart-bubble {
     position: fixed;
     pointer-events: none;
-    z-index: 99998;
+    z-index: 100001;
     animation: heartRise linear forwards;
 }
 
@@ -522,7 +509,7 @@
 .firework {
     position: fixed;
     pointer-events: none;
-    z-index: 99998;
+    z-index: 100001;
     border-radius: 50%;
     animation: fireworkFly linear forwards;
 }
@@ -537,7 +524,7 @@
 .reaction-emoji {
     position: fixed;
     pointer-events: none;
-    z-index: 99999;
+    z-index: 100002;
     font-size: 2rem;
     animation: reactionFloat 1.4s ease forwards;
     user-select: none;
