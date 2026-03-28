@@ -14,8 +14,8 @@
         // Delay do botão "Não" começa DEPOIS que a pergunta aparece
         NO_DELAY_MS:   3000,
         // Timing cinematográfico do poema (ms)
-        POEM_LINE_INTERVAL: 700,   // intervalo entre cada linha
-        POEM_PAUSE_BEFORE_Q: 3000,  // pausa após última linha, antes da pergunta
+        POEM_LINE_INTERVAL: 1000,   // intervalo entre cada linha
+        POEM_PAUSE_BEFORE_Q: 2500,  // pausa após última linha, antes da pergunta
         POEM_Q_ANIM_MS: 900,       // duração da animação de entrada da pergunta
         VOL_INIT:      0.20,
         VOL_MID:       0.45,
@@ -236,21 +236,61 @@
     // ===== MÚSICA =====
     function setupMusic() {
         const audio   = document.createElement('audio');
+        audio.id      = 'proposalAudio';
+        audio.dataset.proposal = 'true';
         audio.loop    = true;
         audio.volume  = 0;
+        audio.muted   = true;
+        audio.playsInline = true;
+        audio.setAttribute('playsinline', '');
+        audio.setAttribute('webkit-playsinline', '');
         audio.preload = 'auto';
         audio.src     = 'audio/proposal-music.mp3';
+        audio.style.display = 'none';
         document.body.appendChild(audio);
         S.music = audio;
+
+        try {
+            const playPromise = audio.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                playPromise.catch(() => {
+                    attachAudioUnlockListener();
+                });
+            }
+        } catch (e) {
+            attachAudioUnlockListener();
+        }
+    }
+
+    function unlockProposalAudio() {
+        if (!S.music) return;
+        S.music.muted = false;
+        S.music.play().catch(() => {});
+        document.removeEventListener('touchstart', unlockProposalAudio, { passive: true });
+        document.removeEventListener('click', unlockProposalAudio, { passive: true });
+    }
+
+    function attachAudioUnlockListener() {
+        document.addEventListener('touchstart', unlockProposalAudio, { passive: true });
+        document.addEventListener('click', unlockProposalAudio, { passive: true });
     }
 
     function playMusic(vol) {
-        if (!S.music || S.musicPlaying) return;
-        S.music.play().then(() => {
-            S.musicPlaying = true;
-            fadeVol(0, vol || CONFIG.VOL_INIT, 2000);
+        if (!S.music) return;
+        S.music.muted = false;
+
+        if (!S.musicPlaying) {
+            S.music.play().then(() => {
+                S.musicPlaying = true;
+                fadeVol(0, vol || CONFIG.VOL_INIT, 2000);
+                $('musicIndicator')?.classList.add('visible');
+            }).catch((err) => {
+                console.warn('⚠️ proposal playMusic falhou:', err);
+            });
+        } else {
+            fadeVol(S.music.volume, vol || CONFIG.VOL_INIT, 2000);
             $('musicIndicator')?.classList.add('visible');
-        }).catch(() => {});
+        }
     }
 
     function fadeVol(from, to, dur) {
