@@ -273,12 +273,18 @@
         if (!S.externalMusic.paused) {
             S.musicPlaying = true;
             $('musicIndicator')?.classList.add('visible');
+            syncExternalPlayerUI();
             return Promise.resolve();
+        }
+
+        if (window.AudioManager?.play) {
+            window.AudioManager.play(S.externalMusic, window.AudioManager.currentPlayerId || null);
         }
 
         return S.externalMusic.play().then(() => {
             S.musicPlaying = true;
             $('musicIndicator')?.classList.add('visible');
+            syncExternalPlayerUI();
         }).catch((err) => {
             console.warn('⚠️ proposal startExternalMusic falhou:', err);
             showAudioUnlockPrompt();
@@ -288,6 +294,17 @@
 
     function getActiveAudio() {
         return S.externalMusic || S.music;
+    }
+
+    function syncExternalPlayerUI() {
+        if (!S.externalMusic || !window.AudioManager?.findPlayerByAudio || !window.AudioManager?.updatePlayerUI) {
+            return;
+        }
+
+        const player = window.AudioManager.findPlayerByAudio(S.externalMusic);
+        if (player) {
+            window.AudioManager.updatePlayerUI(player, S.externalMusic.paused ? 'paused' : 'playing');
+        }
     }
 
     function startMutedMusic() {
@@ -321,11 +338,16 @@
     function unlockProposalAudio() {
         hideAudioUnlockPrompt();
         if (S.externalMusic) {
+            if (window.AudioManager?.play) {
+                window.AudioManager.play(S.externalMusic, window.AudioManager.currentPlayerId || null);
+            }
+
             const playPromise = S.externalMusic.play();
             if (playPromise && typeof playPromise.then === 'function') {
                 playPromise.then(() => {
                     S.musicPlaying = true;
                     $('musicIndicator')?.classList.add('visible');
+                    syncExternalPlayerUI();
                     removeAudioUnlockListeners();
                 }).catch(() => {
                     showAudioUnlockPrompt();
