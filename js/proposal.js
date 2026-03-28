@@ -40,7 +40,7 @@
     let holdRaf   = null;
     let lastStage = -1;
 
-    // [AJUSTE #3] Referência ao RAF do canvas de estrelas para cancelar depois
+    // Referência ao RAF do canvas de estrelas para cancelar depois
     let starsRaf = null;
 
     // Cache de elementos do hold
@@ -104,7 +104,6 @@
 
     // ===== INIT =====
     function init() {
-        // [AJUSTE #7] localStorage com try/catch para modo privado iOS
         if (lsGet('proposal_answered') === 'true') {
             const s = $('proposalScreen');
             if (s) s.classList.add('hidden');
@@ -131,6 +130,15 @@
         screen.innerHTML = `
             <canvas id="proposalCanvas"></canvas>
             <div id="proposalFlash"></div>
+
+            <!-- FASE 0: TOQUE PARA COMEÇAR (desbloqueia áudio) -->
+            <div class="proposal-layer" id="phaseZero">
+                <p class="phase0-name">Iara</p>
+                <div class="phase0-heart" id="phase0Heart">💗</div>
+                <div class="phase0-divider"></div>
+                <p class="phase0-text">Tenho algo especial<br>para te mostrar...</p>
+                <button class="phase0-cta" id="phase0Btn">toque para continuar</button>
+            </div>
 
             <!-- FASE 1: ANEL -->
             <div class="proposal-layer" id="phaseRing">
@@ -186,6 +194,7 @@
             </div>
         `;
 
+        setupPhaseZeroEvents();
         setupHoldEvents();
         setupButtonEvents();
     }
@@ -216,7 +225,6 @@
             }
         }
 
-        // [AJUSTE #3] Loop guarda referência no starsRaf para poder cancelar
         function loop(t) {
             ctx.clearRect(0, 0, W, H);
             const len = stars.length;
@@ -247,15 +255,12 @@
     function setupMusic() {
         S.externalMusic = detectExternalMusic();
         S.audioUnlockPrompt = null;
-
-        attachAudioUnlockListener();
     }
 
     function detectExternalMusic() {
         if (window.AudioManager?.currentAudio instanceof HTMLMediaElement) {
             return window.AudioManager.currentAudio;
         }
-
         const foundAudio = document.querySelector('.music-player-section audio, .music-player audio');
         return foundAudio instanceof HTMLMediaElement ? foundAudio : null;
     }
@@ -279,7 +284,6 @@
             syncExternalPlayerUI();
         }).catch((err) => {
             console.warn('⚠️ proposal startExternalMusic falhou:', err);
-            showAudioUnlockPrompt();
             throw err;
         });
     }
@@ -292,74 +296,10 @@
         if (!S.externalMusic || !window.AudioManager?.findPlayerByAudio || !window.AudioManager?.updatePlayerUI) {
             return;
         }
-
         const player = window.AudioManager.findPlayerByAudio(S.externalMusic);
         if (player) {
             window.AudioManager.updatePlayerUI(player, S.externalMusic.paused ? 'paused' : 'playing');
         }
-    }
-
-    function tryUnlockProposalAudio() {
-        if (S.musicPlaying) return;
-        if (S.externalMusic) {
-            unlockProposalAudio();
-        }
-    }
-
-    function unlockProposalAudio() {
-        hideAudioUnlockPrompt();
-        if (!S.externalMusic) {
-            return;
-        }
-
-        if (window.AudioManager?.play) {
-            window.AudioManager.play(S.externalMusic, window.AudioManager.currentPlayerId || null);
-        }
-
-        const playPromise = S.externalMusic.play();
-        if (playPromise && typeof playPromise.then === 'function') {
-            playPromise.then(() => {
-                S.musicPlaying = true;
-                $('musicIndicator')?.classList.add('visible');
-                syncExternalPlayerUI();
-                removeAudioUnlockListeners();
-            }).catch(() => {
-                showAudioUnlockPrompt();
-            });
-        }
-    }
-
-    function attachAudioUnlockListener() {
-        const events = ['touchstart', 'touchend', 'pointerdown', 'pointerup', 'mousedown', 'click'];
-        events.forEach(eventName => {
-            document.addEventListener(eventName, unlockProposalAudio, { passive: true });
-        });
-    }
-
-    function removeAudioUnlockListeners() {
-        const events = ['touchstart', 'touchend', 'pointerdown', 'pointerup', 'mousedown', 'click'];
-        events.forEach(eventName => {
-            document.removeEventListener(eventName, unlockProposalAudio, { passive: true });
-        });
-    }
-
-    function showAudioUnlockPrompt() {
-        if (S.audioUnlockPrompt) return;
-        const prompt = document.createElement('button');
-        prompt.id = 'proposalAudioPrompt';
-        prompt.type = 'button';
-        prompt.textContent = 'Toque para ativar o áudio 🎶';
-        prompt.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:12px 18px;border:none;border-radius:999px;z-index:10050;font-size:14px;cursor:pointer;pointer-events:auto;mix-blend-mode:screen;';
-        prompt.addEventListener('click', unlockProposalAudio);
-        prompt.addEventListener('touchend', unlockProposalAudio, { passive: true });
-        document.body.appendChild(prompt);
-        S.audioUnlockPrompt = prompt;
-    }
-
-    function hideAudioUnlockPrompt() {
-        if (!S.audioUnlockPrompt) return;
-        S.audioUnlockPrompt.remove();
-        S.audioUnlockPrompt = null;
     }
 
     function fadeVol(audio, to, dur, from) {
@@ -384,24 +324,73 @@
 
     // ===== SPLASH TERMINOU =====
     function onSplashEnd() {
-        console.log('✨ onSplashEnd() recebido — iniciando fase 1');
-        setTimeout(startPhase1, 300);
+        console.log('✨ onSplashEnd() recebido — iniciando fase 0');
+        setTimeout(startPhaseZero, 300);
+    }
+
+    // ===== FASE 0 — TOQUE PARA COMEÇAR =====
+    function startPhaseZero() {
+        S.phase = 0;
+
+        // Bloqueia scroll durante todo o proposal
+        document.body.classList.add('proposal-active');
+
+        // Detecta música mas NÃO tenta tocar ainda — aguarda gesto do usuário
+        S.externalMusic = detectExternalMusic();
+
+        activateLayer('phaseZero');
+    }
+
+    function setupPhaseZeroEvents() {
+        // Evento adicionado depois que o DOM é construído, via delegação
+        document.addEventListener('click', onPhaseZeroTap);
+        document.addEventListener('touchend', onPhaseZeroTap, { passive: true });
+    }
+
+    function onPhaseZeroTap(e) {
+        if (S.phase !== 0) return;
+
+        // Só reage ao botão CTA ou ao coração — não a qualquer toque na tela
+        const btn = $('phase0Btn');
+        const heart = $('phase0Heart');
+        if (!btn || !heart) return;
+        if (!btn.contains(e.target) && e.target !== btn &&
+            !heart.contains(e.target) && e.target !== heart) return;
+
+        // Remove listeners — só precisa acontecer uma vez
+        document.removeEventListener('click', onPhaseZeroTap);
+        document.removeEventListener('touchend', onPhaseZeroTap);
+
+        // Tenta tocar música DENTRO do handler do gesto (garantia iOS)
+        if (S.externalMusic) {
+            if (window.AudioManager?.play) {
+                window.AudioManager.play(S.externalMusic, window.AudioManager.currentPlayerId || null);
+            }
+            const p = S.externalMusic.play();
+            if (p && typeof p.then === 'function') {
+                p.then(() => {
+                    S.musicPlaying = true;
+                    $('musicIndicator')?.classList.add('visible');
+                    syncExternalPlayerUI();
+                    fadeVol(S.externalMusic, CONFIG.VOL_INIT, 800, 0);
+                }).catch(err => {
+                    console.warn('⚠️ Áudio bloqueado mesmo com gesto:', err);
+                });
+            }
+        }
+
+        // Anima saída da fase 0 e entra na fase 1
+        const layer = $('phaseZero');
+        if (layer) {
+            layer.classList.add('phase0-exit');
+        }
+        setTimeout(startPhase1, 600);
     }
 
     // ===== FASE 1 — ANEL =====
     function startPhase1() {
         S.phase = 1;
         activateLayer('phaseRing');
-
-        // [SCROLL LOCK] Bloqueia scroll durante todo o proposal
-        document.body.classList.add('proposal-active');
-
-        S.externalMusic = detectExternalMusic();
-        if (S.externalMusic) {
-            startExternalMusic().catch(() => {
-                showAudioUnlockPrompt();
-            });
-        }
     }
 
     // ===== HOLD =====
@@ -421,7 +410,6 @@
     }
 
     function onHoldStart(e) {
-        tryUnlockProposalAudio();
         if (S.phase !== 1 || S.holding) return;
         S.holding = true;
         holdStart = performance.now();
@@ -617,17 +605,14 @@
 
         btnNo.addEventListener('mouseenter', handleNo);
         btnNo.addEventListener('touchstart', e => {
-            tryUnlockProposalAudio();
             e.preventDefault();
             handleNo(e);
         }, { passive: false });
 
         btnYes.addEventListener('click', e => {
-            tryUnlockProposalAudio();
             startPhase3();
         });
         btnYes.addEventListener('touchend', e => {
-            tryUnlockProposalAudio();
             e.preventDefault();
             startPhase3();
         }, { passive: false });
@@ -645,10 +630,8 @@
         showNoMsg(msg.t, x, y);
         spawnReaction(msg.e, x, y - 50);
 
-        // Identifica se é o último "não" — pula o movimento aleatório
         const isLastNo = S.noCount >= CONFIG.SIM_REVEAL_AT;
 
-        // [AJUSTE #4] Cálculo de posição corrigido para não sair da tela em mobile
         if (!S.settled && !isLastNo) {
             const btn = $('btnNo');
             if (btn) {
@@ -751,13 +734,11 @@
         S.phase = 4;
         activateLayer('phaseEntrance');
 
-        // [AJUSTE #3] Cancela o loop de estrelas agora que a tela vai sumir
         if (starsRaf) {
             cancelAnimationFrame(starsRaf);
             starsRaf = null;
         }
 
-        // [AJUSTE #7] localStorage com wrapper seguro
         lsSet('proposal_answered', 'true');
 
         if (typeof changeTheme === 'function') changeTheme('hearts', true);
@@ -769,14 +750,12 @@
             screen.classList.add('fading-out');
             screen.addEventListener('animationend', () => {
                 screen.classList.add('hidden');
-                // [SCROLL LOCK] Libera o scroll ao final do proposal
                 document.body.classList.remove('proposal-active');
             }, { once: true });
         }, 3000);
     }
 
     // ===== GRANDE EXPLOSÃO =====
-    // [AJUSTE #1] safeAppend — garante remoção mesmo se animationend não disparar
     function safeAppend(el, durationSec) {
         document.body.appendChild(el);
         setTimeout(() => { if (el.parentNode) el.remove(); }, (durationSec + 0.6) * 1000);
@@ -856,7 +835,6 @@
             const dur   = .75 + Math.random() * .4;
             fw.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 6px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;animation-duration:${dur}s;`;
             fw.addEventListener('animationend', () => fw.remove());
-            // [AJUSTE #1] fallback de segurança
             setTimeout(() => { if (fw.parentNode) fw.remove(); }, (dur + 0.6) * 1000);
             frag.appendChild(fw);
         }
@@ -879,7 +857,6 @@
             const dur   = .6 + Math.random() * .7;
             sp.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 5px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist-30}px;animation-duration:${dur}s;`;
             sp.addEventListener('animationend', () => sp.remove());
-            // [AJUSTE #1] fallback de segurança
             setTimeout(() => { if (sp.parentNode) sp.remove(); }, (dur + 0.6) * 1000);
             frag.appendChild(sp);
         }
@@ -894,7 +871,6 @@
         el.style.cssText = `left:${x - 18}px;top:${y - 18}px;`;
         document.body.appendChild(el);
         el.addEventListener('animationend', () => el.remove());
-        // [AJUSTE #1] fallback de segurança (animação dura 1.4s)
         setTimeout(() => { if (el.parentNode) el.remove(); }, 2000);
     }
 
