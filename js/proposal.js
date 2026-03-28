@@ -641,7 +641,10 @@
         showNoMsg(msg.t, x, y);
         spawnReaction(msg.e, x, y - 50);
 
-        if (!S.settled) {
+
+        const isLastNo = S.noCount >= CONFIG.SIM_REVEAL_AT;
+
+        if (!S.settled && !isLastNo) {
             const btn = $('btnNo');
             if (btn) {
                 btn.style.position  = 'fixed';
