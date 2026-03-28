@@ -31,6 +31,7 @@
         noMsgEl:           null,
         noMsgTimer:        null,
         music:             null,
+        externalMusic:     null,
         musicPlaying:      false,
         audioUnlockPrompt: null,
     };
@@ -251,33 +252,89 @@
         audio.style.display = 'none';
         document.body.appendChild(audio);
         S.music = audio;
+        S.externalMusic = detectExternalMusic();
         S.audioUnlockPrompt = null;
 
         attachAudioUnlockListener();
+    }
 
-        try {
-            const playPromise = audio.play();
+    function detectExternalMusic() {
+        if (window.AudioManager?.currentAudio instanceof HTMLMediaElement) {
+            return window.AudioManager.currentAudio;
+        }
+
+        // Caso não exista atualmente, tente encontrar um player de áudio na página
+        const foundAudio = document.querySelector('.music-player-section audio, .music-player audio');
+        return foundAudio instanceof HTMLMediaElement ? foundAudio : null;
+    }
+
+    function startExternalMusic() {
+        if (!S.externalMusic) return Promise.reject(new Error('nenhum player externo detectado'));
+        if (!S.externalMusic.paused) {
+            S.musicPlaying = true;
+            $('musicIndicator')?.classList.add('visible');
+            return Promise.resolve();
+        }
+
+        return S.externalMusic.play().then(() => {
+            S.musicPlaying = true;
+            $('musicIndicator')?.classList.add('visible');
+        }).catch((err) => {
+            console.warn('⚠️ proposal startExternalMusic falhou:', err);
+            showAudioUnlockPrompt();
+            throw err;
+        });
+    }
+
+    function getActiveAudio() {
+        return S.externalMusic || S.music;
+    }
+
+    function startMutedMusic() {
+        if (!S.music) return Promise.reject(new Error('proposal music não inicializada'));
+        if (!S.music.paused) {
+            S.musicPlaying = true;
+            $('musicIndicator')?.classList.add('visible');
+            return Promise.resolve();
+        }
+
+        S.music.muted = true;
+        S.music.volume = 0;
+
+        return S.music.play().then(() => {
+            S.musicPlaying = true;
+            $('musicIndicator')?.classList.add('visible');
+        }).catch((err) => {
+            console.warn('⚠️ proposal startMutedMusic falhou:', err);
+            showAudioUnlockPrompt();
+            throw err;
+        });
+    }
+
+    function tryUnlockProposalAudio() {
+        if (S.musicPlaying) return;
+        if (S.externalMusic || S.music) {
+            unlockProposalAudio();
+        }
+    }
+
+    function unlockProposalAudio() {
+        hideAudioUnlockPrompt();
+        if (S.externalMusic) {
+            const playPromise = S.externalMusic.play();
             if (playPromise && typeof playPromise.then === 'function') {
                 playPromise.then(() => {
                     S.musicPlaying = true;
                     $('musicIndicator')?.classList.add('visible');
+                    removeAudioUnlockListeners();
                 }).catch(() => {
                     showAudioUnlockPrompt();
                 });
             }
-        } catch (e) {
-            showAudioUnlockPrompt();
+            return;
         }
-    }
 
-    function tryUnlockProposalAudio() {
-        if (!S.music || S.musicPlaying) return;
-        unlockProposalAudio();
-    }
-
-    function unlockProposalAudio() {
         if (!S.music) return;
-        hideAudioUnlockPrompt();
         const playPromise = playMusic(CONFIG.VOL_INIT);
         if (playPromise && typeof playPromise.then === 'function') {
             playPromise.then(() => removeAudioUnlockListeners()).catch(() => {
@@ -320,15 +377,35 @@
     }
 
     function playMusic(vol) {
+        const targetVol = vol || CONFIG.VOL_INIT;
+
+        if (S.externalMusic) {
+            if (S.externalMusic.paused) {
+                return S.externalMusic.play().then(() => {
+                    S.musicPlaying = true;
+                    fadeVol(S.externalMusic, targetVol, 2000, S.externalMusic.volume || 0);
+                    $('musicIndicator')?.classList.add('visible');
+                }).catch((err) => {
+                    console.warn('⚠️ proposal external playMusic falhou:', err);
+                    showAudioUnlockPrompt();
+                    throw err;
+                });
+            }
+
+            S.musicPlaying = true;
+            fadeVol(S.externalMusic, targetVol, 2000);
+            $('musicIndicator')?.classList.add('visible');
+            return Promise.resolve();
+        }
+
         if (!S.music) return;
         S.music.muted = false;
 
-        const targetVol = vol || CONFIG.VOL_INIT;
         if (S.music.paused) {
             S.music.volume = 0;
             return S.music.play().then(() => {
                 S.musicPlaying = true;
-                fadeVol(0, targetVol, 2000);
+                fadeVol(S.music, targetVol, 2000, 0);
                 $('musicIndicator')?.classList.add('visible');
             }).catch((err) => {
                 console.warn('⚠️ proposal playMusic falhou:', err);
@@ -338,23 +415,27 @@
         }
 
         S.musicPlaying = true;
-        fadeVol(S.music.volume, targetVol, 2000);
+        fadeVol(S.music, targetVol, 2000);
         $('musicIndicator')?.classList.add('visible');
         return Promise.resolve();
     }
 
-    function fadeVol(from, to, dur) {
-        if (!S.music) return;
-        const steps = 40, dt = dur / steps, delta = (to - from) / steps;
-        let cur = from;
-        S.music.volume = Math.max(0, Math.min(1, from));
+    function fadeVol(audio, to, dur, from) {
+        const targetAudio = audio || getActiveAudio();
+        if (!targetAudio) return;
+        const steps = 40;
+        const dt = dur / steps;
+        const start = typeof from === 'number' ? from : targetAudio.volume;
+        let cur = Math.max(0, Math.min(1, start));
+        targetAudio.volume = cur;
+        const delta = (to - cur) / steps;
         const iv = setInterval(() => {
             cur += delta;
             if ((delta > 0 && cur >= to) || (delta < 0 && cur <= to)) {
-                S.music.volume = Math.max(0, Math.min(1, to));
+                targetAudio.volume = Math.max(0, Math.min(1, to));
                 clearInterval(iv);
             } else {
-                S.music.volume = Math.max(0, Math.min(1, cur));
+                targetAudio.volume = Math.max(0, Math.min(1, cur));
             }
         }, dt);
     }
@@ -369,7 +450,21 @@
     function startPhase1() {
         S.phase = 1;
         activateLayer('phaseRing');
-        playMusic(CONFIG.VOL_INIT);
+
+        S.externalMusic = detectExternalMusic();
+        if (S.externalMusic) {
+            startExternalMusic().catch(() => {
+                // Se a reprodução do player principal falhar, usamos fallback local.
+                startMutedMusic().catch(() => {
+                    // prompt exibido pelo fallback.
+                });
+            });
+            return;
+        }
+
+        startMutedMusic().catch(() => {
+            // Se o autoplay mudo falhar, o prompt já será exibido.
+        });
     }
 
     // ===== HOLD =====
@@ -494,7 +589,7 @@
         const cx = rect.left + rect.width  / 2;
         const cy = rect.top  + rect.height / 2;
 
-        fadeVol(S.music?.volume || 0, CONFIG.VOL_MID, 500);
+        fadeVol(getActiveAudio(), CONFIG.VOL_MID, 500);
 
         [0, 170, 360].forEach((delay, i) => {
             setTimeout(() => {
@@ -664,7 +759,7 @@
         if (note) note.classList.add('visible');
         if (hint) hint.textContent = '';
 
-        fadeVol(S.music?.volume || 0, 0.6, 1000);
+        fadeVol(getActiveAudio(), 0.6, 1000);
     }
 
     function updateHint() {
@@ -708,7 +803,7 @@
         if (S.phase !== 2) return;
         S.phase = 3;
         activateLayer('phaseAccepted');
-        fadeVol(S.music?.volume || 0, CONFIG.VOL_FULL, 600);
+        fadeVol(getActiveAudio(), CONFIG.VOL_FULL, 600);
         launchBigExplosion();
         setTimeout(startPhase4, 7000);
     }
@@ -717,7 +812,7 @@
     function startPhase4() {
         S.phase = 4;
         activateLayer('phaseEntrance');
-        fadeVol(S.music?.volume || 0, 0, 2500);
+        fadeVol(getActiveAudio(), 0, 2500);
         localStorage.setItem('proposal_answered', 'true');
 
         setTimeout(() => {
