@@ -1011,23 +1011,29 @@ window.deleteEvent = async function(eventId) {
     }
 };
 
-console.log('🔧 Adicionando listener para DOMContentLoaded...');
+console.log('🔧 Inicializando admin quando DOM estiver pronto...');
 
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🔧 DOMContentLoaded disparado!');
-    
+async function initializeAdminEntryPoint() {
+    console.log('🔧 DOM pronto para admin');
+
     try {
         await waitForServices();
         console.log('🔧 Serviços carregados, chamando initAdmin()...');
-        
+
         initAdmin();
-        
+
         // Removido carregamento duplicado - agora feito pelo firebase-config.js
         console.log('🔧 Admin inicializado (carregamento de dados feito pelo firebase-config.js)');
     } catch (error) {
         console.error('❌ Erro ao inicializar admin:', error);
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAdminEntryPoint);
+} else {
+    initializeAdminEntryPoint();
+}
 
 console.log('✏️ Sistema de edição de álbuns carregado');
 
