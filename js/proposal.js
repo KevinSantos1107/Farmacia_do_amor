@@ -252,8 +252,10 @@
 
         try {
             const playPromise = audio.play();
-            if (playPromise && typeof playPromise.catch === 'function') {
-                playPromise.catch(() => {
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.then(() => {
+                    S.musicPlaying = true;
+                }).catch(() => {
                     attachAudioUnlockListener();
                 });
             }
@@ -265,7 +267,10 @@
     function unlockProposalAudio() {
         if (!S.music) return;
         S.music.muted = false;
-        S.music.play().catch(() => {});
+        if (S.music.paused) {
+            S.music.play().catch(() => {});
+        }
+        S.musicPlaying = true;
         document.removeEventListener('touchstart', unlockProposalAudio, { passive: true });
         document.removeEventListener('click', unlockProposalAudio, { passive: true });
     }
@@ -279,7 +284,7 @@
         if (!S.music) return;
         S.music.muted = false;
 
-        if (!S.musicPlaying) {
+        if (S.music.paused) {
             S.music.play().then(() => {
                 S.musicPlaying = true;
                 fadeVol(0, vol || CONFIG.VOL_INIT, 2000);
@@ -288,6 +293,7 @@
                 console.warn('⚠️ proposal playMusic falhou:', err);
             });
         } else {
+            S.musicPlaying = true;
             fadeVol(S.music.volume, vol || CONFIG.VOL_INIT, 2000);
             $('musicIndicator')?.classList.add('visible');
         }
