@@ -12,34 +12,64 @@ const AudioManager = {
             this.currentAudio.pause();
             
             if (this.currentPlayerId) {
-                const oldBtn = document.getElementById(`${this.currentPlayerId}-playPauseBtn`) || 
-                               document.getElementById('playPauseBtn');
-                if (oldBtn) {
-                    oldBtn.innerHTML = '<i class="fas fa-play"></i>';
-                }
-                
-                const oldPlayer = document.getElementById(this.currentPlayerId) ||
-                                 document.querySelector('.music-player.playing');
-                if (oldPlayer) {
-                    oldPlayer.classList.remove('playing');
-                }
+                this.updatePlayerUI(this.currentPlayerId, false);
             }
         }
-        
+
+        const resolvedPlayerId = playerId || this.findPlayerIdByAudio(audioElement);
         this.currentAudio = audioElement;
-        this.currentPlayerId = playerId;
+        this.currentPlayerId = resolvedPlayerId;
         
-        console.log(`🎵 AudioManager: Tocando em ${playerId}`);
+        if (resolvedPlayerId) {
+            this.updatePlayerUI(resolvedPlayerId, true);
+        }
+        
+        console.log(`🎵 AudioManager: Tocando em ${resolvedPlayerId || 'audio desconhecido'}`);
     },
     
     pause() {
         if (this.currentAudio) {
             this.currentAudio.pause();
+            if (this.currentPlayerId) {
+                this.updatePlayerUI(this.currentPlayerId, false);
+            }
         }
     },
     
     isPlaying(audioElement) {
-        return this.currentAudio === audioElement && !audioElement.paused();
+        return this.currentAudio === audioElement && !audioElement.paused;
+    },
+
+    findPlayerIdByAudio(audioElement) {
+        if (!audioElement) return null;
+        if (audioElement.id) {
+            const playerId = audioElement.id.replace('custom-audio-', 'custom-player-');
+            if (document.getElementById(playerId)) {
+                return playerId;
+            }
+        }
+
+        const players = document.querySelectorAll('.music-player');
+        for (const player of players) {
+            if (player.contains(audioElement)) {
+                return player.id;
+            }
+        }
+
+        return null;
+    },
+
+    updatePlayerUI(playerId, isPlaying) {
+        if (!playerId) return;
+        const player = document.getElementById(playerId);
+        if (!player) return;
+
+        const playPauseBtn = player.querySelector('.play-pause-btn');
+        if (playPauseBtn) {
+            playPauseBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        }
+
+        player.classList.toggle('playing', Boolean(isPlaying));
     },
     
     // ✅ NOVO: Registrar elemento de áudio para rastreamento
