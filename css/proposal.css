@@ -24,9 +24,6 @@
     justify-content: center;
     overflow: hidden;
     font-family: 'Raleway', Georgia, serif;
-    /* [AJUSTE #6] Inicializa compositor no Safari para backdrop-filter funcionar */
-    backdrop-filter: blur(0px);
-    -webkit-backdrop-filter: blur(0px);
 }
 
 #proposalScreen.hidden {
@@ -241,7 +238,6 @@
 
 /* ===== FASE 2 — PEDIDO CINEMATOGRÁFICO ===== */
 
-/* Container do poema — centralizado, largura máxima legível */
 .proposal-poem {
     display: flex;
     flex-direction: column;
@@ -249,7 +245,6 @@
     gap: 2px;
 }
 
-/* Cada linha começa invisível e sobe suavemente */
 .poem-line {
     display: block;
     font-family: 'Raleway', Georgia, serif;
@@ -257,7 +252,7 @@
     font-weight: 300;
     font-style: italic;
     line-height: 1.9;
-    color: rgba(255, 220, 240, 0.0);   /* começa transparente */
+    color: rgba(255, 220, 240, 0.0);
     text-shadow: none;
     letter-spacing: 0.3px;
     opacity: 0;
@@ -270,7 +265,6 @@
     will-change: opacity, transform;
 }
 
-/* Quando a linha fica visível */
 .poem-line.visible {
     opacity: 1;
     transform: translateY(0);
@@ -278,12 +272,10 @@
     text-shadow: 0 0 30px rgba(255, 100, 180, 0.18);
 }
 
-/* Wrapper da pergunta — separado do poema para entrada independente */
 .proposal-question-wrap {
     margin-top: 8px;
 }
 
-/* A pergunta começa invisível — controlada via JS */
 .proposal-highlight {
     display: block;
     font-family: 'Playfair Display', Georgia, serif;
@@ -305,7 +297,6 @@
         0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Quando a pergunta aparece — escala e glow dramático */
 .proposal-highlight.visible {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -657,6 +648,15 @@
     50%       { transform: scaleY(1.4); }
 }
 
+/* ===== SCROLL LOCK — bloqueia scroll durante o proposal ===== */
+/* [SCROLL LOCK] overflow: hidden para desktop                  */
+/* [SCROLL LOCK] position: fixed + width: 100% para iOS Safari */
+body.proposal-active {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
 /* ===== RESPONSIVO — MOBILE ===== */
 @media (max-width: 480px) {
     .proposal-layer {
@@ -692,5 +692,3 @@
     .proposal-highlight { font-size: 1.08rem; }
     .accepted-title    { font-size: 1.8rem; }
 }
-
-body.proposal-active { overflow: hidden; }
