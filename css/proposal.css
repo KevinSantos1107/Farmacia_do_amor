@@ -4,15 +4,6 @@
    Versão Final — Romântico & Mágico
    =================================================== */
 
-/* ===== FONTES — adicione no <head> do HTML =====
-   <link rel="preconnect" href="https://fonts.googleapis.com">
-   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Raleway:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
-
-   Adicione também no <head> para eliminar tap delay no iOS:
-   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-   ============================================================ */
-
 /* ===== TELA PRINCIPAL ===== */
 #proposalScreen {
     position: fixed;
@@ -30,7 +21,7 @@
     display: none !important;
 }
 
-/* [AJUSTE #5] Elimina tap delay em todos os elementos interativos no iOS */
+/* Elimina tap delay em todos os elementos interativos no iOS */
 #proposalScreen * {
     touch-action: manipulation;
 }
@@ -73,6 +64,102 @@
     pointer-events: none;
 }
 
+/* ===== FASE 0 — TOQUE PARA COMEÇAR ===== */
+
+#phaseZero {
+    gap: 0;
+}
+
+.phase0-name {
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.72rem, 2vw, 0.85rem);
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: 7px;
+    text-transform: uppercase;
+    color: rgba(255, 180, 220, 0.45);
+    margin-bottom: 28px;
+    animation: fadeUp 1s ease 0.3s both;
+}
+
+.phase0-heart {
+    font-size: 52px;
+    line-height: 1;
+    display: block;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    animation: phase0Breathe 3.5s ease-in-out infinite;
+    margin-bottom: 28px;
+}
+
+@keyframes phase0Breathe {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 10px rgba(255, 120, 200, 0.4));
+    }
+    50% {
+        transform: scale(1.12);
+        filter: drop-shadow(0 0 28px rgba(255, 170, 230, 0.85));
+    }
+}
+
+.phase0-divider {
+    width: 32px;
+    height: 1px;
+    background: rgba(255, 140, 200, 0.28);
+    margin-bottom: 20px;
+    animation: fadeUp 1s ease 0.6s both;
+}
+
+.phase0-text {
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.95rem, 2.8vw, 1.1rem);
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(255, 215, 238, 0.78);
+    line-height: 1.85;
+    letter-spacing: 0.3px;
+    text-align: center;
+    margin-bottom: 36px;
+    animation: fadeUp 1s ease 0.8s both;
+}
+
+.phase0-cta {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.68rem, 1.8vw, 0.78rem);
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: 4px;
+    text-transform: lowercase;
+    color: rgba(255, 150, 210, 0.4);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    animation: phase0Blink 2.8s ease-in-out infinite, fadeUp 1s ease 1.2s both;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+@keyframes phase0Blink {
+    0%, 100% { opacity: 0.35; }
+    50%       { opacity: 1; }
+}
+
+/* Animação de saída da fase 0 */
+#phaseZero.phase0-exit {
+    animation: phase0FadeOut 0.55s ease forwards;
+    pointer-events: none;
+}
+
+@keyframes phase0FadeOut {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.04); }
+}
+
 /* ===== FASE 1 — ANEL ===== */
 .proposal-eyebrow {
     font-family: 'Raleway', Georgia, serif;
@@ -94,7 +181,7 @@
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
-    touch-action: none; /* mantém none aqui pois é zona de gesto de hold */
+    touch-action: none;
     will-change: transform;
     user-select: none;
     -webkit-user-select: none;
@@ -108,7 +195,6 @@
     animation: auraBreath 2.8s ease-in-out infinite;
     transition: transform 0.12s ease, opacity 0.12s ease;
     pointer-events: none;
-    /* [AJUSTE #2] Compositor dedicado para animações contínuas */
     will-change: transform, opacity;
 }
 
@@ -126,7 +212,6 @@
     animation: orb 5s linear infinite;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     pointer-events: none;
-    /* [AJUSTE #2] Compositor dedicado para rotação contínua */
     will-change: transform;
 }
 
@@ -648,9 +733,7 @@
     50%       { transform: scaleY(1.4); }
 }
 
-/* ===== SCROLL LOCK — bloqueia scroll durante o proposal ===== */
-/* [SCROLL LOCK] overflow: hidden para desktop                  */
-/* [SCROLL LOCK] position: fixed + width: 100% para iOS Safari */
+/* ===== SCROLL LOCK ===== */
 body.proposal-active {
     overflow: hidden;
     position: fixed;
@@ -664,12 +747,15 @@ body.proposal-active {
         padding: 20px;
     }
 
+    .phase0-heart    { font-size: 44px; }
+    .phase0-text     { font-size: 0.95rem; }
+
     .ring-wrap  { width: 170px; height: 170px; }
     .ring-emoji { font-size: 76px; }
     .ring-orbit { width: 145px; height: 145px; }
     .hold-track { width: 140px; }
 
-    .poem-line         { font-size: 1.05rem; line-height: 1.85; }
+    .poem-line          { font-size: 1.05rem; line-height: 1.85; }
     .proposal-highlight { font-size: 1.2rem; }
 
     .btn-yes, .btn-no  { padding: 13px 30px; font-size: 0.95rem; }
@@ -686,9 +772,10 @@ body.proposal-active {
 }
 
 @media (max-width: 360px) {
+    .phase0-heart    { font-size: 38px; }
     .ring-wrap  { width: 150px; height: 150px; }
     .ring-emoji { font-size: 66px; }
-    .poem-line         { font-size: 0.98rem; line-height: 1.8; }
+    .poem-line          { font-size: 0.98rem; line-height: 1.8; }
     .proposal-highlight { font-size: 1.08rem; }
     .accepted-title    { font-size: 1.8rem; }
 }
