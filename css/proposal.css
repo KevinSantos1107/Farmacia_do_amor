@@ -4,7 +4,7 @@
    Versão Final — Romântico & Mágico
    =================================================== */
 
-/* ===== FONTES — adicione este @import no <head> do HTML =====
+/* ===== FONTES — adicione no <head> do HTML =====
    <link rel="preconnect" href="https://fonts.googleapis.com">
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Raleway:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
@@ -27,7 +27,6 @@
     display: none !important;
 }
 
-/* Canvas de estrelas */
 #proposalCanvas {
     position: absolute;
     inset: 0;
@@ -78,7 +77,6 @@
     animation: fadeUp 0.8s ease both;
 }
 
-/* Wrapper do anel */
 .ring-wrap {
     position: relative;
     width: 200px;
@@ -94,7 +92,6 @@
     -webkit-user-select: none;
 }
 
-/* Aura pulsante */
 .ring-aura {
     position: absolute;
     inset: -10px;
@@ -110,7 +107,6 @@
     50%       { transform: scale(1.14); opacity: 0.9; }
 }
 
-/* Órbita */
 .ring-orbit {
     position: absolute;
     width: 168px;
@@ -140,7 +136,6 @@
     to   { transform: rotate(360deg); }
 }
 
-/* Emoji do anel */
 .ring-emoji {
     font-size: 90px;
     line-height: 1;
@@ -167,7 +162,6 @@
     60% { transform: translateX(-3px)  translateY(-1px) rotate(-1.5deg); }
     80% { transform: translateX(3px)   translateY(-2px) rotate(1.5deg); }
 }
-
 @keyframes shakeM {
     0%, 100% { transform: translateY(0) rotate(0); }
     15% { transform: translateX(-7px)  translateY(-3px) rotate(-3deg); }
@@ -175,7 +169,6 @@
     55% { transform: translateX(-5px)  translateY(-3px) rotate(-2.5deg); }
     75% { transform: translateX(5px)   translateY(-5px) rotate(2.5deg); }
 }
-
 @keyframes shakeL {
     0%, 100% { transform: translateY(0) rotate(0); }
     10% { transform: translateX(-11px) translateY(-5px) rotate(-5deg); }
@@ -184,7 +177,6 @@
     70% { transform: translateX(8px)   translateY(-8px) rotate(4deg); }
     90% { transform: translateX(-4px)  translateY(-3px) rotate(-2deg); }
 }
-
 @keyframes shakeXL {
     0%, 100% { transform: scale(1.08) rotate(0); }
     8%  { transform: scale(1.10) translateX(-14px) rotate(-6deg); }
@@ -200,7 +192,6 @@
 .ring-wrap.shake-l  .ring-emoji { animation: shakeL  0.30s ease-in-out infinite; }
 .ring-wrap.shake-xl .ring-emoji { animation: shakeXL 0.22s ease-in-out infinite; }
 
-/* Barra de progresso do hold */
 .hold-track {
     width: 164px;
     height: 6px;
@@ -210,10 +201,7 @@
     opacity: 0;
     transition: opacity 0.3s ease;
 }
-
-.hold-track.visible {
-    opacity: 1;
-}
+.hold-track.visible { opacity: 1; }
 
 .hold-fill {
     height: 100%;
@@ -236,51 +224,90 @@
     transition: opacity 0.4s ease;
 }
 
-/* ===== FASE 2 — PEDIDO ===== */
+/* ===== FASE 2 — PEDIDO CINEMATOGRÁFICO ===== */
 
-/* Texto do poema */
-.proposal-text {
-    font-family: 'Raleway', Georgia, serif;
-    font-size: clamp(1.15rem, 3.5vw, 1.55rem);
-    font-weight: 300;
-    line-height: 2.1;
-    color: rgba(255, 220, 240, 0.92);
-    font-style: italic;
-    animation: fadeUp 0.8s ease both;
-    text-shadow: 0 0 40px rgba(255, 100, 180, 0.2);
-    max-width: 480px;
-    letter-spacing: 0.3px;
+/* Container do poema — centralizado, largura máxima legível */
+.proposal-poem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
 }
 
-/* Pergunta principal — destaque máximo */
+/* Cada linha começa invisível e sobe suavemente */
+.poem-line {
+    display: block;
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(1.1rem, 3.2vw, 1.45rem);
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1.9;
+    color: rgba(255, 220, 240, 0.0);   /* começa transparente */
+    text-shadow: none;
+    letter-spacing: 0.3px;
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+        opacity   0.75s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+        color     0.75s ease,
+        text-shadow 0.75s ease;
+    will-change: opacity, transform;
+}
+
+/* Quando a linha fica visível */
+.poem-line.visible {
+    opacity: 1;
+    transform: translateY(0);
+    color: rgba(255, 220, 240, 0.9);
+    text-shadow: 0 0 30px rgba(255, 100, 180, 0.18);
+}
+
+/* Wrapper da pergunta — separado do poema para entrada independente */
+.proposal-question-wrap {
+    margin-top: 8px;
+}
+
+/* A pergunta começa invisível — controlada via JS */
 .proposal-highlight {
     display: block;
-    margin-top: 18px;
     font-family: 'Playfair Display', Georgia, serif;
-    font-size: clamp(1.35rem, 4.5vw, 2rem);
-    font-weight: 600;
-    font-style: normal;
+    font-size: clamp(1.3rem, 4.2vw, 1.9rem);
+    font-weight: 700;
+    font-style: italic;
     color: #fff;
     letter-spacing: 0.5px;
-    line-height: 1.4;
+    line-height: 1.35;
+    opacity: 0;
+    transform: scale(0.88) translateY(12px);
+    transition:
+        opacity   0.9s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
     text-shadow:
-        0 0 24px rgba(255, 160, 210, 0.95),
-        0 0 55px rgba(255, 80, 160, 0.55),
+        0 0 28px rgba(255, 160, 210, 0.95),
+        0 0 60px rgba(255, 80, 160, 0.5),
         0 2px 4px rgba(0, 0, 0, 0.3);
-    animation: hlPulse 2.8s ease-in-out 0.8s infinite;
+}
+
+/* Quando a pergunta aparece — escala e glow dramático */
+.proposal-highlight.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    animation: hlPulse 2.8s ease-in-out 0.9s infinite;
 }
 
 @keyframes hlPulse {
     0%, 100% {
         text-shadow:
-            0 0 24px rgba(255, 160, 210, 0.95),
-            0 0 55px rgba(255, 80, 160, 0.55),
+            0 0 28px rgba(255, 160, 210, 0.95),
+            0 0 60px rgba(255, 80, 160, 0.5),
             0 2px 4px rgba(0, 0, 0, 0.3);
     }
     50% {
         text-shadow:
-            0 0 38px rgba(255, 210, 235, 1),
-            0 0 80px rgba(255, 120, 190, 0.75),
+            0 0 44px rgba(255, 210, 235, 1),
+            0 0 90px rgba(255, 120, 190, 0.75),
             0 2px 4px rgba(0, 0, 0, 0.3);
     }
 }
@@ -296,7 +323,6 @@
     position: relative;
 }
 
-/* Botão SIM */
 .btn-yes {
     padding: 16px 52px;
     background: linear-gradient(135deg, #a0185c, #e0407a, #ff7eb3);
@@ -337,7 +363,6 @@
     50%       { box-shadow: 0 0 44px rgba(255, 140, 190, 1),   0 0 85px rgba(255, 80, 150, 0.5); }
 }
 
-/* Botão NÃO */
 .btn-no {
     padding: 14px 40px;
     background: rgba(40, 10, 30, 0.55);
@@ -361,7 +386,6 @@
     border-color: rgba(255, 80, 100, 0.4);
 }
 
-/* Hint de tentativas */
 .attempt-hint {
     font-family: 'Raleway', Georgia, serif;
     font-size: clamp(0.78rem, 2vw, 0.9rem);
@@ -377,7 +401,6 @@
     color: rgba(255, 150, 200, 0.85);
 }
 
-/* Nota fase 3.5 */
 .phase35-text {
     font-family: 'Raleway', Georgia, serif;
     font-size: clamp(0.82rem, 2.2vw, 0.95rem);
@@ -393,11 +416,8 @@
     letter-spacing: 0.3px;
 }
 
-.phase35-text.visible {
-    opacity: 1;
-}
+.phase35-text.visible { opacity: 1; }
 
-/* Mensagem flutuante do "Não" */
 .no-attempt-msg {
     position: fixed;
     background: rgba(20, 5, 30, 0.92);
@@ -505,7 +525,6 @@
     100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
 }
 
-/* Onda de choque */
 .burst-ring {
     position: fixed;
     border-radius: 50%;
@@ -520,7 +539,6 @@
     100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
 }
 
-/* Confetes */
 .confetti-piece {
     position: fixed;
     pointer-events: none;
@@ -533,7 +551,6 @@
     100% { transform: translateY(110vh)  rotate(720deg); opacity: 0.12; }
 }
 
-/* Corações voando */
 .heart-bubble {
     position: fixed;
     pointer-events: none;
@@ -546,7 +563,6 @@
     100% { transform: translateY(-110vh) scale(1.4); opacity: 0; }
 }
 
-/* Fogos de artifício */
 .firework {
     position: fixed;
     pointer-events: none;
@@ -561,7 +577,6 @@
     100%{ opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.2); }
 }
 
-/* Emoji de reação */
 .reaction-emoji {
     position: fixed;
     pointer-events: none;
@@ -630,54 +645,22 @@
 /* ===== RESPONSIVO — MOBILE ===== */
 @media (max-width: 480px) {
     .proposal-layer {
-        gap: 22px;
+        gap: 20px;
         padding: 20px;
     }
 
-    .ring-wrap {
-        width: 170px;
-        height: 170px;
-    }
+    .ring-wrap  { width: 170px; height: 170px; }
+    .ring-emoji { font-size: 76px; }
+    .ring-orbit { width: 145px; height: 145px; }
+    .hold-track { width: 140px; }
 
-    .ring-emoji {
-        font-size: 76px;
-    }
+    .poem-line         { font-size: 1.05rem; line-height: 1.85; }
+    .proposal-highlight { font-size: 1.2rem; }
 
-    .ring-orbit {
-        width: 145px;
-        height: 145px;
-    }
-
-    .hold-track {
-        width: 140px;
-    }
-
-    .proposal-text {
-        font-size: 1.08rem;
-        line-height: 1.95;
-    }
-
-    .proposal-highlight {
-        font-size: 1.25rem;
-    }
-
-    .btn-yes,
-    .btn-no {
-        padding: 13px 30px;
-        font-size: 0.95rem;
-    }
-
-    .accepted-title {
-        font-size: 2.1rem;
-    }
-
-    .accepted-subtitle {
-        font-size: 1rem;
-    }
-
-    .welcome-text {
-        font-size: 1.4rem;
-    }
+    .btn-yes, .btn-no  { padding: 13px 30px; font-size: 0.95rem; }
+    .accepted-title    { font-size: 2.1rem; }
+    .accepted-subtitle { font-size: 1rem; }
+    .welcome-text      { font-size: 1.4rem; }
 
     .no-attempt-msg {
         font-size: 0.82rem;
@@ -688,30 +671,11 @@
 }
 
 @media (max-width: 360px) {
-    .ring-wrap {
-        width: 150px;
-        height: 150px;
-    }
-
-    .ring-emoji {
-        font-size: 66px;
-    }
-
-    .proposal-text {
-        font-size: 1rem;
-        line-height: 1.85;
-    }
-
-    .proposal-highlight {
-        font-size: 1.12rem;
-    }
-
-    .accepted-title {
-        font-size: 1.8rem;
-    }
+    .ring-wrap  { width: 150px; height: 150px; }
+    .ring-emoji { font-size: 66px; }
+    .poem-line         { font-size: 0.98rem; line-height: 1.8; }
+    .proposal-highlight { font-size: 1.08rem; }
+    .accepted-title    { font-size: 1.8rem; }
 }
 
-/* Garante que partículas não causem scroll */
-body.proposal-active {
-    overflow: hidden;
-}
+body.proposal-active { overflow: hidden; }
