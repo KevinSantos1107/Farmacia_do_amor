@@ -30,7 +30,6 @@
         holding:           false,
         noMsgEl:           null,
         noMsgTimer:        null,
-        music:             null,
         externalMusic:     null,
         musicPlaying:      false,
         audioUnlockPrompt: null,
@@ -237,21 +236,6 @@
 
     // ===== MÚSICA =====
     function setupMusic() {
-        const audio   = document.createElement('audio');
-        audio.id      = 'proposalAudio';
-        audio.dataset.proposal = 'true';
-        audio.autoplay = true;
-        audio.loop    = true;
-        audio.volume  = 0;
-        audio.muted   = true;
-        audio.playsInline = true;
-        audio.setAttribute('playsinline', '');
-        audio.setAttribute('webkit-playsinline', '');
-        audio.preload = 'auto';
-        audio.src     = 'audio/proposal-music.mp3';
-        audio.style.display = 'none';
-        document.body.appendChild(audio);
-        S.music = audio;
         S.externalMusic = detectExternalMusic();
         S.audioUnlockPrompt = null;
 
@@ -293,7 +277,7 @@
     }
 
     function getActiveAudio() {
-        return S.externalMusic || S.music;
+        return S.externalMusic;
     }
 
     function syncExternalPlayerUI() {
@@ -307,59 +291,31 @@
         }
     }
 
-    function startMutedMusic() {
-        if (!S.music) return Promise.reject(new Error('proposal music não inicializada'));
-        if (!S.music.paused) {
-            S.musicPlaying = true;
-            $('musicIndicator')?.classList.add('visible');
-            return Promise.resolve();
-        }
-
-        S.music.muted = true;
-        S.music.volume = 0;
-
-        return S.music.play().then(() => {
-            S.musicPlaying = true;
-            $('musicIndicator')?.classList.add('visible');
-        }).catch((err) => {
-            console.warn('⚠️ proposal startMutedMusic falhou:', err);
-            showAudioUnlockPrompt();
-            throw err;
-        });
-    }
-
     function tryUnlockProposalAudio() {
         if (S.musicPlaying) return;
-        if (S.externalMusic || S.music) {
+        if (S.externalMusic) {
             unlockProposalAudio();
         }
     }
 
     function unlockProposalAudio() {
         hideAudioUnlockPrompt();
-        if (S.externalMusic) {
-            if (window.AudioManager?.play) {
-                window.AudioManager.play(S.externalMusic, window.AudioManager.currentPlayerId || null);
-            }
-
-            const playPromise = S.externalMusic.play();
-            if (playPromise && typeof playPromise.then === 'function') {
-                playPromise.then(() => {
-                    S.musicPlaying = true;
-                    $('musicIndicator')?.classList.add('visible');
-                    syncExternalPlayerUI();
-                    removeAudioUnlockListeners();
-                }).catch(() => {
-                    showAudioUnlockPrompt();
-                });
-            }
+        if (!S.externalMusic) {
             return;
         }
 
-        if (!S.music) return;
-        const playPromise = playMusic(CONFIG.VOL_INIT);
+        if (window.AudioManager?.play) {
+            window.AudioManager.play(S.externalMusic, window.AudioManager.currentPlayerId || null);
+        }
+
+        const playPromise = S.externalMusic.play();
         if (playPromise && typeof playPromise.then === 'function') {
-            playPromise.then(() => removeAudioUnlockListeners()).catch(() => {
+            playPromise.then(() => {
+                S.musicPlaying = true;
+                $('musicIndicator')?.classList.add('visible');
+                syncExternalPlayerUI();
+                removeAudioUnlockListeners();
+            }).catch(() => {
                 showAudioUnlockPrompt();
             });
         }
@@ -398,49 +354,6 @@
         S.audioUnlockPrompt = null;
     }
 
-    function playMusic(vol) {
-        const targetVol = vol || CONFIG.VOL_INIT;
-
-        if (S.externalMusic) {
-            if (S.externalMusic.paused) {
-                return S.externalMusic.play().then(() => {
-                    S.musicPlaying = true;
-                    fadeVol(S.externalMusic, targetVol, 2000, S.externalMusic.volume || 0);
-                    $('musicIndicator')?.classList.add('visible');
-                }).catch((err) => {
-                    console.warn('⚠️ proposal external playMusic falhou:', err);
-                    showAudioUnlockPrompt();
-                    throw err;
-                });
-            }
-
-            S.musicPlaying = true;
-            fadeVol(S.externalMusic, targetVol, 2000);
-            $('musicIndicator')?.classList.add('visible');
-            return Promise.resolve();
-        }
-
-        if (!S.music) return;
-        S.music.muted = false;
-
-        if (S.music.paused) {
-            S.music.volume = 0;
-            return S.music.play().then(() => {
-                S.musicPlaying = true;
-                fadeVol(S.music, targetVol, 2000, 0);
-                $('musicIndicator')?.classList.add('visible');
-            }).catch((err) => {
-                console.warn('⚠️ proposal playMusic falhou:', err);
-                showAudioUnlockPrompt();
-                throw err;
-            });
-        }
-
-        S.musicPlaying = true;
-        fadeVol(S.music, targetVol, 2000);
-        $('musicIndicator')?.classList.add('visible');
-        return Promise.resolve();
-    }
 
     function fadeVol(audio, to, dur, from) {
         const targetAudio = audio || getActiveAudio();
@@ -476,17 +389,9 @@
         S.externalMusic = detectExternalMusic();
         if (S.externalMusic) {
             startExternalMusic().catch(() => {
-                // Se a reprodução do player principal falhar, usamos fallback local.
-                startMutedMusic().catch(() => {
-                    // prompt exibido pelo fallback.
-                });
+                showAudioUnlockPrompt();
             });
-            return;
         }
-
-        startMutedMusic().catch(() => {
-            // Se o autoplay mudo falhar, o prompt já será exibido.
-        });
     }
 
     // ===== HOLD =====
