@@ -40,6 +40,9 @@
     let holdRaf   = null;
     let lastStage = -1;
 
+    // [AJUSTE #3] Referência ao RAF do canvas de estrelas para cancelar depois
+    let starsRaf = null;
+
     // Cache de elementos do hold
     const HOLD_ELS = {
         fill:  null,
@@ -101,7 +104,8 @@
 
     // ===== INIT =====
     function init() {
-        if (localStorage.getItem('proposal_answered') === 'true') {
+        // [AJUSTE #7] localStorage com try/catch para modo privado iOS
+        if (lsGet('proposal_answered') === 'true') {
             const s = $('proposalScreen');
             if (s) s.classList.add('hidden');
             return;
@@ -114,6 +118,10 @@
         window.proposalAPI = { onSplashEnd };
         console.log('💍 proposal.js pronto — aguardando splash');
     }
+
+    // ===== HELPERS localStorage seguros =====
+    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+    function lsGet(k)    { try { return localStorage.getItem(k); } catch(e) { return null; } }
 
     // ===== BUILD DOM =====
     function buildDOM() {
@@ -208,6 +216,7 @@
             }
         }
 
+        // [AJUSTE #3] Loop guarda referência no starsRaf para poder cancelar
         function loop(t) {
             ctx.clearRect(0, 0, W, H);
             const len = stars.length;
@@ -222,7 +231,7 @@
                 ctx.fillStyle = `rgba(${s.hue},${op})`;
                 ctx.fill();
             }
-            requestAnimationFrame(loop);
+            starsRaf = requestAnimationFrame(loop);
         }
 
         resize();
@@ -231,7 +240,7 @@
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(resize, 150);
         });
-        loop(0);
+        starsRaf = requestAnimationFrame(loop);
     }
 
     // ===== MÚSICA =====
@@ -641,15 +650,19 @@
         showNoMsg(msg.t, x, y);
         spawnReaction(msg.e, x, y - 50);
 
-
+        // [AJUSTE DA CORREÇÃO] Identifica se é o último "não" antes de mover
         const isLastNo = S.noCount >= CONFIG.SIM_REVEAL_AT;
 
+        // [AJUSTE #4] Cálculo de posição corrigido para não sair da tela em mobile
         if (!S.settled && !isLastNo) {
             const btn = $('btnNo');
             if (btn) {
+                const bw     = btn.offsetWidth  || 110;
+                const bh     = btn.offsetHeight || 46;
+                const margin = 16;
                 btn.style.position  = 'fixed';
-                btn.style.left      = (50 + Math.random() * (window.innerWidth  - (btn.offsetWidth  || 110) - 100)) + 'px';
-                btn.style.top       = (50 + Math.random() * (window.innerHeight - (btn.offsetHeight || 46)  - 100)) + 'px';
+                btn.style.left      = (margin + Math.random() * (window.innerWidth  - bw - margin * 2)) + 'px';
+                btn.style.top       = (margin + Math.random() * (window.innerHeight - bh - margin * 2)) + 'px';
                 btn.style.transform = 'none';
                 btn.style.zIndex    = '9990';
             }
@@ -742,7 +755,15 @@
     function startPhase4() {
         S.phase = 4;
         activateLayer('phaseEntrance');
-        localStorage.setItem('proposal_answered', 'true');
+
+        // [AJUSTE #3] Cancela o loop de estrelas agora que a tela vai sumir
+        if (starsRaf) {
+            cancelAnimationFrame(starsRaf);
+            starsRaf = null;
+        }
+
+        // [AJUSTE #7] localStorage com wrapper seguro
+        lsSet('proposal_answered', 'true');
 
         setTimeout(() => {
             const screen = $('proposalScreen');
@@ -751,12 +772,18 @@
             screen.addEventListener('animationend', () => {
                 screen.classList.add('hidden');
                 if (typeof changeTheme === 'function') changeTheme('hearts', true);
-                else localStorage.setItem('kevinIaraTheme', 'hearts');
+                else lsSet('kevinIaraTheme', 'hearts');
             }, { once: true });
         }, 3000);
     }
 
     // ===== GRANDE EXPLOSÃO =====
+    // [AJUSTE #1] safeAppend — garante remoção mesmo se animationend não disparar
+    function safeAppend(el, durationSec) {
+        document.body.appendChild(el);
+        setTimeout(() => { if (el.parentNode) el.remove(); }, (durationSec + 0.6) * 1000);
+    }
+
     function launchBigExplosion() {
         const cx = window.innerWidth  / 2;
         const cy = window.innerHeight / 2;
@@ -765,10 +792,11 @@
             setTimeout(() => {
                 const ring = document.createElement('div');
                 ring.className = 'burst-ring';
+                const dur = .8 + i * .2;
                 const sz = (200 + i * 160) + 'px';
-                ring.style.cssText = `left:${cx}px;top:${cy}px;width:${sz};height:${sz};animation-duration:${.8 + i * .2}s;border-color:rgba(255,${120 + i*25},${180 + i*15},${.9 - i*.2})`;
-                document.body.appendChild(ring);
+                ring.style.cssText = `left:${cx}px;top:${cy}px;width:${sz};height:${sz};animation-duration:${dur}s;border-color:rgba(255,${120 + i*25},${180 + i*15},${.9 - i*.2})`;
                 ring.addEventListener('animationend', () => ring.remove());
+                safeAppend(ring, dur);
             }, delay);
         });
 
@@ -791,9 +819,10 @@
                 const b = document.createElement('div');
                 b.className   = 'heart-bubble';
                 b.textContent = HEARTS[Math.floor(Math.random() * HEARTS.length)];
-                b.style.cssText = `left:${Math.random()*100}vw;top:100vh;font-size:${1.3+Math.random()*2.6}rem;animation-duration:${2.8+Math.random()*4.2}s;`;
-                document.body.appendChild(b);
+                const dur = 2.8 + Math.random() * 4.2;
+                b.style.cssText = `left:${Math.random()*100}vw;top:100vh;font-size:${1.3+Math.random()*2.6}rem;animation-duration:${dur}s;`;
                 b.addEventListener('animationend', () => b.remove());
+                safeAppend(b, dur);
             }, i * 70);
         }
 
@@ -804,10 +833,14 @@
                 for (let j = 0; j < BATCH; j++) {
                     const p   = document.createElement('div');
                     const col = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+                    const dur = 3.2 + Math.random() * 4.8;
                     p.className = 'confetti-piece';
-                    p.style.cssText = `left:${Math.random()*100}vw;top:-20px;background:${col};width:${5+Math.random()*10}px;height:${5+Math.random()*10}px;border-radius:${Math.random()>.5?'50%':'3px'};animation-duration:${3.2+Math.random()*4.8}s;`;
+                    p.style.cssText = `left:${Math.random()*100}vw;top:-20px;background:${col};width:${5+Math.random()*10}px;height:${5+Math.random()*10}px;border-radius:${Math.random()>.5?'50%':'3px'};animation-duration:${dur}s;`;
                     p.addEventListener('animationend', () => p.remove());
                     frag.appendChild(p);
+                    // safeAppend não funciona com fragment, então adicionamos
+                    // o timeout individualmente após o appendChild ao body
+                    setTimeout(() => { if (p.parentNode) p.remove(); }, (dur + 0.6) * 1000);
                 }
                 document.body.appendChild(frag);
             }, batch * (BATCH * 20));
@@ -824,8 +857,11 @@
             const dist  = 70 + Math.random() * 80;
             const col   = colors[Math.floor(Math.random() * colors.length)];
             const sz    = 3 + Math.random() * 4;
-            fw.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 6px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;animation-duration:${.75+Math.random()*.4}s;`;
+            const dur   = .75 + Math.random() * .4;
+            fw.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 6px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;animation-duration:${dur}s;`;
             fw.addEventListener('animationend', () => fw.remove());
+            // [AJUSTE #1] fallback de segurança
+            setTimeout(() => { if (fw.parentNode) fw.remove(); }, (dur + 0.6) * 1000);
             frag.appendChild(fw);
         }
         document.body.appendChild(frag);
@@ -844,8 +880,11 @@
             const dist  = 50 + Math.random() * 130;
             const col   = colors[Math.floor(Math.random() * colors.length)];
             const sz    = 3 + Math.random() * 6;
-            sp.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 5px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist-30}px;animation-duration:${.6+Math.random()*.7}s;`;
+            const dur   = .6 + Math.random() * .7;
+            sp.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 5px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist-30}px;animation-duration:${dur}s;`;
             sp.addEventListener('animationend', () => sp.remove());
+            // [AJUSTE #1] fallback de segurança
+            setTimeout(() => { if (sp.parentNode) sp.remove(); }, (dur + 0.6) * 1000);
             frag.appendChild(sp);
         }
         document.body.appendChild(frag);
@@ -859,6 +898,8 @@
         el.style.cssText = `left:${x - 18}px;top:${y - 18}px;`;
         document.body.appendChild(el);
         el.addEventListener('animationend', () => el.remove());
+        // [AJUSTE #1] fallback de segurança (animação dura 1.4s)
+        setTimeout(() => { if (el.parentNode) el.remove(); }, 2000);
     }
 
     // ===== FLASH =====
