@@ -256,7 +256,6 @@
             return window.AudioManager.currentAudio;
         }
 
-        // Caso não exista atualmente, tente encontrar um player de áudio na página
         const foundAudio = document.querySelector('.music-player-section audio, .music-player audio');
         return foundAudio instanceof HTMLMediaElement ? foundAudio : null;
     }
@@ -363,7 +362,6 @@
         S.audioUnlockPrompt = null;
     }
 
-
     function fadeVol(audio, to, dur, from) {
         const targetAudio = audio || getActiveAudio();
         if (!targetAudio) return;
@@ -394,6 +392,9 @@
     function startPhase1() {
         S.phase = 1;
         activateLayer('phaseRing');
+
+        // [SCROLL LOCK] Bloqueia scroll durante todo o proposal
+        document.body.classList.add('proposal-active');
 
         S.externalMusic = detectExternalMusic();
         if (S.externalMusic) {
@@ -561,7 +562,6 @@
         S.phase = 2;
         activateLayer('phaseProposal');
 
-        // Esconde tudo inicialmente
         const area      = $('buttonsArea');
         const highlight = $('proposalHighlight');
         const qWrap     = $('proposalQuestionWrap');
@@ -569,9 +569,8 @@
         if (area)      { area.style.opacity = '0'; area.style.pointerEvents = 'none'; }
         if (qWrap)     { qWrap.style.opacity = '0'; }
 
-        // Revela cada linha do poema uma a uma
         const lines = ['poemLine0','poemLine1','poemLine2','poemLine3'];
-        const lineDelay = 400; // delay inicial antes da primeira linha
+        const lineDelay = 400;
 
         lines.forEach((id, i) => {
             setTimeout(() => {
@@ -580,20 +579,17 @@
             }, lineDelay + i * CONFIG.POEM_LINE_INTERVAL);
         });
 
-        // Depois de todas as linhas, pausa e revela a pergunta com drama
         const questionAt = lineDelay
             + lines.length * CONFIG.POEM_LINE_INTERVAL
             + CONFIG.POEM_PAUSE_BEFORE_Q;
 
         setTimeout(() => {
-            // Reveal da pergunta
             if (qWrap) {
                 qWrap.style.transition = 'opacity 0.5s ease';
                 qWrap.style.opacity    = '1';
             }
             if (highlight) highlight.classList.add('visible');
 
-            // Faísca sutil quando a pergunta aparece
             const cx = window.innerWidth  / 2;
             const cy = window.innerHeight * 0.58;
             setTimeout(() => {
@@ -601,7 +597,6 @@
                 spawnReaction('💕', cx, cy - 60);
             }, CONFIG.POEM_Q_ANIM_MS * 0.6);
 
-            // Só agora começa o delay do botão "Não"
             setTimeout(() => {
                 if (area) {
                     area.style.transition    = 'opacity 0.7s ease';
@@ -650,7 +645,7 @@
         showNoMsg(msg.t, x, y);
         spawnReaction(msg.e, x, y - 50);
 
-        // [AJUSTE DA CORREÇÃO] Identifica se é o último "não" antes de mover
+        // Identifica se é o último "não" — pula o movimento aleatório
         const isLastNo = S.noCount >= CONFIG.SIM_REVEAL_AT;
 
         // [AJUSTE #4] Cálculo de posição corrigido para não sair da tela em mobile
@@ -771,6 +766,8 @@
             screen.classList.add('fading-out');
             screen.addEventListener('animationend', () => {
                 screen.classList.add('hidden');
+                // [SCROLL LOCK] Libera o scroll ao final do proposal
+                document.body.classList.remove('proposal-active');
                 if (typeof changeTheme === 'function') changeTheme('hearts', true);
                 else lsSet('kevinIaraTheme', 'hearts');
             }, { once: true });
@@ -838,8 +835,6 @@
                     p.style.cssText = `left:${Math.random()*100}vw;top:-20px;background:${col};width:${5+Math.random()*10}px;height:${5+Math.random()*10}px;border-radius:${Math.random()>.5?'50%':'3px'};animation-duration:${dur}s;`;
                     p.addEventListener('animationend', () => p.remove());
                     frag.appendChild(p);
-                    // safeAppend não funciona com fragment, então adicionamos
-                    // o timeout individualmente após o appendChild ao body
                     setTimeout(() => { if (p.parentNode) p.remove(); }, (dur + 0.6) * 1000);
                 }
                 document.body.appendChild(frag);
