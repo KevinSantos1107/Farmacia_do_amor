@@ -238,6 +238,7 @@
         const audio   = document.createElement('audio');
         audio.id      = 'proposalAudio';
         audio.dataset.proposal = 'true';
+        audio.autoplay = true;
         audio.loop    = true;
         audio.volume  = 0;
         audio.muted   = true;
@@ -250,34 +251,44 @@
         document.body.appendChild(audio);
         S.music = audio;
 
+        attachAudioUnlockListener();
+
         try {
             const playPromise = audio.play();
             if (playPromise && typeof playPromise.then === 'function') {
                 playPromise.then(() => {
                     S.musicPlaying = true;
                 }).catch(() => {
-                    attachAudioUnlockListener();
+                    // Não importa: aguardamos o primeiro toque/click para destravar.
                 });
             }
         } catch (e) {
-            attachAudioUnlockListener();
+            // Se o autoplay falhar, o listener de interação destravará o áudio.
         }
     }
 
     function unlockProposalAudio() {
         if (!S.music) return;
         S.music.muted = false;
-        if (S.music.paused) {
-            S.music.play().catch(() => {});
-        }
-        S.musicPlaying = true;
-        document.removeEventListener('touchstart', unlockProposalAudio, { passive: true });
-        document.removeEventListener('click', unlockProposalAudio, { passive: true });
+        S.music.play().then(() => {
+            S.musicPlaying = true;
+            $('musicIndicator')?.classList.add('visible');
+        }).catch(() => {
+            // Se ainda falhar, esperamos o próximo gesto.
+        });
+        removeAudioUnlockListeners();
     }
 
     function attachAudioUnlockListener() {
-        document.addEventListener('touchstart', unlockProposalAudio, { passive: true });
-        document.addEventListener('click', unlockProposalAudio, { passive: true });
+        document.addEventListener('touchstart', unlockProposalAudio, { passive: true, once: true });
+        document.addEventListener('click', unlockProposalAudio, { passive: true, once: true });
+        document.addEventListener('pointerdown', unlockProposalAudio, { passive: true, once: true });
+    }
+
+    function removeAudioUnlockListeners() {
+        document.removeEventListener('touchstart', unlockProposalAudio, { passive: true });
+        document.removeEventListener('click', unlockProposalAudio, { passive: true });
+        document.removeEventListener('pointerdown', unlockProposalAudio, { passive: true });
     }
 
     function playMusic(vol) {
