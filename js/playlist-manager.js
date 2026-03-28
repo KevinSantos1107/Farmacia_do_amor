@@ -105,6 +105,8 @@ const AudioManager = {
     }
 };
 
+window.AudioManager = AudioManager;
+
 const PlaylistManager = {
     currentPlaylistIndex: 0,
     customPlaylists: [],
