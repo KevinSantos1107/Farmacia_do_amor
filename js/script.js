@@ -364,19 +364,37 @@ function initTimeCounter() {
 function updateTimeCounter() {
     const now = new Date();
     const diff = now - START_DATE;
-    
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    
-    const years = Math.floor(days / 365.25);
-    const months = Math.floor((days % 365.25) / 30.44);
-    const remainingDays = Math.floor(days % 30.44);
-    const remainingHours = hours % 24;
-    const remainingMinutes = minutes % 60;
-    const remainingSeconds = seconds % 60;
-    
+
+    const totalSeconds = Math.floor(diff / 1000);
+    const remainingHours = Math.floor((totalSeconds / 3600) % 24);
+    const remainingMinutes = Math.floor((totalSeconds / 60) % 60);
+    const remainingSeconds = totalSeconds % 60;
+
+    // Cálculo de anos e meses pelo calendário real
+    let years = now.getFullYear() - START_DATE.getFullYear();
+    let months = now.getMonth() - START_DATE.getMonth();
+
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+
+    // Se o dia atual ainda não chegou ao dia 27, desconta 1 mês
+    if (now.getDate() < START_DATE.getDate()) {
+        months--;
+        if (months < 0) {
+            years--;
+            months += 12;
+        }
+    }
+
+    // Dias restantes desde o último aniversário mensal (dia 27)
+    const lastAnniversary = new Date(now.getFullYear(), now.getMonth(), START_DATE.getDate());
+    if (lastAnniversary > now) {
+        lastAnniversary.setMonth(lastAnniversary.getMonth() - 1);
+    }
+    const remainingDays = Math.floor((now - lastAnniversary) / (1000 * 60 * 60 * 24));
+
     document.getElementById('years').textContent = years.toString().padStart(2, '0');
     document.getElementById('months').textContent = months.toString().padStart(2, '0');
     document.getElementById('days').textContent = remainingDays.toString().padStart(2, '0');
