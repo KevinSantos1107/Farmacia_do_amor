@@ -9,8 +9,8 @@
 
     // ===== CONFIGURAÇÃO =====
     const CONFIG = {
-        HOLD_MS:       1900,  // ms para completar o hold
-        SIM_REVEAL_AT: 4,     // tentativas no "Não" antes do "Sim" aparecer
+        HOLD_MS:       2800,  // ms para completar o hold (era 1900)
+        SIM_REVEAL_AT: 6,     // tentativas no "Não" antes do "Sim" aparecer (era 4)
         VOL_INIT:      0.20,
         VOL_MID:       0.45,
         VOL_FULL:      1.00,
@@ -34,6 +34,8 @@
     let lastStage = -1;
 
     // Estágios progressivos do shake + brilho ao segurar o anel
+    // Proporcionais ao novo HOLD_MS — os percentuais (at) não mudam,
+    // mas agora cada estágio dura ~560ms em vez de ~380ms
     const STAGES = [
         { at:0.00, cls:'',         gA:0.65, gB:0.35, aura:1.0, orbit:'rgba(255,140,200,.18)' },
         { at:0.20, cls:'shake-s',  gA:0.85, gB:0.50, aura:1.2, orbit:'rgba(255,140,200,.35)' },
@@ -42,15 +44,17 @@
         { at:0.88, cls:'shake-xl', gA:2.00, gB:1.50, aura:2.5, orbit:'rgba(255,210,240,.95)' },
     ];
 
-    // Mensagens do botão "Não"
+    // Mensagens do botão "Não" — 9 mensagens para cobrir as 6 tentativas com variedade
     const NO_MSGS = [
-        { t:'Ei, eu fugi! 😂',                       e:'😂' },
-        { t:'Aqui não, tente de novo!',               e:'🏃' },
-        { t:'Esse botão tem vida própria...',         e:'😅' },
-        { t:'Tá ficando difícil né? 😄',              e:'😄' },
-        { t:'Ok, talvez o Sim seja melhor opção 💕',  e:'💕' },
-        { t:'Definitivamente não clicável!',          e:'⚡' },
-        { t:'Só o Sim funciona aqui 💕',              e:'💕' },
+        { t:'Ei, eu fugi! 😂',                            e:'😂' },
+        { t:'Aqui não, tente de novo!',                   e:'🏃' },
+        { t:'Esse botão tem vida própria...',              e:'😅' },
+        { t:'Tá ficando difícil né? 😄',                  e:'😄' },
+        { t:'Acho que ele não quer ser clicado...',        e:'🙈' },
+        { t:'Ok, talvez o Sim seja melhor opção 💕',       e:'💕' },
+        { t:'Esse "não" simplesmente não existe aqui 😏',  e:'😏' },
+        { t:'Definitivamente não clicável!',               e:'⚡' },
+        { t:'Só o Sim funciona aqui 💕',                   e:'💕' },
     ];
 
     // Hints progressivos enquanto o Sim não aparece
@@ -58,6 +62,7 @@
         '',
         'Hmm... tem certeza? 🤔',
         'Pensa bem...',
+        'Será que é isso mesmo?',
         'Só mais uma chance...',
         'Última oportunidade! 😄',
     ];
@@ -84,9 +89,7 @@
     }
 
     // ===== INIT =====
-    // Monta o DOM e registra o hook que o splash-screen.js vai chamar
     function init() {
-        // Se já respondeu, oculta a tela e sai
         if (localStorage.getItem('proposal_answered') === 'true') {
             const s = $('proposalScreen');
             if (s) s.classList.add('hidden');
@@ -97,7 +100,6 @@
         setupStars();
         setupMusic();
 
-        // Expõe o hook — o splash-screen.js chama proposalAPI.onSplashEnd()
         window.proposalAPI = { onSplashEnd };
 
         console.log('💍 proposal.js pronto — aguardando splash');
@@ -164,7 +166,6 @@
             </div>
         `;
 
-        // Eventos registrados logo após o DOM existir
         setupHoldEvents();
         setupButtonEvents();
     }
@@ -248,10 +249,8 @@
     }
 
     // ===== SPLASH TERMINOU =====
-    // O splash-screen.js chama window.proposalAPI.onSplashEnd() após o fade-out
     function onSplashEnd() {
         console.log('✨ onSplashEnd() recebido — iniciando fase 1');
-        // Pequeno delay para garantir que o DOM do splash já saiu da tela
         setTimeout(startPhase1, 300);
     }
 
@@ -267,11 +266,9 @@
         const wrap = $('ringWrap');
         if (!wrap) return;
 
-        // Mouse
         wrap.addEventListener('mousedown', onHoldStart);
         document.addEventListener('mouseup', onHoldCancel);
 
-        // Touch — suporte mobile completo
         wrap.addEventListener('touchstart', e => {
             e.preventDefault();
             onHoldStart(e.touches[0]);
@@ -306,13 +303,11 @@
 
         if (fill) fill.style.width = (pct * 100) + '%';
 
-        // Determina estágio atual
         let stage = STAGES[0], stageIdx = 0;
         for (let i = STAGES.length - 1; i >= 0; i--) {
             if (pct >= STAGES[i].at) { stage = STAGES[i]; stageIdx = i; break; }
         }
 
-        // Aplica só quando muda de estágio
         if (stageIdx !== lastStage) {
             lastStage = stageIdx;
             if (wrap) {
@@ -325,7 +320,6 @@
                     ? `0 0 ${stageIdx * 8}px rgba(255,160,220,${stageIdx * 0.18})`
                     : '';
             }
-            // Faíscas espontâneas ao subir de estágio
             if (stageIdx > 0 && wrap) {
                 const r = wrap.getBoundingClientRect();
                 spawnSparks(
@@ -335,7 +329,6 @@
             }
         }
 
-        // Brilho do emoji interpolado suavemente
         if (emoji) {
             emoji.style.filter = `
                 drop-shadow(0 0 ${18 * stage.gA}px rgba(255,130,200,${Math.min(.95, stage.gA * .7)}))
@@ -345,7 +338,6 @@
             emoji.style.fontSize = (90 + pct * 18) + 'px';
         }
 
-        // Aura cresce com o progresso
         if (aura) {
             aura.style.transform = `scale(${stage.aura})`;
             aura.style.opacity   = String(Math.min(1, .55 + pct * .7));
@@ -398,7 +390,6 @@
 
         fadeVol(S.music?.volume || 0, CONFIG.VOL_MID, 500);
 
-        // 3 ondas de choque
         [0, 120, 250].forEach((delay, i) => {
             setTimeout(() => {
                 const ring = document.createElement('div');
@@ -410,19 +401,16 @@
             }, delay);
         });
 
-        // 3 rajadas de faíscas
         spawnSparks({ clientX:cx, clientY:cy }, 55, SPARKS);
         setTimeout(() => spawnSparks({ clientX:cx, clientY:cy }, 40, SPARKS), 80);
         setTimeout(() => spawnSparks({ clientX:cx, clientY:cy }, 30, ['#fff','#ffd700','#ffe0f0']), 180);
 
-        // Fogos ao redor
         [
             {x:cx-180,y:cy-120},{x:cx+180,y:cy-120},
             {x:cx-220,y:cy+80 },{x:cx+220,y:cy+80 },
             {x:cx,    y:cy-200},{x:cx-100,y:cy+150},{x:cx+100,y:cy+150},
         ].forEach((p, i) => setTimeout(() => fireworkBurst(p.x, p.y, SPARKS), i * 60 + 40));
 
-        // Reações flutuantes
         spawnReaction('✨', cx,      cy - 90);
         setTimeout(() => spawnReaction('💕', cx - 55, cy - 60),  80);
         setTimeout(() => spawnReaction('🌸', cx + 55, cy - 60), 160);
@@ -444,15 +432,12 @@
         const btnYes = $('btnYes');
         if (!btnNo || !btnYes) return;
 
-        // "Não" — no desktop foge no hover, no mobile foge no touchstart
-        // IMPORTANTE: não usar 'click' junto com 'touchstart' — no mobile disparariam os dois
         btnNo.addEventListener('mouseenter', handleNo);
         btnNo.addEventListener('touchstart', e => {
-            e.preventDefault(); // impede que o touchstart gere um click posterior
+            e.preventDefault();
             handleNo(e);
         }, { passive: false });
 
-        // "Sim"
         btnYes.addEventListener('click', startPhase3);
         btnYes.addEventListener('touchend', e => {
             e.preventDefault();
@@ -472,7 +457,6 @@
         showNoMsg(msg.t, x, y);
         spawnReaction(msg.e, x, y - 50);
 
-        // Botão foge enquanto Sim ainda não apareceu
         if (!S.settled) {
             const btn = $('btnNo');
             if (btn) {
@@ -486,7 +470,6 @@
 
         updateHint();
 
-        // Revela o Sim após N tentativas
         if (S.noCount >= CONFIG.SIM_REVEAL_AT && !S.settled) {
             S.settled = true;
             setTimeout(revealYes, 700);
@@ -499,7 +482,6 @@
         const note   = $('phase35Text');
         const hint   = $('attemptHint');
 
-        // Reposiciona o "Não"
         if (btnNo) {
             btnNo.style.position  = 'relative';
             btnNo.style.left      = 'auto';
@@ -507,7 +489,6 @@
             btnNo.style.zIndex    = '';
         }
 
-        // Aparece o "Sim" com fanfarra
         if (btnYes) {
             btnYes.classList.add('revealed');
             const r = btnYes.getBoundingClientRect();
@@ -583,7 +564,6 @@
             screen.classList.add('fading-out');
             screen.addEventListener('animationend', () => {
                 screen.classList.add('hidden');
-                // Troca tema para "hearts" se a função existir no script.js
                 if (typeof changeTheme === 'function') changeTheme('hearts', true);
                 else localStorage.setItem('kevinIaraTheme', 'hearts');
             }, { once: true });
@@ -595,7 +575,6 @@
         const cx = window.innerWidth  / 2;
         const cy = window.innerHeight / 2;
 
-        // 4 ondas de choque
         [0, 100, 210, 340].forEach((delay, i) => {
             setTimeout(() => {
                 const ring = document.createElement('div');
@@ -607,7 +586,6 @@
             }, delay);
         });
 
-        // 12 fogos espalhados pela tela
         for (let i = 0; i < 12; i++) {
             setTimeout(() => fireworkBurst(
                 80 + Math.random() * (window.innerWidth  - 160),
@@ -616,7 +594,6 @@
             ), i * 55);
         }
 
-        // Segunda onda de fogos
         setTimeout(() => {
             for (let i = 0; i < 8; i++) {
                 setTimeout(() => fireworkBurst(
@@ -627,20 +604,17 @@
             }
         }, 950);
 
-        // 40 corações subindo
         for (let i = 0; i < 40; i++) {
             setTimeout(() => {
                 const b = document.createElement('div');
                 b.className   = 'heart-bubble';
                 b.textContent = HEARTS[Math.floor(Math.random() * HEARTS.length)];
-                // top:100vh = começa fora da tela embaixo; a animação translateY(-110vh) sobe para cima
                 b.style.cssText = `left:${Math.random()*100}vw;top:100vh;font-size:${1.3+Math.random()*2.6}rem;animation-duration:${2.2+Math.random()*3.8}s;`;
                 document.body.appendChild(b);
                 b.addEventListener('animationend', () => b.remove());
             }, i * 55);
         }
 
-        // 160 confetes caindo
         for (let i = 0; i < 160; i++) {
             setTimeout(() => {
                 const p = document.createElement('div');
