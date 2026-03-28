@@ -4,6 +4,12 @@
    Versão Final — Romântico & Mágico
    =================================================== */
 
+/* ===== FONTES — adicione este @import no <head> do HTML =====
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Raleway:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+   ============================================================ */
+
 /* ===== TELA PRINCIPAL ===== */
 #proposalScreen {
     position: fixed;
@@ -14,7 +20,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    font-family: 'Georgia', 'Dancing Script', serif;
+    font-family: 'Raleway', Georgia, serif;
 }
 
 #proposalScreen.hidden {
@@ -31,8 +37,6 @@
     z-index: 0;
 }
 
-/* Flash removido — efeito não utilizado */
-
 /* ===== LAYERS ===== */
 .proposal-layer {
     position: absolute;
@@ -42,12 +46,12 @@
     align-items: center;
     justify-content: center;
     z-index: 1;
-    padding: 20px;
+    padding: 28px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.8s ease, transform 0.8s ease;
     text-align: center;
-    gap: 22px;
+    gap: 28px;
 }
 
 .proposal-layer.active {
@@ -64,10 +68,11 @@
 
 /* ===== FASE 1 — ANEL ===== */
 .proposal-eyebrow {
-    font-family: 'Georgia', serif;
-    font-size: 0.85rem;
-    color: rgba(255, 180, 220, 0.55);
-    letter-spacing: 3px;
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.75rem, 2.2vw, 0.95rem);
+    font-weight: 300;
+    color: rgba(255, 180, 220, 0.65);
+    letter-spacing: 5px;
     text-transform: uppercase;
     font-style: italic;
     animation: fadeUp 0.8s ease both;
@@ -220,46 +225,63 @@
 }
 
 .hold-hint {
-    font-family: 'Georgia', serif;
-    font-size: 0.78rem;
-    color: rgba(255, 160, 210, 0.5);
-    letter-spacing: 2px;
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.72rem, 2vw, 0.88rem);
+    font-weight: 300;
+    color: rgba(255, 160, 210, 0.55);
+    letter-spacing: 3px;
     text-transform: uppercase;
     font-style: italic;
-    min-height: 18px;
+    min-height: 20px;
     transition: opacity 0.4s ease;
 }
 
 /* ===== FASE 2 — PEDIDO ===== */
+
+/* Texto do poema */
 .proposal-text {
-    font-family: 'Dancing Script', 'Georgia', cursive;
-    font-size: clamp(1.1rem, 3.2vw, 1.4rem);
-    line-height: 2;
-    color: rgba(255, 220, 240, 0.88);
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(1.15rem, 3.5vw, 1.55rem);
+    font-weight: 300;
+    line-height: 2.1;
+    color: rgba(255, 220, 240, 0.92);
     font-style: italic;
     animation: fadeUp 0.8s ease both;
-    text-shadow: 0 0 30px rgba(255, 100, 180, 0.25);
-    max-width: 420px;
+    text-shadow: 0 0 40px rgba(255, 100, 180, 0.2);
+    max-width: 480px;
+    letter-spacing: 0.3px;
 }
 
+/* Pergunta principal — destaque máximo */
 .proposal-highlight {
     display: block;
-    margin-top: 10px;
-    font-size: clamp(1.2rem, 3.8vw, 1.6rem);
-    color: #fff;
+    margin-top: 18px;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(1.35rem, 4.5vw, 2rem);
+    font-weight: 600;
     font-style: normal;
+    color: #fff;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
     text-shadow:
-        0 0 20px rgba(255, 160, 210, 0.9),
-        0 0 45px rgba(255, 80, 160, 0.5);
+        0 0 24px rgba(255, 160, 210, 0.95),
+        0 0 55px rgba(255, 80, 160, 0.55),
+        0 2px 4px rgba(0, 0, 0, 0.3);
     animation: hlPulse 2.8s ease-in-out 0.8s infinite;
 }
 
 @keyframes hlPulse {
     0%, 100% {
-        text-shadow: 0 0 20px rgba(255, 160, 210, 0.9), 0 0 45px rgba(255, 80, 160, 0.5);
+        text-shadow:
+            0 0 24px rgba(255, 160, 210, 0.95),
+            0 0 55px rgba(255, 80, 160, 0.55),
+            0 2px 4px rgba(0, 0, 0, 0.3);
     }
     50% {
-        text-shadow: 0 0 35px rgba(255, 200, 230, 1), 0 0 65px rgba(255, 120, 190, 0.7);
+        text-shadow:
+            0 0 38px rgba(255, 210, 235, 1),
+            0 0 80px rgba(255, 120, 190, 0.75),
+            0 2px 4px rgba(0, 0, 0, 0.3);
     }
 }
 
@@ -268,21 +290,23 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 18px;
-    min-height: 76px;
+    gap: 20px;
+    min-height: 80px;
     width: 100%;
     position: relative;
 }
 
-/* Botão SIM — começa invisível, aparece após tentativas */
+/* Botão SIM */
 .btn-yes {
-    padding: 15px 44px;
+    padding: 16px 52px;
     background: linear-gradient(135deg, #a0185c, #e0407a, #ff7eb3);
     color: #fff;
     border: none;
     border-radius: 50px;
-    font-family: 'Georgia', serif;
-    font-size: 1rem;
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+    font-weight: 500;
+    letter-spacing: 1.5px;
     cursor: pointer;
     box-shadow: 0 0 28px rgba(255, 80, 150, 0.6), 0 0 55px rgba(220, 50, 120, 0.3);
     animation: yesPulse 2.2s ease-in-out infinite;
@@ -300,8 +324,8 @@
 
 .btn-yes.revealed {
     opacity: 1;
-    max-width: 220px;
-    padding: 15px 44px;
+    max-width: 240px;
+    padding: 16px 52px;
     pointer-events: auto;
 }
 
@@ -315,13 +339,15 @@
 
 /* Botão NÃO */
 .btn-no {
-    padding: 13px 36px;
+    padding: 14px 40px;
     background: rgba(40, 10, 30, 0.55);
-    color: rgba(220, 170, 200, 0.75);
-    border: 1px solid rgba(200, 80, 140, 0.25);
+    color: rgba(220, 170, 200, 0.8);
+    border: 1px solid rgba(200, 80, 140, 0.28);
     border-radius: 50px;
-    font-family: 'Georgia', serif;
-    font-size: 1rem;
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+    font-weight: 400;
+    letter-spacing: 1px;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -337,31 +363,34 @@
 
 /* Hint de tentativas */
 .attempt-hint {
-    font-family: 'Georgia', serif;
-    font-size: 0.78rem;
-    color: rgba(255, 150, 200, 0.45);
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.78rem, 2vw, 0.9rem);
+    font-weight: 300;
+    color: rgba(255, 150, 200, 0.5);
     font-style: italic;
-    min-height: 18px;
+    min-height: 20px;
     transition: all 0.4s ease;
     letter-spacing: 0.5px;
 }
 
 .attempt-hint.nudge {
-    color: rgba(255, 150, 200, 0.75);
+    color: rgba(255, 150, 200, 0.85);
 }
 
 /* Nota fase 3.5 */
 .phase35-text {
-    font-family: 'Georgia', serif;
-    font-size: 0.82rem;
-    color: rgba(255, 160, 210, 0.6);
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.82rem, 2.2vw, 0.95rem);
+    font-weight: 300;
+    color: rgba(255, 160, 210, 0.65);
     font-style: italic;
-    line-height: 1.6;
-    max-width: 280px;
+    line-height: 1.7;
+    max-width: 300px;
     opacity: 0;
     transition: opacity 0.8s ease;
     text-align: center;
     white-space: pre-line;
+    letter-spacing: 0.3px;
 }
 
 .phase35-text.visible {
@@ -375,9 +404,10 @@
     color: rgba(255, 190, 225, 0.95);
     border: 1px solid rgba(220, 80, 160, 0.3);
     border-radius: 20px;
-    padding: 8px 18px;
-    font-family: 'Georgia', serif;
-    font-size: 0.83rem;
+    padding: 9px 20px;
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.82rem, 2vw, 0.92rem);
+    font-weight: 400;
     font-style: italic;
     pointer-events: none;
     z-index: 9999;
@@ -404,7 +434,7 @@
 #phaseAccepted { text-align: center; }
 
 .heart-explosion {
-    font-size: 78px;
+    font-size: 82px;
     animation: ringBeat 0.55s ease infinite alternate;
     filter: drop-shadow(0 0 24px rgba(255, 120, 200, 0.9));
     display: inline-block;
@@ -416,8 +446,9 @@
 }
 
 .accepted-title {
-    font-family: 'Dancing Script', 'Georgia', cursive;
-    font-size: clamp(2rem, 8vw, 3rem);
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(2.2rem, 9vw, 3.4rem);
+    font-weight: 700;
     font-style: italic;
     background: linear-gradient(135deg, #ffb3d9, #fff 50%, #ffb3e8);
     -webkit-background-clip: text;
@@ -425,29 +456,39 @@
     color: transparent;
     filter: drop-shadow(0 0 22px rgba(255, 130, 200, 0.6));
     animation: fadeUp 0.8s ease 0.3s both;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
 }
 
 .accepted-subtitle {
-    font-family: 'Dancing Script', 'Georgia', cursive;
-    font-size: clamp(1rem, 3vw, 1.15rem);
-    color: rgba(255, 210, 235, 0.82);
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(1.05rem, 3.2vw, 1.25rem);
+    font-weight: 300;
+    color: rgba(255, 210, 235, 0.88);
     font-style: italic;
-    line-height: 1.75;
+    line-height: 1.85;
     animation: fadeUp 0.8s ease 1s both;
-    max-width: 320px;
+    max-width: 360px;
     white-space: pre-line;
+    letter-spacing: 0.3px;
 }
 
 /* ===== FASE 4 — ENTRADA ===== */
 #phaseEntrance { text-align: center; }
 
 .welcome-text {
-    font-family: 'Dancing Script', cursive;
-    font-size: clamp(1.4rem, 4vw, 2.2rem);
-    color: rgba(255, 220, 240, 0.9);
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(1.5rem, 4.5vw, 2.4rem);
+    font-weight: 400;
     font-style: italic;
-    text-shadow: 0 0 25px rgba(255, 130, 200, 0.7), 0 0 50px rgba(200, 80, 180, 0.4);
+    color: rgba(255, 220, 240, 0.92);
+    text-shadow:
+        0 0 28px rgba(255, 130, 200, 0.75),
+        0 0 60px rgba(200, 80, 180, 0.45);
     animation: fadeUp 1s ease 0.2s both;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+    max-width: 480px;
 }
 
 /* ===== PARTÍCULAS ===== */
@@ -540,7 +581,7 @@
 
 /* ===== ANIMAÇÕES GERAIS ===== */
 @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -588,6 +629,11 @@
 
 /* ===== RESPONSIVO — MOBILE ===== */
 @media (max-width: 480px) {
+    .proposal-layer {
+        gap: 22px;
+        padding: 20px;
+    }
+
     .ring-wrap {
         width: 170px;
         height: 170px;
@@ -607,28 +653,36 @@
     }
 
     .proposal-text {
-        font-size: 1.05rem;
-        line-height: 1.85;
+        font-size: 1.08rem;
+        line-height: 1.95;
     }
 
     .proposal-highlight {
-        font-size: 1.15rem;
+        font-size: 1.25rem;
     }
 
     .btn-yes,
     .btn-no {
-        padding: 12px 28px;
-        font-size: 0.93rem;
+        padding: 13px 30px;
+        font-size: 0.95rem;
     }
 
     .accepted-title {
-        font-size: 2rem;
+        font-size: 2.1rem;
+    }
+
+    .accepted-subtitle {
+        font-size: 1rem;
+    }
+
+    .welcome-text {
+        font-size: 1.4rem;
     }
 
     .no-attempt-msg {
-        font-size: 0.78rem;
-        padding: 7px 14px;
-        max-width: 75vw;
+        font-size: 0.82rem;
+        padding: 8px 15px;
+        max-width: 78vw;
         white-space: normal;
     }
 }
@@ -644,7 +698,16 @@
     }
 
     .proposal-text {
-        font-size: 0.98rem;
+        font-size: 1rem;
+        line-height: 1.85;
+    }
+
+    .proposal-highlight {
+        font-size: 1.12rem;
+    }
+
+    .accepted-title {
+        font-size: 1.8rem;
     }
 }
 
