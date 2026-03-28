@@ -9,8 +9,14 @@
 
     // ===== CONFIGURAÇÃO =====
     const CONFIG = {
-        HOLD_MS:       2800,  // ms para completar o hold (era 1900)
-        SIM_REVEAL_AT: 6,     // tentativas no "Não" antes do "Sim" aparecer (era 4)
+        HOLD_MS:       2800,
+        SIM_REVEAL_AT: 6,
+        // Delay do botão "Não" começa DEPOIS que a pergunta aparece
+        NO_DELAY_MS:   3000,
+        // Timing cinematográfico do poema (ms)
+        POEM_LINE_INTERVAL: 700,   // intervalo entre cada linha
+        POEM_PAUSE_BEFORE_Q: 3000,  // pausa após última linha, antes da pergunta
+        POEM_Q_ANIM_MS: 900,       // duração da animação de entrada da pergunta
         VOL_INIT:      0.20,
         VOL_MID:       0.45,
         VOL_FULL:      1.00,
@@ -18,7 +24,7 @@
 
     // ===== ESTADO =====
     const S = {
-        phase:        0,      // 0=aguardando splash, 1=anel, 2=pedido, 3=aceito, 4=entrada
+        phase:        0,
         noCount:      0,
         settled:      false,
         holding:      false,
@@ -33,9 +39,17 @@
     let holdRaf   = null;
     let lastStage = -1;
 
-    // Estágios progressivos do shake + brilho ao segurar o anel
-    // Proporcionais ao novo HOLD_MS — os percentuais (at) não mudam,
-    // mas agora cada estágio dura ~560ms em vez de ~380ms
+    // Cache de elementos do hold
+    const HOLD_ELS = {
+        fill:  null,
+        emoji: null,
+        aura:  null,
+        orbit: null,
+        wrap:  null,
+        track: null,
+        hint:  null,
+    };
+
     const STAGES = [
         { at:0.00, cls:'',         gA:0.65, gB:0.35, aura:1.0, orbit:'rgba(255,140,200,.18)' },
         { at:0.20, cls:'shake-s',  gA:0.85, gB:0.50, aura:1.2, orbit:'rgba(255,140,200,.35)' },
@@ -44,7 +58,6 @@
         { at:0.88, cls:'shake-xl', gA:2.00, gB:1.50, aura:2.5, orbit:'rgba(255,210,240,.95)' },
     ];
 
-    // Mensagens do botão "Não" — 9 mensagens para cobrir as 6 tentativas com variedade
     const NO_MSGS = [
         { t:'Ei, eu fugi! 😂',                            e:'😂' },
         { t:'Aqui não, tente de novo!',                   e:'🏃' },
@@ -57,7 +70,6 @@
         { t:'Só o Sim funciona aqui 💕',                   e:'💕' },
     ];
 
-    // Hints progressivos enquanto o Sim não aparece
     const HINTS = [
         '',
         'Hmm... tem certeza? 🤔',
@@ -67,12 +79,10 @@
         'Última oportunidade! 😄',
     ];
 
-    // Paletas de partículas
     const SPARKS   = ['#ffb3d9','#ff80c0','#fff','#ffd700','#ff60a0','#ffc0e8','#c0a0ff','#80d0ff'];
     const CONFETTI = ['#ff80b0','#ffb3d4','#fff','#ffd0e8','#ffccff','#ff60a0','#ffa0c8','#ffe0f0','#ffd700','#c0a0ff'];
     const HEARTS   = ['💕','💗','💖','💝','❤️','🌹','✨','💫','🌸','💍'];
 
-    // ===== HELPERS =====
     const $ = id => document.getElementById(id);
 
     function activateLayer(id) {
@@ -101,7 +111,6 @@
         setupMusic();
 
         window.proposalAPI = { onSplashEnd };
-
         console.log('💍 proposal.js pronto — aguardando splash');
     }
 
@@ -128,16 +137,18 @@
                 <p class="hold-hint" id="holdHint">Pressione e segure o anel...</p>
             </div>
 
-            <!-- FASE 2: PEDIDO -->
+            <!-- FASE 2: PEDIDO — linhas separadas para reveal cinematográfico -->
             <div class="proposal-layer" id="phaseProposal">
-                <p class="proposal-text">
-                    Cada conversa, cada risada,<br>
-                    cada momento ao seu lado<br>
-                    me mostrou que é você<br>
-                    que eu quero ao meu lado.<br>
-                    <span class="proposal-highlight">Você aceita ser a minha namorada?</span>
-                </p>
-                <div class="buttons-area">
+                <div class="proposal-poem" id="proposalPoem">
+                    <span class="poem-line" id="poemLine0">Cada conversa, cada risada,</span>
+                    <span class="poem-line" id="poemLine1">cada momento ao seu lado</span>
+                    <span class="poem-line" id="poemLine2">me mostrou que é você</span>
+                    <span class="poem-line" id="poemLine3">que eu quero ao meu lado.</span>
+                </div>
+                <div class="proposal-question-wrap" id="proposalQuestionWrap">
+                    <span class="proposal-highlight" id="proposalHighlight">Você aceita ser a minha namorada?</span>
+                </div>
+                <div class="buttons-area" id="buttonsArea">
                     <button class="btn-no"  id="btnNo">Não 😅</button>
                     <button class="btn-yes" id="btnYes">Sim 💕</button>
                 </div>
@@ -170,45 +181,55 @@
         setupButtonEvents();
     }
 
-    // ===== ESTRELAS DE FUNDO =====
+    // ===== ESTRELAS =====
     function setupStars() {
         const canvas = $('proposalCanvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         let stars = [];
+        let W = 0, H = 0;
 
         function resize() {
-            canvas.width  = window.innerWidth;
-            canvas.height = window.innerHeight;
+            W = canvas.width  = window.innerWidth;
+            H = canvas.height = window.innerHeight;
             stars = [];
-            const n = Math.floor((canvas.width * canvas.height) / 4200);
+            const n = Math.floor((W * H) / 4200);
             for (let i = 0; i < n; i++) {
                 stars.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    r: Math.random() * 1.3 + 0.2,
-                    o: Math.random() * 0.55 + 0.18,
-                    s: Math.random() * 0.35 + 0.05,
-                    p: Math.random() * Math.PI * 2,
+                    x:   Math.random() * W,
+                    y:   Math.random() * H,
+                    r:   Math.random() * 1.3 + 0.2,
+                    o:   Math.random() * 0.55 + 0.18,
+                    s:   Math.random() * 0.35 + 0.05,
+                    p:   Math.random() * Math.PI * 2,
                     hue: Math.random() > 0.5 ? '255,160,220' : '200,160,255',
                 });
             }
         }
 
         function loop(t) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            stars.forEach(s => {
+            ctx.clearRect(0, 0, W, H);
+            const len = stars.length;
+            for (let i = 0; i < len; i++) {
+                const s  = stars[i];
                 const fl = Math.sin(t * 0.001 * s.s + s.p) * 0.22;
+                const op = fl < 0
+                    ? Math.max(0, s.o + fl)
+                    : Math.min(1, s.o + fl);
                 ctx.beginPath();
                 ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${s.hue},${Math.max(0, Math.min(1, s.o + fl))})`;
+                ctx.fillStyle = `rgba(${s.hue},${op})`;
                 ctx.fill();
-            });
+            }
             requestAnimationFrame(loop);
         }
 
         resize();
-        window.addEventListener('resize', resize);
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(resize, 150);
+        });
         loop(0);
     }
 
@@ -248,36 +269,6 @@
         }, dt);
     }
 
-    function preventScroll(e) {
-        if (S.phase !== 0) {
-            e.preventDefault();
-        }
-    }
-
-    function lockScroll() {
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
-        document.body.style.touchAction = 'none';
-        window.addEventListener('wheel', preventScroll, { passive: false });
-        window.addEventListener('touchmove', preventScroll, { passive: false });
-    }
-
-    function unlockScroll() {
-        document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
-        document.body.style.touchAction = '';
-        window.removeEventListener('wheel', preventScroll, { passive: false });
-        window.removeEventListener('touchmove', preventScroll, { passive: false });
-    }
-
-    function applyHeartTheme() {
-        if (typeof changeTheme === 'function') {
-            changeTheme('hearts', true);
-        } else {
-            localStorage.setItem('kevinIaraTheme', 'hearts');
-        }
-    }
-
     // ===== SPLASH TERMINOU =====
     function onSplashEnd() {
         console.log('✨ onSplashEnd() recebido — iniciando fase 1');
@@ -287,13 +278,11 @@
     // ===== FASE 1 — ANEL =====
     function startPhase1() {
         S.phase = 1;
-        lockScroll();
-        applyHeartTheme();
         activateLayer('phaseRing');
         playMusic(CONFIG.VOL_INIT);
     }
 
-    // ===== HOLD — PRESSIONAR E SEGURAR =====
+    // ===== HOLD =====
     function setupHoldEvents() {
         const wrap = $('ringWrap');
         if (!wrap) return;
@@ -315,9 +304,16 @@
         holdStart = performance.now();
         lastStage = -1;
 
-        $('holdTrack')?.classList.add('visible');
-        const hint = $('holdHint');
-        if (hint) hint.style.opacity = '0';
+        HOLD_ELS.fill  = $('holdFill');
+        HOLD_ELS.emoji = $('ringEmoji');
+        HOLD_ELS.aura  = $('ringAura');
+        HOLD_ELS.orbit = $('ringOrbit');
+        HOLD_ELS.wrap  = $('ringWrap');
+        HOLD_ELS.track = $('holdTrack');
+        HOLD_ELS.hint  = $('holdHint');
+
+        HOLD_ELS.track?.classList.add('visible');
+        if (HOLD_ELS.hint) HOLD_ELS.hint.style.opacity = '0';
 
         spawnSparks(e, 6, ['#ffb3d9','#ff80c0','#fff','#ffccee']);
         holdRaf = requestAnimationFrame(tickHold);
@@ -326,14 +322,9 @@
     function tickHold(now) {
         if (!S.holding) return;
 
-        const pct   = Math.min(1, (now - holdStart) / CONFIG.HOLD_MS);
-        const fill  = $('holdFill');
-        const emoji = $('ringEmoji');
-        const aura  = $('ringAura');
-        const orbit = $('ringOrbit');
-        const wrap  = $('ringWrap');
+        const pct = Math.min(1, (now - holdStart) / CONFIG.HOLD_MS);
 
-        if (fill) fill.style.width = (pct * 100) + '%';
+        if (HOLD_ELS.fill) HOLD_ELS.fill.style.width = (pct * 100) + '%';
 
         let stage = STAGES[0], stageIdx = 0;
         for (let i = STAGES.length - 1; i >= 0; i--) {
@@ -342,37 +333,37 @@
 
         if (stageIdx !== lastStage) {
             lastStage = stageIdx;
-            if (wrap) {
-                wrap.classList.remove('shake-s','shake-m','shake-l','shake-xl');
-                if (stage.cls) wrap.classList.add(stage.cls);
+            if (HOLD_ELS.wrap) {
+                HOLD_ELS.wrap.classList.remove('shake-s','shake-m','shake-l','shake-xl');
+                if (stage.cls) HOLD_ELS.wrap.classList.add(stage.cls);
             }
-            if (orbit) {
-                orbit.style.borderColor = stage.orbit;
-                orbit.style.boxShadow   = stageIdx >= 2
+            if (HOLD_ELS.orbit) {
+                HOLD_ELS.orbit.style.borderColor = stage.orbit;
+                HOLD_ELS.orbit.style.boxShadow   = stageIdx >= 2
                     ? `0 0 ${stageIdx * 8}px rgba(255,160,220,${stageIdx * 0.18})`
                     : '';
             }
-            if (stageIdx > 0 && wrap) {
-                const r = wrap.getBoundingClientRect();
+            if (stageIdx > 0 && HOLD_ELS.wrap) {
+                const r = HOLD_ELS.wrap.getBoundingClientRect();
                 spawnSparks(
-                    { clientX: r.left + r.width/2, clientY: r.top + r.height/2 },
+                    { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 },
                     stageIdx * 4, SPARKS
                 );
             }
         }
 
-        if (emoji) {
-            emoji.style.filter = `
+        if (HOLD_ELS.emoji) {
+            HOLD_ELS.emoji.style.filter = `
                 drop-shadow(0 0 ${18 * stage.gA}px rgba(255,130,200,${Math.min(.95, stage.gA * .7)}))
                 drop-shadow(0 0 ${38 * stage.gB}px rgba(220,80,180,${Math.min(.8,  stage.gB * .6)}))
                 drop-shadow(0 0 ${60 * pct}px rgba(255,200,240,${pct * .5}))
             `;
-            emoji.style.fontSize = (90 + pct * 18) + 'px';
+            HOLD_ELS.emoji.style.fontSize = (90 + pct * 18) + 'px';
         }
 
-        if (aura) {
-            aura.style.transform = `scale(${stage.aura})`;
-            aura.style.opacity   = String(Math.min(1, .55 + pct * .7));
+        if (HOLD_ELS.aura) {
+            HOLD_ELS.aura.style.transform = `scale(${stage.aura})`;
+            HOLD_ELS.aura.style.opacity   = String(Math.min(1, .55 + pct * .7));
         }
 
         if (pct < 1) {
@@ -388,74 +379,117 @@
         cancelAnimationFrame(holdRaf);
         lastStage = -1;
 
-        const wrap  = $('ringWrap');
-        const emoji = $('ringEmoji');
-        const aura  = $('ringAura');
-        const orbit = $('ringOrbit');
-        const fill  = $('holdFill');
-        const track = $('holdTrack');
-        const hint  = $('holdHint');
-
-        if (fill)  fill.style.width   = '0%';
-        if (wrap)  wrap.classList.remove('shake-s','shake-m','shake-l','shake-xl');
-        if (emoji) { emoji.style.filter = ''; emoji.style.fontSize = '90px'; }
-        if (aura)  { aura.style.transform = 'scale(1)'; aura.style.opacity = '.55'; }
-        if (orbit) { orbit.style.borderColor = 'rgba(255,140,200,.18)'; orbit.style.boxShadow = ''; }
+        if (HOLD_ELS.fill)  HOLD_ELS.fill.style.width   = '0%';
+        if (HOLD_ELS.wrap)  HOLD_ELS.wrap.classList.remove('shake-s','shake-m','shake-l','shake-xl');
+        if (HOLD_ELS.emoji) { HOLD_ELS.emoji.style.filter = ''; HOLD_ELS.emoji.style.fontSize = '90px'; }
+        if (HOLD_ELS.aura)  { HOLD_ELS.aura.style.transform = 'scale(1)'; HOLD_ELS.aura.style.opacity = '.55'; }
+        if (HOLD_ELS.orbit) { HOLD_ELS.orbit.style.borderColor = 'rgba(255,140,200,.18)'; HOLD_ELS.orbit.style.boxShadow = ''; }
 
         if (S.phase === 1) {
-            track?.classList.remove('visible');
-            if (hint) hint.style.opacity = '1';
+            HOLD_ELS.track?.classList.remove('visible');
+            if (HOLD_ELS.hint) HOLD_ELS.hint.style.opacity = '1';
         }
     }
 
+    // ===== HOLD COMPLETO =====
     function onHoldComplete() {
         S.holding = false;
         lastStage = -1;
-        $('ringWrap')?.classList.remove('shake-s','shake-m','shake-l','shake-xl');
+        HOLD_ELS.wrap?.classList.remove('shake-s','shake-m','shake-l','shake-xl');
 
-        const wrap = $('ringWrap');
-        const rect = wrap
-            ? wrap.getBoundingClientRect()
+        const rect = HOLD_ELS.wrap
+            ? HOLD_ELS.wrap.getBoundingClientRect()
             : { left: window.innerWidth/2, top: window.innerHeight/2, width:0, height:0 };
         const cx = rect.left + rect.width  / 2;
         const cy = rect.top  + rect.height / 2;
 
         fadeVol(S.music?.volume || 0, CONFIG.VOL_MID, 500);
 
-        [0, 120, 250].forEach((delay, i) => {
+        [0, 170, 360].forEach((delay, i) => {
             setTimeout(() => {
                 const ring = document.createElement('div');
                 ring.className = 'burst-ring';
                 const sz = (180 + i * 120) + 'px';
-                ring.style.cssText = `left:${cx}px;top:${cy}px;width:${sz};height:${sz};animation-duration:${.55 + i * .15}s;border-color:rgba(255,${140 + i*30},220,${.9 - i*.25})`;
+                ring.style.cssText = `left:${cx}px;top:${cy}px;width:${sz};height:${sz};animation-duration:${.75 + i * .2}s;border-color:rgba(255,${140 + i*30},220,${.9 - i*.25})`;
                 document.body.appendChild(ring);
                 ring.addEventListener('animationend', () => ring.remove());
             }, delay);
         });
 
         spawnSparks({ clientX:cx, clientY:cy }, 55, SPARKS);
-        setTimeout(() => spawnSparks({ clientX:cx, clientY:cy }, 40, SPARKS), 80);
-        setTimeout(() => spawnSparks({ clientX:cx, clientY:cy }, 30, ['#fff','#ffd700','#ffe0f0']), 180);
+        setTimeout(() => spawnSparks({ clientX:cx, clientY:cy }, 40, SPARKS), 110);
+        setTimeout(() => spawnSparks({ clientX:cx, clientY:cy }, 30, ['#fff','#ffd700','#ffe0f0']), 260);
 
         [
             {x:cx-180,y:cy-120},{x:cx+180,y:cy-120},
             {x:cx-220,y:cy+80 },{x:cx+220,y:cy+80 },
             {x:cx,    y:cy-200},{x:cx-100,y:cy+150},{x:cx+100,y:cy+150},
-        ].forEach((p, i) => setTimeout(() => fireworkBurst(p.x, p.y, SPARKS), i * 60 + 40));
+        ].forEach((p, i) => setTimeout(() => fireworkBurst(p.x, p.y, SPARKS), i * 85 + 55));
 
         spawnReaction('✨', cx,      cy - 90);
-        setTimeout(() => spawnReaction('💕', cx - 55, cy - 60),  80);
-        setTimeout(() => spawnReaction('🌸', cx + 55, cy - 60), 160);
-        setTimeout(() => spawnReaction('💖', cx,      cy - 130), 240);
+        setTimeout(() => spawnReaction('💕', cx - 55, cy - 60),  110);
+        setTimeout(() => spawnReaction('🌸', cx + 55, cy - 60),  220);
+        setTimeout(() => spawnReaction('💖', cx,      cy - 130), 330);
 
-        setTimeout(() => startPhase2(), 700);
+        setTimeout(() => startPhase2(), 900);
     }
 
-    // ===== FASE 2 — PEDIDO =====
+    // ===== FASE 2 — PEDIDO — REVEAL CINEMATOGRÁFICO =====
     function startPhase2() {
         S.phase = 2;
         activateLayer('phaseProposal');
-        updateHint();
+
+        // Esconde tudo inicialmente
+        const area      = $('buttonsArea');
+        const highlight = $('proposalHighlight');
+        const qWrap     = $('proposalQuestionWrap');
+
+        if (area)      { area.style.opacity = '0'; area.style.pointerEvents = 'none'; }
+        if (qWrap)     { qWrap.style.opacity = '0'; }
+
+        // Revela cada linha do poema uma a uma
+        const lines = ['poemLine0','poemLine1','poemLine2','poemLine3'];
+        const lineDelay = 400; // delay inicial antes da primeira linha
+
+        lines.forEach((id, i) => {
+            setTimeout(() => {
+                const el = $(id);
+                if (el) el.classList.add('visible');
+            }, lineDelay + i * CONFIG.POEM_LINE_INTERVAL);
+        });
+
+        // Depois de todas as linhas, pausa e revela a pergunta com drama
+        const questionAt = lineDelay
+            + lines.length * CONFIG.POEM_LINE_INTERVAL
+            + CONFIG.POEM_PAUSE_BEFORE_Q;
+
+        setTimeout(() => {
+            // Reveal da pergunta
+            if (qWrap) {
+                qWrap.style.transition = 'opacity 0.5s ease';
+                qWrap.style.opacity    = '1';
+            }
+            if (highlight) highlight.classList.add('visible');
+
+            // Faísca sutil quando a pergunta aparece
+            const cx = window.innerWidth  / 2;
+            const cy = window.innerHeight * 0.58;
+            setTimeout(() => {
+                spawnSparks({ clientX: cx, clientY: cy }, 14, ['#ffb3d9','#fff','#ffd700','#ff80c0']);
+                spawnReaction('💕', cx, cy - 60);
+            }, CONFIG.POEM_Q_ANIM_MS * 0.6);
+
+            // Só agora começa o delay do botão "Não"
+            setTimeout(() => {
+                if (area) {
+                    area.style.transition    = 'opacity 0.7s ease';
+                    area.style.opacity       = '1';
+                    area.style.pointerEvents = 'auto';
+                }
+                updateHint();
+            }, CONFIG.POEM_Q_ANIM_MS + CONFIG.NO_DELAY_MS);
+
+        }, questionAt);
     }
 
     // ===== BOTÕES =====
@@ -596,81 +630,85 @@
             screen.classList.add('fading-out');
             screen.addEventListener('animationend', () => {
                 screen.classList.add('hidden');
-                unlockScroll();
+                if (typeof changeTheme === 'function') changeTheme('hearts', true);
+                else localStorage.setItem('kevinIaraTheme', 'hearts');
             }, { once: true });
         }, 3000);
     }
 
-    // ===== GRANDE EXPLOSÃO — ao clicar Sim =====
+    // ===== GRANDE EXPLOSÃO =====
     function launchBigExplosion() {
         const cx = window.innerWidth  / 2;
         const cy = window.innerHeight / 2;
 
-        [0, 100, 210, 340].forEach((delay, i) => {
+        [0, 140, 295, 475].forEach((delay, i) => {
             setTimeout(() => {
                 const ring = document.createElement('div');
                 ring.className = 'burst-ring';
                 const sz = (200 + i * 160) + 'px';
-                ring.style.cssText = `left:${cx}px;top:${cy}px;width:${sz};height:${sz};animation-duration:${.6 + i * .15}s;border-color:rgba(255,${120 + i*25},${180 + i*15},${.9 - i*.2})`;
+                ring.style.cssText = `left:${cx}px;top:${cy}px;width:${sz};height:${sz};animation-duration:${.8 + i * .2}s;border-color:rgba(255,${120 + i*25},${180 + i*15},${.9 - i*.2})`;
                 document.body.appendChild(ring);
                 ring.addEventListener('animationend', () => ring.remove());
             }, delay);
         });
 
-        for (let i = 0; i < 12; i++) {
-            setTimeout(() => fireworkBurst(
-                80 + Math.random() * (window.innerWidth  - 160),
-                60 + Math.random() * (window.innerHeight * 0.65),
-                CONFETTI
-            ), i * 55);
-        }
-
-        setTimeout(() => {
-            for (let i = 0; i < 8; i++) {
-                setTimeout(() => fireworkBurst(
-                    80 + Math.random() * (window.innerWidth  - 160),
-                    60 + Math.random() * (window.innerHeight * 0.6),
-                    CONFETTI
-                ), i * 70);
-            }
-        }, 950);
+        const batchFireworks = (count, interval, offsetMs) => {
+            setTimeout(() => {
+                for (let i = 0; i < count; i++) {
+                    setTimeout(() => fireworkBurst(
+                        80 + Math.random() * (window.innerWidth  - 160),
+                        60 + Math.random() * (window.innerHeight * 0.65),
+                        CONFETTI
+                    ), i * interval);
+                }
+            }, offsetMs);
+        };
+        batchFireworks(12, 75,  0);
+        batchFireworks(8,  95, 1300);
 
         for (let i = 0; i < 40; i++) {
             setTimeout(() => {
                 const b = document.createElement('div');
                 b.className   = 'heart-bubble';
                 b.textContent = HEARTS[Math.floor(Math.random() * HEARTS.length)];
-                b.style.cssText = `left:${Math.random()*100}vw;top:100vh;font-size:${1.3+Math.random()*2.6}rem;animation-duration:${2.2+Math.random()*3.8}s;`;
+                b.style.cssText = `left:${Math.random()*100}vw;top:100vh;font-size:${1.3+Math.random()*2.6}rem;animation-duration:${2.8+Math.random()*4.2}s;`;
                 document.body.appendChild(b);
                 b.addEventListener('animationend', () => b.remove());
-            }, i * 55);
+            }, i * 70);
         }
 
-        for (let i = 0; i < 160; i++) {
+        const BATCH = 20;
+        for (let batch = 0; batch < 8; batch++) {
             setTimeout(() => {
-                const p = document.createElement('div');
-                p.className = 'confetti-piece';
-                const col = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
-                p.style.cssText = `left:${Math.random()*100}vw;top:-20px;background:${col};width:${5+Math.random()*10}px;height:${5+Math.random()*10}px;border-radius:${Math.random()>.5?'50%':'3px'};animation-duration:${2.5+Math.random()*4}s;`;
-                document.body.appendChild(p);
-                p.addEventListener('animationend', () => p.remove());
-            }, i * 15);
+                const frag = document.createDocumentFragment();
+                for (let j = 0; j < BATCH; j++) {
+                    const p   = document.createElement('div');
+                    const col = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+                    p.className = 'confetti-piece';
+                    p.style.cssText = `left:${Math.random()*100}vw;top:-20px;background:${col};width:${5+Math.random()*10}px;height:${5+Math.random()*10}px;border-radius:${Math.random()>.5?'50%':'3px'};animation-duration:${3.2+Math.random()*4.8}s;`;
+                    p.addEventListener('animationend', () => p.remove());
+                    frag.appendChild(p);
+                }
+                document.body.appendChild(frag);
+            }, batch * (BATCH * 20));
         }
     }
 
-    // ===== FOGOS DE ARTIFÍCIO =====
+    // ===== FOGOS =====
     function fireworkBurst(x, y, colors) {
+        const frag = document.createDocumentFragment();
         for (let i = 0; i < 18; i++) {
-            const fw  = document.createElement('div');
+            const fw    = document.createElement('div');
             fw.className = 'firework';
             const angle = (Math.PI * 2 * i) / 18;
             const dist  = 70 + Math.random() * 80;
             const col   = colors[Math.floor(Math.random() * colors.length)];
             const sz    = 3 + Math.random() * 4;
-            fw.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 6px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;animation-duration:${.55+Math.random()*.3}s;`;
-            document.body.appendChild(fw);
+            fw.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 6px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;animation-duration:${.75+Math.random()*.4}s;`;
             fw.addEventListener('animationend', () => fw.remove());
+            frag.appendChild(fw);
         }
+        document.body.appendChild(frag);
     }
 
     // ===== FAÍSCAS =====
@@ -678,20 +716,22 @@
         let x = window.innerWidth / 2, y = window.innerHeight / 2;
         if (ev?.clientX != null) { x = ev.clientX; y = ev.clientY; }
 
+        const frag = document.createDocumentFragment();
         for (let i = 0; i < count; i++) {
-            const sp = document.createElement('div');
+            const sp    = document.createElement('div');
             sp.className = 'spark';
             const angle = (Math.PI * 2 * i) / count + Math.random() * 0.8;
             const dist  = 50 + Math.random() * 130;
             const col   = colors[Math.floor(Math.random() * colors.length)];
             const sz    = 3 + Math.random() * 6;
-            sp.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 5px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist-30}px;animation-duration:${.45+Math.random()*.6}s;`;
-            document.body.appendChild(sp);
+            sp.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 5px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist-30}px;animation-duration:${.6+Math.random()*.7}s;`;
             sp.addEventListener('animationend', () => sp.remove());
+            frag.appendChild(sp);
         }
+        document.body.appendChild(frag);
     }
 
-    // ===== REAÇÕES FLUTUANTES =====
+    // ===== REAÇÕES =====
     function spawnReaction(emoji, x, y) {
         const el = document.createElement('div');
         el.className   = 'reaction-emoji';
@@ -701,7 +741,7 @@
         el.addEventListener('animationend', () => el.remove());
     }
 
-    // ===== FLASH DE TELA =====
+    // ===== FLASH =====
     function flashScreen(dur) {
         const fl = $('proposalFlash');
         if (!fl) return;
