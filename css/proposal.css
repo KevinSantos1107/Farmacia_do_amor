@@ -8,6 +8,9 @@
    <link rel="preconnect" href="https://fonts.googleapis.com">
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Raleway:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+
+   Adicione também no <head> para eliminar tap delay no iOS:
+   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
    ============================================================ */
 
 /* ===== TELA PRINCIPAL ===== */
@@ -21,10 +24,18 @@
     justify-content: center;
     overflow: hidden;
     font-family: 'Raleway', Georgia, serif;
+    /* [AJUSTE #6] Inicializa compositor no Safari para backdrop-filter funcionar */
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
 }
 
 #proposalScreen.hidden {
     display: none !important;
+}
+
+/* [AJUSTE #5] Elimina tap delay em todos os elementos interativos no iOS */
+#proposalScreen * {
+    touch-action: manipulation;
 }
 
 #proposalCanvas {
@@ -86,7 +97,7 @@
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
-    touch-action: none;
+    touch-action: none; /* mantém none aqui pois é zona de gesto de hold */
     will-change: transform;
     user-select: none;
     -webkit-user-select: none;
@@ -100,6 +111,8 @@
     animation: auraBreath 2.8s ease-in-out infinite;
     transition: transform 0.12s ease, opacity 0.12s ease;
     pointer-events: none;
+    /* [AJUSTE #2] Compositor dedicado para animações contínuas */
+    will-change: transform, opacity;
 }
 
 @keyframes auraBreath {
@@ -116,6 +129,8 @@
     animation: orb 5s linear infinite;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     pointer-events: none;
+    /* [AJUSTE #2] Compositor dedicado para rotação contínua */
+    will-change: transform;
 }
 
 .ring-orbit::after {
