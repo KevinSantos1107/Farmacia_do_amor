@@ -812,7 +812,6 @@
     function startPhase4() {
         S.phase = 4;
         activateLayer('phaseEntrance');
-        fadeVol(getActiveAudio(), 0, 2500);
         localStorage.setItem('proposal_answered', 'true');
 
         setTimeout(() => {
