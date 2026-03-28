@@ -270,13 +270,17 @@
         }
     }
 
+    function tryUnlockProposalAudio() {
+        if (!S.music || S.musicPlaying) return;
+        unlockProposalAudio();
+    }
+
     function unlockProposalAudio() {
         if (!S.music) return;
         hideAudioUnlockPrompt();
         const playPromise = playMusic(CONFIG.VOL_INIT);
         if (playPromise && typeof playPromise.then === 'function') {
             playPromise.then(() => removeAudioUnlockListeners()).catch(() => {
-                // Se falhar, mantemos o listener ativo para nova tentativa.
                 showAudioUnlockPrompt();
             });
         }
@@ -298,10 +302,13 @@
 
     function showAudioUnlockPrompt() {
         if (S.audioUnlockPrompt) return;
-        const prompt = document.createElement('div');
+        const prompt = document.createElement('button');
         prompt.id = 'proposalAudioPrompt';
+        prompt.type = 'button';
         prompt.textContent = 'Toque para ativar o áudio 🎶';
-        prompt.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;padding:12px 18px;border-radius:999px;z-index:10050;font-size:14px;pointer-events:none;mix-blend-mode:screen;';
+        prompt.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:12px 18px;border:none;border-radius:999px;z-index:10050;font-size:14px;cursor:pointer;pointer-events:auto;mix-blend-mode:screen;';
+        prompt.addEventListener('click', unlockProposalAudio);
+        prompt.addEventListener('touchend', unlockProposalAudio, { passive: true });
         document.body.appendChild(prompt);
         S.audioUnlockPrompt = prompt;
     }
@@ -382,6 +389,7 @@
     }
 
     function onHoldStart(e) {
+        tryUnlockProposalAudio();
         if (S.phase !== 1 || S.holding) return;
         S.holding = true;
         holdStart = performance.now();
@@ -583,12 +591,17 @@
 
         btnNo.addEventListener('mouseenter', handleNo);
         btnNo.addEventListener('touchstart', e => {
+            tryUnlockProposalAudio();
             e.preventDefault();
             handleNo(e);
         }, { passive: false });
 
-        btnYes.addEventListener('click', startPhase3);
+        btnYes.addEventListener('click', e => {
+            tryUnlockProposalAudio();
+            startPhase3();
+        });
         btnYes.addEventListener('touchend', e => {
+            tryUnlockProposalAudio();
             e.preventDefault();
             startPhase3();
         }, { passive: false });
