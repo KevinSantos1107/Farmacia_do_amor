@@ -11,12 +11,10 @@
     const CONFIG = {
         HOLD_MS:       2800,
         SIM_REVEAL_AT: 6,
-        // Delay do botão "Não" começa DEPOIS que a pergunta aparece
         NO_DELAY_MS:   3000,
-        // Timing cinematográfico do poema (ms)
-        POEM_LINE_INTERVAL: 700,   // intervalo entre cada linha
-        POEM_PAUSE_BEFORE_Q: 2500,  // pausa após última linha, antes da pergunta
-        POEM_Q_ANIM_MS: 900,       // duração da animação de entrada da pergunta
+        POEM_LINE_INTERVAL: 700,
+        POEM_PAUSE_BEFORE_Q: 2500,
+        POEM_Q_ANIM_MS: 900,
         VOL_INIT:      0.20,
         VOL_MID:       0.45,
         VOL_FULL:      1.00,
@@ -35,15 +33,11 @@
         audioUnlockPrompt: null,
     };
 
-    // Hold
     let holdStart = null;
     let holdRaf   = null;
     let lastStage = -1;
+    let starsRaf  = null;
 
-    // Referência ao RAF do canvas de estrelas para cancelar depois
-    let starsRaf = null;
-
-    // Cache de elementos do hold
     const HOLD_ELS = {
         fill:  null,
         emoji: null,
@@ -118,7 +112,6 @@
         console.log('💍 proposal.js pronto — aguardando splash');
     }
 
-    // ===== HELPERS localStorage seguros =====
     function lsSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
     function lsGet(k)    { try { return localStorage.getItem(k); } catch(e) { return null; } }
 
@@ -131,13 +124,13 @@
             <canvas id="proposalCanvas"></canvas>
             <div id="proposalFlash"></div>
 
-            <!-- FASE 0: TOQUE PARA COMEÇAR (desbloqueia áudio) -->
+            <!-- FASE 0: TOQUE PARA COMEÇAR -->
             <div class="proposal-layer" id="phaseZero">
+                <div class="phase0-stars" id="phase0Stars"></div>
+                <span class="phase0-icon" id="phase0Heart">💗</span>
+                <p class="phase0-title">Tenho algo especial<br>para você...</p>
                 <p class="phase0-name">Iara</p>
-                <div class="phase0-heart" id="phase0Heart">💗</div>
-                <div class="phase0-divider"></div>
-                <p class="phase0-text">Tenho algo especial<br>para te mostrar...</p>
-                <button class="phase0-cta" id="phase0Btn">toque para continuar</button>
+                <button class="phase0-btn" id="phase0Btn">Toque para continuar</button>
             </div>
 
             <!-- FASE 1: ANEL -->
@@ -154,7 +147,7 @@
                 <p class="hold-hint" id="holdHint">Pressione e segure o anel...</p>
             </div>
 
-            <!-- FASE 2: PEDIDO — linhas separadas para reveal cinematográfico -->
+            <!-- FASE 2: PEDIDO -->
             <div class="proposal-layer" id="phaseProposal">
                 <div class="proposal-poem" id="proposalPoem">
                     <span class="poem-line" id="poemLine0">Cada conversa, cada risada,</span>
@@ -194,12 +187,32 @@
             </div>
         `;
 
+        setupPhaseZeroStars();
         setupPhaseZeroEvents();
         setupHoldEvents();
         setupButtonEvents();
     }
 
-    // ===== ESTRELAS =====
+    // ===== ESTRELINHAS DA FASE 0 =====
+    function setupPhaseZeroStars() {
+        const container = $('phase0Stars');
+        if (!container) return;
+        const positions = [
+            [12,9],[72,18],[88,6],[5,35],[93,28],
+            [25,55],[80,48],[15,72],[68,65],[90,78],
+            [38,85],[55,20],[45,92],[8,88],[77,90],
+            [32,40],[60,75],[50,10],
+        ];
+        positions.forEach(([left, top], i) => {
+            const star = document.createElement('div');
+            star.className = 'phase0-star';
+            const size = Math.random() > 0.5 ? 2 : 1;
+            star.style.cssText = `left:${left}%;top:${top}%;width:${size}px;height:${size}px;animation-delay:${(i * 0.37) % 2.8}s;animation-duration:${2.2 + (i % 4) * 0.5}s;`;
+            container.appendChild(star);
+        });
+    }
+
+    // ===== ESTRELAS (canvas fundo geral) =====
     function setupStars() {
         const canvas = $('proposalCanvas');
         if (!canvas) return;
@@ -231,9 +244,7 @@
             for (let i = 0; i < len; i++) {
                 const s  = stars[i];
                 const fl = Math.sin(t * 0.001 * s.s + s.p) * 0.22;
-                const op = fl < 0
-                    ? Math.max(0, s.o + fl)
-                    : Math.min(1, s.o + fl);
+                const op = fl < 0 ? Math.max(0, s.o + fl) : Math.min(1, s.o + fl);
                 ctx.beginPath();
                 ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(${s.hue},${op})`;
@@ -265,41 +276,12 @@
         return foundAudio instanceof HTMLMediaElement ? foundAudio : null;
     }
 
-    function startExternalMusic() {
-        if (!S.externalMusic) return Promise.reject(new Error('nenhum player externo detectado'));
-        if (!S.externalMusic.paused) {
-            S.musicPlaying = true;
-            $('musicIndicator')?.classList.add('visible');
-            syncExternalPlayerUI();
-            return Promise.resolve();
-        }
-
-        if (window.AudioManager?.play) {
-            window.AudioManager.play(S.externalMusic, window.AudioManager.currentPlayerId || null);
-        }
-
-        return S.externalMusic.play().then(() => {
-            S.musicPlaying = true;
-            $('musicIndicator')?.classList.add('visible');
-            syncExternalPlayerUI();
-        }).catch((err) => {
-            console.warn('⚠️ proposal startExternalMusic falhou:', err);
-            throw err;
-        });
-    }
-
-    function getActiveAudio() {
-        return S.externalMusic;
-    }
+    function getActiveAudio() { return S.externalMusic; }
 
     function syncExternalPlayerUI() {
-        if (!S.externalMusic || !window.AudioManager?.findPlayerByAudio || !window.AudioManager?.updatePlayerUI) {
-            return;
-        }
+        if (!S.externalMusic || !window.AudioManager?.findPlayerByAudio || !window.AudioManager?.updatePlayerUI) return;
         const player = window.AudioManager.findPlayerByAudio(S.externalMusic);
-        if (player) {
-            window.AudioManager.updatePlayerUI(player, S.externalMusic.paused ? 'paused' : 'playing');
-        }
+        if (player) window.AudioManager.updatePlayerUI(player, S.externalMusic.paused ? 'paused' : 'playing');
     }
 
     function fadeVol(audio, to, dur, from) {
@@ -328,40 +310,34 @@
         setTimeout(startPhaseZero, 300);
     }
 
-    // ===== FASE 0 — TOQUE PARA COMEÇAR =====
+    // ===== FASE 0 =====
     function startPhaseZero() {
         S.phase = 0;
-
-        // Bloqueia scroll durante todo o proposal
         document.body.classList.add('proposal-active');
-
-        // Detecta música mas NÃO tenta tocar ainda — aguarda gesto do usuário
         S.externalMusic = detectExternalMusic();
-
         activateLayer('phaseZero');
     }
 
     function setupPhaseZeroEvents() {
-        // Evento adicionado depois que o DOM é construído, via delegação
-        document.addEventListener('click', onPhaseZeroTap);
-        document.addEventListener('touchend', onPhaseZeroTap, { passive: true });
+        document.addEventListener('click',    _phase0Handler);
+        document.addEventListener('touchend', _phase0Handler, { passive: true });
     }
 
-    function onPhaseZeroTap(e) {
+    function _phase0Handler(e) {
         if (S.phase !== 0) return;
 
-        // Só reage ao botão CTA ou ao coração — não a qualquer toque na tela
-        const btn = $('phase0Btn');
+        const btn   = $('phase0Btn');
         const heart = $('phase0Heart');
         if (!btn || !heart) return;
-        if (!btn.contains(e.target) && e.target !== btn &&
-            !heart.contains(e.target) && e.target !== heart) return;
 
-        // Remove listeners — só precisa acontecer uma vez
-        document.removeEventListener('click', onPhaseZeroTap);
-        document.removeEventListener('touchend', onPhaseZeroTap);
+        const onBtn   = btn   === e.target || btn.contains(e.target);
+        const onHeart = heart === e.target || heart.contains(e.target);
+        if (!onBtn && !onHeart) return;
 
-        // Tenta tocar música DENTRO do handler do gesto (garantia iOS)
+        document.removeEventListener('click',    _phase0Handler);
+        document.removeEventListener('touchend', _phase0Handler);
+
+        // Toca música DENTRO do gesto — obrigatório para iOS
         if (S.externalMusic) {
             if (window.AudioManager?.play) {
                 window.AudioManager.play(S.externalMusic, window.AudioManager.currentPlayerId || null);
@@ -373,18 +349,13 @@
                     $('musicIndicator')?.classList.add('visible');
                     syncExternalPlayerUI();
                     fadeVol(S.externalMusic, CONFIG.VOL_INIT, 800, 0);
-                }).catch(err => {
-                    console.warn('⚠️ Áudio bloqueado mesmo com gesto:', err);
-                });
+                }).catch(err => console.warn('⚠️ áudio bloqueado:', err));
             }
         }
 
-        // Anima saída da fase 0 e entra na fase 1
         const layer = $('phaseZero');
-        if (layer) {
-            layer.classList.add('phase0-exit');
-        }
-        setTimeout(startPhase1, 600);
+        if (layer) layer.classList.add('phase0-exit');
+        setTimeout(startPhase1, 550);
     }
 
     // ===== FASE 1 — ANEL =====
@@ -432,9 +403,7 @@
 
     function tickHold(now) {
         if (!S.holding) return;
-
         const pct = Math.min(1, (now - holdStart) / CONFIG.HOLD_MS);
-
         if (HOLD_ELS.fill) HOLD_ELS.fill.style.width = (pct * 100) + '%';
 
         let stage = STAGES[0], stageIdx = 0;
@@ -545,7 +514,7 @@
         setTimeout(() => startPhase2(), 900);
     }
 
-    // ===== FASE 2 — PEDIDO — REVEAL CINEMATOGRÁFICO =====
+    // ===== FASE 2 — PEDIDO =====
     function startPhase2() {
         S.phase = 2;
         activateLayer('phaseProposal');
@@ -554,8 +523,8 @@
         const highlight = $('proposalHighlight');
         const qWrap     = $('proposalQuestionWrap');
 
-        if (area)      { area.style.opacity = '0'; area.style.pointerEvents = 'none'; }
-        if (qWrap)     { qWrap.style.opacity = '0'; }
+        if (area)  { area.style.opacity = '0'; area.style.pointerEvents = 'none'; }
+        if (qWrap) { qWrap.style.opacity = '0'; }
 
         const lines = ['poemLine0','poemLine1','poemLine2','poemLine3'];
         const lineDelay = 400;
@@ -567,15 +536,10 @@
             }, lineDelay + i * CONFIG.POEM_LINE_INTERVAL);
         });
 
-        const questionAt = lineDelay
-            + lines.length * CONFIG.POEM_LINE_INTERVAL
-            + CONFIG.POEM_PAUSE_BEFORE_Q;
+        const questionAt = lineDelay + lines.length * CONFIG.POEM_LINE_INTERVAL + CONFIG.POEM_PAUSE_BEFORE_Q;
 
         setTimeout(() => {
-            if (qWrap) {
-                qWrap.style.transition = 'opacity 0.5s ease';
-                qWrap.style.opacity    = '1';
-            }
+            if (qWrap) { qWrap.style.transition = 'opacity 0.5s ease'; qWrap.style.opacity = '1'; }
             if (highlight) highlight.classList.add('visible');
 
             const cx = window.innerWidth  / 2;
@@ -593,7 +557,6 @@
                 }
                 updateHint();
             }, CONFIG.POEM_Q_ANIM_MS + CONFIG.NO_DELAY_MS);
-
         }, questionAt);
     }
 
@@ -609,9 +572,7 @@
             handleNo(e);
         }, { passive: false });
 
-        btnYes.addEventListener('click', e => {
-            startPhase3();
-        });
+        btnYes.addEventListener('click', () => startPhase3());
         btnYes.addEventListener('touchend', e => {
             e.preventDefault();
             startPhase3();
@@ -631,13 +592,10 @@
         spawnReaction(msg.e, x, y - 50);
 
         const isLastNo = S.noCount >= CONFIG.SIM_REVEAL_AT;
-
         if (!S.settled && !isLastNo) {
             const btn = $('btnNo');
             if (btn) {
-                const bw     = btn.offsetWidth  || 110;
-                const bh     = btn.offsetHeight || 46;
-                const margin = 16;
+                const bw = btn.offsetWidth || 110, bh = btn.offsetHeight || 46, margin = 16;
                 btn.style.position  = 'fixed';
                 btn.style.left      = (margin + Math.random() * (window.innerWidth  - bw - margin * 2)) + 'px';
                 btn.style.top       = (margin + Math.random() * (window.innerHeight - bh - margin * 2)) + 'px';
@@ -647,7 +605,6 @@
         }
 
         updateHint();
-
         if (S.noCount >= CONFIG.SIM_REVEAL_AT && !S.settled) {
             S.settled = true;
             setTimeout(revealYes, 700);
@@ -660,26 +617,17 @@
         const note   = $('phase35Text');
         const hint   = $('attemptHint');
 
-        if (btnNo) {
-            btnNo.style.position  = 'relative';
-            btnNo.style.left      = 'auto';
-            btnNo.style.top       = 'auto';
-            btnNo.style.zIndex    = '';
-        }
+        if (btnNo) { btnNo.style.position = 'relative'; btnNo.style.left = 'auto'; btnNo.style.top = 'auto'; btnNo.style.zIndex = ''; }
 
         if (btnYes) {
             btnYes.classList.add('revealed');
             const r = btnYes.getBoundingClientRect();
-            spawnSparks(
-                { clientX: r.left + r.width/2, clientY: r.top + r.height/2 },
-                22, ['#ffb3d9','#ff80c0','#fff','#ffd700']
-            );
+            spawnSparks({ clientX: r.left + r.width/2, clientY: r.top + r.height/2 }, 22, ['#ffb3d9','#ff80c0','#fff','#ffd700']);
             spawnReaction('💕', r.left + r.width/2, r.top - 30);
         }
 
         if (note) note.classList.add('visible');
         if (hint) hint.textContent = '';
-
         fadeVol(getActiveAudio(), 0.6, 1000);
     }
 
@@ -734,10 +682,7 @@
         S.phase = 4;
         activateLayer('phaseEntrance');
 
-        if (starsRaf) {
-            cancelAnimationFrame(starsRaf);
-            starsRaf = null;
-        }
+        if (starsRaf) { cancelAnimationFrame(starsRaf); starsRaf = null; }
 
         lsSet('proposal_answered', 'true');
 
@@ -822,17 +767,16 @@
         }
     }
 
-    // ===== FOGOS =====
     function fireworkBurst(x, y, colors) {
         const frag = document.createDocumentFragment();
         for (let i = 0; i < 18; i++) {
-            const fw    = document.createElement('div');
+            const fw     = document.createElement('div');
             fw.className = 'firework';
-            const angle = (Math.PI * 2 * i) / 18;
-            const dist  = 70 + Math.random() * 80;
-            const col   = colors[Math.floor(Math.random() * colors.length)];
-            const sz    = 3 + Math.random() * 4;
-            const dur   = .75 + Math.random() * .4;
+            const angle  = (Math.PI * 2 * i) / 18;
+            const dist   = 70 + Math.random() * 80;
+            const col    = colors[Math.floor(Math.random() * colors.length)];
+            const sz     = 3 + Math.random() * 4;
+            const dur    = .75 + Math.random() * .4;
             fw.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 6px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;animation-duration:${dur}s;`;
             fw.addEventListener('animationend', () => fw.remove());
             setTimeout(() => { if (fw.parentNode) fw.remove(); }, (dur + 0.6) * 1000);
@@ -841,20 +785,19 @@
         document.body.appendChild(frag);
     }
 
-    // ===== FAÍSCAS =====
     function spawnSparks(ev, count, colors) {
         let x = window.innerWidth / 2, y = window.innerHeight / 2;
         if (ev?.clientX != null) { x = ev.clientX; y = ev.clientY; }
 
         const frag = document.createDocumentFragment();
         for (let i = 0; i < count; i++) {
-            const sp    = document.createElement('div');
+            const sp     = document.createElement('div');
             sp.className = 'spark';
-            const angle = (Math.PI * 2 * i) / count + Math.random() * 0.8;
-            const dist  = 50 + Math.random() * 130;
-            const col   = colors[Math.floor(Math.random() * colors.length)];
-            const sz    = 3 + Math.random() * 6;
-            const dur   = .6 + Math.random() * .7;
+            const angle  = (Math.PI * 2 * i) / count + Math.random() * 0.8;
+            const dist   = 50 + Math.random() * 130;
+            const col    = colors[Math.floor(Math.random() * colors.length)];
+            const sz     = 3 + Math.random() * 6;
+            const dur    = .6 + Math.random() * .7;
             sp.style.cssText = `left:${x}px;top:${y}px;background:${col};width:${sz}px;height:${sz}px;box-shadow:0 0 5px ${col};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist-30}px;animation-duration:${dur}s;`;
             sp.addEventListener('animationend', () => sp.remove());
             setTimeout(() => { if (sp.parentNode) sp.remove(); }, (dur + 0.6) * 1000);
@@ -863,7 +806,6 @@
         document.body.appendChild(frag);
     }
 
-    // ===== REAÇÕES =====
     function spawnReaction(emoji, x, y) {
         const el = document.createElement('div');
         el.className   = 'reaction-emoji';
@@ -874,15 +816,6 @@
         setTimeout(() => { if (el.parentNode) el.remove(); }, 2000);
     }
 
-    // ===== FLASH =====
-    function flashScreen(dur) {
-        const fl = $('proposalFlash');
-        if (!fl) return;
-        fl.classList.add('flash');
-        setTimeout(() => fl.classList.remove('flash'), dur || 160);
-    }
-
-    // ===== START =====
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
