@@ -17,14 +17,9 @@
     font-family: 'Raleway', Georgia, serif;
 }
 
-#proposalScreen.hidden {
-    display: none !important;
-}
+#proposalScreen.hidden { display: none !important; }
 
-/* Elimina tap delay em todos os elementos interativos no iOS */
-#proposalScreen * {
-    touch-action: manipulation;
-}
+#proposalScreen * { touch-action: manipulation; }
 
 #proposalCanvas {
     position: absolute;
@@ -64,94 +59,124 @@
     pointer-events: none;
 }
 
-/* ===== FASE 0 — TOQUE PARA COMEÇAR ===== */
+/* ===== FASE 0 — MINIMALISTA & ÍNTIMO ===== */
 
-#phaseZero {
-    gap: 0;
+#phaseZero { gap: 0; }
+
+/* Estrelinhas decorativas fixas */
+.phase0-stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
 }
 
-.phase0-name {
-    font-family: 'Raleway', Georgia, serif;
-    font-size: clamp(0.72rem, 2vw, 0.85rem);
-    font-weight: 300;
-    font-style: italic;
-    letter-spacing: 7px;
-    text-transform: uppercase;
-    color: rgba(255, 180, 220, 0.45);
-    margin-bottom: 28px;
-    animation: fadeUp 1s ease 0.3s both;
+.phase0-star {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 200, 240, 0.6);
+    animation: phase0StarBlink ease-in-out infinite;
 }
 
-.phase0-heart {
-    font-size: 52px;
+@keyframes phase0StarBlink {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50%       { opacity: 0.85; transform: scale(1.4); }
+}
+
+/* Coração principal */
+.phase0-icon {
+    position: relative;
+    z-index: 1;
+    font-size: 48px;
     line-height: 1;
     display: block;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    animation: phase0Breathe 3.5s ease-in-out infinite;
-    margin-bottom: 28px;
+    animation: phase0HeartPulse 2.8s ease-in-out infinite;
+    margin-bottom: 24px;
+    margin-top: 0;
 }
 
-@keyframes phase0Breathe {
+@keyframes phase0HeartPulse {
     0%, 100% {
         transform: scale(1);
-        filter: drop-shadow(0 0 10px rgba(255, 120, 200, 0.4));
+        filter: drop-shadow(0 0 10px rgba(255, 120, 200, 0.35));
     }
     50% {
-        transform: scale(1.12);
-        filter: drop-shadow(0 0 28px rgba(255, 170, 230, 0.85));
+        transform: scale(1.13);
+        filter: drop-shadow(0 0 26px rgba(255, 170, 230, 0.85));
     }
 }
 
-.phase0-divider {
-    width: 32px;
-    height: 1px;
-    background: rgba(255, 140, 200, 0.28);
-    margin-bottom: 20px;
-    animation: fadeUp 1s ease 0.6s both;
-}
-
-.phase0-text {
+/* Texto principal */
+.phase0-title {
+    position: relative;
+    z-index: 1;
     font-family: 'Raleway', Georgia, serif;
-    font-size: clamp(0.95rem, 2.8vw, 1.1rem);
+    font-size: clamp(1rem, 3vw, 1.2rem);
     font-weight: 300;
     font-style: italic;
-    color: rgba(255, 215, 238, 0.78);
+    color: rgba(255, 215, 238, 0.82);
     line-height: 1.85;
     letter-spacing: 0.3px;
     text-align: center;
-    margin-bottom: 36px;
-    animation: fadeUp 1s ease 0.8s both;
+    margin-bottom: 16px;
+    animation: fadeUp 1s ease 0.4s both;
 }
 
-.phase0-cta {
-    background: transparent;
-    border: none;
-    padding: 0;
+/* Subtítulo — nome dela */
+.phase0-name {
+    position: relative;
+    z-index: 1;
     font-family: 'Raleway', Georgia, serif;
-    font-size: clamp(0.68rem, 1.8vw, 0.78rem);
+    font-size: clamp(0.7rem, 2vw, 0.82rem);
     font-weight: 300;
     font-style: italic;
-    letter-spacing: 4px;
-    text-transform: lowercase;
-    color: rgba(255, 150, 210, 0.4);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    animation: phase0Blink 2.8s ease-in-out infinite, fadeUp 1s ease 1.2s both;
-    user-select: none;
-    -webkit-user-select: none;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: rgba(255, 160, 210, 0.45);
+    margin-bottom: 32px;
+    animation: fadeUp 1s ease 0.7s both;
 }
 
-@keyframes phase0Blink {
-    0%, 100% { opacity: 0.35; }
+/* Botão pill */
+.phase0-btn {
+    position: relative;
+    z-index: 1;
+    padding: 12px 32px;
+    border-radius: 50px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 140, 200, 0.28);
+    color: rgba(255, 185, 225, 0.8);
+    font-family: 'Raleway', Georgia, serif;
+    font-size: clamp(0.72rem, 2vw, 0.82rem);
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: 2.5px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    animation: phase0BtnBlink 2.6s ease-in-out infinite, fadeUp 1s ease 1s both;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.phase0-btn:hover,
+.phase0-btn:active {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 160, 220, 0.5);
+}
+
+@keyframes phase0BtnBlink {
+    0%, 100% { opacity: 0.45; }
     50%       { opacity: 1; }
 }
 
-/* Animação de saída da fase 0 */
+/* Saída da fase 0 */
 #phaseZero.phase0-exit {
-    animation: phase0FadeOut 0.55s ease forwards;
+    animation: phase0FadeOut 0.5s ease forwards;
     pointer-events: none;
 }
 
@@ -321,8 +346,7 @@
     transition: opacity 0.4s ease;
 }
 
-/* ===== FASE 2 — PEDIDO CINEMATOGRÁFICO ===== */
-
+/* ===== FASE 2 — PEDIDO ===== */
 .proposal-poem {
     display: flex;
     flex-direction: column;
@@ -357,9 +381,7 @@
     text-shadow: 0 0 30px rgba(255, 100, 180, 0.18);
 }
 
-.proposal-question-wrap {
-    margin-top: 8px;
-}
+.proposal-question-wrap { margin-top: 8px; }
 
 .proposal-highlight {
     display: block;
@@ -488,9 +510,7 @@
     letter-spacing: 0.5px;
 }
 
-.attempt-hint.nudge {
-    color: rgba(255, 150, 200, 0.85);
-}
+.attempt-hint.nudge { color: rgba(255, 150, 200, 0.85); }
 
 .phase35-text {
     font-family: 'Raleway', Georgia, serif;
@@ -533,9 +553,7 @@
     to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-.no-attempt-msg.fading {
-    animation: msgFade 0.35s ease forwards;
-}
+.no-attempt-msg.fading { animation: msgFade 0.35s ease forwards; }
 
 @keyframes msgFade {
     to { opacity: 0; transform: scale(0.85) translateY(-6px); }
@@ -742,13 +760,11 @@ body.proposal-active {
 
 /* ===== RESPONSIVO — MOBILE ===== */
 @media (max-width: 480px) {
-    .proposal-layer {
-        gap: 20px;
-        padding: 20px;
-    }
+    .proposal-layer { gap: 20px; padding: 20px; }
 
-    .phase0-heart    { font-size: 44px; }
-    .phase0-text     { font-size: 0.95rem; }
+    .phase0-icon  { font-size: 42px; }
+    .phase0-title { font-size: 0.98rem; }
+    .phase0-btn   { font-size: 0.72rem; padding: 10px 26px; }
 
     .ring-wrap  { width: 170px; height: 170px; }
     .ring-emoji { font-size: 76px; }
@@ -772,10 +788,10 @@ body.proposal-active {
 }
 
 @media (max-width: 360px) {
-    .phase0-heart    { font-size: 38px; }
-    .ring-wrap  { width: 150px; height: 150px; }
-    .ring-emoji { font-size: 66px; }
+    .phase0-icon  { font-size: 36px; }
+    .ring-wrap    { width: 150px; height: 150px; }
+    .ring-emoji   { font-size: 66px; }
     .poem-line          { font-size: 0.98rem; line-height: 1.8; }
     .proposal-highlight { font-size: 1.08rem; }
-    .accepted-title    { font-size: 1.8rem; }
+    .accepted-title     { font-size: 1.8rem; }
 }
