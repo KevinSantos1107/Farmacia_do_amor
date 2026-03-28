@@ -760,6 +760,9 @@
         // [AJUSTE #7] localStorage com wrapper seguro
         lsSet('proposal_answered', 'true');
 
+        if (typeof changeTheme === 'function') changeTheme('hearts', true);
+        else lsSet('kevinIaraTheme', 'hearts');
+
         setTimeout(() => {
             const screen = $('proposalScreen');
             if (!screen) return;
@@ -768,8 +771,6 @@
                 screen.classList.add('hidden');
                 // [SCROLL LOCK] Libera o scroll ao final do proposal
                 document.body.classList.remove('proposal-active');
-                if (typeof changeTheme === 'function') changeTheme('hearts', true);
-                else lsSet('kevinIaraTheme', 'hearts');
             }, { once: true });
         }, 3000);
     }
