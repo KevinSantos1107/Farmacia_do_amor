@@ -152,7 +152,7 @@
                     <div class="phase0-divider-line r"></div>
                 </div>
 
-                <p class="phase0-title">Há algo que só o coração<br>sabe dizer...</p>
+                <p class="phase0-title">A distância até tentou impedir,<br>mas a hora chegou...</p>
                 <p class="phase0-name">Iara</p>
                 <button class="phase0-btn" id="phase0Btn">Toque quando estiver pronta</button>
 
@@ -166,7 +166,7 @@
 
             <!-- FASE 1: ANEL -->
             <div class="proposal-layer" id="phaseRing">
-                <p class="proposal-eyebrow">Então me deixa mostrar...</p>
+                <p class="proposal-eyebrow">Segure esse anel por um momento...</p>
                 <div class="ring-wrap" id="ringWrap">
                     <div class="ring-aura"  id="ringAura"></div>
                     <div class="ring-orbit" id="ringOrbit"></div>
@@ -175,14 +175,14 @@
                 <div class="hold-track" id="holdTrack">
                     <div class="hold-fill" id="holdFill"></div>
                 </div>
-                <p class="hold-hint" id="holdHint">Pressione e segure o anel...</p>
+                <p class="hold-hint" id="holdHint">Segure Não largue não.</p>
             </div>
 
             <!-- FASE 2: PEDIDO -->
             <div class="proposal-layer" id="phaseProposal">
                 <div class="proposal-poem" id="proposalPoem">
-                    <span class="poem-line" id="poemLine0">Cada conversa, cada risada,</span>
-                    <span class="poem-line" id="poemLine1">cada momento ao seu lado</span>
+                    <span class="poem-line" id="poemLine0">Cada conversa em plena madrugada,</span>
+                    <span class="poem-line" id="poemLine1">cada plano maluco que fizemos juntos</span>
                     <span class="poem-line" id="poemLine2">me mostrou que é você</span>
                     <span class="poem-line" id="poemLine3">que eu escolho todos os dias.</span>
                 </div>
