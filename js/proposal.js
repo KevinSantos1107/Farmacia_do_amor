@@ -152,14 +152,14 @@
                     <div class="phase0-divider-line r"></div>
                 </div>
 
-                <p class="phase0-title">Tenho algo especial<br>para você...</p>
+                <p class="phase0-title">Há algo que só o coração<br>sabe dizer...</p>
                 <p class="phase0-name">Iara</p>
-                <button class="phase0-btn" id="phase0Btn">Toque para continuar</button>
+                <button class="phase0-btn" id="phase0Btn">Toque quando estiver pronta</button>
 
                 <!-- Hint de volume -->
                 <div class="phase0-volume-hint">
                     <span class="phase0-volume-icon">🔊</span>
-                    <span>coloque o som no máximo</span>
+                    <span>aumente o volume</span>
                 </div>
 
             </div>
@@ -184,7 +184,7 @@
                     <span class="poem-line" id="poemLine0">Cada conversa, cada risada,</span>
                     <span class="poem-line" id="poemLine1">cada momento ao seu lado</span>
                     <span class="poem-line" id="poemLine2">me mostrou que é você</span>
-                    <span class="poem-line" id="poemLine3">que eu quero ao meu lado.</span>
+                    <span class="poem-line" id="poemLine3">que eu escolho todos os dias.</span>
                 </div>
                 <div class="proposal-question-wrap" id="proposalQuestionWrap">
                     <span class="proposal-highlight" id="proposalHighlight">Você aceita ser a minha namorada?</span>
@@ -194,14 +194,14 @@
                     <button class="btn-yes" id="btnYes">Sim 💕</button>
                 </div>
                 <p class="attempt-hint" id="attemptHint"></p>
-                <p class="phase35-text"  id="phase35Text">Deixando claro que o "não"\nnunca será uma opção entre nós 😄</p>
+                <p class="phase35-text"  id="phase35Text">Isso é para deixar bem claro que o "não"\nnão existe e nunca existirá entre a gente 😄</p>
             </div>
 
             <!-- FASE 3: ACEITO -->
             <div class="proposal-layer" id="phaseAccepted">
                 <div class="heart-explosion">💍</div>
-                <h1 class="accepted-title">Ela disse SIM! 🎉</h1>
-                <p class="accepted-subtitle">O amor à primeira vista está\nvirando amor para a vida toda 💕</p>
+                <h1 class="accepted-title">SIM! 💍🎉</h1>
+                <p class="accepted-subtitle">O amor que começou com um olhar\nagora se torna uma promessa para toda a eternidade 💕</p>
             </div>
 
             <!-- FASE 4: ENTRADA -->
