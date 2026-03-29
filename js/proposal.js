@@ -166,7 +166,7 @@
 
             <!-- FASE 1: ANEL -->
             <div class="proposal-layer" id="phaseRing">
-                <p class="proposal-eyebrow">Eu tenho algo para te mostrar...</p>
+                <p class="proposal-eyebrow">Então me deixa mostrar...</p>
                 <div class="ring-wrap" id="ringWrap">
                     <div class="ring-aura"  id="ringAura"></div>
                     <div class="ring-orbit" id="ringOrbit"></div>
