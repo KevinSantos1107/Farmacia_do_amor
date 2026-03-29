@@ -1,7 +1,7 @@
 /* ===================================================
    PROPOSAL.JS — Sistema de Pedido de Namoro
    Kevin & Iara 💍
-   Versão Final — Integrado com splash-screen.js
+   Versão Final — Sakura Update
    =================================================== */
 
 (function () {
@@ -80,6 +80,7 @@
     const SPARKS   = ['#ffb3d9','#ff80c0','#fff','#ffd700','#ff60a0','#ffc0e8','#c0a0ff','#80d0ff'];
     const CONFETTI = ['#ff80b0','#ffb3d4','#fff','#ffd0e8','#ffccff','#ff60a0','#ffa0c8','#ffe0f0','#ffd700','#c0a0ff'];
     const HEARTS   = ['💕','💗','💖','💝','❤️','🌹','✨','💫','🌸','💍'];
+    const SAKURA_PETALS = ['🌸','🌺','✿'];
 
     const $ = id => document.getElementById(id);
 
@@ -126,11 +127,41 @@
 
             <!-- FASE 0: TOQUE PARA COMEÇAR -->
             <div class="proposal-layer" id="phaseZero">
-                <div class="phase0-stars" id="phase0Stars"></div>
-                <span class="phase0-icon" id="phase0Heart">💗</span>
+
+                <!-- Coração com ECG -->
+                <div class="phase0-heart-wrap">
+                    <span class="phase0-icon" id="phase0Heart">💗</span>
+                    <div class="phase0-ecg-wrap">
+                        <svg class="phase0-ecg-svg" viewBox="0 0 200 50" preserveAspectRatio="none">
+                            <line class="phase0-ecg-baseline" x1="0" y1="25" x2="200" y2="25"/>
+                            <path class="phase0-ecg-path" id="ecgPath"
+                                d="M0,25 L55,25 L65,25 L70,18 L75,25 L82,8 L88,42 L94,22 L100,25 L200,25"/>
+                            <circle class="phase0-ecg-dot" r="3">
+                                <animateMotion dur="3.8s" repeatCount="indefinite"
+                                    path="M0,25 L55,25 L65,25 L70,18 L75,25 L82,8 L88,42 L94,22 L100,25 L200,25"
+                                    calcMode="linear"/>
+                            </circle>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Divisor decorativo -->
+                <div class="phase0-divider">
+                    <div class="phase0-divider-line"></div>
+                    <span class="phase0-divider-gem">✦</span>
+                    <div class="phase0-divider-line r"></div>
+                </div>
+
                 <p class="phase0-title">Tenho algo especial<br>para você...</p>
                 <p class="phase0-name">Iara</p>
                 <button class="phase0-btn" id="phase0Btn">Toque para continuar</button>
+
+                <!-- Hint de volume -->
+                <div class="phase0-volume-hint">
+                    <span class="phase0-volume-icon">🔊</span>
+                    <span>coloque o som no máximo</span>
+                </div>
+
             </div>
 
             <!-- FASE 1: ANEL -->
@@ -187,29 +218,28 @@
             </div>
         `;
 
-        setupPhaseZeroStars();
+        setupSakuraPetals();
         setupPhaseZeroEvents();
         setupHoldEvents();
         setupButtonEvents();
     }
 
-    // ===== ESTRELINHAS DA FASE 0 =====
-    function setupPhaseZeroStars() {
-        const container = $('phase0Stars');
-        if (!container) return;
-        const positions = [
-            [12,9],[72,18],[88,6],[5,35],[93,28],
-            [25,55],[80,48],[15,72],[68,65],[90,78],
-            [38,85],[55,20],[45,92],[8,88],[77,90],
-            [32,40],[60,75],[50,10],
-        ];
-        positions.forEach(([left, top], i) => {
-            const star = document.createElement('div');
-            star.className = 'phase0-star';
-            const size = Math.random() > 0.5 ? 2 : 1;
-            star.style.cssText = `left:${left}%;top:${top}%;width:${size}px;height:${size}px;animation-delay:${(i * 0.37) % 2.8}s;animation-duration:${2.2 + (i % 4) * 0.5}s;`;
-            container.appendChild(star);
-        });
+    // ===== PÉTALAS DE SAKURA (Fase 0) =====
+    function setupSakuraPetals() {
+        const layer = $('phaseZero');
+        if (!layer) return;
+        // Menos pétalas em telas pequenas
+        const count = window.innerWidth < 480 ? 10 : 16;
+        for (let i = 0; i < count; i++) {
+            const p = document.createElement('div');
+            p.className = 'phase0-petal';
+            p.textContent = SAKURA_PETALS[i % SAKURA_PETALS.length];
+            p.style.left             = (Math.random() * 92) + '%';
+            p.style.fontSize         = (11 + Math.random() * 6) + 'px';
+            p.style.animationDelay   = (Math.random() * 10) + 's';
+            p.style.animationDuration= (7 + Math.random() * 6) + 's';
+            layer.appendChild(p);
+        }
     }
 
     // ===== ESTRELAS (canvas fundo geral) =====
@@ -219,12 +249,13 @@
         const ctx = canvas.getContext('2d');
         let stars = [];
         let W = 0, H = 0;
+        let rafPaused = false;
 
         function resize() {
             W = canvas.width  = window.innerWidth;
             H = canvas.height = window.innerHeight;
             stars = [];
-            const n = Math.floor((W * H) / 4200);
+            const n = Math.floor((W * H) / 4800); // menos estrelas — era 4200
             for (let i = 0; i < n; i++) {
                 stars.push({
                     x:   Math.random() * W,
@@ -239,6 +270,7 @@
         }
 
         function loop(t) {
+            if (rafPaused) { starsRaf = null; return; }
             ctx.clearRect(0, 0, W, H);
             const len = stars.length;
             for (let i = 0; i < len; i++) {
@@ -253,11 +285,28 @@
             starsRaf = requestAnimationFrame(loop);
         }
 
+        // Pausa o canvas quando a aba some do foco
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                rafPaused = true;
+                if (starsRaf) { cancelAnimationFrame(starsRaf); starsRaf = null; }
+            } else if (S.phase <= 1) {
+                rafPaused = false;
+                starsRaf = requestAnimationFrame(loop);
+            }
+        });
+
+        // Expõe pause para o JS poder chamar quando avança de fase
+        window._starsControl = {
+            pause() { rafPaused = true; if (starsRaf) { cancelAnimationFrame(starsRaf); starsRaf = null; } },
+            resume() { if (!rafPaused) return; rafPaused = false; starsRaf = requestAnimationFrame(loop); },
+        };
+
         resize();
         let resizeTimer;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(resize, 150);
+            resizeTimer = setTimeout(resize, 200);
         });
         starsRaf = requestAnimationFrame(loop);
     }
@@ -287,21 +336,17 @@
     function fadeVol(audio, to, dur, from) {
         const targetAudio = audio || getActiveAudio();
         if (!targetAudio) return;
-        const steps = 40;
-        const dt = dur / steps;
         const start = typeof from === 'number' ? from : targetAudio.volume;
-        let cur = Math.max(0, Math.min(1, start));
-        targetAudio.volume = cur;
-        const delta = (to - cur) / steps;
-        const iv = setInterval(() => {
-            cur += delta;
-            if ((delta > 0 && cur >= to) || (delta < 0 && cur <= to)) {
-                targetAudio.volume = Math.max(0, Math.min(1, to));
-                clearInterval(iv);
-            } else {
-                targetAudio.volume = Math.max(0, Math.min(1, cur));
-            }
-        }, dt);
+        const startTime = performance.now();
+        targetAudio.volume = Math.max(0, Math.min(1, start));
+
+        function tick(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / dur);
+            targetAudio.volume = Math.max(0, Math.min(1, start + (to - start) * progress));
+            if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
     }
 
     // ===== SPLASH TERMINOU =====
@@ -362,6 +407,8 @@
     function startPhase1() {
         S.phase = 1;
         activateLayer('phaseRing');
+        // Canvas de estrelas continua visível na fase 1 (fundo ainda aparece)
+        // Mas pausa na fase 2+ para liberar CPU para partículas
     }
 
     // ===== HOLD =====
@@ -517,6 +564,8 @@
     // ===== FASE 2 — PEDIDO =====
     function startPhase2() {
         S.phase = 2;
+        // Para o canvas de estrelas — partículas vão usar essa CPU
+        window._starsControl?.pause();
         activateLayer('phaseProposal');
 
         const area      = $('buttonsArea');
@@ -709,6 +758,7 @@
     function launchBigExplosion() {
         const cx = window.innerWidth  / 2;
         const cy = window.innerHeight / 2;
+        const isMobile = window.innerWidth < 480;
 
         [0, 140, 295, 475].forEach((delay, i) => {
             setTimeout(() => {
@@ -722,6 +772,7 @@
             }, delay);
         });
 
+        // Menos fogos em mobile
         const batchFireworks = (count, interval, offsetMs) => {
             setTimeout(() => {
                 for (let i = 0; i < count; i++) {
@@ -733,10 +784,17 @@
                 }
             }, offsetMs);
         };
-        batchFireworks(12, 75,  0);
-        batchFireworks(8,  95, 1300);
+        if (isMobile) {
+            batchFireworks(7,  90,   0);
+            batchFireworks(5, 110, 1300);
+        } else {
+            batchFireworks(12, 75,   0);
+            batchFireworks(8,  95, 1300);
+        }
 
-        for (let i = 0; i < 40; i++) {
+        // Bolhas de coração — menos em mobile
+        const bubbleCount = isMobile ? 24 : 40;
+        for (let i = 0; i < bubbleCount; i++) {
             setTimeout(() => {
                 const b = document.createElement('div');
                 b.className   = 'heart-bubble';
@@ -748,8 +806,10 @@
             }, i * 70);
         }
 
-        const BATCH = 20;
-        for (let batch = 0; batch < 8; batch++) {
+        // Confetti — batches menores e menos em mobile
+        const BATCH      = isMobile ? 12 : 20;
+        const NUM_BATCHES = isMobile ? 5  : 8;
+        for (let batch = 0; batch < NUM_BATCHES; batch++) {
             setTimeout(() => {
                 const frag = document.createDocumentFragment();
                 for (let j = 0; j < BATCH; j++) {
@@ -789,11 +849,14 @@
         let x = window.innerWidth / 2, y = window.innerHeight / 2;
         if (ev?.clientX != null) { x = ev.clientX; y = ev.clientY; }
 
+        // Reduz partículas em mobile para manter fluidez
+        const finalCount = window.innerWidth < 480 ? Math.ceil(count * 0.6) : count;
+
         const frag = document.createDocumentFragment();
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < finalCount; i++) {
             const sp     = document.createElement('div');
             sp.className = 'spark';
-            const angle  = (Math.PI * 2 * i) / count + Math.random() * 0.8;
+            const angle  = (Math.PI * 2 * i) / finalCount + Math.random() * 0.8;
             const dist   = 50 + Math.random() * 130;
             const col    = colors[Math.floor(Math.random() * colors.length)];
             const sz     = 3 + Math.random() * 6;
