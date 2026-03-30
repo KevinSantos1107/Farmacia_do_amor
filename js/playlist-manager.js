@@ -5,12 +5,11 @@ console.log('🎵 Sistema de Playlists com Firebase carregado');
 const AudioManager = {
     currentAudio: null,
     currentPlayerId: null,
-    audioCache: new Map(), // ← Rastrear todos os elementos de áudio criados
+    audioCache: new Map(),
     
     play(audioElement, playerId) {
         if (this.currentAudio && this.currentAudio !== audioElement) {
             this.currentAudio.pause();
-            
             if (this.currentPlayerId) {
                 this.updatePlayerUI(this.currentPlayerId, false);
             }
@@ -44,18 +43,12 @@ const AudioManager = {
         if (!audioElement) return null;
         if (audioElement.id) {
             const playerId = audioElement.id.replace('custom-audio-', 'custom-player-');
-            if (document.getElementById(playerId)) {
-                return playerId;
-            }
+            if (document.getElementById(playerId)) return playerId;
         }
-
         const players = document.querySelectorAll('.music-player');
         for (const player of players) {
-            if (player.contains(audioElement)) {
-                return player.id;
-            }
+            if (player.contains(audioElement)) return player.id;
         }
-
         return null;
     },
 
@@ -63,74 +56,48 @@ const AudioManager = {
         if (!playerId) return;
         const player = document.getElementById(playerId);
         if (!player) return;
-
         const playPauseBtn = player.querySelector('.play-pause-btn');
         if (playPauseBtn) {
             playPauseBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
         }
-
         player.classList.toggle('playing', Boolean(isPlaying));
     },
     
-    // ✅ NOVO: Registrar elemento de áudio para rastreamento
     registerAudio(audioElement, playerId) {
         this.audioCache.set(playerId, audioElement);
     },
     
-    // ✅ NOVO: Cleanup completo de um player
     cleanupPlayer(playerId) {
-        if (!this.audioCache.has(playerId)) {
-            return;
-        }
-        
+        if (!this.audioCache.has(playerId)) return;
         const audio = this.audioCache.get(playerId);
-        
-        // Parar e resetar tempo para qualquer player limpo (evita manter posição)
         try {
             audio.pause();
             audio.currentTime = 0;
-        } catch (e) {
-            // Alguns navegadores podem lançar se o audio não estiver pronto; ignorar
-        }
-
-        // Se era o player atual, desregistrar referências
+        } catch (e) {}
         if (this.currentPlayerId === playerId) {
             this.currentAudio = null;
             this.currentPlayerId = null;
         }
-
         console.log(`🧹 Audio cleanup: ${playerId}`);
     },
     
-    // ✅ NOVO: Cleanup de múltiplos players
     cleanupPlayersExcept(exceptPlayerId) {
-        // Proteção: evitar cleanup se não há players registrados
-        if (this.audioCache.size === 0) {
-            return;
-        }
-        
-        const playersToClean = Array.from(this.audioCache.keys()).filter(
-            id => id !== exceptPlayerId
-        );
-        
+        if (this.audioCache.size === 0) return;
+        const playersToClean = Array.from(this.audioCache.keys()).filter(id => id !== exceptPlayerId);
         playersToClean.forEach(playerId => this.cleanupPlayer(playerId));
-        
         if (playersToClean.length > 0) {
             console.log(`🧹 Cleanup: ${playersToClean.length} players antigos resetados`);
         }
     },
     
-    // ✅ NOVO: Cleanup total
     cleanupAll() {
-        this.audioCache.forEach((audio, playerId) => {
+        this.audioCache.forEach((audio) => {
             audio.pause();
             audio.currentTime = 0;
         });
-        
         this.audioCache.clear();
         this.currentAudio = null;
         this.currentPlayerId = null;
-        
         console.log('🧹 Cleanup total: Todos os players deletados do cache');
     }
 };
@@ -149,7 +116,6 @@ async function loadPlaylistsFromFirebase() {
         console.log('🔄 Carregando playlists do Firebase...');
         
         const snapshot = await db.collection('custom_playlists').get();
-        
         const sortedDocs = Array.from(snapshot.docs).sort((a, b) => {
             const aTime = a.data().createdAt?.toMillis() || 0;
             const bTime = b.data().createdAt?.toMillis() || 0;
@@ -160,7 +126,6 @@ async function loadPlaylistsFromFirebase() {
         
         for (const doc of sortedDocs) {
             const playlistData = doc.data();
-            
             console.log(`📂 Carregando músicas da playlist: ${playlistData.name}`);
             
             const tracksSnapshot = await db.collection('playlist_tracks')
@@ -181,10 +146,6 @@ async function loadPlaylistsFromFirebase() {
 
             console.log(`   ✅ ${allTracks.length} músicas carregadas`);
 
-            allTracks.forEach((track, i) => {
-                console.log(`      Música ${i + 1}: ${track.title} - Capa: ${track.cover || 'NENHUMA'}`);
-            });
-
             PlaylistManager.customPlaylists.push({
                 id: doc.id,
                 name: playlistData.name,
@@ -195,12 +156,10 @@ async function loadPlaylistsFromFirebase() {
         }
         
         console.log(`✅ Total de playlists carregadas: ${PlaylistManager.customPlaylists.length}`);
-        
         return PlaylistManager.customPlaylists;
         
     } catch (error) {
         console.error('❌ Erro ao carregar playlists do Firebase:', error);
-        console.error('Stack completo:', error.stack);
         return [];
     }
 }
@@ -215,11 +174,10 @@ async function initPlaylistManager() {
     await loadPlaylistsFromFirebase();
     
     waitForPlayerSection(async () => {
-        // ✅ CRIAR PLAYER INICIAL SE HOUVER PLAYLISTS
         if (PlaylistManager.customPlaylists.length > 0) {
             createInitialPlayer();
         } else {
-            console.warn('⚠️ Nenhuma playlist encontrada no Firebase. Crie uma playlist no admin.');
+            console.warn('⚠️ Nenhuma playlist encontrada no Firebase.');
         }
         
         setupIndicatorClicks();
@@ -237,7 +195,6 @@ async function initPlaylistManager() {
     });
 }
 
-// ===== AGUARDAR FIREBASE =====
 function waitForFirebase() {
     return new Promise((resolve) => {
         const checkInterval = setInterval(() => {
@@ -251,13 +208,11 @@ function waitForFirebase() {
     });
 }
 
-// ===== AGUARDAR SEÇÃO DO PLAYER =====
 function waitForPlayerSection(callback) {
     let attempts = 0;
     const checkInterval = setInterval(() => {
         attempts++;
         const playerSection = document.querySelector('.music-player-section');
-        
         if (playerSection) {
             clearInterval(checkInterval);
             callback();
@@ -268,7 +223,6 @@ function waitForPlayerSection(callback) {
     }, 100);
 }
 
-// ===== CRIAR PLAYER INICIAL (PRIMEIRA PLAYLIST DO FIREBASE) =====
 function createInitialPlayer() {
     const playerSection = document.querySelector('.music-player-section');
     if (!playerSection) {
@@ -279,18 +233,12 @@ function createInitialPlayer() {
     const firstPlaylist = PlaylistManager.customPlaylists[0];
     console.log(`🎵 Criando player inicial com playlist: ${firstPlaylist.name}`);
     
-    // Criar container do carousel
     const playlistContainer = document.createElement('div');
     playlistContainer.className = 'playlist-carousel-container';
     playlistContainer.innerHTML = `
-        <div class="playlist-indicators" id="playlistIndicators">
-            <!-- Indicadores serão adicionados aqui -->
-        </div>
-        
+        <div class="playlist-indicators" id="playlistIndicators"></div>
         <div class="playlist-carousel-wrapper">
-            <div class="playlist-carousel" id="playlistCarousel">
-                <!-- Players serão adicionados aqui -->
-            </div>
+            <div class="playlist-carousel" id="playlistCarousel"></div>
         </div>
     `;
     
@@ -299,16 +247,13 @@ function createInitialPlayer() {
     const carousel = document.getElementById('playlistCarousel');
     const indicators = document.getElementById('playlistIndicators');
     
-    // Criar players para cada playlist
     PlaylistManager.customPlaylists.forEach((playlist, index) => {
-        // Criar slide
         const slide = document.createElement('div');
         slide.className = `playlist-slide ${index === 0 ? 'active' : ''}`;
         slide.setAttribute('data-playlist', index);
         slide.innerHTML = `<div id="playlist-${index}-container"></div>`;
         carousel.appendChild(slide);
         
-        // Criar indicador
         const indicator = document.createElement('button');
         indicator.className = `playlist-indicator ${index === 0 ? 'active' : ''}`;
         indicator.setAttribute('data-index', index);
@@ -316,7 +261,6 @@ function createInitialPlayer() {
         indicator.addEventListener('click', () => switchToPlaylist(index));
         indicators.appendChild(indicator);
         
-        // Criar player
         const container = document.getElementById(`playlist-${index}-container`);
         createCustomPlayer(container, playlist, index);
         
@@ -342,11 +286,7 @@ function switchToPlaylist(index) {
         return;
     }
     
-    console.log(`🔄 Mudando para playlist ${index}`);
-    
     PlaylistManager.currentPlaylistIndex = index;
-    
-    // ✅ APLICAR TRANSFORM SEMPRE, com transição bonita
     carousel.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
     carousel.style.transform = `translateX(-${index * 100}%)`;
     
@@ -398,19 +338,15 @@ function createCustomPlayer(container, playlist, playlistIndex) {
                     <button class="control-btn" id="${playerId}-shuffleBtn">
                         <i class="fas fa-random"></i>
                     </button>
-                    
                     <button class="control-btn" id="${playerId}-prevBtn">
                         <i class="fas fa-step-backward"></i>
                     </button>
-                    
                     <button class="control-btn play-pause-btn" id="${playerId}-playPauseBtn">
                         <i class="fas fa-play"></i>
                     </button>
-                    
                     <button class="control-btn" id="${playerId}-nextBtn">
                         <i class="fas fa-step-forward"></i>
                     </button>
-                    
                     <button class="control-btn" id="${playerId}-repeatBtn">
                         <i class="fas fa-redo"></i>
                     </button>
@@ -425,9 +361,9 @@ function createCustomPlayer(container, playlist, playlistIndex) {
         </div>
     `;
     
-    // ✅ NOVO: Registrar o elemento de áudio no gerenciador
     const audioElement = document.getElementById(audioId);
     AudioManager.registerAudio(audioElement, playerId);
+
     if (window.MediaControlsManager) {
         window.MediaControlsManager.attachAudioListeners(audioElement);
     }
@@ -465,10 +401,8 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         }
         shuffleOrder = [startIndex, ...indices];
         shufflePosition = 0;
-        console.log('🔀 Ordem aleatória criada:', shuffleOrder);
     }
 
-    // Evitar preload para não forçar downloads antes do usuário tocar
     audio.preload = 'metadata';
     audio.volume = 0.8;
     
@@ -478,14 +412,12 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         if (audio.paused) {
             AudioManager.play(audio, playerId);
 
-            // Se a fonte estiver guardada para carregamento sob demanda, atribuí-la agora
             if (audio.dataset && audio.dataset.src) {
                 audio.src = audio.dataset.src;
                 delete audio.dataset.src;
-                try { audio.load(); } catch (e) { /* noop */ }
+                try { audio.load(); } catch (e) {}
             }
             
-            // ✅ CLEANUP: Remover outros players DEPOIS de garantir que este tem source
             AudioManager.cleanupPlayersExcept(playerId);
 
             audio.play().then(() => {
@@ -493,10 +425,11 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
                 playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
                 document.getElementById(playerId).classList.add('playing');
                 
-                // Registrar player no MediaControlsManager
                 if (window.MediaControlsManager) {
                     window.MediaControlsManager.registerPlayer(playerId, playlist, currentTrackIndex);
                 }
+            }).catch(err => {
+                console.warn('⚠️ Erro ao tocar:', err.message);
             });
         } else {
             audio.pause();
@@ -508,7 +441,6 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
     
     prevBtn.addEventListener('click', () => {
         if (isLoading) return;
-        
         if (audio.currentTime > 3) {
             audio.currentTime = 0;
         } else {
@@ -524,7 +456,6 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
     
     nextBtn.addEventListener('click', () => {
         if (isLoading) return;
-        
         if (isShuffled && shuffleOrder.length > 0) {
             shufflePosition = (shufflePosition + 1) % shuffleOrder.length;
             currentTrackIndex = shuffleOrder[shufflePosition];
@@ -561,12 +492,10 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
     
     audio.addEventListener('timeupdate', () => {
         const hasDuration = audio.duration && !isNaN(audio.duration) && isFinite(audio.duration) && audio.duration > 0;
-        
         if (hasDuration) {
             const progress = (audio.currentTime / audio.duration) * 100;
             progressBarFill.style.width = `${progress}%`;
             currentTimeEl.textContent = formatTime(audio.currentTime);
-            
             if (totalTimeEl.textContent === '0:00' || totalTimeEl.textContent === '') {
                 totalTimeEl.textContent = formatTime(audio.duration);
             }
@@ -596,9 +525,7 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         
         isLoading = true;
         
-        if (loadTimeout) {
-            clearTimeout(loadTimeout);
-        }
+        if (loadTimeout) clearTimeout(loadTimeout);
         
         console.log(`🎵 Carregando: ${track.title}`);
         
@@ -619,37 +546,24 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         document.getElementById(`${playerId}-artist`).textContent = track.artist;
         document.getElementById(`${playerId}-currentTrack`).textContent = index + 1;
 
+        // ✅ Atualizar Media Session IMEDIATAMENTE ao trocar faixa
+        // (não esperar o play; isso preenche a notificação mesmo antes de tocar)
         if (window.MediaControlsManager) {
             window.MediaControlsManager.registerPlayer(playerId, playlist, index);
-            const currentPlayer = document.getElementById(playerId);
-            if (currentPlayer) {
-                window.MediaControlsManager.updateMediaSession(currentPlayer);
-            }
         }
 
-        // ✅ CARREGAR CAPA INSTANTANEAMENTE (SEM LAZY LOADING)
         const coverImg = document.getElementById(`${playerId}-coverImg`);
         if (coverImg) {
             const newCover = track.cover || playlist.cover || 'images/capas-albuns/default-music.jpg';
-            
-            // ✅ Verificar se tem versões responsivas
             if (track.coverThumb && track.coverLarge) {
                 coverImg.src = track.cover;
-                
-                coverImg.srcset = `
-                    ${track.coverThumb} 400w,
-                    ${track.cover} 800w,
-                    ${track.coverLarge} 1600w
-                `;
-                
-                coverImg.sizes = '400px';  // Player sempre 400px
+                coverImg.srcset = `${track.coverThumb} 400w, ${track.cover} 800w, ${track.coverLarge} 1600w`;
+                coverImg.sizes = '400px';
             } else {
-                // Fallback
                 coverImg.src = newCover;
             }
         }
         
-        // ✅ PRÉ-CARREGAR PRÓXIMAS CAPAS EM BACKGROUND
         preloadAdjacentCovers(index);
         
         if (progressBarFill) progressBarFill.style.width = '0%';
@@ -658,28 +572,18 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         
         audio.pause();
         audio.currentTime = 0;
-        
-        // ✅ SEM TIMEOUT - CARREGAR IMEDIATAMENTE
-        // Atribuir fonte mas só forçar carregamento se já estiver tocando.
         audio.src = track.src;
 
         if (isPlaying) {
-            // Se estiver tocando, fazer load completo
-            try { 
-                audio.load(); 
-            } catch (e) { 
-                console.warn('Erro ao carregar:', e); 
-            }
+            try { audio.load(); } catch (e) { console.warn('Erro ao carregar:', e); }
             
             AudioManager.play(audio, playerId);
             
             audio.play()
                 .then(() => {
                     isLoading = false;
-                    
-                    // Registrar player no MediaControlsManager quando começa a tocar
                     if (window.MediaControlsManager) {
-                        window.MediaControlsManager.registerPlayer(playerId, playlist, currentTrackIndex);
+                        window.MediaControlsManager.registerPlayer(playerId, playlist, index);
                     }
                 })
                 .catch(err => {
@@ -687,22 +591,13 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
                     isLoading = false;
                 });
         } else {
-            // ✅ Se NÃO estiver tocando, carregar apenas metadados
-            try {
-                audio.load();
-            } catch (e) {
-                console.warn('Erro ao carregar metadados:', e);
-            }
-            
+            try { audio.load(); } catch (e) { console.warn('Erro ao carregar metadados:', e); }
             isLoading = false;
         }
     }
 
     function preloadAdjacentCovers(currentIndex) {
-        const totalTracks = playlist.tracks.length;
-        
-        // Pré-carregar apenas a próxima capa (1 item) para economizar banda
-        const nextIndex = (currentIndex + 1) % totalTracks;
+        const nextIndex = (currentIndex + 1) % playlist.tracks.length;
         const nextTrack = playlist.tracks[nextIndex];
         if (nextTrack && nextTrack.cover) {
             const img = new Image();
@@ -715,25 +610,6 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    /**
-     * Detecta se o título da música é muito longo e precisa de animação
-     */
-    function checkLongTitle(playerId) {
-        const titleElement = document.getElementById(`${playerId}-title`);
-        
-        if (!titleElement) return;
-        
-        // Verificar se o texto é maior que o container
-        const isOverflowing = titleElement.scrollWidth > titleElement.clientWidth;
-        
-        if (isOverflowing) {
-            titleElement.setAttribute('data-long-title', 'true');
-            console.log(`📏 Título longo detectado: "${titleElement.textContent}"`);
-        } else {
-            titleElement.removeAttribute('data-long-title');
-        }
     }
 }
 
@@ -750,13 +626,9 @@ function getTotalPlaylists() {
 
 PlaylistManager.reload = async function() {
     console.log('🔄 Recarregando playlists...');
-    
-    // ✅ CLEANUP: Remover todos os players antes de recriar (memory leak fix)
     AudioManager.cleanupAll();
     
     const currentIndex = PlaylistManager.currentPlaylistIndex;
-    console.log(`💾 Salvando índice atual: ${currentIndex}`);
-    
     await loadPlaylistsFromFirebase();
     
     const carousel = document.getElementById('playlistCarousel');
@@ -787,11 +659,7 @@ PlaylistManager.reload = async function() {
         setupIndicatorClicks();
         
         setTimeout(() => {
-            if (currentIndex < PlaylistManager.customPlaylists.length) {
-                switchToPlaylist(currentIndex);
-            } else {
-                switchToPlaylist(0);
-            }
+            switchToPlaylist(currentIndex < PlaylistManager.customPlaylists.length ? currentIndex : 0);
         }, 100);
     }
     
@@ -811,346 +679,302 @@ if (document.readyState === 'loading') {
     setTimeout(initPlaylistManager, 1500);
 }
 
-
 console.log('✅ playlist-manager.js carregado!');
 
-// ===== SUPORTE A CONTROLES EXTERNOS (FONE DE OUVIDO E NOTIFICAÇÕES) =====
+
+// ===================================================================
+// ===== MEDIA CONTROLS MANAGER — INTEGRAÇÃO COM NOTIFICAÇÕES =====
+// ===================================================================
 class MediaControlsManager {
     constructor() {
-        this.currentPlayer = null;
-        this.currentPlaylist = null;
+        this.currentPlayerId  = null;
+        this.currentPlaylist  = null;
         this.currentTrackIndex = 0;
-        this.isInitialized = false;
+        this.isInitialized    = false;
     }
 
     init() {
         if (this.isInitialized) return;
         this.isInitialized = true;
-
         console.log('🎵 Inicializando MediaControlsManager...');
-
-        // Configurar Media Session API para notificações do celular
-        this.setupMediaSession();
-
-        // Configurar event listeners para controles externos
-        this.setupExternalControls();
-
-        // Anexar listeners aos elementos de áudio existentes imediatamente
-        this.attachListenersToExistingAudios();
-
-        console.log('🎵 MediaControlsManager inicializado');
+        this._setupMediaSession();
+        this._setupVisibilitySync();
+        this._attachToExistingAudios();
+        console.log('✅ MediaControlsManager inicializado');
     }
 
-    setupMediaSession() {
+    // ------------------------------------------------------------------
+    // SETUP DA MEDIA SESSION API
+    // ------------------------------------------------------------------
+    _setupMediaSession() {
         if (!('mediaSession' in navigator)) {
-            console.log('⚠️ Media Session API não suportado');
+            console.warn('⚠️ Media Session API não suportada neste browser');
             return;
         }
 
-        // Configurar ações básicas
-        navigator.mediaSession.setActionHandler('play', () => {
-            this.handleExternalPlay();
-        });
-
-        navigator.mediaSession.setActionHandler('pause', () => {
-            this.handleExternalPause();
-        });
-
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-            this.handleExternalNext();
-        });
-
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
-            this.handleExternalPrevious();
-        });
-
-        navigator.mediaSession.setActionHandler('seekto', (details) => {
-            this.handleExternalSeek(details.seekTime);
-        });
-
-        navigator.mediaSession.setActionHandler('stop', () => {
-            this.handleExternalPause();
-        });
-
-        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-            const currentAudio = AudioManager.currentAudio;
-            if (currentAudio) {
-                currentAudio.currentTime = Math.max(0, currentAudio.currentTime - (details.seekOffset || 10));
-            }
-        });
-
-        navigator.mediaSession.setActionHandler('seekforward', (details) => {
-            const currentAudio = AudioManager.currentAudio;
-            if (currentAudio && currentAudio.duration) {
-                currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + (details.seekOffset || 10));
-            }
-        });
-
-        console.log('✅ Media Session API configurado');
-    }
-
-    setupExternalControls() {
-        // Event listener para mudanças no estado do áudio (útil para fones de ouvido)
-        document.addEventListener('visibilitychange', () => {
-            // Quando o usuário volta para a aba, verificar se o estado mudou
-            setTimeout(() => this.syncPlayerState(), 100);
-        });
-
-        // ✅ REMOVIDO: this.monitorAudioElements() - método não definido
-
-        console.log('✅ Controles externos configurados');
-    }
-
-    attachListenersToExistingAudios() {
-        // Anexar listeners aos elementos de áudio que já existem
-        const existingAudios = document.querySelectorAll('audio');
-        console.log(`🎵 Anexando listeners a ${existingAudios.length} elementos de áudio existentes`);
-
-        existingAudios.forEach(audio => {
-            this.attachAudioListeners(audio);
-        });
-    }
-
-    attachAudioListeners(audio) {
-        if (!audio) return;
-
-        const existingListeners = audio._mediaControlsListeners || {};
-        if (existingListeners.play) {
-            audio.removeEventListener('play', existingListeners.play);
-            audio.removeEventListener('pause', existingListeners.pause);
-            audio.removeEventListener('ended', existingListeners.ended);
-            audio.removeEventListener('timeupdate', existingListeners.timeupdate);
-        }
-
-        const playListener = () => this.handleAudioPlay(audio);
-        const pauseListener = () => this.handleAudioPause(audio);
-        const endedListener = () => this.handleAudioEnded(audio);
-        const timeUpdateListener = () => this.handleAudioTimeUpdate(audio);
-
-        audio.addEventListener('play', playListener);
-        audio.addEventListener('pause', pauseListener);
-        audio.addEventListener('ended', endedListener);
-        audio.addEventListener('timeupdate', timeUpdateListener);
-
-        audio._mediaControlsListeners = {
-            play: playListener,
-            pause: pauseListener,
-            ended: endedListener,
-            timeupdate: timeUpdateListener
+        const actions = {
+            play          : () => this._externalPlay(),
+            pause         : () => this._externalPause(),
+            stop          : () => this._externalPause(),
+            nexttrack     : () => this._externalNext(),
+            previoustrack : () => this._externalPrev(),
+            seekto        : (d) => this._externalSeek(d.seekTime),
+            seekbackward  : (d) => this._externalSkip(-(d.seekOffset || 10)),
+            seekforward   : (d) => this._externalSkip( (d.seekOffset || 10)),
         };
 
-        console.log(`🎵 Event listeners anexados ao áudio: ${audio.id}`);
-    }
-
-    handleAudioPlay(audio) {
-        console.log('🎵 Evento play detectado no áudio:', audio.id);
-        // Encontrar o player correspondente
-        const player = this.findPlayerByAudio(audio);
-        if (player) {
-            console.log('✅ Player encontrado, atualizando UI para playing');
-            this.updatePlayerUI(player, 'playing');
-            this.updateMediaSession(player);
-        } else {
-            console.log('❌ Player não encontrado para áudio:', audio.id);
+        for (const [action, handler] of Object.entries(actions)) {
+            try {
+                navigator.mediaSession.setActionHandler(action, handler);
+            } catch (e) {
+                // Alguns browsers não suportam todas as ações; ignorar silenciosamente
+            }
         }
+
+        console.log('✅ Handlers da Media Session configurados');
     }
 
-    handleAudioPause(audio) {
-        console.log('⏸️ Evento pause detectado no áudio:', audio.id);
-        // Encontrar o player correspondente
-        const player = this.findPlayerByAudio(audio);
+    // ------------------------------------------------------------------
+    // SINCRONIZAR ESTADO QUANDO O USUÁRIO VOLTA PARA A ABA
+    // ------------------------------------------------------------------
+    _setupVisibilitySync() {
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                setTimeout(() => this._syncState(), 200);
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // REGISTRAR LISTENERS NOS ÁUDIOS JÁ EXISTENTES NO DOM
+    // ------------------------------------------------------------------
+    _attachToExistingAudios() {
+        document.querySelectorAll('audio').forEach(a => this.attachAudioListeners(a));
+    }
+
+    // ------------------------------------------------------------------
+    // EVENTOS DO ELEMENTO <audio>
+    // ------------------------------------------------------------------
+    attachAudioListeners(audio) {
+        if (!audio || audio._mcmAttached) return;
+        audio._mcmAttached = true;
+
+        audio.addEventListener('play',       () => this._onPlay(audio));
+        audio.addEventListener('pause',      () => this._onPause(audio));
+        audio.addEventListener('ended',      () => this._onEnded(audio));
+        audio.addEventListener('timeupdate', () => this._onTimeUpdate(audio));
+        audio.addEventListener('loadedmetadata', () => this._onMetadataLoaded(audio));
+    }
+
+    _onPlay(audio) {
+        const player = this._playerOf(audio);
         if (player) {
-            console.log('✅ Player encontrado, atualizando UI para paused');
-            this.updatePlayerUI(player, 'paused');
-        } else {
-            console.log('❌ Player não encontrado para áudio:', audio.id);
+            this._setPlayerState(player, 'playing');
+            this._pushMetadata(player);          // ✅ garante metadados na notificação
         }
+        this._setPlaybackState('playing');
     }
 
-    handleAudioEnded(audio) {
-        // Encontrar o player correspondente e tocar próxima música
-        const player = this.findPlayerByAudio(audio);
+    _onPause(audio) {
+        const player = this._playerOf(audio);
+        if (player) this._setPlayerState(player, 'paused');
+        this._setPlaybackState('paused');
+    }
+
+    _onEnded(audio) {
+        const player = this._playerOf(audio);
         if (player) {
             const nextBtn = player.querySelector('[id$="-nextBtn"]');
-            if (nextBtn) {
-                nextBtn.click();
-            }
+            nextBtn?.click();
         }
     }
 
-    handleAudioTimeUpdate(audio) {
-        // Atualizar Media Session com progresso atual
-        if ('mediaSession' in navigator && !audio.paused) {
+    _onTimeUpdate(audio) {
+        // ✅ Só atualiza posição quando os valores são válidos
+        // Evita erros que fazem o OS descartar a notificação
+        if (!('mediaSession' in navigator)) return;
+        const dur = audio.duration;
+        if (!dur || isNaN(dur) || !isFinite(dur) || dur <= 0) return;
+        if (audio.paused) return;
+
+        try {
             navigator.mediaSession.setPositionState({
-                duration: audio.duration || 0,
+                duration    : dur,
                 playbackRate: audio.playbackRate || 1,
-                position: audio.currentTime || 0
+                position    : Math.min(audio.currentTime || 0, dur),
             });
+        } catch (e) {
+            // Ignorar; alguns browsers rejeitam setPositionState em certos estados
         }
     }
 
-    handleExternalPlay() {
-        const currentAudio = AudioManager.currentAudio;
-        if (currentAudio && currentAudio.paused) {
-            currentAudio.play().catch(err => console.warn('Erro ao tocar:', err));
-        }
+    _onMetadataLoaded(audio) {
+        // Assim que a duração fica disponível, empurrar posição inicial
+        this._onTimeUpdate(audio);
     }
 
-    handleExternalPause() {
-        const currentAudio = AudioManager.currentAudio;
-        if (currentAudio && !currentAudio.paused) {
-            currentAudio.pause();
-        }
+    // ------------------------------------------------------------------
+    // CONTROLES EXTERNOS (fone de ouvido, notificação, Bluetooth)
+    // ------------------------------------------------------------------
+    _externalPlay() {
+        const a = AudioManager.currentAudio;
+        if (a && a.paused) a.play().catch(() => {});
     }
 
-    handleExternalNext() {
-        const currentPlayer = AudioManager.currentPlayerId;
-        if (currentPlayer) {
-            const nextBtn = document.getElementById(`${currentPlayer}-nextBtn`);
-            if (nextBtn) {
-                nextBtn.click();
-            }
-        }
+    _externalPause() {
+        const a = AudioManager.currentAudio;
+        if (a && !a.paused) a.pause();
     }
 
-    handleExternalPrevious() {
-        const currentPlayer = AudioManager.currentPlayerId;
-        if (currentPlayer) {
-            const prevBtn = document.getElementById(`${currentPlayer}-prevBtn`);
-            if (prevBtn) {
-                prevBtn.click();
-            }
-        }
+    _externalNext() {
+        const btn = document.getElementById(`${AudioManager.currentPlayerId}-nextBtn`);
+        btn?.click();
     }
 
-    handleExternalSeek(seekTime) {
-        const currentAudio = AudioManager.currentAudio;
-        if (currentAudio && seekTime >= 0) {
-            currentAudio.currentTime = seekTime;
-        }
+    _externalPrev() {
+        const btn = document.getElementById(`${AudioManager.currentPlayerId}-prevBtn`);
+        btn?.click();
     }
 
-    findPlayerByAudio(audio) {
-        // Encontrar o player container baseado no elemento de áudio
-        const audioId = audio.id;
-        console.log('🔍 Procurando player para áudio ID:', audioId);
+    _externalSeek(time) {
+        const a = AudioManager.currentAudio;
+        if (a && time >= 0) a.currentTime = time;
+    }
 
-        if (audioId) {
-            const playerId = audioId.replace('custom-audio-', 'custom-player-');
-            console.log('🎯 Player ID esperado:', playerId);
-            const player = document.getElementById(playerId);
-            if (player) {
-                console.log('✅ Player encontrado:', playerId);
-                return player;
-            } else {
-                console.log('❌ Player não encontrado com ID:', playerId);
-            }
+    _externalSkip(delta) {
+        const a = AudioManager.currentAudio;
+        if (!a) return;
+        const next = a.currentTime + delta;
+        a.currentTime = Math.max(0, a.duration ? Math.min(a.duration, next) : next);
+    }
+
+    // ------------------------------------------------------------------
+    // HELPERS INTERNOS
+    // ------------------------------------------------------------------
+    _playerOf(audio) {
+        if (!audio) return null;
+        if (audio.id) {
+            const p = document.getElementById(audio.id.replace('custom-audio-', 'custom-player-'));
+            if (p) return p;
         }
-
-        // Fallback: procurar pelo áudio dentro do player
-        console.log('🔄 Tentando fallback - procurando player que contém este áudio');
-        const players = document.querySelectorAll('.music-player');
-        for (const player of players) {
-            if (player.contains(audio)) {
-                console.log('✅ Player encontrado via fallback');
-                return player;
-            }
+        for (const p of document.querySelectorAll('.music-player')) {
+            if (p.contains(audio)) return p;
         }
-
-        console.log('❌ Nenhum player encontrado');
         return null;
     }
 
-    updatePlayerUI(player, state) {
-        console.log('🎨 Atualizando UI do player para estado:', state);
-        const playPauseBtn = player.querySelector('.play-pause-btn');
-        const playerContainer = player.closest('.music-player');
-
-        console.log('🔍 Botão play/pause encontrado:', !!playPauseBtn);
-        console.log('🔍 Container do player encontrado:', !!playerContainer);
-
+    _setPlayerState(player, state) {
+        const btn = player.querySelector('.play-pause-btn');
+        if (!btn) return;
         if (state === 'playing') {
-            if (playPauseBtn) {
-                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                console.log('✅ Ícone alterado para PAUSE');
-            }
-            if (playerContainer) {
-                playerContainer.classList.add('playing');
-                console.log('✅ Classe "playing" adicionada');
-            }
-        } else if (state === 'paused') {
-            if (playPauseBtn) {
-                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-                console.log('✅ Ícone alterado para PLAY');
-            }
-            if (playerContainer) {
-                playerContainer.classList.remove('playing');
-                console.log('✅ Classe "playing" removida');
-            }
+            btn.innerHTML = '<i class="fas fa-pause"></i>';
+            player.classList.add('playing');
+        } else {
+            btn.innerHTML = '<i class="fas fa-play"></i>';
+            player.classList.remove('playing');
         }
     }
 
-    updateMediaSession(player) {
+    _setPlaybackState(state) {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = state;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // EMPURRAR METADADOS PARA A NOTIFICAÇÃO DO CELULAR
+    // ------------------------------------------------------------------
+    _pushMetadata(player) {
         if (!('mediaSession' in navigator)) return;
 
-        const titleEl = player.querySelector('[id$="-title"]');
+        const titleEl  = player.querySelector('[id$="-title"]');
         const artistEl = player.querySelector('[id$="-artist"]');
-        const coverImg = player.querySelector('[id$="-coverImg"]');
-        const audio = player.querySelector('audio');
+        const coverEl  = player.querySelector('[id$="-coverImg"]');
 
-        if (titleEl && artistEl) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: titleEl.textContent,
-                artist: artistEl.textContent,
-                album: 'Kevin & Iara',
-                artwork: coverImg ? [{ src: coverImg.src, sizes: '400x400', type: 'image/jpeg' }] : []
-            });
-        }
+        const title  = titleEl?.textContent?.trim()  || 'Música';
+        const artist = artistEl?.textContent?.trim() || 'Artista';
 
-        // Atualizar estado de reprodução
-        if (audio) {
-            navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
-        }
-    }
-
-    syncPlayerState() {
-        // Sincronizar estado quando o usuário volta para a aba
-        const currentAudio = AudioManager.currentAudio;
-        const currentPlayerId = AudioManager.currentPlayerId;
-
-        if (currentAudio && currentPlayerId) {
-            const player = document.getElementById(currentPlayerId);
-            if (player) {
-                this.updatePlayerUI(player, currentAudio.paused ? 'paused' : 'playing');
-                this.updateMediaSession(player);
+        // ✅ Converter src da imagem para URL absoluta
+        // A API exige URL absoluta; URLs relativas resultam em capa cinza
+        let artworkSrc = '';
+        if (coverEl && coverEl.src) {
+            try {
+                // coverEl.src já retorna URL absoluta no browser
+                artworkSrc = new URL(coverEl.src, window.location.href).href;
+            } catch (e) {
+                artworkSrc = coverEl.src;
             }
         }
+
+        // ✅ Montar lista de artwork com múltiplos tamanhos para melhor qualidade
+        const artwork = artworkSrc
+            ? [
+                { src: artworkSrc, sizes: '96x96',   type: 'image/jpeg' },
+                { src: artworkSrc, sizes: '128x128',  type: 'image/jpeg' },
+                { src: artworkSrc, sizes: '192x192',  type: 'image/jpeg' },
+                { src: artworkSrc, sizes: '256x256',  type: 'image/jpeg' },
+                { src: artworkSrc, sizes: '384x384',  type: 'image/jpeg' },
+                { src: artworkSrc, sizes: '512x512',  type: 'image/jpeg' },
+            ]
+            : [];
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title,
+            artist,
+            album  : 'Kevin & Iara',
+            artwork,
+        });
+
+        console.log(`🎵 Media Session atualizada: "${title}" — ${artist} | capa: ${artworkSrc || 'nenhuma'}`);
     }
 
-    // Método para registrar um player ativo
+    _syncState() {
+        const a  = AudioManager.currentAudio;
+        const id = AudioManager.currentPlayerId;
+        if (!a || !id) return;
+        const player = document.getElementById(id);
+        if (player) {
+            this._setPlayerState(player, a.paused ? 'paused' : 'playing');
+            this._pushMetadata(player);
+        }
+        this._setPlaybackState(a.paused ? 'paused' : 'playing');
+    }
+
+    // ------------------------------------------------------------------
+    // API PÚBLICA — chamada pelo player ao trocar de faixa
+    // ------------------------------------------------------------------
     registerPlayer(playerId, playlist, trackIndex) {
-        this.currentPlayer = playerId;
-        this.currentPlaylist = playlist;
+        this.currentPlayerId   = playerId;
+        this.currentPlaylist   = playlist;
         this.currentTrackIndex = trackIndex;
 
         const player = document.getElementById(playerId);
         if (player) {
-            this.updateMediaSession(player);
+            // ✅ Empurrar metadados imediatamente, sem esperar evento de play
+            this._pushMetadata(player);
         }
+    }
+
+    // Compatibilidade com chamadas legadas que passavam o player element
+    updateMediaSession(playerOrId) {
+        const player = typeof playerOrId === 'string'
+            ? document.getElementById(playerOrId)
+            : playerOrId;
+        if (player) this._pushMetadata(player);
     }
 }
 
-// Instância global
+// ------------------------------------------------------------------
+// INSTÂNCIA GLOBAL
+// ------------------------------------------------------------------
 const mediaControlsManager = new MediaControlsManager();
 
-// Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
-    // Inicializar imediatamente após os players serem criados
+    // Aguardar os players estarem no DOM antes de inicializar
     setTimeout(() => {
         mediaControlsManager.init();
-        console.log('🎵 MediaControlsManager inicializado após criação dos players');
-    }, 500); // Reduzido para 500ms
+        console.log('🎵 MediaControlsManager pronto');
+    }, 500);
 });
 
-// Exportar para uso global
 window.MediaControlsManager = mediaControlsManager;
