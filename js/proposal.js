@@ -166,7 +166,7 @@
 
             <!-- FASE 1: ANEL -->
             <div class="proposal-layer" id="phaseRing">
-                <p class="proposal-eyebrow">Segure esse anel por um momento...</p>
+                <p class="proposal-eyebrow">Esse anel tem algo pra te dizer...</p>
                 <div class="ring-wrap" id="ringWrap">
                     <div class="ring-aura"  id="ringAura"></div>
                     <div class="ring-orbit" id="ringOrbit"></div>
@@ -175,7 +175,7 @@
                 <div class="hold-track" id="holdTrack">
                     <div class="hold-fill" id="holdFill"></div>
                 </div>
-                <p class="hold-hint" id="holdHint">Segure. Não largue não.</p>
+                <p class="hold-hint" id="holdHint">Não solta não...</p>
             </div>
 
             <!-- FASE 2: PEDIDO -->
