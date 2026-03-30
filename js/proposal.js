@@ -175,7 +175,7 @@
                 <div class="hold-track" id="holdTrack">
                     <div class="hold-fill" id="holdFill"></div>
                 </div>
-                <p class="hold-hint" id="holdHint">Segure Não largue não.</p>
+                <p class="hold-hint" id="holdHint">Segure. Não largue não.</p>
             </div>
 
             <!-- FASE 2: PEDIDO -->
@@ -705,8 +705,10 @@
         const el = document.createElement('div');
         el.className   = 'no-attempt-msg';
         el.textContent = text;
-        el.style.left  = Math.max(10, Math.min(window.innerWidth  - 250, x - 90)) + 'px';
-        el.style.top   = Math.max(10, Math.min(window.innerHeight -  60, y - 58)) + 'px';
+el.style.position = 'fixed';
+el.style.zIndex   = '99999';
+el.style.left  = Math.max(10, Math.min(window.innerWidth  - 250, x - 90)) + 'px';
+el.style.top   = Math.max(10, Math.min(window.innerHeight -  60, y - 58)) + 'px';
         document.body.appendChild(el);
         S.noMsgEl = el;
 
