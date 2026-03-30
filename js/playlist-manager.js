@@ -230,6 +230,10 @@ async function initPlaylistManager() {
         
         PlaylistManager.initialized = true;
         console.log('✅ Playlists prontas!');
+
+        if (window.MediaControlsManager) {
+            window.MediaControlsManager.init();
+        }
     });
 }
 
@@ -424,6 +428,9 @@ function createCustomPlayer(container, playlist, playlistIndex) {
     // ✅ NOVO: Registrar o elemento de áudio no gerenciador
     const audioElement = document.getElementById(audioId);
     AudioManager.registerAudio(audioElement, playerId);
+    if (window.MediaControlsManager) {
+        window.MediaControlsManager.attachAudioListeners(audioElement);
+    }
     
     initCustomPlayerControls(playerId, audioId, playlist);
 }
@@ -444,10 +451,23 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
     let currentTrackIndex = 0;
     let isPlaying = false;
     let isShuffled = false;
+    let shuffleOrder = [];
+    let shufflePosition = 0;
     let repeatMode = 0;
     let isLoading = false;
     let loadTimeout = null;
-    
+
+    function createShuffleOrder(startIndex = 0) {
+        const indices = playlist.tracks.map((_, i) => i).filter(i => i !== startIndex);
+        for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+        shuffleOrder = [startIndex, ...indices];
+        shufflePosition = 0;
+        console.log('🔀 Ordem aleatória criada:', shuffleOrder);
+    }
+
     // Evitar preload para não forçar downloads antes do usuário tocar
     audio.preload = 'metadata';
     audio.volume = 0.8;
@@ -492,7 +512,12 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         if (audio.currentTime > 3) {
             audio.currentTime = 0;
         } else {
-            currentTrackIndex = (currentTrackIndex - 1 + playlist.tracks.length) % playlist.tracks.length;
+            if (isShuffled && shuffleOrder.length > 0) {
+                shufflePosition = (shufflePosition - 1 + shuffleOrder.length) % shuffleOrder.length;
+                currentTrackIndex = shuffleOrder[shufflePosition];
+            } else {
+                currentTrackIndex = (currentTrackIndex - 1 + playlist.tracks.length) % playlist.tracks.length;
+            }
             loadTrack(currentTrackIndex);
         }
     });
@@ -500,13 +525,24 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
     nextBtn.addEventListener('click', () => {
         if (isLoading) return;
         
-        currentTrackIndex = (currentTrackIndex + 1) % playlist.tracks.length;
+        if (isShuffled && shuffleOrder.length > 0) {
+            shufflePosition = (shufflePosition + 1) % shuffleOrder.length;
+            currentTrackIndex = shuffleOrder[shufflePosition];
+        } else {
+            currentTrackIndex = (currentTrackIndex + 1) % playlist.tracks.length;
+        }
         loadTrack(currentTrackIndex);
     });
     
     shuffleBtn.addEventListener('click', () => {
         isShuffled = !isShuffled;
         shuffleBtn.classList.toggle('active', isShuffled);
+        if (isShuffled) {
+            createShuffleOrder(currentTrackIndex);
+        } else {
+            shuffleOrder = [];
+            shufflePosition = 0;
+        }
     });
     
     repeatBtn.addEventListener('click', () => {
@@ -566,9 +602,30 @@ function initCustomPlayerControls(playerId, audioId, playlist) {
         
         console.log(`🎵 Carregando: ${track.title}`);
         
+        if (isShuffled) {
+            if (!shuffleOrder.length || shuffleOrder[shufflePosition] !== index) {
+                if (shuffleOrder.length && shuffleOrder.includes(index)) {
+                    shufflePosition = shuffleOrder.indexOf(index);
+                } else {
+                    createShuffleOrder(index);
+                }
+            }
+        } else {
+            shuffleOrder = [];
+            shufflePosition = 0;
+        }
+
         document.getElementById(`${playerId}-title`).textContent = track.title;
         document.getElementById(`${playerId}-artist`).textContent = track.artist;
         document.getElementById(`${playerId}-currentTrack`).textContent = index + 1;
+
+        if (window.MediaControlsManager) {
+            window.MediaControlsManager.registerPlayer(playerId, playlist, index);
+            const currentPlayer = document.getElementById(playerId);
+            if (currentPlayer) {
+                window.MediaControlsManager.updateMediaSession(currentPlayer);
+            }
+        }
 
         // ✅ CARREGAR CAPA INSTANTANEAMENTE (SEM LAZY LOADING)
         const coverImg = document.getElementById(`${playerId}-coverImg`);
@@ -811,6 +868,24 @@ class MediaControlsManager {
             this.handleExternalSeek(details.seekTime);
         });
 
+        navigator.mediaSession.setActionHandler('stop', () => {
+            this.handleExternalPause();
+        });
+
+        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+            const currentAudio = AudioManager.currentAudio;
+            if (currentAudio) {
+                currentAudio.currentTime = Math.max(0, currentAudio.currentTime - (details.seekOffset || 10));
+            }
+        });
+
+        navigator.mediaSession.setActionHandler('seekforward', (details) => {
+            const currentAudio = AudioManager.currentAudio;
+            if (currentAudio && currentAudio.duration) {
+                currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + (details.seekOffset || 10));
+            }
+        });
+
         console.log('✅ Media Session API configurado');
     }
 
@@ -837,22 +912,32 @@ class MediaControlsManager {
     }
 
     attachAudioListeners(audio) {
-        // Remover listeners antigos para evitar duplicatas
-        audio.removeEventListener('play', this.onAudioPlay);
-        audio.removeEventListener('pause', this.onAudioPause);
-        audio.removeEventListener('ended', this.onAudioEnded);
-        audio.removeEventListener('timeupdate', this.onAudioTimeUpdate);
+        if (!audio) return;
 
-        // Adicionar novos listeners
-        this.onAudioPlay = () => this.handleAudioPlay(audio);
-        this.onAudioPause = () => this.handleAudioPause(audio);
-        this.onAudioEnded = () => this.handleAudioEnded(audio);
-        this.onAudioTimeUpdate = () => this.handleAudioTimeUpdate(audio);
+        const existingListeners = audio._mediaControlsListeners || {};
+        if (existingListeners.play) {
+            audio.removeEventListener('play', existingListeners.play);
+            audio.removeEventListener('pause', existingListeners.pause);
+            audio.removeEventListener('ended', existingListeners.ended);
+            audio.removeEventListener('timeupdate', existingListeners.timeupdate);
+        }
 
-        audio.addEventListener('play', this.onAudioPlay);
-        audio.addEventListener('pause', this.onAudioPause);
-        audio.addEventListener('ended', this.onAudioEnded);
-        audio.addEventListener('timeupdate', this.onAudioTimeUpdate);
+        const playListener = () => this.handleAudioPlay(audio);
+        const pauseListener = () => this.handleAudioPause(audio);
+        const endedListener = () => this.handleAudioEnded(audio);
+        const timeUpdateListener = () => this.handleAudioTimeUpdate(audio);
+
+        audio.addEventListener('play', playListener);
+        audio.addEventListener('pause', pauseListener);
+        audio.addEventListener('ended', endedListener);
+        audio.addEventListener('timeupdate', timeUpdateListener);
+
+        audio._mediaControlsListeners = {
+            play: playListener,
+            pause: pauseListener,
+            ended: endedListener,
+            timeupdate: timeUpdateListener
+        };
 
         console.log(`🎵 Event listeners anexados ao áudio: ${audio.id}`);
     }
