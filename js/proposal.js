@@ -194,7 +194,7 @@
                     <button class="btn-yes" id="btnYes">Sim 💕</button>
                 </div>
                 <p class="attempt-hint" id="attemptHint"></p>
-                <p class="phase35-text"  id="phase35Text">Isso é para deixar bem claro que o "não"\nnão existe e nunca existirá entre a gente 😄</p>
+                <p class="phase35-text" id="phase35Text">Isso é para deixar bem claro que o "não"\nnão existe e nunca será uma opção entre a gente</p>
             </div>
 
             <!-- FASE 3: ACEITO -->
