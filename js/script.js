@@ -1799,6 +1799,50 @@ const messages = [
     {
         text: "O amor que sinto por você não cabe em palavras, mas transborda em cada gesto, cada olhar, cada momento juntos.",
         author: "Kevin para Iara"
+    },
+    {
+        text: "Mesmo de longe, você conseguiu fazer eu me sentir mais amado do que nunca.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Você transformou a distância em mais uma prova de que fomos feitos um para o outro.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Amar você é a coisa mais natural e bonita que já aconteceu na minha vida.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Você chegou na minha vida e, sem perceber, se tornou meu lugar favorito.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Não importa a distância, meu coração sempre encontra o caminho até você.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Com você, até os dias comuns se tornam especiais.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Você é a melhor coincidência que a vida colocou no meu caminho.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Entre tantas pessoas no mundo, foi você quem fez meu coração se sentir em casa.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Seu amor mudou completamente a forma como eu vejo a vida.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Toda vez que penso no futuro, é você que eu imagino ao meu lado.",
+        author: "Kevin para Iara"
+    },
+    {
+        text: "Você conseguiu ser minha paz mesmo estando quilômetros de distância.",
+        author: "Kevin para Iara"
     }
 ];
 
