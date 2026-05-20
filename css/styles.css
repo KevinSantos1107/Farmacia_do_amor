@@ -192,6 +192,73 @@ body {
     padding-bottom: 20px;
 }
 
+/* ===== MOBILE: EVITA SELECAO ACIDENTAL EM SUPERFICIES INTERATIVAS ===== */
+@media (hover: none) and (pointer: coarse) {
+    .hamburger-button,
+    .hamburger-button *,
+    .side-menu,
+    .side-menu a,
+    .side-menu button,
+    .side-menu span,
+    .theme-card,
+    .theme-card *,
+    .admin-menu-btn,
+    .admin-menu-btn *,
+    .time-counter,
+    .time-counter *,
+    .start-date,
+    .start-date *,
+    .music-player button,
+    .music-player button *,
+    .control-btn,
+    .control-btn *,
+    .play-pause-btn,
+    .play-pause-btn *,
+    .progress-bar-bg,
+    .playlist-indicator,
+    .playlist-indicator *,
+    .playlist-carousel,
+    .playlist-carousel *,
+    .albums-carousel-container,
+    .albums-carousel-container *,
+    .album-card,
+    .album-card *,
+    .album-modal button,
+    .album-modal .album-viewer,
+    .album-modal .album-viewer *,
+    .new-message-btn,
+    .new-message-btn *,
+    .timeline-button-section button,
+    .timeline-button-section button *,
+    .acrostic-line,
+    .acrostic-line *,
+    .footer-heart,
+    .footer-names i {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    .hamburger-button,
+    .side-menu a,
+    .side-menu button,
+    .theme-card,
+    .admin-menu-btn,
+    .music-player button,
+    .control-btn,
+    .play-pause-btn,
+    .progress-bar-bg,
+    .playlist-indicator,
+    .playlist-carousel,
+    .album-card,
+    .carousel-album-card,
+    .new-message-btn,
+    .open-timeline-btn,
+    .acrostic-line {
+        touch-action: manipulation;
+    }
+}
+
 /* ===== CANVAS DE FUNDO - COBERTURA TOTAL GARANTIDA ===== */
 #backgroundCanvas {
     position: fixed;
