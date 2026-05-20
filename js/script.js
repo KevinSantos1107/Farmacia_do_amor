@@ -196,6 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initModal();
         initTimelineModal();
         initHamburgerMenu();
+        initMobileTapSelectionGuard();
         updateCurrentDate();
         initAcrostic();
         
@@ -1896,6 +1897,103 @@ function updateCurrentDate() {
     if (dateElement) {
         dateElement.textContent = `Hoje é ${dateString}`;
     }
+}
+
+// ===== MOBILE: LIMPA SELECAO ACIDENTAL DE TOQUE CURTO =====
+function initMobileTapSelectionGuard() {
+    if (!window.matchMedia || !window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+        return;
+    }
+
+    if (window.mobileTapSelectionGuardInitialized) {
+        return;
+    }
+
+    window.mobileTapSelectionGuardInitialized = true;
+
+    const TAP_MAX_DURATION = 450;
+    const TAP_MOVE_TOLERANCE = 12;
+    let touchStart = null;
+
+    const isEditable = (element) => {
+        return !!element.closest('input, textarea, select, [contenteditable="true"]');
+    };
+
+    const isProtectedModal = (element) => {
+        return !!element.closest('#adminModal, #adminLoginModal, #wordGameModal, #starMapModal');
+    };
+
+    const isMainInterface = (element) => {
+        return !!element.closest('.container, .hamburger-menu, .album-modal, .timeline-modal, .secret-modal');
+    };
+
+    const clearSelectionIfNeeded = () => {
+        const selection = window.getSelection ? window.getSelection() : null;
+
+        if (selection && !selection.isCollapsed) {
+            selection.removeAllRanges();
+        }
+    };
+
+    document.addEventListener('touchstart', (event) => {
+        if (event.touches.length !== 1) {
+            touchStart = null;
+            return;
+        }
+
+        const target = event.target;
+
+        if (!target || isEditable(target) || isProtectedModal(target) || !isMainInterface(target)) {
+            touchStart = null;
+            return;
+        }
+
+        const touch = event.touches[0];
+
+        touchStart = {
+            target,
+            time: Date.now(),
+            x: touch.clientX,
+            y: touch.clientY,
+            moved: false
+        };
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (event) => {
+        if (!touchStart || event.touches.length !== 1) {
+            return;
+        }
+
+        const touch = event.touches[0];
+        const distanceX = Math.abs(touch.clientX - touchStart.x);
+        const distanceY = Math.abs(touch.clientY - touchStart.y);
+
+        if (distanceX > TAP_MOVE_TOLERANCE || distanceY > TAP_MOVE_TOLERANCE) {
+            touchStart.moved = true;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (event) => {
+        if (!touchStart) {
+            return;
+        }
+
+        const duration = Date.now() - touchStart.time;
+        const isShortTap = duration <= TAP_MAX_DURATION && !touchStart.moved;
+        const target = event.target || touchStart.target;
+
+        if (isShortTap && target && !isEditable(target) && !isProtectedModal(target)) {
+            window.setTimeout(clearSelectionIfNeeded, 0);
+        }
+
+        touchStart = null;
+    }, { passive: true });
+
+    document.addEventListener('touchcancel', () => {
+        touchStart = null;
+    }, { passive: true });
+
+    console.log('✅ Proteção contra seleção acidental no mobile inicializada');
 }
 
 // ===== MENU HAMBÚRGUER - VERSÃO 100% FUNCIONAL =====
