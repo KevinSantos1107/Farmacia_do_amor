@@ -1916,6 +1916,11 @@ function initMobileTapSelectionGuard() {
     const SHORT_TAP_SELECTION_WINDOW = 700;
     let touchStart = null;
     let clearShortTapSelectionUntil = 0;
+    const selectableTextSelector = [
+        '.love-message .message-content',
+        '.message-card #dailyMessage',
+        '.secret-message'
+    ].join(', ');
 
     const isEditable = (element) => {
         return !!element.closest('input, textarea, select, [contenteditable="true"]');
@@ -1931,6 +1936,10 @@ function initMobileTapSelectionGuard() {
 
     const isMainInterface = (element) => {
         return !!element.closest('.container, .hamburger-menu, .album-modal, .timeline-modal, .secret-modal');
+    };
+
+    const isSelectableTextBlock = (element) => {
+        return !!element.closest(selectableTextSelector);
     };
 
     const clearSelectionIfNeeded = () => {
@@ -2032,6 +2041,21 @@ function initMobileTapSelectionGuard() {
         }, 0);
         clearSelectionIfNeeded();
     }, { capture: true, passive: false });
+
+    document.querySelectorAll(selectableTextSelector).forEach((element) => {
+        element.addEventListener('click', (event) => {
+            if (Date.now() > clearShortTapSelectionUntil || !isSelectableTextBlock(event.target)) {
+                return;
+            }
+
+            event.preventDefault();
+            element.classList.toggle('mobile-text-tap', true);
+            window.setTimeout(() => {
+                element.classList.remove('mobile-text-tap');
+            }, 0);
+            clearSelectionIfNeeded();
+        }, { passive: false });
+    });
 }
 
 // ===== MENU HAMBÚRGUER - VERSÃO 100% FUNCIONAL =====
