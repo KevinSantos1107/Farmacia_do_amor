@@ -194,24 +194,6 @@ body {
 
 /* ===== MOBILE: EVITA SELECAO ACIDENTAL EM SUPERFICIES INTERATIVAS ===== */
 @media (hover: none) and (pointer: coarse) {
-    .container,
-    .container * {
-        -webkit-user-select: none;
-        user-select: none;
-        -webkit-touch-callout: none;
-    }
-
-    .love-message .message-content,
-    .love-message .message-content *,
-    .message-card #dailyMessage,
-    .message-card #dailyMessage *,
-    .secret-message,
-    .secret-message * {
-        -webkit-user-select: text;
-        user-select: text;
-        -webkit-touch-callout: default;
-    }
-
     .hamburger-button,
     .hamburger-button *,
     .side-menu,
