@@ -1925,6 +1925,10 @@ function initMobileTapSelectionGuard() {
         return !!element.closest('#adminModal, #adminLoginModal, #wordGameModal, #starMapModal');
     };
 
+    const isNativeInteractive = (element) => {
+        return !!element.closest('a, button, input, textarea, select, label, summary, [role="button"], [role="link"]');
+    };
+
     const isMainInterface = (element) => {
         return !!element.closest('.container, .hamburger-menu, .album-modal, .timeline-modal, .secret-modal');
     };
@@ -2009,6 +2013,25 @@ function initMobileTapSelectionGuard() {
             clearSelectionIfNeeded();
         }
     });
+
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+
+        if (!target || isEditable(target) || isProtectedModal(target) || isNativeInteractive(target) || !isMainInterface(target)) {
+            return;
+        }
+
+        if (Date.now() > clearShortTapSelectionUntil) {
+            return;
+        }
+
+        event.preventDefault();
+        document.documentElement.toggleAttribute('data-mobile-text-tap', true);
+        window.setTimeout(() => {
+            document.documentElement.removeAttribute('data-mobile-text-tap');
+        }, 0);
+        clearSelectionIfNeeded();
+    }, { capture: true, passive: false });
 }
 
 // ===== MENU HAMBÚRGUER - VERSÃO 100% FUNCIONAL =====
