@@ -1913,14 +1913,7 @@ function initMobileTapSelectionGuard() {
 
     const TAP_MAX_DURATION = 450;
     const TAP_MOVE_TOLERANCE = 12;
-    const SHORT_TAP_SELECTION_WINDOW = 700;
     let touchStart = null;
-    let clearShortTapSelectionUntil = 0;
-    const selectableTextSelector = [
-        '.love-message .message-content',
-        '.message-card #dailyMessage',
-        '.secret-message'
-    ].join(', ');
 
     const isEditable = (element) => {
         return !!element.closest('input, textarea, select, [contenteditable="true"]');
@@ -1930,16 +1923,8 @@ function initMobileTapSelectionGuard() {
         return !!element.closest('#adminModal, #adminLoginModal, #wordGameModal, #starMapModal');
     };
 
-    const isNativeInteractive = (element) => {
-        return !!element.closest('a, button, input, textarea, select, label, summary, [role="button"], [role="link"]');
-    };
-
     const isMainInterface = (element) => {
         return !!element.closest('.container, .hamburger-menu, .album-modal, .timeline-modal, .secret-modal');
-    };
-
-    const isSelectableTextBlock = (element) => {
-        return !!element.closest(selectableTextSelector);
     };
 
     const clearSelectionIfNeeded = () => {
@@ -1948,14 +1933,6 @@ function initMobileTapSelectionGuard() {
         if (selection && !selection.isCollapsed) {
             selection.removeAllRanges();
         }
-    };
-
-    const clearSelectionAfterShortTap = () => {
-        clearShortTapSelectionUntil = Date.now() + SHORT_TAP_SELECTION_WINDOW;
-
-        window.setTimeout(clearSelectionIfNeeded, 0);
-        window.setTimeout(clearSelectionIfNeeded, 80);
-        window.setTimeout(clearSelectionIfNeeded, 180);
     };
 
     document.addEventListener('touchstart', (event) => {
@@ -2006,7 +1983,7 @@ function initMobileTapSelectionGuard() {
         const target = event.target || touchStart.target;
 
         if (isShortTap && target && !isEditable(target) && !isProtectedModal(target)) {
-            clearSelectionAfterShortTap();
+            window.setTimeout(clearSelectionIfNeeded, 0);
         }
 
         touchStart = null;
@@ -2017,45 +1994,6 @@ function initMobileTapSelectionGuard() {
     }, { passive: true });
 
     console.log('✅ Proteção contra seleção acidental no mobile inicializada');
-    document.addEventListener('selectionchange', () => {
-        if (Date.now() <= clearShortTapSelectionUntil) {
-            clearSelectionIfNeeded();
-        }
-    });
-
-    document.addEventListener('click', (event) => {
-        const target = event.target;
-
-        if (!target || isEditable(target) || isProtectedModal(target) || isNativeInteractive(target) || !isMainInterface(target)) {
-            return;
-        }
-
-        if (Date.now() > clearShortTapSelectionUntil) {
-            return;
-        }
-
-        event.preventDefault();
-        document.documentElement.toggleAttribute('data-mobile-text-tap', true);
-        window.setTimeout(() => {
-            document.documentElement.removeAttribute('data-mobile-text-tap');
-        }, 0);
-        clearSelectionIfNeeded();
-    }, { capture: true, passive: false });
-
-    document.querySelectorAll(selectableTextSelector).forEach((element) => {
-        element.addEventListener('click', (event) => {
-            if (Date.now() > clearShortTapSelectionUntil || !isSelectableTextBlock(event.target)) {
-                return;
-            }
-
-            event.preventDefault();
-            element.classList.toggle('mobile-text-tap', true);
-            window.setTimeout(() => {
-                element.classList.remove('mobile-text-tap');
-            }, 0);
-            clearSelectionIfNeeded();
-        }, { passive: false });
-    });
 }
 
 // ===== MENU HAMBÚRGUER - VERSÃO 100% FUNCIONAL =====
