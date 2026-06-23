@@ -686,31 +686,23 @@ nextBtn.addEventListener('click', () => {
         }
         
         if (touches.length === 0) {
-            if (isPinching) {
-                console.log('✅ Pinch finalizado');
+            if (isPinching || isDragging || zoomLevel > 1) {
+                console.log('✅ Todos os dedos removidos -> Resetando Zoom');
                 isPinching = false;
+                isDragging = false;
+                modalPhoto.style.cursor = 'pointer';
                 
                 if (zoomLevel > 1) {
-                    resetZoom(); // Efeito elástico (Instagram style)
+                    resetZoom();
                     blockNavigation = true;
                     setTimeout(() => {
                         blockNavigation = false;
-                        console.log('🔓 Navegação liberada após pinch');
+                        console.log('🔓 Navegação liberada após reset de zoom');
                     }, 300);
                 }
             }
             
-            if (isDragging) {
-                console.log('✅ Drag finalizado');
-                isDragging = false;
-                modalPhoto.style.cursor = zoomLevel > 1 ? 'grab' : 'pointer';
-                
-                if (zoomLevel > 1) {
-                    blockNavigation = true;
-                }
-            }
-            
-            if (!isPinching && !isDragging && zoomLevel === 1) {
+            if (zoomLevel === 1) {
                 blockNavigation = false;
             }
             
