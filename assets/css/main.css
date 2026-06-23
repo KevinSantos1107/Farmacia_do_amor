@@ -1,0 +1,17 @@
+/* assets/css/main.css */
+
+/* 1. Base & Utils */
+@import url('base/variables.css');
+@import url('utils/helpers.css');
+
+/* 2. Layouts */
+@import url('layout/main-layout.css');
+@import url('layout/admin-styles.css');
+
+/* 3. Components */
+@import url('components/timeline.css');
+@import url('components/word-game.css');
+@import url('components/playlist-styles.css');
+@import url('components/playlist-edit.css');
+@import url('components/star-map.css');
+@import url('components/splash-screen.css');

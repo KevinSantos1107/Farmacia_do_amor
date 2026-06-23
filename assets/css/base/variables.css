@@ -1,0 +1,36 @@
+/* assets/css/base/variables.css */
+:root, [data-theme="meteors"] {
+    --theme-bg: #0a0e17;
+    --theme-primary: #6a11cb;
+    --theme-secondary: #2575fc;
+    --theme-accent: #ff6b8b;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #b8b8d1;
+}
+
+[data-theme="hearts"] {
+    --theme-bg: #1a0b2e;
+    --theme-primary: #ff2e63;
+    --theme-secondary: #ff9a9e;
+    --theme-accent: #ffd166;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #e0c3fc;
+}
+
+[data-theme="aurora"] {
+    --theme-bg: #0c1b33;
+    --theme-primary: #00b4d8;
+    --theme-secondary: #90e0ef;
+    --theme-accent: #caf0f8;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #a8dadc;
+}
+
+[data-theme="winter"] {
+    --theme-bg: #1a2332;
+    --theme-primary: #e3f2fd;
+    --theme-secondary: #81d4fa;
+    --theme-accent: #b3e5fc;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #e1f5fe;
+}
