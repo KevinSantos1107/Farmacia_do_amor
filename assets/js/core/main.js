@@ -565,6 +565,7 @@ nextBtn.addEventListener('click', () => {
         if (touches.length === 2) {
             console.log('🔍 Pinch detectado (2 dedos)');
             isPinching = true;
+            isDragging = false; // Cancela drag se houver
             isTapping = false;
             initialPinchDistance = getTouchDistance(touches[0], touches[1]);
             lastPinchDistance = initialPinchDistance;
@@ -717,14 +718,19 @@ nextBtn.addEventListener('click', () => {
         }
         
         else if (touches.length === 1 && isPinching) {
-            console.log('🔄 Pinch cancelado (1 dedo restando) -> Snap back');
+            console.log('🔄 Transição: pinch → drag (1 dedo restando na tela)');
             isPinching = false;
             
             if (zoomLevel > 1) {
-                resetZoom(); // Volta ao normal imediatamente
+                isDragging = true;
+                const touch = touches[0];
+                startX = touch.clientX - translateX;
+                startY = touch.clientY - translateY;
+                modalPhoto.style.cursor = 'grabbing';
+            } else {
+                isDragging = false;
             }
             
-            isDragging = false;
             isTapping = false;
         }
     });
