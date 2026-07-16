@@ -6,6 +6,18 @@
 
     <title>Kevin &amp; Iara</title>
 
+    <!-- SEO & Open Graph -->
+    <meta name="description" content="Um site especial feito com todo amor para Iara 💕 — nossas memórias, músicas, fotos e momentos únicos.">
+    <meta property="og:title" content="Kevin &amp; Iara">
+    <meta property="og:description" content="Um site especial feito com todo amor para Iara — nossas memórias, músicas e momentos únicos juntos.">
+    <meta property="og:image" content="assets/images/capa_principal.jpg">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="pt_BR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Kevin &amp; Iara">
+    <meta name="twitter:description" content="Um site especial feito com todo amor para Iara.">
+    <meta name="twitter:image" content="assets/images/capa_principal.jpg">
+
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,11 +51,11 @@
     
     <div class="splash-content">
         <div class="splash-logo">
-            <h1 class="splash-title">
+            <div class="splash-title" aria-label="Kevin e Iara">
                 <span class="name-part kevin">Kevin</span>
                 <i class="fas fa-heart splash-heart"></i>
                 <span class="name-part iara">Iara</span>
-            </h1>
+            </div>
             <p class="splash-subtitle">Carregando memórias...</p>
         </div>
         
@@ -136,7 +148,7 @@
         <p class="subtitle">Você é o melhor capítulo da minha vida</p>
     </header>
 
-    <section class="main-section">
+    <section class="main-section reveal">
         <div class="main-card">
             <div class="couple-photo">
                 <img src="assets/images/capa_principal.jpg" alt="Kevin e Iara" id="mainPhoto">
@@ -156,7 +168,7 @@
         </div>
     </section>
 
-    <section class="time-counter-section">
+    <section class="time-counter-section reveal">
         <h2><i class="far fa-clock"></i> Nossa Linha do Tempo</h2>
         <p class="section-subtitle">Desde que nossas histórias se entrelaçaram</p>
         
@@ -193,12 +205,12 @@
     </section>
 
     <!-- ✅ PLAYER GERENCIADO 100% PELO PLAYLIST-MANAGER.JS -->
-    <section class="music-player-section">
+    <section class="music-player-section reveal">
         <h2><i class="fas fa-music"></i> Nossa Trilha Sonora</h2>
         <!-- O conteúdo é criado automaticamente pelo playlist-manager.js -->
     </section>
 
-    <section class="albums-section">
+    <section class="albums-section reveal">
         <h2><i class="fas fa-images"></i> Nossas Memórias</h2>
         
         <!-- NOVO: Carrossel 3D -->
@@ -239,7 +251,7 @@
     </div>
 
     <!-- ===== NOVA SEÇÃO: ACRÓSTICO IARA ===== -->
-    <section class="acrostic-section" id="acrostico">
+    <section class="acrostic-section reveal" id="acrostico">
         <h2><i class="fas fa-wand-magic-sparkles"></i> Acróstico</h2>
 
         
@@ -303,7 +315,7 @@
     </section>
     <!-- ===== FIM DO ACRÓSTICO ===== -->
 
-    <section class="messages-section">
+    <section class="messages-section reveal">
         <h2><i class="fas fa-envelope"></i> Mensagem Especial</h2>
         <div class="message-card">
             <div class="message-content" id="dailyMessage">
@@ -316,7 +328,7 @@
         </div>
     </section>
 
-    <section class="timeline-button-section">
+    <section class="timeline-button-section reveal">
         <button class="open-timeline-btn" id="openTimelineBtn">
             <i class="fas fa-clock-rotate-left"></i>
             <span>Nossa Linha do Tempo</span>
