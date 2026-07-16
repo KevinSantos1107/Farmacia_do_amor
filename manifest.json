@@ -1,21 +1,42 @@
 {
-  "name": "Kevin & Iara",
+  "name": "Kevin & Iara 💕",
   "short_name": "K&I",
-  "description": "Nossas memórias",
+  "description": "Um site especial feito com amor para Iara — nossas memórias, músicas e momentos únicos.",
+  "lang": "pt-BR",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#0d0a14",
-  "theme_color": "#0d0a14",
+  "orientation": "portrait",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "categories": ["lifestyle", "social"],
   "icons": [
     {
       "src": "assets/images/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "assets/images/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver Fotos",
+      "short_name": "Fotos",
+      "description": "Abrir nossos álbuns de memórias",
+      "url": "./#albuns",
+      "icons": [{ "src": "assets/images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ouvir Músicas",
+      "short_name": "Músicas",
+      "description": "Abrir nossa trilha sonora",
+      "url": "./#musicas",
+      "icons": [{ "src": "assets/images/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
