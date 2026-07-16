@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kevin-iara-v1';
+const CACHE_NAME = 'kevin-iara-v2';
 
 // Install event
 self.addEventListener('install', (event) => {
