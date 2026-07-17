@@ -1,0 +1,286 @@
+/* ===== SNAKE GAME — ESTILO INTEGRADO AO SITE ===== */
+
+/* ── MODAL FULLSCREEN ── */
+.snake-game-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--theme-bg);
+    z-index: 6000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-y: auto;
+    animation: snakeFadeIn 0.3s ease;
+}
+
+@keyframes snakeFadeIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── BOTÃO FECHAR ── */
+.close-snake-game-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--theme-card-border);
+    color: var(--theme-text);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    z-index: 10;
+    flex-shrink: 0;
+}
+.close-snake-game-btn:hover {
+    background: var(--theme-primary);
+    transform: rotate(90deg) scale(1.1);
+    box-shadow: var(--theme-glow);
+}
+
+/* ── CONTEÚDO INTERNO ── */
+.snake-modal-inner {
+    width: 100%;
+    max-width: 420px;
+    padding: 70px 16px 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    min-height: 100%;
+    box-sizing: border-box;
+}
+
+/* ── TÍTULO ── */
+.snake-title {
+    font-family: 'Dancing Script', cursive;
+    font-size: 2rem;
+    text-align: center;
+    background: var(--gradient-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: none;
+    filter: drop-shadow(0 0 10px var(--theme-primary));
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* ── PLACAR ── */
+.snake-scoreboard {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+}
+
+.snake-score-box {
+    background: var(--theme-card-bg);
+    border: 1px solid var(--theme-card-border);
+    border-radius: 14px;
+    padding: 10px 18px;
+    text-align: center;
+    min-width: 90px;
+    backdrop-filter: blur(10px);
+}
+
+.snake-score-label {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--theme-text-secondary);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.snake-score-value {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: var(--theme-text);
+    display: block;
+    line-height: 1;
+    text-shadow: 0 0 10px var(--theme-primary);
+}
+
+.snake-score-box.level .snake-score-value {
+    color: var(--theme-accent);
+    text-shadow: 0 0 10px var(--theme-accent);
+}
+
+/* ── ARENA ── */
+.snake-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 1;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid var(--theme-card-border);
+    box-shadow:
+        var(--theme-glow),
+        inset 0 0 30px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+}
+
+#snakeCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+}
+
+/* ── OVERLAYS (start / game over) ── */
+.snake-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(4px);
+    border-radius: 12px;
+    text-align: center;
+    padding: 20px;
+}
+
+.snake-overlay-icon {
+    font-size: 2.8rem;
+    filter: drop-shadow(0 0 12px var(--theme-primary));
+    animation: snakePulse 2s ease-in-out infinite;
+}
+
+@keyframes snakePulse {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.1); }
+}
+
+.snake-overlay h3 {
+    font-family: 'Dancing Script', cursive;
+    font-size: 1.7rem;
+    color: var(--theme-text);
+    margin: 0;
+    text-shadow: 0 0 15px var(--theme-primary);
+}
+
+.snake-overlay p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    color: var(--theme-text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.snake-final-score {
+    font-size: 2rem !important;
+    font-weight: 700;
+    color: var(--theme-text) !important;
+    text-shadow: 0 0 20px var(--theme-primary) !important;
+}
+
+/* ── BOTÕES ── */
+.snake-btn {
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 50px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3), var(--theme-glow);
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.snake-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.25), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s;
+}
+
+.snake-btn:hover::before { transform: translateX(100%); }
+.snake-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4), var(--theme-glow-strong);
+}
+.snake-btn:active { transform: scale(0.97); }
+
+/* ── DICA ── */
+.snake-hint {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.72rem;
+    color: var(--theme-text-secondary);
+    text-align: center;
+    opacity: 0.7;
+    letter-spacing: 0.5px;
+}
+
+/* ── LEGENDA (comida / bônus) ── */
+.snake-legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.snake-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.78rem;
+    color: var(--theme-text-secondary);
+}
+
+.snake-legend-item span:first-child {
+    font-size: 1rem;
+}
+
+/* ── ANIMAÇÃO SHAKE (game over) ── */
+@keyframes snakeShake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-6px); }
+    40%       { transform: translateX(6px); }
+    60%       { transform: translateX(-4px); }
+    80%       { transform: translateX(4px); }
+}
+
+.snake-shake {
+    animation: snakeShake 0.4s ease !important;
+}
+
+/* ── ESCONDER HAMBÚRGUER QUANDO ABERTO ── */
+body:has(.snake-game-modal[style*="display: flex"]) .hamburger-button {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ── RESPONSIVO ── */
+@media (min-width: 480px) {
+    .snake-modal-inner { padding: 80px 24px 40px; }
+    .snake-title { font-size: 2.4rem; }
+    .snake-canvas-wrapper { max-width: 380px; }
+}
+
+@media (max-height: 700px) {
+    .snake-modal-inner { padding-top: 55px; gap: 10px; }
+    .snake-title { font-size: 1.6rem; }
+    .snake-dpad-btn { width: 42px; height: 42px; }
+}
