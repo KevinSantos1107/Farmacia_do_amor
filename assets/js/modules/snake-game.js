@@ -478,15 +478,37 @@ class SnakeGame {
         return false;
     }
 
+    getFreeNeighborsCount(x, y) {
+        let open = 0;
+        const dirs = [{x:0,y:-1}, {x:0,y:1}, {x:-1,y:0}, {x:1,y:0}];
+        for(let d of dirs) {
+            const nx = x + d.x, ny = y + d.y;
+            if (nx >= 0 && nx < this.COLS && ny >= 0 && ny < this.ROWS) {
+                if (!this.walls.some(w => w.x === nx && w.y === ny)) {
+                    open++;
+                }
+            }
+        }
+        return open;
+    }
+
     randomFreeCell() {
         let pos, attempts = 0;
-        do {
+        while (attempts < 500) {
             pos = {
                 x: Math.floor(Math.random() * this.COLS),
                 y: Math.floor(Math.random() * this.ROWS),
             };
             attempts++;
-        } while (this.isCellOccupied(pos.x, pos.y) && attempts < 500);
+            
+            if (this.isCellOccupied(pos.x, pos.y)) continue;
+            
+            // Evita armadilhas: a célula deve ter no mínimo 2 saídas livres (ignorando a cobra)
+            // Se tentamos mais de 400 vezes, ignoramos a regra pra não travar o jogo em mapas absurdamente cheios
+            if (attempts < 400 && this.getFreeNeighborsCount(pos.x, pos.y) < 2) continue;
+            
+            break;
+        }
         return pos;
     }
 
