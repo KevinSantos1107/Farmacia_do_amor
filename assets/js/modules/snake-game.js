@@ -5,9 +5,9 @@ class SnakeGame {
     /* ──────── CONFIG DE NÍVEIS ──────── */
     LEVELS = {
         1: { name: 'Clássico',     color: '#22c55e', walls: 0, poison: false, bombs: false, multi: 1,   bombDur: 0    },
-        2: { name: 'Obstáculos',   color: '#eab308', walls: 4, poison: false, bombs: false, multi: 2,   bombDur: 0    },
-        3: { name: 'Envenenado',   color: '#f97316', walls: 4, poison: true,  bombs: false, multi: 3,   bombDur: 0    },
-        4: { name: 'Campo Minado', color: '#ef4444', walls: 6, poison: false, bombs: true,  multi: 4,   bombDur: 4000 },
+        2: { name: 'Obstáculos',   color: '#eab308', walls: 8, poison: false, bombs: false, multi: 2,   bombDur: 0    },
+        3: { name: 'Envenenado',   color: '#f97316', walls: 8, poison: true,  bombs: false, multi: 3,   bombDur: 0    },
+        4: { name: 'Campo Minado', color: '#ef4444', walls: 8, poison: false, bombs: true,  multi: 4,   bombDur: 4000 },
         5: { name: 'Caos Total',   color: '#a855f7', walls: 8, poison: true,  bombs: true,  multi: 5,   bombDur: 2500 },
     };
 
@@ -378,6 +378,7 @@ class SnakeGame {
         if (this.loopId)     { cancelAnimationFrame(this.loopId);   this.loopId     = null; }
         if (this.bonusTimer) { clearTimeout(this.bonusTimer);        this.bonusTimer = null; }
         if (this.poisonTimer){ clearTimeout(this.poisonTimer);       this.poisonTimer = null; }
+        if (this.bombTimer)  { clearTimeout(this.bombTimer);         this.bombTimer  = null; }
         // Cancela timers de bomba
         this.bombs.forEach(b => { if (b.timerId) clearTimeout(b.timerId); });
         this.bombs  = [];
@@ -573,7 +574,7 @@ class SnakeGame {
     scheduleBomb() {
         const cfg   = this.LEVELS[this.difficulty];
         const delay = 4000 + Math.random() * 4000;
-        setTimeout(() => {
+        this.bombTimer = setTimeout(() => {
             if (!this.running) return;
             const pos  = this.randomFreeCell();
             const bomb = { x: pos.x, y: pos.y, spawnTime: Date.now(), duration: cfg.bombDur, timerId: null };
