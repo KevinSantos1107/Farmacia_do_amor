@@ -7,8 +7,8 @@ class SnakeGame {
         1: { name: 'Clássico',     color: '#22c55e', walls: 0, poison: false, bombs: false, multi: 1,   bombDur: 0    },
         2: { name: 'Obstáculos',   color: '#eab308', walls: 8, poison: false, bombs: false, multi: 2,   bombDur: 0    },
         3: { name: 'Envenenado',   color: '#f97316', walls: 8, poison: true,  bombs: false, multi: 3,   bombDur: 0    },
-        4: { name: 'Campo Minado', color: '#ef4444', walls: 8, poison: false, bombs: true,  multi: 4,   bombDur: 4000 },
-        5: { name: 'Caos Total',   color: '#a855f7', walls: 8, poison: true,  bombs: true,  multi: 5,   bombDur: 2500 },
+        4: { name: 'Campo Minado', color: '#ef4444', walls: 10, poison: false, bombs: true,  multi: 4,   bombDur: 4000 },
+        5: { name: 'Caos Total',   color: '#a855f7', walls: 12, poison: true,  bombs: true,  multi: 5,   bombDur: 2500 },
     };
 
     constructor() {
