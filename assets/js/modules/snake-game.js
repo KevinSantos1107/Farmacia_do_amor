@@ -44,7 +44,12 @@ class SnakeGame {
         this.bombs       = [];
         this.explosions  = [];
         this.score       = 0;
-        this.highScore   = parseInt(localStorage.getItem('snakeHighScore') || '0');
+        
+        // Limpa placar antigo devido ao novo balanceamento
+        if (localStorage.getItem('snakeHighScore')) {
+            localStorage.removeItem('snakeHighScore');
+        }
+        this.highScore   = parseInt(localStorage.getItem('snakeHighScoreV2') || '0');
         this.difficulty  = parseInt(localStorage.getItem('snakeDifficulty') || '1');
         this.running     = false;
         this.waitingForInput = false;
@@ -605,7 +610,7 @@ class SnakeGame {
         this.setScore(this.score);
         if (this.score > this.highScore) {
             this.highScore = this.score;
-            localStorage.setItem('snakeHighScore', this.highScore);
+            localStorage.setItem('snakeHighScoreV2', this.highScore);
             this.updateHighScore();
         }
     }
