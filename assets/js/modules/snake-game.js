@@ -493,8 +493,9 @@ class SnakeGame {
         return open;
     }
 
-    randomFreeCell() {
+    randomFreeCell(isHazard = false) {
         let pos, attempts = 0;
+        const head = this.snake[0];
         while (attempts < 500) {
             pos = {
                 x: Math.floor(Math.random() * this.COLS),
@@ -508,6 +509,13 @@ class SnakeGame {
             // Se tentamos mais de 400 vezes, ignoramos a regra pra não travar o jogo em mapas absurdamente cheios
             if (attempts < 400 && this.getFreeNeighborsCount(pos.x, pos.y) < 2) continue;
             
+            // Se for um item perigoso, não pode nascer muito perto da cabeça
+            // Calculamos a "distância de Manhattan" e exigimos que seja >= 4 espaços
+            if (isHazard && head && attempts < 450) {
+                const dist = Math.abs(pos.x - head.x) + Math.abs(pos.y - head.y);
+                if (dist < 4) continue;
+            }
+
             break;
         }
         return pos;
@@ -562,7 +570,7 @@ class SnakeGame {
         const delay = 6000 + Math.random() * 5000;
         this.poisonTimer = setTimeout(() => {
             if (!this.running) return;
-            this.poison = this.randomFreeCell();
+            this.poison = this.randomFreeCell(true);
             this.poisonTimer = setTimeout(() => {
                 this.poison = null;
                 if (this.running) this.schedulePoison();
@@ -576,7 +584,7 @@ class SnakeGame {
         const delay = 4000 + Math.random() * 4000;
         this.bombTimer = setTimeout(() => {
             if (!this.running) return;
-            const pos  = this.randomFreeCell();
+            const pos  = this.randomFreeCell(true);
             const bomb = { x: pos.x, y: pos.y, spawnTime: Date.now(), duration: cfg.bombDur, timerId: null };
             this.bombs.push(bomb);
             // Explode após duração e agenda nova bomba
