@@ -1,0 +1,73 @@
+/* assets/css/base/variables.css — FONTE ÚNICA DE VARIÁVEIS DE TEMA */
+
+/* ===== TEMA METEOROS (PADRÃO) — NEON AZUL-VIOLETA ===== */
+:root, [data-theme="meteors"] {
+    --theme-bg: #0a0a1a;
+    --theme-primary: #8a2be2;
+    --theme-secondary: #00ffff;
+    --theme-accent: #ff00ff;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #ccccff;
+    --theme-card-bg: rgba(20, 20, 40, 0.95);
+    --theme-card-border: rgba(138, 43, 226, 0.4);
+    --theme-glow: 0 0 15px rgba(138, 43, 226, 0.7);
+    --theme-glow-strong: 0 0 25px rgba(138, 43, 226, 0.9);
+    --gradient-primary: linear-gradient(135deg, #8a2be2 0%, #4169e1 50%, #00ffff 100%);
+    --gradient-secondary: linear-gradient(135deg, #ff00ff 0%, #ff1493 100%);
+    --gradient-neon: linear-gradient(135deg, #8a2be2, #00ffff, #ff00ff);
+    --gradient-text: linear-gradient(90deg, #8a2be2, #00ffff, #ff00ff);
+}
+
+/* ===== TEMA CHUVA DE CORAÇÕES — NEON ROSA-VERMELHO ===== */
+[data-theme="hearts"] {
+    --theme-bg: #1a001a;
+    --theme-primary: #ff0055;
+    --theme-secondary: #ff3366;
+    --theme-accent: #ffcc00;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #ffd1dc;
+    --theme-card-bg: rgba(40, 0, 20, 0.95);
+    --theme-card-border: rgba(255, 0, 85, 0.5);
+    --theme-glow: 0 0 20px rgba(255, 0, 85, 0.8);
+    --theme-glow-strong: 0 0 30px rgba(255, 0, 85, 1);
+    --gradient-primary: linear-gradient(135deg, #ff0055 0%, #ff3366 50%, #ff66b2 100%);
+    --gradient-secondary: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+    --gradient-neon: linear-gradient(135deg, #ff0055, #ff3366, #ffcc00);
+    --gradient-text: linear-gradient(90deg, #ff0055, #ff66b2, #ffcc00);
+}
+
+/* ===== TEMA AURORA BOREAL — NEON VERDE-AZUL ===== */
+[data-theme="aurora"] {
+    --theme-bg: #001122;
+    --theme-primary: #00ffaa;
+    --theme-secondary: #00ccff;
+    --theme-accent: #aa00ff;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #aaffff;
+    --theme-card-bg: rgba(0, 20, 40, 0.95);
+    --theme-card-border: rgba(0, 255, 170, 0.4);
+    --theme-glow: 0 0 15px rgba(0, 255, 170, 0.7);
+    --theme-glow-strong: 0 0 25px rgba(0, 255, 170, 0.9);
+    --gradient-primary: linear-gradient(135deg, #00ffaa 0%, #00ccff 50%, #0088ff 100%);
+    --gradient-secondary: linear-gradient(135deg, #aa00ff 0%, #ff00aa 100%);
+    --gradient-neon: linear-gradient(135deg, #00ffaa, #00ccff, #aa00ff);
+    --gradient-text: linear-gradient(90deg, #00ffaa, #00ccff, #aa00ff);
+}
+
+/* ===== TEMA INVERNO MÁGICO — CÉU INVERNAL ===== */
+[data-theme="winter"] {
+    --theme-bg: #030b16;
+    --theme-primary: #00f2fe;
+    --theme-secondary: #4facfe;
+    --theme-accent: #70d6ff;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #cce6ff;
+    --theme-card-bg: rgba(4, 11, 22, 0.6);
+    --theme-card-border: rgba(0, 242, 254, 0.3);
+    --theme-glow: 0 0 25px rgba(0, 242, 254, 0.5);
+    --theme-glow-strong: 0 0 35px rgba(0, 242, 254, 0.8);
+    --gradient-primary: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    --gradient-secondary: linear-gradient(135deg, #4facfe 0%, #70d6ff 100%);
+    --gradient-neon: linear-gradient(135deg, #00f2fe, #4facfe, #ffffff);
+    --gradient-text: linear-gradient(90deg, #00f2fe, #ffffff, #4facfe);
+}
