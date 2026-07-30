@@ -1646,7 +1646,7 @@ function navigatePhoto(direction) {
             console.log('🔄 Última foto - indo para próximo álbum');
             // Usar transição cubo 3D se disponível
             if (window.AlbumCubeTransition && window.AlbumCubeTransition.isActive) {
-                window.AlbumCubeTransition.triggerTransition('next');
+                setTimeout(() => window.AlbumCubeTransition.triggerTransition('next'), 10);
             } else {
                 goToNextAlbum();
             }
@@ -1659,7 +1659,7 @@ function navigatePhoto(direction) {
             console.log('🔄 Primeira foto - indo para álbum anterior');
             // Usar transição cubo 3D se disponível
             if (window.AlbumCubeTransition && window.AlbumCubeTransition.isActive) {
-                window.AlbumCubeTransition.triggerTransition('prev');
+                setTimeout(() => window.AlbumCubeTransition.triggerTransition('prev'), 10);
             } else {
                 goToPreviousAlbum();
             }
