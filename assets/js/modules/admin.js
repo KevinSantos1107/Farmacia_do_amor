@@ -246,9 +246,14 @@ async function compressImageIfNeeded(file, maxSizeMB = 10) {
                 }
                 
                 if (blob.size <= maxSizeMB * 1024 * 1024 || quality <= 0.5) {
-                    compressedFile = blob;
-                    compressedFile.name = file.name || 'image.jpg';
-                    compressedFile.lastModified = Date.now();
+                    // ✅ FIX iOS: Blob é imutável — .name e .lastModified não funcionam nele.
+                    // Converter HEIC/HEIF → .jpg para garantir compatibilidade com Cloudinary.
+                    const originalName = file.name || 'image.jpg';
+                    const jpgName = originalName.replace(/\.(heic|heif|png|webp|gif|bmp)$/i, '.jpg');
+                    compressedFile = new File([blob], jpgName, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
                     break;
                 }
                 quality -= 0.1;
