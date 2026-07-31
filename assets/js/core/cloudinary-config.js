@@ -70,7 +70,63 @@ function generatePlaceholder(publicId) {
     return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_40,q_30,e_blur:1000,f_auto/${publicId}`;
 }
 
+// ===== FIX iOS: CONVERTER HEIC/HEIF → JPEG =====
+// O iPhone tira fotos em HEIC por padrão. O Cloudinary (unsigned) não aceita HEIC,
+// e o WebKit iOS pode produzir Blobs sem Content-Type ao processar HEIC via canvas.
+// Esta função converte o arquivo para JPEG antes de qualquer upload.
+async function convertHeicToJpeg(file) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = async () => {
+            URL.revokeObjectURL(url);
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+            if (!blob || blob.size === 0) {
+                reject(new Error('❌ Falha ao converter HEIC para JPEG'));
+                return;
+            }
+
+            const jpgName = (file.name || 'image.jpg').replace(/\.(heic|heif)$/i, '.jpg');
+            resolve(new File([blob], jpgName, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+            }));
+        };
+
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('❌ Falha ao ler arquivo HEIC'));
+        };
+
+        img.src = url;
+    });
+}
+
 async function uploadImageToCloudinary(imageFile, maxWidth = null, generateVersions = false) {
+    // ✅ FIX iOS: Detectar e converter HEIC/HEIF antes de qualquer validação ou upload.
+    // HEIC é o formato padrão das câmeras de iPhone e não é aceito pelo Cloudinary unsigned.
+    const isHeic = imageFile.type === 'image/heic' ||
+                   imageFile.type === 'image/heif' ||
+                   /\.(heic|heif)$/i.test(imageFile.name || '');
+
+    if (isHeic) {
+        console.log('📱 HEIC detectado — convertendo para JPEG antes do upload...');
+        try {
+            imageFile = await convertHeicToJpeg(imageFile);
+            console.log('✅ HEIC convertido para JPEG:', imageFile.name);
+        } catch (heicError) {
+            console.error('❌ Falha na conversão HEIC:', heicError);
+            throw heicError;
+        }
+    }
+
     if (!imageFile.type.startsWith('image/')) {
         throw new Error('❌ Arquivo não é uma imagem válida!');
     }
@@ -85,7 +141,9 @@ async function uploadImageToCloudinary(imageFile, maxWidth = null, generateVersi
         const formData = new FormData();
         formData.append('upload_preset', CLOUDINARY_IMAGE_PRESET);
         formData.append('folder', 'kevin-iara/images');
-        formData.append('file', imageFile, imageFile.name || 'image.jpg');
+        // ✅ FIX iOS: Garantir que o filename nunca tenha extensão .heic ao chegar no Cloudinary.
+        const uploadFilename = (imageFile.name || 'image.jpg').replace(/\.(heic|heif)$/i, '.jpg');
+        formData.append('file', imageFile, uploadFilename);
         
         // As versões serão geradas sob demanda (primeira requisição)
         const controller = new AbortController();
