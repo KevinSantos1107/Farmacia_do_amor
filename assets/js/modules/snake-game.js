@@ -840,6 +840,11 @@ class SnakeGame {
             const pulse = 1 + Math.sin(Date.now() / 300) * 0.1;
             ctx.save();
             ctx.translate(fx, fy); ctx.scale(pulse, pulse);
+            
+            // Corrige o bug de textAlign do Safari iOS em emojis ao forçar renderização com sombra
+            ctx.shadowBlur = 15; 
+            ctx.shadowColor = theme.head; 
+
             ctx.font = `${Math.floor(C * 0.75)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             // Ajuste leve no Y (0) para alinhar perfeitamente no iOS com a fonte de Emoji
@@ -993,6 +998,11 @@ class SnakeGame {
         ctx.font = `${Math.floor(C * 0.75)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
+        
+        // Sombra para corrigir renderização no iOS Safari
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = theme.head;
+
         // Ajuste Y aqui também
         ctx.fillText(theme.food, (mid + 2) * C + C / 2, Math.floor(this.ROWS / 2) * C + C / 2);
 
