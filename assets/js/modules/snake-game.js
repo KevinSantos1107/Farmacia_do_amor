@@ -845,10 +845,10 @@ class SnakeGame {
             ctx.shadowBlur = 15; 
             ctx.shadowColor = theme.head; 
 
-            ctx.font = `${Math.floor(C * 0.75)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            // Ajuste leve no Y (0) para alinhar perfeitamente no iOS com a fonte de Emoji
-            ctx.fillText(theme.food, 0, 0);
+            ctx.shadowBlur = 15; 
+            ctx.shadowColor = theme.head; 
+
+            this.drawEmojiCentered(ctx, theme.food, 0, 0, Math.floor(C * 0.75));
             ctx.restore();
         }
 
@@ -859,9 +859,7 @@ class SnakeGame {
             ctx.save();
             ctx.translate(bx, by); ctx.scale(p2, p2);
             ctx.shadowBlur = 20; ctx.shadowColor = theme.head;
-            ctx.font = `${Math.floor(C * 0.8)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(theme.bonus, 0, 0);
+            this.drawEmojiCentered(ctx, theme.bonus, 0, 0, Math.floor(C * 0.8));
             ctx.restore();
         }
 
@@ -872,9 +870,7 @@ class SnakeGame {
             ctx.save();
             ctx.translate(px, py); ctx.scale(pp, pp);
             ctx.shadowBlur = 18; ctx.shadowColor = '#bb00ff';
-            ctx.font = `${Math.floor(C * 0.75)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText('🍄', 0, 0);
+            this.drawEmojiCentered(ctx, '🍄', 0, 0, Math.floor(C * 0.75));
             ctx.restore();
         }
 
@@ -900,9 +896,7 @@ class SnakeGame {
             ctx.translate(exp.x * C + C/2, exp.y * C + C/2);
             ctx.scale(1 + (1 - exp.life), 1 + (1 - exp.life));
             ctx.globalAlpha = exp.life;
-            ctx.font = `${Math.floor(C * 1.5)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText('💥', 0, 0);
+            this.drawEmojiCentered(ctx, '💥', 0, 0, Math.floor(C * 1.5));
             ctx.restore();
 
             exp.life -= 0.05;
@@ -932,9 +926,7 @@ class SnakeGame {
             ctx.translate(bx, by); ctx.scale(bpulse, bpulse);
             ctx.shadowBlur  = 8 + 22 * danger;
             ctx.shadowColor = `rgba(255, 40, 0, ${0.35 + 0.65 * danger})`;
-            ctx.font = `${Math.floor(C * 0.75)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText('💣', 0, 0);
+            this.drawEmojiCentered(ctx, '💣', 0, 0, Math.floor(C * 0.75));
             ctx.restore();
         });
 
@@ -995,21 +987,27 @@ class SnakeGame {
             ctx.restore();
         });
 
-        ctx.font = `${Math.floor(C * 0.75)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-        ctx.textAlign    = 'center';
-        ctx.textBaseline = 'middle';
-        
         // Sombra para corrigir renderização no iOS Safari
         ctx.shadowBlur = 15;
         ctx.shadowColor = theme.head;
 
-        // Ajuste Y aqui também
-        ctx.fillText(theme.food, (mid + 2) * C + C / 2, Math.floor(this.ROWS / 2) * C + C / 2);
+        this.drawEmojiCentered(ctx, theme.food, (mid + 2) * C + C / 2, Math.floor(this.ROWS / 2) * C + C / 2, Math.floor(C * 0.75));
 
         ctx.restore(); // restaura o sistema de coordenadas
     }
 
     /* ──────── UTILS ──────── */
+    drawEmojiCentered(ctx, emoji, x, y, fontSize) {
+        ctx.font = `${fontSize}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        let w = ctx.measureText(emoji).width;
+        if (!w || w < fontSize * 0.2) {
+            w = fontSize; 
+        }
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, x - (w / 2), y);
+    }
+
     roundRect(ctx, x, y, w, h, r) {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
