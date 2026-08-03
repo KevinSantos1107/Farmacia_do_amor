@@ -197,84 +197,91 @@ function showAdminPanel() {
     console.log('✅ Admin desbloqueado (via admin.js)');
 }
 
-// ===== FUNÇÃO DE COMPRESSÃO CLIENT-SIDE =====
+// ===== FUNÇÃO DE COMPRESSÃO CLIENT-SIDE (v2 - iOS-safe) =====
+// Usa FileReader em vez de URL.createObjectURL para garantir compatibilidade com
+// HEIC/HEIF no iOS Safari. Sempre retorna um File real (nunca um Blob cru).
 async function compressImageIfNeeded(file, maxSizeMB = 10) {
     if (file.size <= maxSizeMB * 1024 * 1024) {
-        console.log('✅ Imagem já está no tamanho adequado');
+        console.log('✅ Imagem já está no tamanho adequado, sem compressão');
         return file;
     }
-    
-    console.log(`📦 Comprimindo ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)...`);
-    
+
+    console.log(`📦 Comprimindo ${file.name || 'imagem'} (${(file.size / 1024 / 1024).toFixed(2)}MB)...`);
+
     return new Promise((resolve, reject) => {
-        const img = new Image();
-        const objectUrl = URL.createObjectURL(file);
-        
-        img.onload = async () => {
-            URL.revokeObjectURL(objectUrl);
-            
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
-            
-            const maxDimension = 2048;
-            if (width > maxDimension || height > maxDimension) {
-                if (width > height) {
-                    height = (height / width) * maxDimension;
-                    width = maxDimension;
-                } else {
-                    width = (width / height) * maxDimension;
-                    height = maxDimension;
-                }
-            }
-            
-            canvas.width = width;
-            canvas.height = height;
-            
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            let quality = 0.9;
-            let compressedFile = null;
-            
-            // Loop assíncrono para evitar Call Stack Limit no iOS Safari
-            while (quality > 0.1) {
-                const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
-                if (!blob) {
-                    reject(new Error('Falha na compressão (toBlob falhou)'));
-                    return;
-                }
-                
-                if (blob.size <= maxSizeMB * 1024 * 1024 || quality <= 0.5) {
-                    // ✅ FIX iOS: Blob é imutável — .name e .lastModified não funcionam nele.
-                    // Converter HEIC/HEIF → .jpg para garantir compatibilidade com Cloudinary.
+        const reader = new FileReader();
+
+        reader.onerror = () => reject(new Error('Falha ao ler arquivo para compressão'));
+
+        reader.onload = (readerEvent) => {
+            const img = new Image();
+
+            img.onerror = () => reject(new Error('Falha ao decodificar imagem para compressão'));
+
+            img.onload = async () => {
+                try {
+                    let width = img.naturalWidth || img.width;
+                    let height = img.naturalHeight || img.height;
+
+                    const maxDimension = 2048;
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width > height) {
+                            height = Math.round((height / width) * maxDimension);
+                            width = maxDimension;
+                        } else {
+                            width = Math.round((width / height) * maxDimension);
+                            height = maxDimension;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Encontrar qualidade ideal
+                    let quality = 0.90;
+                    let resultBlob = null;
+
+                    while (quality >= 0.50) {
+                        resultBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+                        if (!resultBlob) break;
+                        if (resultBlob.size <= maxSizeMB * 1024 * 1024) break;
+                        quality -= 0.10;
+                    }
+
+                    if (!resultBlob) {
+                        reject(new Error('Falha na compressão (canvas.toBlob retornou null)'));
+                        return;
+                    }
+
+                    // Sempre criar um File real (nunca retornar Blob cru)
                     const originalName = file.name || 'image.jpg';
-                    const jpgName = originalName.replace(/\.(heic|heif|png|webp|gif|bmp)$/i, '.jpg');
-                    compressedFile = new File([blob], jpgName, {
+                    const jpgName = originalName.replace(/\.(heic|heif|png|webp|gif|bmp|tiff|avif)$/i, '.jpg');
+                    const compressedFile = new File([resultBlob], jpgName, {
                         type: 'image/jpeg',
                         lastModified: Date.now()
                     });
-                    break;
+
+                    console.log(`✅ Comprimido: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB (q${Math.round(quality * 100)})`);
+                    resolve(compressedFile);
+
+                } catch (err) {
+                    reject(new Error('Erro interno na compressão: ' + err.message));
                 }
-                quality -= 0.1;
-            }
-            
-            if (compressedFile) {
-                console.log(`✅ Comprimido: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
-                resolve(compressedFile);
-            } else {
-                reject(new Error('Não foi possível comprimir a imagem adequadamente'));
-            }
+            };
+
+            img.src = readerEvent.target.result;
         };
-        
-        img.onerror = () => {
-            URL.revokeObjectURL(objectUrl);
-            reject(new Error('Falha ao carregar imagem'));
-        };
-        
-        img.src = objectUrl;
+
+        reader.readAsDataURL(file);
     });
 }
+
 
 // ℹ️ Usando PerformanceUtils.debounce() de performance-optimizer.js
 // Função removida para evitar duplicação
