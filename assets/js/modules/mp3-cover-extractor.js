@@ -73,27 +73,6 @@ async function extractAndUploadMP3Cover(mp3File) {
     try {
         console.log('🔍 Iniciando processo de extração de capa...');
         
-
-        // Verifica se o arquivo veio da pesquisa do YouTube (api-search.js)
-        // Tenta as propriedades customizadas no File ou no objeto global de fallback
-        const apiMeta = mp3File.customCoverUrl
-            ? { coverUrl: mp3File.customCoverUrl, title: mp3File.customTitle, artist: mp3File.customArtist }
-            : window._apiImportedFileMetadata || null;
-
-        if (apiMeta) {
-            console.log('✅ Capa customizada da API encontrada! Ignorando ID3.');
-            // Limpa o fallback global após usar
-            window._apiImportedFileMetadata = null;
-            return {
-                coverUrl: apiMeta.coverUrl,
-                metadata: {
-                    title: apiMeta.title || mp3File.name.replace(/\.[^/.]+$/, ""),
-                    artist: apiMeta.artist || 'Artista desconhecido',
-                    album: 'YouTube'
-                }
-            };
-        }
-        
         // Extrair capa
         const extracted = await extractMP3Cover(mp3File);
         
