@@ -122,7 +122,7 @@ class PerformanceUtils {
         let timeout;
         return function(...args) {
             clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
+            timeout = setTimeout(() => func(...args), wait);
         };
     }
     
@@ -135,24 +135,6 @@ class PerformanceUtils {
                 setTimeout(() => inThrottle = false, limit);
             }
         };
-    }
-    
-    // Utilitário para pausar animações pesadas quando fora de visão
-    static observeVisibility(element, onVisible, onHidden) {
-        if (!window.IntersectionObserver) return;
-        
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    if (onVisible) onVisible();
-                } else {
-                    if (onHidden) onHidden();
-                }
-            });
-        }, { threshold: 0.1 });
-        
-        if (element) observer.observe(element);
-        return observer;
     }
 }
 

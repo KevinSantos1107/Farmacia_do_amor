@@ -1486,49 +1486,36 @@ function initAlbums() {
     albumsCarousel = new AlbumsCarousel3D();
 }
 
-async function openAlbum(albumId) {
+function openAlbum(albumId) {
     currentAlbum = window.albums.find(a => a.id === albumId);
     if (!currentAlbum) {
         console.warn('⚠️ Álbum não encontrado:', albumId);
         return;
     }
-
-    const titleElement = document.getElementById('modalAlbumTitle');
-
-    // Garantir que as fotos estejam carregadas antes de abrir
+    
     if (!currentAlbum.photos || currentAlbum.photos.length === 0) {
-        if (titleElement) titleElement.textContent = currentAlbum.title + ' (Carregando...)';
-        const ok = await window.ensureAlbumPhotos(currentAlbum);
-        if (!ok) {
-            window.showCustomAlert('Aviso', '📷 Este álbum ainda não possui fotos!');
-            if (titleElement) titleElement.textContent = currentAlbum.title;
-            return;
-        }
+        window.showCustomAlert('Aviso', '📷 Este álbum ainda não possui fotos!');
+        return;
     }
-
+    
     currentPhotoIndex = window.getAlbumTargetIndex(currentAlbum);
     updateAlbumViewer();
-
+    
     const modal = document.getElementById('albumModal');
     if (modal) {
         modal.style.display = 'flex';
         HistoryManager.push('album-modal');
     }
-
-    if (titleElement) titleElement.textContent = currentAlbum.title;
-
-    syncCarouselWithCurrentAlbum();
-
-    // Pré-buscar fotos dos álbuns adjacentes em background
-    // (garante que swipe/cubo funcionem sem espera)
-    if (typeof window.prefetchAdjacentAlbumsData === 'function') {
-        window.prefetchAdjacentAlbumsData(currentAlbum.id);
+    
+    const titleElement = document.getElementById('modalAlbumTitle');
+    if (titleElement) {
+        titleElement.textContent = currentAlbum.title;
     }
-
-    // Notificar o Image Preloader
-    document.dispatchEvent(new CustomEvent('albumOpened', { detail: { albumId: currentAlbum.id } }));
-
-    console.log(`📸 Álbum aberto: ${currentAlbum.title} (${currentAlbum.photos.length} fotos)`);
+    
+    // ✅ ADICIONE ESTA LINHA:
+    syncCarouselWithCurrentAlbum();
+    
+    console.log(`📸 Álbum aberto: ${currentAlbum.title}`);
 }
 
 // ===== NOVA FUNÇÃO: SINCRONIZAR CARROSSEL COM ÁLBUM ATUAL =====
@@ -1548,91 +1535,105 @@ function syncCarouselWithCurrentAlbum() {
     }
 }
 
-// ===== IR PARA PRÓXIMO ÁLBUM =====
-// Os dados já devem estar em cache pelo prefetchAdjacentAlbumsData.
-// ensureAlbumPhotos() serve apenas como fallback de segurança.
-async function goToNextAlbum() {
+// ===== NOVA FUNÇÃO: IR PARA PRÓXIMO ÁLBUM =====
+function goToNextAlbum() {
     if (isTransitioningAlbum) return;
-
+    
     const currentAlbumIndex = window.albums.findIndex(a => a.id === currentAlbum.id);
-    const nextAlbumIndex    = (currentAlbumIndex + 1) % window.albums.length;
-    const nextAlbum         = window.albums[nextAlbumIndex];
-
-    if (!nextAlbum) return;
-
-    // Fallback: caso o prefetch não tenha terminado ainda
-    if (!nextAlbum.photos || nextAlbum.photos.length === 0) {
-        console.log('⏳ Fotos do próximo álbum ainda não estavam em cache. Aguardando...');
-        const ok = await window.ensureAlbumPhotos(nextAlbum);
-        if (!ok) { console.warn('⚠️ Próximo álbum sem fotos'); return; }
+    const nextAlbumIndex = (currentAlbumIndex + 1) % window.albums.length;
+    const nextAlbum = window.albums[nextAlbumIndex];
+    
+    if (!nextAlbum || !nextAlbum.photos || nextAlbum.photos.length === 0) {
+        console.warn('⚠️ Próximo álbum não tem fotos');
+        return;
     }
-
-    _switchAlbum(nextAlbum, 'next');
-}
-
-// ===== IR PARA ÁLBUM ANTERIOR =====
-async function goToPreviousAlbum() {
-    if (isTransitioningAlbum) return;
-
-    const currentAlbumIndex = window.albums.findIndex(a => a.id === currentAlbum.id);
-    const prevAlbumIndex    = (currentAlbumIndex - 1 + window.albums.length) % window.albums.length;
-    const prevAlbum         = window.albums[prevAlbumIndex];
-
-    if (!prevAlbum) return;
-
-    // Fallback: caso o prefetch não tenha terminado ainda
-    if (!prevAlbum.photos || prevAlbum.photos.length === 0) {
-        console.log('⏳ Fotos do álbum anterior ainda não estavam em cache. Aguardando...');
-        const ok = await window.ensureAlbumPhotos(prevAlbum);
-        if (!ok) { console.warn('⚠️ Álbum anterior sem fotos'); return; }
-    }
-
-    _switchAlbum(prevAlbum, 'prev');
-}
-
-// ===== LÓGICA COMPARTILHADA DE TROCA DE ÁLBUM =====
-function _switchAlbum(targetAlbum, direction) {
+    
     isTransitioningAlbum = true;
-
-    console.log(`${direction === 'next' ? '➡️' : '⬅️'} Transição: ${currentAlbum.title} → ${targetAlbum.title}`);
-
+    
+    console.log(`➡️ Transição: ${currentAlbum.title} → ${nextAlbum.title}`);
+    
+    // Animar saída da foto atual
     const modalPhoto = document.getElementById('modalPhoto');
-    if (modalPhoto) {
-        modalPhoto.classList.add(direction === 'next' ? 'slide-out-left' : 'slide-out-right');
-    }
-
+    modalPhoto.classList.add('slide-out-left');
+    
     setTimeout(() => {
-        currentAlbum      = targetAlbum;
+        // Trocar álbum
+        currentAlbum = nextAlbum;
         currentPhotoIndex = window.getAlbumTargetIndex(currentAlbum);
-
-        const titleEl = document.getElementById('modalAlbumTitle');
-        if (titleEl) {
-            titleEl.style.opacity = '0';
+        
+        // Atualizar título com fade
+        const titleElement = document.getElementById('modalAlbumTitle');
+        if (titleElement) {
+            titleElement.style.opacity = '0';
             setTimeout(() => {
-                titleEl.textContent    = currentAlbum.title;
-                titleEl.style.opacity  = '1';
+                titleElement.textContent = currentAlbum.title;
+                titleElement.style.opacity = '1';
             }, 150);
         }
-
+        
+        // Sincronizar carrossel
         syncCarouselWithCurrentAlbum();
-
-        if (modalPhoto) {
-            modalPhoto.classList.remove('slide-out-left', 'slide-out-right');
-            modalPhoto.classList.add(direction === 'next' ? 'slide-in-right' : 'slide-in-left');
-        }
+        
+        // Atualizar visualizador
+        modalPhoto.classList.remove('slide-out-left');
+        modalPhoto.classList.add('slide-in-right');
         updateAlbumViewer();
-
+        
         setTimeout(() => {
-            if (modalPhoto) modalPhoto.classList.remove('slide-in-right', 'slide-in-left');
+            modalPhoto.classList.remove('slide-in-right');
             isTransitioningAlbum = false;
+        }, 300);
+    }, 300);
+}
 
-            // Pré-buscar o próximo adjacente do novo álbum
-            if (typeof window.prefetchAdjacentAlbumsData === 'function') {
-                window.prefetchAdjacentAlbumsData(currentAlbum.id);
-            }
-            // Notificar Image Preloader
-            document.dispatchEvent(new CustomEvent('albumOpened', { detail: { albumId: currentAlbum.id } }));
-        }, 350);
+// ===== NOVA FUNÇÃO: IR PARA ÁLBUM ANTERIOR =====
+function goToPreviousAlbum() {
+    if (isTransitioningAlbum) return;
+    
+    const currentAlbumIndex = window.albums.findIndex(a => a.id === currentAlbum.id);
+    const prevAlbumIndex = (currentAlbumIndex - 1 + window.albums.length) % window.albums.length;
+    const prevAlbum = window.albums[prevAlbumIndex];
+    
+    if (!prevAlbum || !prevAlbum.photos || prevAlbum.photos.length === 0) {
+        console.warn('⚠️ Álbum anterior não tem fotos');
+        return;
+    }
+    
+    isTransitioningAlbum = true;
+    
+    console.log(`⬅️ Transição: ${currentAlbum.title} → ${prevAlbum.title}`);
+    
+    // Animar saída da foto atual
+    const modalPhoto = document.getElementById('modalPhoto');
+    modalPhoto.classList.add('slide-out-right');
+    
+    setTimeout(() => {
+        // Trocar álbum
+        currentAlbum = prevAlbum;
+        currentPhotoIndex = window.getAlbumTargetIndex(currentAlbum);
+        
+        // Atualizar título com fade
+        const titleElement = document.getElementById('modalAlbumTitle');
+        if (titleElement) {
+            titleElement.style.opacity = '0';
+            setTimeout(() => {
+                titleElement.textContent = currentAlbum.title;
+                titleElement.style.opacity = '1';
+            }, 150);
+        }
+        
+        // Sincronizar carrossel
+        syncCarouselWithCurrentAlbum();
+        
+        // Atualizar visualizador
+        modalPhoto.classList.remove('slide-out-right');
+        modalPhoto.classList.add('slide-in-left');
+        updateAlbumViewer();
+        
+        setTimeout(() => {
+            modalPhoto.classList.remove('slide-in-left');
+            isTransitioningAlbum = false;
+        }, 300);
     }, 300);
 }
 
@@ -1643,6 +1644,7 @@ function navigatePhoto(direction) {
     if (direction === 'next') {
         if (currentPhotoIndex === currentAlbum.photos.length - 1) {
             console.log('🔄 Última foto - indo para próximo álbum');
+            // Usar transição cubo 3D se disponível
             if (window.AlbumCubeTransition && window.AlbumCubeTransition.isActive) {
                 setTimeout(() => window.AlbumCubeTransition.triggerTransition('next'), 10);
             } else {
@@ -1651,11 +1653,11 @@ function navigatePhoto(direction) {
         } else {
             currentPhotoIndex++;
             updateAlbumViewer();
-            document.dispatchEvent(new CustomEvent('photoNavigated'));
         }
     } else if (direction === 'prev') {
         if (currentPhotoIndex === 0) {
             console.log('🔄 Primeira foto - indo para álbum anterior');
+            // Usar transição cubo 3D se disponível
             if (window.AlbumCubeTransition && window.AlbumCubeTransition.isActive) {
                 setTimeout(() => window.AlbumCubeTransition.triggerTransition('prev'), 10);
             } else {
@@ -1664,7 +1666,6 @@ function navigatePhoto(direction) {
         } else {
             currentPhotoIndex--;
             updateAlbumViewer();
-            document.dispatchEvent(new CustomEvent('photoNavigated'));
         }
     }
 }

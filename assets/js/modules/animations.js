@@ -8,11 +8,6 @@
     let animationId = null;
     let currentAnimation = 'meteors';
     let skyGradientCache = null; // Cache do gradiente do céu
-    
-    // Performance features
-    let isMobile = false;
-    let isTabVisible = true;
-    let isAnimationPaused = false;
 
     // Configurações avançadas para cada tema
     const settings = {
@@ -121,31 +116,6 @@
                 console.log('📌 Usando tema padrão: Meteoros');
             }
         }
-        
-        // Detectar mobile
-        isMobile = window.innerWidth <= 768;
-        if (isMobile) {
-            console.log('📱 Dispositivo móvel detectado. Reduzindo partículas para otimizar bateria.');
-        }
-
-        // Page Visibility API
-        document.addEventListener('visibilitychange', () => {
-            isTabVisible = !document.hidden;
-            if (isTabVisible) {
-                console.log('👁️ Aba ativa. Retomando animações...');
-                if (isAnimationPaused) {
-                    isAnimationPaused = false;
-                    animate();
-                }
-            } else {
-                console.log('🙈 Aba inativa. Pausando animações para economizar bateria.');
-                isAnimationPaused = true;
-                if (animationId) {
-                    cancelAnimationFrame(animationId);
-                    animationId = null;
-                }
-            }
-        });
         
         // 4. Criar elementos e iniciar
         createElements();
@@ -263,9 +233,8 @@ function resizeCanvas() {
     // ===== TEMA: CHUVA DE METEOROS (MANTIDO) =====
     function createStars() {
         const config = settings.meteors;
-        const count = isMobile ? Math.floor(config.stars / 2.5) : config.stars;
         
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < config.stars; i++) {
             stars.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
@@ -280,9 +249,8 @@ function resizeCanvas() {
 
     function createMeteors() {
         const config = settings.meteors;
-        const count = isMobile ? Math.floor(config.meteors / 2) : config.meteors;
         
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < config.meteors; i++) {
             particles.push({
                 type: 'meteor',
                 x: Math.random() * canvas.width,
@@ -388,9 +356,8 @@ function resizeCanvas() {
     // ===== TEMA: CHUVA DE CORAÇÕES CONTÍNUA =====
     function createBeautifulHearts() {
         const config = settings.hearts;
-        const count = isMobile ? Math.floor(config.hearts / 2) : config.hearts;
         
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < config.hearts; i++) {
             createSingleHeart();
         }
     }
@@ -433,9 +400,8 @@ function resizeCanvas() {
 
     function createSparkles() {
         const config = settings.hearts;
-        const count = isMobile ? Math.floor(config.sparkles / 2) : config.sparkles;
         
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < config.sparkles; i++) {
             createSingleSparkle();
         }
     }
@@ -764,8 +730,7 @@ function resizeCanvas() {
             });
         }
         
-        const count = isMobile ? Math.floor(config.particles / 2.5) : config.particles;
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < config.particles; i++) {
             particles.push({
                 type: 'auroraParticle',
                 x: Math.random() * canvas.width,
@@ -783,9 +748,8 @@ function resizeCanvas() {
 
     function createAuroraStars() {
         const config = settings.aurora;
-        const count = isMobile ? 50 : 120;
         
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < 120; i++) {
             stars.push({
                 type: 'auroraStar',
                 x: Math.random() * canvas.width,
@@ -940,23 +904,19 @@ function resizeCanvas() {
     function createWinterScene() {
         const config = settings.winter;
         
-        const countSnowflakes = isMobile ? Math.floor(config.snowflakes / 2.5) : config.snowflakes;
-        for (let i = 0; i < countSnowflakes; i++) {
+        for (let i = 0; i < config.snowflakes; i++) {
             createMainSnowflake();
         }
         
-        const countSmall = isMobile ? Math.floor(config.smallSnow / 3) : config.smallSnow;
-        for (let i = 0; i < countSmall; i++) {
+        for (let i = 0; i < config.smallSnow; i++) {
             createSmallSnowflake();
         }
         
-        const countBokeh = isMobile ? Math.floor(config.bokehSnow / 2) : config.bokehSnow;
-        for (let i = 0; i < countBokeh; i++) {
+        for (let i = 0; i < config.bokehSnow; i++) {
             createBokehSnowflake();
         }
         
-        const countSparkles = isMobile ? Math.floor(config.sparkles / 2) : config.sparkles;
-        for (let i = 0; i < countSparkles; i++) {
+        for (let i = 0; i < config.sparkles; i++) {
             createWinterSparkle();
         }
         
@@ -1567,7 +1527,6 @@ function resizeCanvas() {
     // ===== ANIMAÇÃO PRINCIPAL =====
     function animate() {
         if (!ctx || !canvas) return;
-        if (isAnimationPaused) return; // Prevent animation if paused
         
         // Desenhar fundo
         if (currentAnimation === 'winter') {

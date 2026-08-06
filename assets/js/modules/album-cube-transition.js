@@ -66,16 +66,13 @@ const AlbumCubeTransition = (() => {
                 return;
             }
 
-            // Quando o cubo já fez a animação completa (_cubeIsCommitting=true),
-            // apenas atualiza o estado interno silenciosamente (sem re-animar).
-            // Caso contrário, chama a função original normalmente.
             window.goToNextAlbum = function() {
-                if (_cubeIsCommitting) { _silentAlbumSwitch('next'); return Promise.resolve(); }
+                if (_cubeIsCommitting) { _silentAlbumSwitch('next'); return; }
                 return origNext.apply(this, arguments);
             };
 
             window.goToPreviousAlbum = function() {
-                if (_cubeIsCommitting) { _silentAlbumSwitch('prev'); return Promise.resolve(); }
+                if (_cubeIsCommitting) { _silentAlbumSwitch('prev'); return; }
                 return origPrev.apply(this, arguments);
             };
 
@@ -87,7 +84,7 @@ const AlbumCubeTransition = (() => {
     // ════════════════════════════════════════════════════════════
     // TROCA SILENCIOSA
     // ════════════════════════════════════════════════════════════
-    async function _silentAlbumSwitch(dir) {
+    function _silentAlbumSwitch(dir) {
         const albums = window.albums;
         const cur    = window.currentAlbum;
         if (!albums || !cur) return;
@@ -100,29 +97,18 @@ const AlbumCubeTransition = (() => {
             : (idx - 1 + albums.length) % albums.length;
 
         const target = albums[adjIdx];
-        if (!target) return;
-
-        // Garantir fotos (devem já estar pelo prefetch, mas safety net)
-        if (!target.photos || target.photos.length === 0) {
-            if (typeof window.ensureAlbumPhotos === 'function') {
-                const ok = await window.ensureAlbumPhotos(target);
-                if (!ok) return;
-            } else {
-                return;
-            }
-        }
+        if (!target || !target.photos || target.photos.length === 0) return;
 
         window.currentAlbum       = target;
         window.currentPhotoIndex  = typeof window.getAlbumTargetIndex === 'function'
             ? window.getAlbumTargetIndex(target) : 0;
 
-        // Atualizar título com fade
         const titleEl = document.getElementById('modalAlbumTitle');
         if (titleEl) {
             titleEl.style.transition = 'opacity 0.2s ease';
             titleEl.style.opacity    = '0';
             setTimeout(() => {
-                titleEl.textContent   = target.title;
+                titleEl.textContent  = target.title;
                 titleEl.style.opacity = '1';
                 setTimeout(() => { titleEl.style.transition = ''; }, 220);
             }, 120);
@@ -132,32 +118,8 @@ const AlbumCubeTransition = (() => {
             syncCarouselWithCurrentAlbum();
         }
 
-        // NÃO chamar updateAlbumViewer() — o cubo já fez a transição visual.
-        // Apenas atualizar silenciosamente os labels e o src do modalPhoto.
-        const photo      = target.photos[window.currentPhotoIndex];
-        const modalPhoto = document.getElementById('modalPhoto');
-        if (modalPhoto && photo) {
-            // O src já pode ter sido setado em completeCubeGesture;
-            // garantir consistência sem reaplicar animações CSS.
-            if (modalPhoto.src !== (photo.src || photo)) {
-                modalPhoto.src = photo.src || photo;
-            }
-        }
-
-        const currentPhotoEl = document.getElementById('currentPhoto');
-        const totalPhotosEl  = document.getElementById('totalPhotos');
-        if (currentPhotoEl) currentPhotoEl.textContent = window.currentPhotoIndex + 1;
-        if (totalPhotosEl)  totalPhotosEl.textContent  = target.photos.length;
-
-        if (typeof updateProgressBar === 'function') updateProgressBar();
-
-        if (window.sessionAlbumProgress) {
-            window.sessionAlbumProgress.set(target.id, window.currentPhotoIndex);
-        }
-
-        // Continuar prefetch em cascata
-        if (typeof window.prefetchAdjacentAlbumsData === 'function') {
-            window.prefetchAdjacentAlbumsData(target.id);
+        if (typeof updateAlbumViewer === 'function') {
+            updateAlbumViewer();
         }
     }
 
@@ -281,20 +243,15 @@ const AlbumCubeTransition = (() => {
         const cur    = window.currentAlbum;
         if (!albums || !cur) return;
 
-        const idx = albums.findIndex(a => a.id === cur.id);
+        const idx    = albums.findIndex(a => a.id === cur.id);
         if (idx === -1) return;
 
-        const adjIdx = dir === -1
+        const adjIdx  = dir === -1
             ? (idx + 1) % albums.length
             : (idx - 1 + albums.length) % albums.length;
 
         adjacentAlbum = albums[adjIdx];
-
-        // Segurança: se as fotos ainda não estão carregadas (prefetch em andamento
-        // ou conexão lenta), abortar silenciosamente o cubo para este gesto.
-        // O próximo swipe já vai encontrar os dados em cache.
         if (!adjacentAlbum || !adjacentAlbum.photos || adjacentAlbum.photos.length === 0) {
-            console.log('⚠️ CubeTransition: fotos do álbum adjacente ainda não carregadas — aguardando prefetch.');
             adjacentAlbum = null;
             return;
         }
@@ -307,17 +264,21 @@ const AlbumCubeTransition = (() => {
         imgAdjacent.alt = adjacentAlbum.title;
         faceAdjacent.classList.add('cube-visible');
 
+        // ── POSICIONAR AS FACES NO ESPAÇO DO WRAPPER ──────────────
         const hz = halfWidth;
+        // A face atual está sempre "na frente" (translateZ +hz)
         faceCurrent.style.transform = `rotateY(0deg) translateZ(${hz}px)`;
 
         if (dir === -1) {
+            // Próximo: face entra pela DIREITA (rotateY 90)
             faceAdjacent.style.transform = `rotateY(90deg) translateZ(${hz}px)`;
         } else {
+            // Anterior: face entra pela ESQUERDA (rotateY -90)
             faceAdjacent.style.transform = `rotateY(-90deg) translateZ(${hz}px)`;
         }
 
         window._cubeHandlingSwipe = true;
-        applyTransform(0);
+        applyTransform(0); // Coloca o wrapper na rotação 0 inicial
     }
 
     // ════════════════════════════════════════════════════════════
