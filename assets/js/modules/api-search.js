@@ -2,7 +2,7 @@
 // API SEARCH & IMPORT SYSTEM (YOUTUBE)
 // ==========================================
 
-const API_BACKEND_URL = 'http://localhost:3000/api';
+const API_BACKEND_URL = 'https://backend-musica-864u.onrender.com/api';
 
 // Injetar CSS de animação para o botão de download
 const apiStyle = document.createElement('style');
