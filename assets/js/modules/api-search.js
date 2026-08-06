@@ -168,8 +168,12 @@ function initApiSearchSystem() {
             if (!response.ok) throw new Error(`Download falhou (${response.status})`);
             const blob = await response.blob();
 
+            // Detecta o tipo de áudio retornado pelo servidor
+            const contentType = response.headers.get('Content-Type') || 'audio/mp4';
+            const ext = contentType.includes('webm') ? 'webm' : contentType.includes('ogg') ? 'ogg' : 'm4a';
+
             const safeTitle = track.title.replace(/[^\w\s-]/g, '').trim();
-            const audioFile = new File([blob], `${safeTitle}.m4a`, { type: 'audio/mp4' });
+            const audioFile = new File([blob], `${safeTitle}.${ext}`, { type: contentType });
 
             // 2. Upload do áudio para Cloudinary
             if (typeof showAdminToast === 'function')
