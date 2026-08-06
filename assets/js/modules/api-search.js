@@ -169,7 +169,7 @@ function initApiSearchSystem() {
             const blob = await response.blob();
 
             const safeTitle = track.title.replace(/[^\w\s-]/g, '').trim();
-            const audioFile = new File([blob], `${safeTitle}.mp3`, { type: 'audio/mpeg' });
+            const audioFile = new File([blob], `${safeTitle}.m4a`, { type: 'audio/mp4' });
 
             // 2. Upload do áudio para Cloudinary
             if (typeof showAdminToast === 'function')
