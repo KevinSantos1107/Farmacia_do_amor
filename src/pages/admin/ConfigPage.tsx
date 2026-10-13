@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { useAuth } from '../../features/auth/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/Card';
@@ -6,10 +6,26 @@ import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import { Save } from 'lucide-react';
 import type { SiteConfig } from '../../config/siteConfig.schema';
+import { AvatarPicker } from '../../features/avatar/AvatarPicker';
 
 import { useToast } from '../../shared/ui/ToastProvider';
 
 const AVATAR_OPTIONS = Array.from({ length: 48 }, (_, i) => `/avatars/avatar_${i + 1}.webp`);
+
+/**
+ * Reordena os avatares prontos para que o avatar SALVO (se for um dos prontos)
+ * fique na segunda posição (logo após o AvatarPicker que ocupa a posição 1).
+ * Importante: baseia-se apenas no estado salvo (config), para que a posição
+ * NÃO mude durante os cliques antes do usuário salvar.
+ */
+function getOrderedAvatarOptions(savedAvatar: string | undefined): string[] {
+  if (!savedAvatar) return AVATAR_OPTIONS;
+  const isPreset = AVATAR_OPTIONS.includes(savedAvatar);
+  if (!isPreset) return AVATAR_OPTIONS;
+
+  const others = AVATAR_OPTIONS.filter((a) => a !== savedAvatar);
+  return [savedAvatar, ...others];
+}
 
 export default function ConfigPage() {
   const { config, updateConfig } = useSiteConfigStore();
@@ -24,6 +40,30 @@ export default function ConfigPage() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+
+  // Lista de avatares com o avatar SALVO no início (posição 2).
+  // Só reordena quando o estado salvo (config) é alterado, nunca durante a seleção preliminar.
+  const partner1AvatarOptions = useMemo(
+    () => getOrderedAvatarOptions(config?.couple?.partner1?.avatar),
+    [config?.couple?.partner1?.avatar]
+  );
+
+  const partner2AvatarOptions = useMemo(
+    () => getOrderedAvatarOptions(config?.couple?.partner2?.avatar),
+    [config?.couple?.partner2?.avatar]
+  );
+
+  // Sincroniza formData com o store quando o config é carregado ou atualizado
+  useEffect(() => {
+    if (config) {
+      setFormData({
+        couple: config.couple,
+        relationship: config.relationship,
+        features: config.features,
+        theme: config.theme,
+      });
+    }
+  }, [config]);
 
   if (!config) return null;
 
@@ -104,7 +144,49 @@ export default function ConfigPage() {
               <div className="space-y-2 col-span-1 sm:col-span-4 mt-2">
                 <label className="text-sm font-medium text-slate-300">Avatar 1</label>
                 <div className="flex gap-2 overflow-x-auto py-2 px-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
-                  {AVATAR_OPTIONS.map(a => (
+                  <AvatarPicker
+                    partner="partner1"
+                    currentPhotoUrl={formData.couple?.partner1.photoUrl}
+                    selectedAvatar={formData.couple?.partner1.avatar}
+                    onSelect={(url) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        couple: {
+                          ...prev.couple!,
+                          partner1: { ...prev.couple!.partner1, avatar: url },
+                        },
+                      }))
+                    }
+                    onPhotoUploaded={(newUrl) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        couple: {
+                          ...prev.couple!,
+                          partner1: {
+                            ...prev.couple!.partner1,
+                            photoUrl: newUrl,
+                            avatar: newUrl,
+                          },
+                        },
+                      }))
+                    }
+                    onPhotoDeleted={(revertedAvatar) =>
+                      setFormData((prev) => {
+                        const nextPartner = { ...prev.couple!.partner1 };
+                        delete nextPartner.photoUrl;
+                        delete (nextPartner as any)._photoPublicId;
+                        nextPartner.avatar = revertedAvatar;
+                        return {
+                          ...prev,
+                          couple: {
+                            ...prev.couple!,
+                            partner1: nextPartner,
+                          },
+                        };
+                      })
+                    }
+                  />
+                  {partner1AvatarOptions.map(a => (
                     <img
                       key={a}
                       src={a}
@@ -172,7 +254,49 @@ export default function ConfigPage() {
               <div className="space-y-2 col-span-1 sm:col-span-4 mt-2">
                 <label className="text-sm font-medium text-slate-300">Avatar 2</label>
                 <div className="flex gap-2 overflow-x-auto py-2 px-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
-                  {AVATAR_OPTIONS.map(a => (
+                  <AvatarPicker
+                    partner="partner2"
+                    currentPhotoUrl={formData.couple?.partner2.photoUrl}
+                    selectedAvatar={formData.couple?.partner2.avatar}
+                    onSelect={(url) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        couple: {
+                          ...prev.couple!,
+                          partner2: { ...prev.couple!.partner2, avatar: url },
+                        },
+                      }))
+                    }
+                    onPhotoUploaded={(newUrl) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        couple: {
+                          ...prev.couple!,
+                          partner2: {
+                            ...prev.couple!.partner2,
+                            photoUrl: newUrl,
+                            avatar: newUrl,
+                          },
+                        },
+                      }))
+                    }
+                    onPhotoDeleted={(revertedAvatar) =>
+                      setFormData((prev) => {
+                        const nextPartner = { ...prev.couple!.partner2 };
+                        delete nextPartner.photoUrl;
+                        delete (nextPartner as any)._photoPublicId;
+                        nextPartner.avatar = revertedAvatar;
+                        return {
+                          ...prev,
+                          couple: {
+                            ...prev.couple!,
+                            partner2: nextPartner,
+                          },
+                        };
+                      })
+                    }
+                  />
+                  {partner2AvatarOptions.map(a => (
                     <img
                       key={a}
                       src={a}
