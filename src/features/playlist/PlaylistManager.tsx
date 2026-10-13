@@ -1,9 +1,9 @@
-import { usePlayerStore } from '../../store/playerStore';
+import { useAudioStore } from '../../store/useAudioStore';
 import { Play, Pause, Music } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 
 export function PlaylistManager() {
-  const { playlist, currentTrackIndex, isPlaying, playTrack, togglePlayPause } = usePlayerStore();
+  const { playlist, currentTrackIndex, isPlaying, playTrack, togglePlayPause } = useAudioStore();
 
   if (playlist.length === 0) {
     return (

@@ -10,7 +10,7 @@ interface PlayerState {
   setUid: (uid: string) => void;
 }
 
-export const usePlayerStore = create<PlayerState>()(
+export const usePlayerIdentityStore = create<PlayerState>()(
   persist(
     (set) => ({
       player: 'visitante',

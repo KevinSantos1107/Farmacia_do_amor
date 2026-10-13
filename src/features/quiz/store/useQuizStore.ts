@@ -3,7 +3,7 @@ import { collection, doc, getDoc, getDocs, query, orderBy } from 'firebase/fires
 import { db } from '../../../services/firebase/config';
 import type { QuizQuestion, QuizConfig } from '../schema';
 import { DEFAULT_QUIZ_CONFIG } from '../schema';
-import { usePlayerStore } from '../../../store/usePlayerStore';
+import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { getPlayerIds } from '../../auth/playerIds';
 import { fetchAiQuestions } from '../services/aiQuizService';
@@ -165,7 +165,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       }
 
       // ── Identifica o jogador atual ────────────────────────────────────
-      const currentPlayer = usePlayerStore.getState().player;
+      const currentPlayer = usePlayerIdentityStore.getState().player;
       const siteConfig = useSiteConfigStore.getState().config;
       const { p1Id, p2Id } = getPlayerIds(siteConfig);
       const isKnownPlayer = currentPlayer === p1Id || currentPlayer === p2Id;
@@ -289,7 +289,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       });
 
       // Persiste no Firestore só para jogadores identificados
-      const currentPlayer = usePlayerStore.getState().player;
+      const currentPlayer = usePlayerIdentityStore.getState().player;
       const siteConfig = useSiteConfigStore.getState().config;
       const { p1Id, p2Id } = getPlayerIds(siteConfig);
       if (currentPlayer === p1Id || currentPlayer === p2Id) {
@@ -334,7 +334,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   },
 
   syncQuizStats: async () => {
-    const player = usePlayerStore.getState().player;
+    const player = usePlayerIdentityStore.getState().player;
     const siteConfig = useSiteConfigStore.getState().config;
     const { p1Id, p2Id } = getPlayerIds(siteConfig);
     if (player === p1Id || player === p2Id) {

@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { db, auth } from '../../services/firebase/config';
-import { usePlayerStore } from '../../store/usePlayerStore';
+import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { getWelcomeMessage } from './welcomeMessage';
 import { AnimatePresence, motion } from 'framer-motion';
 
 
 export function PlayerAuthInit() {
-  const { setPlayer, setUid } = usePlayerStore();
+  const { setPlayer, setUid } = usePlayerIdentityStore();
   const { config, isLoading } = useSiteConfigStore();
   const initRef = useRef(false);
   const [welcomeMsg, setWelcomeMsg] = useState<string | null>(null);
@@ -96,7 +96,7 @@ export function PlayerAuthInit() {
       } else {
         // Se não tem token na URL, verifica se já é um jogador conhecido (salvo no Zustand/localStorage)
         // e se ainda não foi saudado nesta sessão (aba do navegador)
-        const currentPlayer = usePlayerStore.getState().player;
+        const currentPlayer = usePlayerIdentityStore.getState().player;
         if (currentPlayer !== 'visitante' && !sessionStorage.getItem('greeted')) {
           const syncMsg = getWelcomeMessage(currentPlayer, config);
           showGreeting(syncMsg);

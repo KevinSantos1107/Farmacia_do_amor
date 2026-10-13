@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { usePlayerStore } from '../../store/playerStore';
+import { useAudioStore } from '../../store/useAudioStore';
 import { useAudio } from './useAudio';
 import { cn } from '../../shared/utils/cn';
 import { Spinner } from '../../shared/ui/Spinner';
@@ -59,7 +59,7 @@ export function AudioPlayer() {
     toggleMute,
     toggleShuffle,
     toggleRepeat,
-  } = usePlayerStore();
+  } = useAudioStore();
 
   const { currentTime, duration, isLoading, error, seek } = useAudio();
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);

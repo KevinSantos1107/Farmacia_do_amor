@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../../services/firebase/config';
-import { usePlayerStore } from '../../../../store/usePlayerStore';
+import { usePlayerIdentityStore } from '../../../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../../../store/siteConfigStore';
 import { getPlayerIds } from '../../../auth/playerIds';
 import { useModalsStore } from '../../../../store/useModalsStore';
@@ -15,7 +15,7 @@ export interface SyncPresenceDoc {
 }
 
 export function SyncPresenceBeacon() {
-  const player = usePlayerStore((s) => s.player);
+  const player = usePlayerIdentityStore((s) => s.player);
   const config = useSiteConfigStore((s) => s.config);
   const { activeModal } = useModalsStore();
 

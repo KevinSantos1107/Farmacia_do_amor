@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
-import { usePlayerStore } from '../../store/playerStore';
-import type { Track } from '../../store/playerStore';
+import { useAudioStore } from '../../store/useAudioStore';
+import type { Track } from '../../store/useAudioStore';
 import { useAudio } from '../player/useAudio';
 import { Play, Pause, Music, SkipBack, SkipForward, Shuffle, Repeat } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
@@ -44,7 +44,7 @@ export function PlaylistTabs() {
     toggleRepeat,
     currentTrackIndex,
     playTrack,
-  } = usePlayerStore();
+  } = useAudioStore();
 
   // Hook de áudio — mantém um único elemento <audio> global
   const { currentTime, duration, seek } = useAudio();
@@ -158,14 +158,14 @@ export function PlaylistTabs() {
       setPlaylist(activeTabPlaylist.tracks);
       // isPlaying será true após setPlaylist + useAudio reagir
       // Mas precisamos de um tick para o store atualizar — usamos setTimeout 0
-      setTimeout(() => usePlayerStore.getState().playTrack(0), 50);
+      setTimeout(() => useAudioStore.getState().playTrack(0), 50);
     }
   };
 
   const handleTrackClick = (idx: number) => {
     if (!isCurrentTabLoaded) {
       setPlaylist(activeTabPlaylist.tracks);
-      setTimeout(() => usePlayerStore.getState().playTrack(idx), 50);
+      setTimeout(() => useAudioStore.getState().playTrack(idx), 50);
     } else {
       playTrack(idx);
     }
@@ -333,7 +333,7 @@ export function PlaylistTabs() {
               onClick={() => {
                 if (!isCurrentTabLoaded) {
                   setPlaylist(activeTabPlaylist.tracks);
-                  setTimeout(() => usePlayerStore.getState().previousTrack(), 50);
+                  setTimeout(() => useAudioStore.getState().previousTrack(), 50);
                 } else previousTrack();
               }}
               className="text-slate-200 hover:text-white transition-colors p-2 shrink-0"
@@ -357,7 +357,7 @@ export function PlaylistTabs() {
               onClick={() => {
                 if (!isCurrentTabLoaded) {
                   setPlaylist(activeTabPlaylist.tracks);
-                  setTimeout(() => usePlayerStore.getState().nextTrack(), 50);
+                  setTimeout(() => useAudioStore.getState().nextTrack(), 50);
                 } else nextTrack();
               }}
               className="text-slate-200 hover:text-white transition-colors p-2 shrink-0"

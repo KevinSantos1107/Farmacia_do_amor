@@ -6,7 +6,7 @@
  * música continua tocando ao navegar entre páginas/abas.
  */
 import { useEffect, useState } from 'react';
-import { usePlayerStore } from '../../store/playerStore';
+import { useAudioStore } from '../../store/useAudioStore';
 import { getPlayableAudioUrl } from '../../services/mp3/audioService';
 
 // ── Singleton — criado uma única vez quando o módulo é importado ─────────────
@@ -29,13 +29,13 @@ if (_audio) {
     _durListeners.forEach((fn) => fn(_audio!.duration));
   });
   _audio.addEventListener('ended', () => {
-    usePlayerStore.getState().nextTrack();
+    useAudioStore.getState().nextTrack();
   });
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useAudio() {
-  const { playlist, currentTrackIndex, isPlaying, volume, isMuted } = usePlayerStore();
+  const { playlist, currentTrackIndex, isPlaying, volume, isMuted } = useAudioStore();
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -81,7 +81,7 @@ export function useAudio() {
           _audio.play().catch((e) => {
             console.error('Autoplay prevented:', e);
             if (e.name === 'NotAllowedError') {
-              usePlayerStore.getState().togglePlayPause();
+              useAudioStore.getState().togglePlayPause();
             }
           });
         }

@@ -4,7 +4,7 @@ import { db } from '../../services/firebase/config';
 import { cn } from '../../shared/utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { saveWordGameResult } from '../../services/gameRecords';
-import { usePlayerStore } from '../../store/usePlayerStore';
+import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { RankingModal } from './ranking/RankingModal';
 import {
@@ -297,7 +297,7 @@ export function WordGame() {
   useEffect(() => { statsRef.current = stats; }, [stats]);
   
   // Jogador atual
-  const player = usePlayerStore((s) => s.player);
+  const player = usePlayerIdentityStore((s) => s.player);
   const playerRef = useRef(player);
   useEffect(() => { playerRef.current = player; }, [player]);
   

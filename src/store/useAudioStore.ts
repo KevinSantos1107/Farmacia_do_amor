@@ -30,7 +30,7 @@ interface PlayerState {
   toggleRepeat: () => void;
 }
 
-export const usePlayerStore = create<PlayerState>((set, get) => ({
+export const useAudioStore = create<PlayerState>((set, get) => ({
   playlist: [],
   currentTrackIndex: -1,
   isPlaying: false,

@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { saveRecordIfBetter } from '../../../services/gameRecords';
-import { usePlayerStore } from '../../../store/usePlayerStore';
+import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 
 export const COLS = 17;
@@ -87,7 +87,7 @@ export function useSnakeGame() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   
   // Ref to current player — avoids stale closures in the game loop
-  const playerRef = useRef(usePlayerStore.getState().player);
+  const playerRef = useRef(usePlayerIdentityStore.getState().player);
   
   const [highScoreState, setHighScoreState] = useState(() => {
     try { return parseInt(localStorage.getItem('snake2-hs') ?? '0') || 0; } catch { return 0; }
@@ -95,7 +95,7 @@ export function useSnakeGame() {
 
   // Sync high score from DB
   useEffect(() => {
-    const p = usePlayerStore.getState().player;
+    const p = usePlayerIdentityStore.getState().player;
     playerRef.current = p;
     const config = useSiteConfigStore.getState().config;
     

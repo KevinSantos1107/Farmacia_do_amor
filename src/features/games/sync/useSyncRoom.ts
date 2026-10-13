@@ -8,7 +8,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
-import { usePlayerStore } from '../../../store/usePlayerStore';
+import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { getPlayerIds, getPlayerDisplayName } from '../../auth/playerIds';
 import { generateSessionPlan, getCardsForType, type CategoryType } from './categories';
@@ -65,7 +65,7 @@ const PRESENCE_ONLINE_THRESHOLD_MS = 35_000;
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useSyncRoom() {
-  const player = usePlayerStore((s) => s.player);
+  const player = usePlayerIdentityStore((s) => s.player);
   const config = useSiteConfigStore((s) => s.config);
   const { p1Id, p2Id } = getPlayerIds(config);
 

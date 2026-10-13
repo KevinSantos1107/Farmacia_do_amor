@@ -6,7 +6,7 @@ import { selectPhotosForGame } from './selectPhotosForGame';
 import type { AlbumForGame } from './selectPhotosForGame';
 import { saveMemoryRecordIfBetter } from '../../../services/gameRecords';
 import type { MemoryDifficulty } from '../../../services/gameRecords';
-import { usePlayerStore } from '../../../store/usePlayerStore';
+import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { getPlayerIds } from '../../auth/playerIds';
 import { RankingModal } from '../ranking/RankingModal';
@@ -208,7 +208,7 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const player = usePlayerStore((s) => s.player);
+  const player = usePlayerIdentityStore((s) => s.player);
   const { config } = useSiteConfigStore();
 
   const getCardSrc = (card: Card) => {
