@@ -9,6 +9,8 @@ interface Photo {
   id?: string;
   src?: string;
   url?: string;
+  srcLarge?: string;   // Campo legado do site antigo — versão 1600px
+  srcThumb?: string;   // Campo legado — thumbnail
   description?: string;
   caption?: string;
   publicId?: string;
@@ -31,12 +33,12 @@ interface AlbumViewerModalProps {
 
 // ─── Helper para URL da foto ────────────────────────────────────────────────
 function getPhotoUrl(photo: Photo): string {
-  // Prioriza publicId limpo → URL Cloudinary otimizada (sem crop embutido, full-screen 1200px)
+  // Prioriza publicId limpo → URL Cloudinary otimizada (1200px, sem crop embutido)
   if (photo.publicId && !photo.publicId.startsWith('http')) {
     return cloudinaryUrl(photo.publicId, { w: 1200 });
   }
-  // Fallback: URL direta das fotos legadas do site antigo (src ou url)
-  return photo.src || photo.url || (photo.publicId ?? '') || '';
+  // Fotos legadas do site antigo: prefere srcLarge (1600px) > src (800px) > url
+  return photo.srcLarge || photo.src || photo.url || (photo.publicId ?? '') || '';
 }
 
 function getPhotoSrcSet(photo: Photo): string | undefined {

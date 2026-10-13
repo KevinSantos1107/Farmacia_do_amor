@@ -43,18 +43,18 @@ try {
 } catch (e) {}
 
 export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
-  config: null,
-  isLoading: true,
+  // ── Inicializa com config local IMEDIATAMENTE ──────────────────────────────
+  // Garante isReady = true desde o início, evitando tela preta em abas anônimas
+  // (sem cache IndexedDB). O Firestore ainda atualiza em background se disponível.
+  config: meuSiteConfig,
+  isLoading: false,
   error: null,
 
   loadConfig: async (siteId: string) => {
-    set({ isLoading: true, error: null });
+    // Atualiza em background sem bloquear a UI
     try {
       if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
-        setTimeout(() => {
-          applyThemeVars(meuSiteConfig.theme.colors);
-          set({ config: meuSiteConfig, isLoading: false });
-        }, 500);
+        applyThemeVars(meuSiteConfig.theme.colors);
         return;
       }
       const docRef = doc(db, 'sites', siteId);
@@ -62,14 +62,14 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
       if (docSnap.exists()) {
         const data = docSnap.data() as SiteConfig;
         if (data.theme?.colors) applyThemeVars(data.theme.colors);
-        set({ config: data, isLoading: false });
+        set({ config: data });
       } else {
-        console.warn(`Site '${siteId}' nao encontrado no Firestore - usando mock local.`);
+        // Firestore sem doc → config local já está ativa, só aplica cores
         applyThemeVars(meuSiteConfig.theme.colors);
-        set({ config: meuSiteConfig, isLoading: false });
       }
     } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+      // Erro de rede: config local continua ativa, site funciona normalmente
+      console.warn('siteConfigStore: Firestore indisponível, usando config local.', err.message);
     }
   },
 

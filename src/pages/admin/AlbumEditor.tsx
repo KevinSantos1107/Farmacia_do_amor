@@ -5,6 +5,7 @@ import {
   deleteDoc,
   query,
   where,
+  orderBy,
   doc,
   updateDoc,
   writeBatch,
@@ -54,7 +55,10 @@ interface Photo {
   publicId: string;
   url?: string;
   src?: string;
+  srcLarge?: string;   // Campo legado do site antigo (1600px)
+  srcThumb?: string;   // Campo legado do site antigo (thumbnail)
   caption?: string;
+  description?: string; // Campo legado alternativo ao caption
   date?: string;
   lat?: number;
   lng?: number;
@@ -189,7 +193,7 @@ export default function AlbumEditor() {
 
       // Load photos from album_photos in parallel
       const photoPromises = albumIds.map((id) =>
-        getDocs(query(collection(db, 'album_photos'), where('albumId', '==', id)))
+        getDocs(query(collection(db, 'album_photos'), where('albumId', '==', id), orderBy('pageNumber', 'asc')))
       );
       const photoSnapshots = await Promise.all(photoPromises);
 
@@ -408,21 +412,19 @@ export default function AlbumEditor() {
     setPhotos(reordered);
     const reorderedPhotos = reordered.map((p) => ({ ...p }));
     const pSnap = await getDocs(
-      query(collection(db, 'album_photos'), where('albumId', '==', activeAlbum!.id))
+      query(collection(db, 'album_photos'), where('albumId', '==', activeAlbum!.id), orderBy('pageNumber', 'asc'))
     );
     if (!pSnap.empty) {
-      await updateDoc(doc(db, 'album_photos', pSnap.docs[0].id), { photos: reorderedPhotos });
-      if (pSnap.docs.length > 1) {
-        const batch = writeBatch(db);
-        for (let i = 1; i < pSnap.docs.length; i++) {
-          batch.delete(doc(db, 'album_photos', pSnap.docs[i].id));
-        }
-        await batch.commit();
+      const batch = writeBatch(db);
+      batch.update(pSnap.docs[0].ref, { photos: reorderedPhotos, pageNumber: 0 });
+      for (let i = 1; i < pSnap.docs.length; i++) {
+        batch.delete(pSnap.docs[i].ref);
       }
+      await batch.commit();
     } else {
       await addDoc(collection(db, 'album_photos'), {
         albumId: activeAlbum!.id,
-        pageNumber: 1,
+        pageNumber: 0,
         photos: reorderedPhotos,
       });
     }
@@ -468,23 +470,38 @@ export default function AlbumEditor() {
           date: new Date().toISOString(),
         });
       }
-      const updatedPhotos = [...(activeAlbum.photos || []), ...newPhotos];
+
+      // ── Re-lê TODAS as páginas do álbum ordenadas por pageNumber ──────────
+      // CRÍTICO: álbuns legados têm múltiplos docs (pageNumber:0, pageNumber:1…).
+      // Usar activeAlbum.photos poderia estar incompleto se carregado sem ordem.
       const pSnap = await getDocs(
-        query(collection(db, 'album_photos'), where('albumId', '==', activeAlbum.id))
+        query(collection(db, 'album_photos'), where('albumId', '==', activeAlbum.id), orderBy('pageNumber', 'asc'))
       );
-      if (!pSnap.empty) {
-        await updateDoc(doc(db, 'album_photos', pSnap.docs[0].id), { photos: updatedPhotos });
-        if (pSnap.docs.length > 1) {
-          const batch = writeBatch(db);
-          for (let i = 1; i < pSnap.docs.length; i++) {
-            batch.delete(doc(db, 'album_photos', pSnap.docs[i].id));
-          }
-          await batch.commit();
+
+      // Coleta todas as fotos existentes de todas as páginas
+      const existingPhotos: Photo[] = [];
+      pSnap.forEach((pDoc) => {
+        const pData = pDoc.data();
+        if (pData.photos && Array.isArray(pData.photos)) {
+          existingPhotos.push(...pData.photos);
         }
+      });
+
+      // Mescla fotos existentes + novas
+      const updatedPhotos = [...existingPhotos, ...newPhotos];
+
+      if (!pSnap.empty) {
+        // Consolida tudo no primeiro doc e deleta as outras páginas
+        const batch = writeBatch(db);
+        batch.update(pSnap.docs[0].ref, { photos: updatedPhotos, pageNumber: 0 });
+        for (let i = 1; i < pSnap.docs.length; i++) {
+          batch.delete(pSnap.docs[i].ref);
+        }
+        await batch.commit();
       } else {
         await addDoc(collection(db, 'album_photos'), {
           albumId: activeAlbum.id,
-          pageNumber: 1,
+          pageNumber: 0,
           photos: updatedPhotos,
         });
       }
@@ -524,20 +541,30 @@ export default function AlbumEditor() {
         });
       }
 
-      // Remove a foto da lista local
-      const updatedPhotos = photos.filter(
-        (p) => (p.publicId || p.url || p.src) !== (photo.publicId || photo.url || photo.src)
+      // ── Re-lê TODAS as páginas para garantir que nenhuma foto seja perdida ─
+      const pSnap = await getDocs(
+        query(collection(db, 'album_photos'), where('albumId', '==', activeAlbum.id), orderBy('pageNumber', 'asc'))
       );
 
-      const pSnap = await getDocs(
-        query(collection(db, 'album_photos'), where('albumId', '==', activeAlbum.id))
+      // Coleta todas as fotos de todas as páginas
+      const allExistingPhotos: Photo[] = [];
+      pSnap.forEach((pDoc) => {
+        const pData = pDoc.data();
+        if (pData.photos && Array.isArray(pData.photos)) {
+          allExistingPhotos.push(...pData.photos);
+        }
+      });
+
+      // Filtra removendo apenas a foto deletada
+      const photoKey = photo.publicId || photo.url || photo.src;
+      const updatedPhotos = allExistingPhotos.filter(
+        (p) => (p.publicId || p.url || p.src) !== photoKey
       );
 
       if (!pSnap.empty) {
         const batch = writeBatch(db);
-        // Atualiza o primeiro doc com a lista nova
-        batch.update(pSnap.docs[0].ref, { photos: updatedPhotos });
-        // Deleta docs extras (páginas antigas) para evitar duplicatas/órfãos
+        // Consolida tudo no primeiro doc e deleta as outras páginas
+        batch.update(pSnap.docs[0].ref, { photos: updatedPhotos, pageNumber: 0 });
         for (let i = 1; i < pSnap.docs.length; i++) {
           batch.delete(pSnap.docs[i].ref);
         }
