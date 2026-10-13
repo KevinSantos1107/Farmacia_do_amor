@@ -20,7 +20,7 @@ function scrollToSection(id: string) {
 }
 
 // ─── Theme definitions ───────────────────────────────────────────────────────
-const THEMES = [
+const THEME_OPTIONS = [
   {
     id: 'meteors' as const,
     label: 'Meteoros',
@@ -265,7 +265,7 @@ export function HamburgerMenu() {
                 isThemeOpen ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'
               )}>
                 <div className="grid grid-cols-4 gap-3 mt-3 px-3 pb-3">
-                  {THEMES.map((theme) => {
+                  {THEME_OPTIONS.map((theme) => {
                     const isActive = activeTheme === theme.id;
                     return (
                       <button

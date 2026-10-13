@@ -7,6 +7,7 @@ import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { getPlayerIds } from '../../auth/playerIds';
 import { fetchAiQuestions } from '../services/aiQuizService';
+import { shuffle } from '../../../shared/utils/shuffle';
 
 // ─────────────────────────────────────────────
 // Configuração de montagem do quiz
@@ -18,20 +19,9 @@ import { fetchAiQuestions } from '../services/aiQuizService';
  */
 const TARGET_QUESTIONS = 15;
 
-
-
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
-
-function shuffleArray<T>(array: T[]): T[] {
-  const newArr = [...array];
-  for (let i = newArr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-  }
-  return newArr;
-}
 
 function buildQuizPool(
   manualQuestions: QuizQuestion[],
@@ -48,14 +38,14 @@ function buildQuizPool(
   const allEligible = [...eligibleManual, ...aiQuestions];
 
   // 3. Embaralha tudo junto para garantir aleatoriedade máxima
-  let combined = shuffleArray(allEligible);
+  let combined = shuffle(allEligible);
 
   // 4. Pega exatamente TARGET_QUESTIONS (ex: 15), ou todas se tiver menos
   combined = combined.slice(0, TARGET_QUESTIONS);
 
   // 5. Aplica embaralhar alternativas se configurado
   if (config.shuffleOptions) {
-    combined = combined.map((q) => ({ ...q, options: shuffleArray(q.options) }));
+    combined = combined.map((q) => ({ ...q, options: shuffle(q.options) }));
   }
 
   return combined;
@@ -219,7 +209,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       // Embaralha perguntas (se configurado) — o buildQuizPool já embaralha,
       // mas respeitamos a flag do config para o comportamento de reset também.
       if (loadedConfig.shuffleQuestions) {
-        loadedQuestions = shuffleArray(loadedQuestions);
+        loadedQuestions = shuffle(loadedQuestions);
       }
 
       set({ config: loadedConfig, questions: loadedQuestions, isLoading: false, isReady: true });
@@ -313,12 +303,12 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     const state = get();
     let resetQuestions = [...state.questions];
     if (state.config.shuffleQuestions) {
-      resetQuestions = shuffleArray(resetQuestions);
+      resetQuestions = shuffle(resetQuestions);
     }
     if (state.config.shuffleOptions) {
       resetQuestions = resetQuestions.map((q) => ({
         ...q,
-        options: shuffleArray(q.options),
+        options: shuffle(q.options),
       }));
     }
     set({

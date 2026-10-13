@@ -1,3 +1,5 @@
+import { shuffle } from '../../../shared/utils/shuffle';
+
 export type CategoryType = 'light' | 'abstract' | 'couple';
 
 export interface Category {
@@ -78,16 +80,6 @@ export const CATEGORIES: Category[] = [
   { id: 'c20', text: 'Uma palavra nossa',    type: 'couple' },
 ];
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-function shuffle<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
 
 export function generateSessionPlan(): CategoryType[] {
   // Plan: 2 light, 2 couple, 1 abstract — shuffled

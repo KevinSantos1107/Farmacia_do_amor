@@ -26,20 +26,10 @@ function applyThemeVars(colors: SiteConfig['theme']['colors']) {
   root.style.setProperty('--theme-card-border',    colors.cardBorder    || '#2d2d4a');
 }
 
-function applyVarsFromObj(colors: SiteConfig['theme']['colors']) {
-  const root = document.documentElement;
-  // Apenas variáveis estruturais (mesmo princípio)
-  root.style.setProperty('--theme-bg',             colors.bg            || '#0d0d14');
-  root.style.setProperty('--theme-text',           colors.text          || '#f1f0fb');
-  root.style.setProperty('--theme-text-secondary', colors.textSecondary || '#a9a9c8');
-  root.style.setProperty('--theme-card-bg',        colors.cardBg        || '#1a1a2e');
-  root.style.setProperty('--theme-card-border',    colors.cardBorder    || '#2d2d4a');
-}
-
 // Restaura apenas as vars estruturais do cache — as cores do tema vêm do useThemeStore
 try {
   const cached = localStorage.getItem(THEME_CACHE_KEY);
-  if (cached) applyVarsFromObj(JSON.parse(cached) as SiteConfig['theme']['colors']);
+  if (cached) applyThemeVars(JSON.parse(cached) as SiteConfig['theme']['colors']);
 } catch (e) {}
 
 export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({

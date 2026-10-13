@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
 import type { AiQuizQuestion, QuizOption } from '../schema';
+import { shuffle } from '../../../shared/utils/shuffle';
 
 // ─────────────────────────────────────────────
 // Tipos internos
@@ -59,14 +60,6 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
 // Helpers
 // ─────────────────────────────────────────────
 
-function shuffleArray<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 /**
  * Validates that a parsed object looks like a valid quiz question.
@@ -303,6 +296,6 @@ export async function fetchAiQuestions(siteId: string): Promise<AiQuizQuestion[]
  * Se o pool for menor que `count`, retorna o pool inteiro.
  */
 export function pickRandom<T>(pool: T[], count: number): T[] {
-  if (pool.length <= count) return shuffleArray(pool);
-  return shuffleArray(pool).slice(0, count);
+  if (pool.length <= count) return shuffle(pool);
+  return shuffle(pool).slice(0, count);
 }

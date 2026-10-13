@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { Trophy, RotateCcw, Heart, Clock, Zap, Leaf, Star, Flame } from 'lucide-react';
 import { cn } from '../../../shared/utils/cn';
+import { shuffle } from '../../../shared/utils/shuffle';
 import { cloudinaryUrl } from '../../../services/cloudinary/upload';
 import { selectPhotosForGame } from './selectPhotosForGame';
 import type { AlbumForGame } from './selectPhotosForGame';
@@ -118,16 +119,6 @@ interface ScorePopup {
   y: number;
 }
 
-// ─── Fisher-Yates ─────────────────────────────────────────────────────────────
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 // ─── Particle System Hook ────────────────────────────────────────────────────
 

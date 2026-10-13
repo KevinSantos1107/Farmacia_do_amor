@@ -1,6 +1,4 @@
-// ─── Photo Selection Logic for Memory Game ────────────────────────────────────
-// Extracting this into a separate, testable module makes it easy to tweak
-// aspect-ratio thresholds without touching the game component.
+import { shuffle } from '../../../shared/utils/shuffle';
 
 export interface GamePhoto {
   src: string;
@@ -18,16 +16,6 @@ export interface AlbumForGame {
     width?: number;
     height?: number;
   }[];
-}
-
-/** Fisher-Yates in-place shuffle */
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 /**
