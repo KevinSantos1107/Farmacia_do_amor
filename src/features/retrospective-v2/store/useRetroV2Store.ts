@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
 
 /** Safely converts Firestore Timestamp or any date-like value to a JS Date */
@@ -77,9 +77,8 @@ export const useRetroV2Store = create<RetroState>((set, get) => ({
     set({ isOpen: true, isReady: false });
 
     try {
-      // 1. Fetch Timeline Events
-      const tlRef = collection(db, 'sites', siteId, 'timeline');
-      const tlSnap = await getDocs(query(tlRef, orderBy('createdAt', 'asc')));
+      // 1. Fetch Timeline Events — mesma coleção raiz que o TimelineEditor usa
+      const tlSnap = await getDocs(query(collection(db, 'timeline')));
       const events: RetroEvent[] = [];
       tlSnap.forEach((d) => {
         if (d.id === '_placeholder') return;
@@ -92,38 +91,57 @@ export const useRetroV2Store = create<RetroState>((set, get) => ({
         }
       });
 
-      // 2. Fetch Albums & Map Pins
-      const albumRef = collection(db, 'sites', siteId, 'album');
-      const albumSnap = await getDocs(query(albumRef, orderBy('createdAt', 'asc')));
+      // 2. Fetch Albums & Map Pins — mesmas coleções raiz que o AlbumEditor usa
+      const albumSnap = await getDocs(query(collection(db, 'albums'), orderBy('orderIndex', 'asc')));
       const allPhotosRaw: RetroPhoto[] = [];
       const mapPins: MapPin[] = [];
 
-      albumSnap.forEach((albumDoc) => {
-        if (albumDoc.id === '_placeholder') return;
-        const d = albumDoc.data();
-        const albumPhotos: any[] = d.photos || [];
+      if (!albumSnap.empty) {
+        const albumIds = albumSnap.docs.map((d) => d.id);
 
-        albumPhotos.forEach((p, idx) => {
-          if (p.publicId) {
-            const photoDate = toDate(p.date || d.createdAt);
-            allPhotosRaw.push({
-              url: p.publicId,
-              caption: p.caption || d.title || '',
-              date: photoDate,
-            });
-            // Map pins from albums that have geo coordinates
-            if (idx === 0 && (p.lat || d.lat) && (p.lng || d.lng)) {
-              mapPins.push({
-                lat: p.lat || d.lat,
-                lng: p.lng || d.lng,
-                photoUrl: p.publicId,
-                title: d.title || 'Nosso Lugar',
+        // Busca fotos de todos os albums em paralelo
+        const photoSnapshots = await Promise.all(
+          albumIds.map((id) =>
+            getDocs(query(collection(db, 'album_photos'), where('albumId', '==', id)))
+          )
+        );
+
+        albumSnap.docs.forEach((albumDoc, albumIdx) => {
+          if (albumDoc.id === '_placeholder') return;
+          const d = albumDoc.data();
+          const pSnap = photoSnapshots[albumIdx];
+
+          // Junta fotos de todos os docs album_photos desse album
+          const albumPhotos: any[] = [];
+          pSnap.forEach((pDoc) => {
+            const pData = pDoc.data();
+            if (Array.isArray(pData.photos)) albumPhotos.push(...pData.photos);
+          });
+
+          albumPhotos.forEach((p, idx) => {
+            // Suporta fotos legadas (src/url) e novas (publicId)
+            const photoRef = p.publicId || p.src || p.url;
+            if (photoRef) {
+              const photoDate = toDate(p.date || d.createdAt);
+              allPhotosRaw.push({
+                url: photoRef,
+                caption: p.caption || d.title || '',
                 date: photoDate,
               });
+              // Map pins de álbuns com coordenadas geográficas
+              if (idx === 0 && (p.lat || d.lat) && (p.lng || d.lng)) {
+                mapPins.push({
+                  lat: p.lat || d.lat,
+                  lng: p.lng || d.lng,
+                  photoUrl: photoRef,
+                  title: d.title || 'Nosso Lugar',
+                  date: photoDate,
+                });
+              }
             }
-          }
+          });
         });
-      });
+      }
 
       // Smart Photo Selection: group by month-epoch, select balanced spread
       allPhotosRaw.sort((a, b) => a.date.getTime() - b.date.getTime());

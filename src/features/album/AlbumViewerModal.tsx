@@ -31,18 +31,20 @@ interface AlbumViewerModalProps {
 
 // ─── Helper para URL da foto ────────────────────────────────────────────────
 function getPhotoUrl(photo: Photo): string {
-  if (photo.src || photo.url) return (photo.src || photo.url) as string;
-  if (photo.publicId) {
-    if (photo.publicId.startsWith('http')) return photo.publicId;
-    // Full-screen viewer: cap at 1200px wide (enough for most mobile/desktop screens)
+  // Prioriza publicId limpo → URL Cloudinary otimizada (sem crop embutido, full-screen 1200px)
+  if (photo.publicId && !photo.publicId.startsWith('http')) {
     return cloudinaryUrl(photo.publicId, { w: 1200 });
   }
-  return '';
+  // Fallback: URL direta das fotos legadas do site antigo (src ou url)
+  return photo.src || photo.url || (photo.publicId ?? '') || '';
 }
 
 function getPhotoSrcSet(photo: Photo): string | undefined {
-  if (!photo.publicId || photo.publicId.startsWith('http')) return undefined;
-  return cloudinaryResponsiveSrcSet(photo.publicId, [600, 900, 1200]);
+  // Só gera srcSet para publicIds limpos (não URLs completas)
+  if (photo.publicId && !photo.publicId.startsWith('http')) {
+    return cloudinaryResponsiveSrcSet(photo.publicId, [600, 900, 1200]);
+  }
+  return undefined;
 }
 
 // ─── Foto com Pinch to Zoom e Pan ─────────────────────────────────────────────
