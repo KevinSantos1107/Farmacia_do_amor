@@ -262,6 +262,8 @@ function Confetti() {
 
 
 
+let cachedValidWords: Set<string> | null = null;
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function WordGame() {
   // Questions / game data
@@ -330,30 +332,23 @@ export function WordGame() {
 
   // ── Load Dictionary ────────────────────────────────────────────────────────
   useEffect(() => {
-    if ((window as any).VALID_PT_WORDS_STR) {
+    if (cachedValidWords) {
       setDictLoaded(true);
       return;
     }
-    const script = document.createElement('script');
-    script.src = '/assets/data/pt-5-letters.js';
-    script.onload = () => setDictLoaded(true);
-    script.onerror = () => setDictLoaded(true);
-    document.head.appendChild(script);
+    import('./pt-5-letters.json')
+      .then((m) => {
+        cachedValidWords = new Set(m.default);
+        setDictLoaded(true);
+      })
+      .catch(() => {
+        setDictLoaded(true);
+      });
   }, []);
 
   const isValidWord = useCallback((guess: string) => {
-    const str = (window as any).VALID_PT_WORDS_STR;
-    if (!str || str.length === 0) return true;
-    let left = 0;
-    let right = str.length / 5 - 1;
-    while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
-      const w = str.substring(mid * 5, mid * 5 + 5);
-      if (w === guess) return true;
-      if (w < guess) left = mid + 1;
-      else right = mid - 1;
-    }
-    return false;
+    if (!cachedValidWords || cachedValidWords.size === 0) return true;
+    return cachedValidWords.has(guess);
   }, []);
 
   // ── Load Firebase questions ────────────────────────────────────────────────
