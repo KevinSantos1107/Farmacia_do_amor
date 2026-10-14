@@ -22,6 +22,7 @@ const RetrospectiveEditor = lazy(() => import('../pages/admin/RetrospectiveEdito
 const SharePage = lazy(() => import('../pages/admin/SharePage'));
 const QuizEditor = lazy(() => import('../pages/admin/QuizEditor'));
 const TokenEditor = lazy(() => import('../pages/admin/TokenEditor'));
+const Unauthorized = lazy(() => import('../pages/admin/Unauthorized'));
 
 const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
   <Suspense
@@ -155,6 +156,14 @@ export const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <TokenEditor />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'unauthorized',
+        element: (
+          <SuspenseWrapper>
+            <Unauthorized />
           </SuspenseWrapper>
         ),
       },
