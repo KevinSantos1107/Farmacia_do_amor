@@ -1,54 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Heart, ChevronDown, RefreshCw, Sparkles, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSiteConfigStore } from '../store/siteConfigStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { lazy, Suspense } from 'react';
+import { DaysTogetherBadge } from './home/DaysTogetherBadge';
+import { Countdown } from './home/Countdown';
 
 const PlaylistTabs = lazy(() => import('../features/playlist/PlaylistTabs').then(m => ({ default: m.PlaylistTabs })));
 const AlbumCarousel = lazy(() => import('../features/album/AlbumCarousel').then(m => ({ default: m.AlbumCarousel })));
 import { useModalsStore } from '../store/useModalsStore';
-import {
-  differenceInSeconds,
-  differenceInMinutes,
-  differenceInHours,
-  differenceInDays,
-  differenceInMonths,
-  differenceInYears,
-} from 'date-fns';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-interface TimeLeft {
-  years: number;
-  months: number;
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-  totalDays: number;
-}
-
-function getTimeLeft(startDate: Date): TimeLeft {
-  const now = new Date();
-  const years = differenceInYears(now, startDate);
-  const wy = new Date(startDate);
-  wy.setFullYear(wy.getFullYear() + years);
-  const months = differenceInMonths(now, wy);
-  const wm = new Date(wy);
-  wm.setMonth(wm.getMonth() + months);
-  const days = differenceInDays(now, wm);
-  const wd = new Date(wm);
-  wd.setDate(wd.getDate() + days);
-  const hours = differenceInHours(now, wd);
-  const wh = new Date(wd);
-  wh.setHours(wh.getHours() + hours);
-  const minutes = differenceInMinutes(now, wh);
-  const wmin = new Date(wh);
-  wmin.setMinutes(wmin.getMinutes() + minutes);
-  const seconds = differenceInSeconds(now, wmin);
-  const totalDays = differenceInDays(now, startDate);
-  return { years, months, days, hours, minutes, seconds, totalDays };
-}
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 const LOVE_MESSAGES = [
@@ -110,31 +71,6 @@ import { AuroraBorealis } from '../features/themes/components/AuroraBorealis';
 import { FrostVignette } from '../features/themes/components/FrostVignette';
 import { ParticleCanvas } from '../features/themes/components/ParticleCanvas';
 
-// ─── Counter Box ──────────────────────────────────────────────────────────────
-function CounterBox({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="relative flex flex-col items-center gap-2">
-      <div className="relative w-16 md:w-20 px-2 py-4 rounded-xl border border-[var(--theme-primary)]/50 backdrop-blur-xl text-center overflow-hidden transition-all duration-300 shadow-[0_0_20px_rgba(var(--theme-primary-rgb),0.4),inset_0_0_15px_rgba(var(--theme-primary-rgb),0.15)] hover:shadow-[0_0_40px_rgba(var(--theme-primary-rgb),0.7),inset_0_0_25px_rgba(var(--theme-primary-rgb),0.3)] bg-white/[0.03]">
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--theme-primary)]/20 to-transparent pointer-events-none" />
-        <span
-          className="block font-bold font-mono text-white leading-none"
-          style={{
-            fontSize: 'clamp(1.4rem, 4vw, 2.5rem)',
-            textShadow: '0 0 10px var(--theme-primary), 0 0 20px var(--theme-primary)',
-          }}
-        >
-          {String(value).padStart(2, '0')}
-        </span>
-      </div>
-      <span
-        className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] font-bold"
-        style={{ color: 'var(--theme-accent)', textShadow: '0 0 8px rgba(255,77,148,0.5)' }}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
 
 // ─── Section Divider ─────────────────────────────────────────────────────────
 function SectionLabel({ emoji, text }: { emoji: string; text: string }) {
@@ -152,9 +88,13 @@ export default function Home() {
   const { config } = useSiteConfigStore();
   const { activeTheme } = useThemeStore();
   const { openModal } = useModalsStore();
-  const [time, setTime] = useState<TimeLeft | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [openAcrostic, setOpenAcrostic] = useState<number | null>(null);
+
+  const startMs = useMemo(() => {
+    if (!config?.relationship.startDate) return null;
+    return new Date(config.relationship.startDate + 'T00:00:00').getTime();
+  }, [config?.relationship.startDate]);
 
   useEffect(() => {
     const THEMES = {
@@ -191,15 +131,6 @@ export default function Home() {
     root.style.setProperty('--theme-secondary', t.secondary);
     root.style.setProperty('--theme-accent', t.accent);
   }, [activeTheme]);
-
-  useEffect(() => {
-    if (!config?.relationship.startDate) return;
-    const start = new Date(config.relationship.startDate + 'T00:00:00');
-    const tick = () => setTime(getTimeLeft(start));
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [config?.relationship.startDate]);
 
   if (!config) return null;
 
@@ -331,29 +262,7 @@ export default function Home() {
             "Você é o melhor capítulo da minha vida"
           </p>
 
-          {time && time.totalDays > 0 && (
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="inline-flex flex-col items-center gap-1 px-10 py-5 rounded-3xl border-2 border-[var(--theme-primary)]/60 bg-white/[0.02] backdrop-blur-xl shadow-[0_0_40px_rgba(var(--theme-primary-rgb),0.4),inset_0_0_20px_rgba(var(--theme-primary-rgb),0.2)]"
-            >
-              <span
-                className="font-bold text-white font-mono"
-                style={{
-                  fontSize: 'clamp(3rem, 10vw, 5rem)',
-                  lineHeight: 1,
-                  textShadow: '0 0 15px var(--theme-primary), 0 0 30px var(--theme-primary)',
-                }}
-              >
-                {time.totalDays.toLocaleString('pt-BR')}
-              </span>
-              <span
-                className="text-sm uppercase tracking-[0.3em] text-[var(--theme-secondary)] font-bold"
-                style={{ textShadow: '0 0 10px var(--theme-secondary)' }}
-              >
-                dias juntos
-              </span>
-            </motion.div>
-          )}
+          <DaysTogetherBadge startMs={startMs} />
 
           <div className="flex flex-col items-center gap-3 pt-12 opacity-80">
             <span
@@ -469,17 +378,7 @@ export default function Home() {
             </h2>
           </div>
 
-          {time && (
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-x-4 md:gap-x-12 gap-y-8 p-6 md:p-8 rounded-[2rem] border border-[var(--theme-primary)]/30 bg-white/[0.02] backdrop-blur-2xl shadow-[0_0_50px_rgba(var(--theme-primary-rgb),0.15)] justify-items-center">
-              <CounterBox value={time.years} label="Anos" />
-              <CounterBox value={time.months} label="Meses" />
-              <CounterBox value={time.days} label="Dias" />
-              
-              <CounterBox value={time.hours} label="Horas" />
-              <CounterBox value={time.minutes} label="Min" />
-              <CounterBox value={time.seconds} label="Seg" />
-            </div>
-          )}
+          <Countdown startMs={startMs} />
         </div>
       </motion.section>
 
