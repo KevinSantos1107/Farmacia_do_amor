@@ -15,7 +15,7 @@ interface SortableItemProps {
   id: string;
   children: (props: {
     isDragging: boolean;
-    handleProps: Record<string, any> | undefined;
+    handleProps: Record<string, unknown> | undefined;
     handleStyle: React.CSSProperties;
     setNodeRef: (node: HTMLElement | null) => void;
     style: React.CSSProperties;
