@@ -76,7 +76,7 @@ describe('getRouteAccess — protege a política de controle de acesso a rotas a
     ).toBe('allow');
   });
 
-  it('retorna "allow" para qualquer admin autenticado quando requireSuperAdmin é false ou omitido', () => {
+  it('[COMPORTAMENTO ATUAL — revisar na fase de segurança] retorna "allow" para qualquer admin autenticado quando requireSuperAdmin é false ou omitido', () => {
     // site_admin em rota padrão
     expect(
       getRouteAccess({

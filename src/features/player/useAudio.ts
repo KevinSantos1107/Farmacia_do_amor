@@ -86,7 +86,7 @@ export function useAudio() {
           });
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Erro ao carregar áudio';
+        const msg = err instanceof Error ? err.message || 'Erro ao carregar áudio' : 'Erro ao carregar áudio';
         setError(msg);
       } finally {
         setIsLoading(false);
