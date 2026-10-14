@@ -57,9 +57,10 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
         // Firestore sem doc → config local já está ativa, só aplica cores
         applyThemeVars(meuSiteConfig.theme.colors);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Erro de rede: config local continua ativa, site funciona normalmente
-      console.warn('siteConfigStore: Firestore indisponível, usando config local.', err.message);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn('siteConfigStore: Firestore indisponível, usando config local.', msg);
     }
   },
 
@@ -71,7 +72,7 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
         const { updateDoc } = await import('firebase/firestore');
         const docRef = doc(db, 'sites', siteId);
         await updateDoc(docRef, updates as Record<string, unknown>);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Erro ao atualizar Firestore:', err);
         throw new Error('Falha ao salvar as configuracoes.');
       }

@@ -51,7 +51,13 @@ export async function saveQuizRecordIfBetter(
     const snap = await getDoc(ref);
     
     let updated = false;
-    let dataToSave: any = { game: 'quiz', player, updatedAt: serverTimestamp() };
+    const dataToSave: {
+      game: string;
+      player: PlayerName;
+      updatedAt: ReturnType<typeof serverTimestamp>;
+      score?: number;
+      highestCombo?: number;
+    } = { game: 'quiz', player, updatedAt: serverTimestamp() };
     
     if (snap.exists()) {
       const data = snap.data();
