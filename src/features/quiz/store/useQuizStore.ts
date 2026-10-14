@@ -213,9 +213,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       }
 
       set({ config: loadedConfig, questions: loadedQuestions, isLoading: false, isReady: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading quiz:', err);
-      set({ error: err.message, isLoading: false, isReady: true });
+      const msg = err instanceof Error ? err.message : String(err);
+      set({ error: msg, isLoading: false, isReady: true });
     }
   },
 

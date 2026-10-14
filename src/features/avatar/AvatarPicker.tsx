@@ -85,8 +85,9 @@ export function AvatarPicker({
       const uploadedUrl = await upload(blob, partner);
       show('Foto personalizada salva com sucesso!');
       onPhotoUploaded(uploadedUrl);
-    } catch (err: any) {
-      show(err?.message || 'Erro ao enviar a imagem.', 'err');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao enviar a imagem.';
+      show(msg, 'err');
     }
   };
 
@@ -104,8 +105,9 @@ export function AvatarPicker({
       show('Foto personalizada excluída com sucesso.');
       const defaultAvatar = partner === 'partner1' ? '/avatars/avatar_1.webp' : '/avatars/avatar_2.webp';
       onPhotoDeleted(defaultAvatar);
-    } catch (err: any) {
-      show(err?.message || 'Erro ao excluir a foto.', 'err');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao excluir a foto.';
+      show(msg, 'err');
     }
   };
 

@@ -112,7 +112,7 @@ export function TimelineModal() {
     setLoading(true);
     try {
       const snap = await getDocs(query(collection(db, 'timeline')));
-      const loaded: TimelineEvent[] = [];
+      const loaded: (TimelineEvent & { orderIndex?: number })[] = [];
       snap.forEach((doc) => {
         if (doc.id === '_placeholder') return;
         const d = doc.data();
@@ -126,9 +126,9 @@ export function TimelineModal() {
           publicId: d.publicId,
           secretMessage: typeof d.secret === 'string' ? d.secret : (d.secretMessage || ''),
           orderIndex: d.orderIndex ?? 0,
-        } as any);
+        });
       });
-      loaded.sort((a: any, b: any) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+      loaded.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
       setEvents(loaded);
       
     } catch (e) {

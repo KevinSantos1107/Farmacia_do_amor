@@ -20,7 +20,7 @@ export default function App() {
       const title = `${couple.partner1.name} & ${couple.partner2.name}`;
       document.title = title;
       
-      const desc = (config as any).seo?.description || `O nosso espaço especial — ${title}`;
+      const desc = (config as { seo?: { description?: string } }).seo?.description || `O nosso espaço especial — ${title}`;
       
       // Update or create Description
       let metaDesc = document.querySelector('meta[name="description"]');

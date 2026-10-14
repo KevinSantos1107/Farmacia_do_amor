@@ -2,15 +2,31 @@ import { create } from 'zustand';
 import { collection, getDocs, query, orderBy, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
 
+interface RawAlbumPhoto {
+  publicId?: string;
+  src?: string;
+  url?: string;
+  date?: unknown;
+  caption?: string;
+  lat?: number;
+  lng?: number;
+}
+
 /** Safely converts Firestore Timestamp or any date-like value to a JS Date */
-function toDate(value: any): Date {
+function toDate(value: unknown): Date {
   if (!value) return new Date();
   // Firestore Timestamp object
-  if (value?.toDate) return value.toDate();
-  // Firestore Timestamp as plain object {seconds, nanoseconds}
-  if (value?.seconds !== undefined) return new Date(value.seconds * 1000);
+  if (typeof value === 'object' && value !== null) {
+    if ('toDate' in value && typeof (value as { toDate: () => Date }).toDate === 'function') {
+      return (value as { toDate: () => Date }).toDate();
+    }
+    // Firestore Timestamp as plain object {seconds, nanoseconds}
+    if ('seconds' in value && typeof (value as { seconds: unknown }).seconds === 'number') {
+      return new Date((value as { seconds: number }).seconds * 1000);
+    }
+  }
   // ISO string or numeric timestamp
-  const d = new Date(value);
+  const d = new Date(value as string | number | Date);
   return isNaN(d.getTime()) ? new Date() : d;
 }
 
@@ -112,10 +128,10 @@ export const useRetroV2Store = create<RetroState>((set, get) => ({
           const pSnap = photoSnapshots[albumIdx];
 
           // Junta fotos de todos os docs album_photos desse album
-          const albumPhotos: any[] = [];
+          const albumPhotos: RawAlbumPhoto[] = [];
           pSnap.forEach((pDoc) => {
             const pData = pDoc.data();
-            if (Array.isArray(pData.photos)) albumPhotos.push(...pData.photos);
+            if (Array.isArray(pData.photos)) albumPhotos.push(...(pData.photos as RawAlbumPhoto[]));
           });
 
           albumPhotos.forEach((p, idx) => {

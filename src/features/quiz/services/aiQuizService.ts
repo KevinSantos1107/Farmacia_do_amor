@@ -61,21 +61,25 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
 // ─────────────────────────────────────────────
 
 
+export type RawGeneratedQuestion = { question: string; options: QuizOption[]; correctOptionId: string };
+
 /**
  * Validates that a parsed object looks like a valid quiz question.
  * Returns false if any required field is missing or malformed.
  */
-function isValidRawQuestion(q: any): boolean {
+function isValidRawQuestion(q: unknown): q is RawGeneratedQuestion {
   if (!q || typeof q !== 'object') return false;
-  if (typeof q.question !== 'string' || q.question.trim() === '') return false;
-  if (!Array.isArray(q.options) || q.options.length < 2) return false;
-  if (typeof q.correctOptionId !== 'string') return false;
-  // Ensure the correctOptionId actually exists in options
-  const optionIds = q.options.map((o: any) => o.id);
-  if (!optionIds.includes(q.correctOptionId)) return false;
-  for (const opt of q.options) {
-    if (typeof opt.id !== 'string' || typeof opt.text !== 'string') return false;
+  const raw = q as Record<string, unknown>;
+  if (typeof raw.question !== 'string' || raw.question.trim() === '') return false;
+  if (!Array.isArray(raw.options) || raw.options.length < 2) return false;
+  if (typeof raw.correctOptionId !== 'string') return false;
+  for (const opt of raw.options) {
+    if (!opt || typeof opt !== 'object') return false;
+    const optObj = opt as Record<string, unknown>;
+    if (typeof optObj.id !== 'string' || typeof optObj.text !== 'string') return false;
   }
+  const optionIds = (raw.options as Array<{ id: string }>).map((o) => o.id);
+  if (!optionIds.includes(raw.correctOptionId)) return false;
   return true;
 }
 
@@ -172,7 +176,7 @@ export async function generateQuestionsFromGemini(
     .replace(/\s*```$/, '')
     .trim();
 
-  let parsed: any[];
+  let parsed: unknown;
   try {
     parsed = JSON.parse(cleaned);
   } catch {

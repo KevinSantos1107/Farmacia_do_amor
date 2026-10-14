@@ -112,7 +112,7 @@ export function useAvatarUpload(): UseAvatarUploadReturn {
   const remove = async (partner: PartnerKey) => {
     if (!config) throw new Error('Configuração não carregada.');
 
-    const current = config.couple[partner] as any;
+    const current = config.couple[partner];
     if (!current?.photoUrl) {
       throw new Error('Não há foto personalizada cadastrada para excluir.');
     }
@@ -131,7 +131,7 @@ export function useAvatarUpload(): UseAvatarUploadReturn {
       const nextAvatar = activeAvatar === current.photoUrl ? defaultAvatar : activeAvatar;
 
       // Cria objeto limpo sem os campos de foto personalizada
-      const cleanPartner = { ...current };
+      const cleanPartner: NonNullable<SiteConfig['couple']>[PartnerKey] & { _photoPublicId?: string } = { ...current };
       delete cleanPartner.photoUrl;
       delete cleanPartner._photoPublicId;
       cleanPartner.avatar = nextAvatar;

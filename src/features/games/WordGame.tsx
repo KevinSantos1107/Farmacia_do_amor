@@ -375,7 +375,7 @@ export function WordGame() {
           const data = d.data();
           if (data.pergunta && data.palavras && Array.isArray(data.palavras)) {
             const valid = data.palavras.filter(
-              (p: any) => p.palavra && p.mensagem && normalizeWord(p.palavra).length === 5
+              (p: WordData) => p.palavra && p.mensagem && normalizeWord(p.palavra).length === 5
             );
             if (valid.length > 0)
               loaded.push({ id: d.id, pergunta: data.pergunta, palavras: valid });

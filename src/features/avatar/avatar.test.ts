@@ -84,8 +84,8 @@ describe('Avatar Business Logic & Validations', () => {
     };
 
     // Remove apenas partner1
-    const cleanPartner1 = { ...couple.partner1 };
-    delete (cleanPartner1 as any).photoUrl;
+    const cleanPartner1: { name: string; photoUrl?: string; avatar: string } = { ...couple.partner1 };
+    delete cleanPartner1.photoUrl;
     cleanPartner1.avatar = '/avatars/avatar_1.webp';
 
     const updatedCouple = {

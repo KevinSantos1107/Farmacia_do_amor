@@ -84,7 +84,7 @@ export function PlaylistTabs() {
           const tSnap = await getDocs(
             query(collection(db, 'playlist_tracks'), where('playlistId', '==', p.id))
           );
-          const allTracks: Track[] = [];
+          const allTracks: (Track & { orderIndex?: number })[] = [];
           tSnap.forEach((tDoc) => {
             const data = tDoc.data();
             if (data.title) {
@@ -97,7 +97,7 @@ export function PlaylistTabs() {
             }
           });
           // Ordenar por orderIndex (legado)
-          allTracks.sort((a: any, b: any) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+          allTracks.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
           p.tracks = allTracks;
         }
 
@@ -174,9 +174,11 @@ export function PlaylistTabs() {
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSeekValue(Number(e.target.value));
   };
-  const handleSeekCommit = (e: any) => {
+  const handleSeekCommit = (e: React.SyntheticEvent) => {
     isSeeking.current = false;
-    seek(Number(e.target.value));
+    if (e.target instanceof HTMLInputElement) {
+      seek(Number(e.target.value));
+    }
   };
 
   const progressPercent = duration > 0 ? (seekValue / duration) * 100 : 0;
@@ -311,7 +313,7 @@ export function PlaylistTabs() {
                 {isCurrentTabLoaded ? fmt(seekValue) : '0:00'}
               </span>
               <span className="text-[11px] text-slate-400 font-medium tracking-wide">
-                {isCurrentTabLoaded ? fmt(duration) : fmt((displayTrack as any)?.duration || 0)}
+                {isCurrentTabLoaded ? fmt(duration) : fmt(displayTrack?.duration || 0)}
               </span>
             </div>
           </div>
@@ -462,9 +464,9 @@ export function PlaylistTabs() {
                 </div>
 
                 {/* Duração */}
-                {(track as any).duration && (
+                {track.duration && (
                   <span className="text-xs text-slate-600 font-mono flex-shrink-0">
-                    {fmt((track as any).duration)}
+                    {fmt(track.duration)}
                   </span>
                 )}
               </button>

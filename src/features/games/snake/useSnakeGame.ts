@@ -40,11 +40,17 @@ function randomFood(snake: Point[]): Point {
   return p;
 }
 
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 let audioCtx: AudioContext | null = null;
 
 function getAudioContext() {
   if (!audioCtx) {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (AudioContextClass) {
       audioCtx = new AudioContextClass();
     }

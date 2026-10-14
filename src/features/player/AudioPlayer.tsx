@@ -12,6 +12,7 @@ import {
   Map,
   Gamepad2,
   Heart,
+  type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -22,7 +23,7 @@ import { Spinner } from '../../shared/ui/Spinner';
 import { Modal } from '../../shared/ui/Modal';
 import { PlaylistManager } from '../playlist/PlaylistManager';
 
-function NavLink({ to, icon: Icon, label }: { to: string; icon: any; label: string }) {
+function NavLink({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) {
   const location = useLocation();
   const isActive = location.pathname === to;
   return (
