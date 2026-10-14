@@ -14,7 +14,7 @@ import {
   Heart,
   type LucideIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAudioStore } from '../../store/useAudioStore';
 import { useAudio } from './useAudio';
@@ -64,6 +64,17 @@ export function AudioPlayer() {
 
   const { currentTime, duration, isLoading, error, seek } = useAudio();
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState(0);
+
+  useEffect(() => {
+    if (!isSeeking) setSeekValue(currentTime);
+  }, [currentTime, isSeeking]);
+
+  useEffect(() => {
+    setIsSeeking(false);
+    setSeekValue(0);
+  }, [currentTrackIndex]);
 
   const currentTrack = playlist[currentTrackIndex];
 
@@ -85,10 +96,6 @@ export function AudioPlayer() {
     const mins = Math.floor(time / 60);
     const secs = Math.floor(time % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    seek(Number(e.target.value));
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,17 +184,27 @@ export function AudioPlayer() {
           </div>
 
           <div className="flex items-center gap-2 w-full text-xs text-theme-text-secondary font-mono">
-            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(seekValue)}</span>
             <input
               type="range"
               min={0}
-              max={duration || 100}
-              value={currentTime}
-              onChange={handleProgressChange}
+              max={duration > 0 ? duration : (currentTrack?.duration || 100)}
+              value={seekValue}
+              onMouseDown={() => setIsSeeking(true)}
+              onTouchStart={() => setIsSeeking(true)}
+              onChange={(e) => setSeekValue(Number(e.target.value))}
+              onMouseUp={(e) => {
+                setIsSeeking(false);
+                seek(Number((e.target as HTMLInputElement).value));
+              }}
+              onTouchEnd={(e) => {
+                setIsSeeking(false);
+                seek(Number((e.target as HTMLInputElement).value));
+              }}
               aria-label="Progresso da música"
               className="flex-1 h-1.5 bg-theme-card-border rounded-lg appearance-none cursor-pointer accent-theme-primary"
             />
-            <span>{formatTime(duration)}</span>
+            <span>{formatTime(duration || currentTrack?.duration || 0)}</span>
           </div>
 
           {error && <span className="text-red-500 text-xs absolute -top-6">{error}</span>}

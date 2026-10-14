@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapClaims } from './AuthContext';
+import { mapClaims } from './claims';
 
 describe('mapClaims — protege o parsing e mapeamento seguro de custom claims do Firebase Auth', () => {
   it('retorna role: null quando claims é nulo, indefinido ou objeto vazio', () => {

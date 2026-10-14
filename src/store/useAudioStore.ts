@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { replayCurrentAudio } from '../features/player/useAudio';
 
 export interface Track {
   id: string;
@@ -42,9 +43,14 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
   setPlaylist: (tracks) => set({ playlist: tracks, currentTrackIndex: tracks.length > 0 ? 0 : -1 }),
 
   playTrack: (index) => {
-    const { playlist } = get();
+    const { playlist, currentTrackIndex } = get();
     if (index >= 0 && index < playlist.length) {
-      set({ currentTrackIndex: index, isPlaying: true });
+      if (index === currentTrackIndex) {
+        set({ isPlaying: true });
+        replayCurrentAudio();
+      } else {
+        set({ currentTrackIndex: index, isPlaying: true });
+      }
     }
   },
 
@@ -59,11 +65,10 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
     const { currentTrackIndex, playlist, isShuffle, isRepeat } = get();
     if (playlist.length === 0) return;
 
-    if (isShuffle) {
+    if (isShuffle && playlist.length > 1) {
       let nextIndex = Math.floor(Math.random() * playlist.length);
-      // Evitar tocar a mesma repetida na roleta, se possível
-      if (nextIndex === currentTrackIndex && playlist.length > 1) {
-        nextIndex = (nextIndex + 1) % playlist.length;
+      while (nextIndex === currentTrackIndex) {
+        nextIndex = Math.floor(Math.random() * playlist.length);
       }
       set({ currentTrackIndex: nextIndex, isPlaying: true });
       return;
@@ -71,21 +76,34 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
 
     if (currentTrackIndex < playlist.length - 1) {
       set({ currentTrackIndex: currentTrackIndex + 1, isPlaying: true });
-    } else if (isRepeat) {
-      set({ currentTrackIndex: 0, isPlaying: true });
+    } else if (isRepeat || playlist.length === 1) {
+      if (currentTrackIndex === 0) {
+        set({ isPlaying: true });
+        replayCurrentAudio();
+      } else {
+        set({ currentTrackIndex: 0, isPlaying: true });
+      }
     } else {
-      set({ isPlaying: false }); // Fim da playlist sem repetir
+      set({ isPlaying: false });
     }
   },
 
   previousTrack: () => {
-    const { currentTrackIndex, playlist } = get();
+    const { currentTrackIndex, playlist, isShuffle } = get();
     if (playlist.length === 0) return;
+
+    if (isShuffle && playlist.length > 1) {
+      let prevIndex = Math.floor(Math.random() * playlist.length);
+      while (prevIndex === currentTrackIndex) {
+        prevIndex = Math.floor(Math.random() * playlist.length);
+      }
+      set({ currentTrackIndex: prevIndex, isPlaying: true });
+      return;
+    }
 
     if (currentTrackIndex > 0) {
       set({ currentTrackIndex: currentTrackIndex - 1, isPlaying: true });
     } else {
-      // Se tiver no início, volta pra primeira tocando do zero, ou vai pro final
       set({ currentTrackIndex: playlist.length - 1, isPlaying: true });
     }
   },

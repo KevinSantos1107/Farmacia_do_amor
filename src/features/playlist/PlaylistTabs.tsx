@@ -58,6 +58,12 @@ export function PlaylistTabs() {
     if (!isSeeking.current) setSeekValue(currentTime);
   }, [currentTime]);
 
+  // ── Zera imediatamente o seekValue ao trocar de faixa
+  useEffect(() => {
+    isSeeking.current = false;
+    setSeekValue(0);
+  }, [currentTrackIndex]);
+
   // ── Carregar playlists do Firestore ────────────────────────────────────────
   useEffect(() => {
     if (!config?.id) return;
@@ -176,8 +182,9 @@ export function PlaylistTabs() {
   };
   const handleSeekCommit = (e: React.SyntheticEvent) => {
     isSeeking.current = false;
-    if (e.target instanceof HTMLInputElement) {
-      seek(Number(e.target.value));
+    const target = e.target as HTMLInputElement;
+    if (target && !isNaN(Number(target.value))) {
+      seek(Number(target.value));
     }
   };
 
@@ -283,31 +290,34 @@ export function PlaylistTabs() {
 
           {/* ── Barra de Progresso (Spotify Style) ── */}
           <div className="mb-6 w-full">
-            <div className="relative group w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden cursor-pointer"
-                 onMouseDown={() => { isSeeking.current = true; }}
-                 onTouchStart={() => { isSeeking.current = true; }}
-                 onMouseUp={handleSeekCommit}
-                 onTouchEnd={handleSeekCommit}>
-              
+            <div className="relative group w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden cursor-pointer">
               {/* Barra Preenchida */}
               <div
-                className="absolute top-0 left-0 h-full bg-[var(--theme-primary)] rounded-full transition-all duration-100"
+                className="absolute top-0 left-0 h-full bg-[var(--theme-primary)] rounded-full transition-all duration-100 pointer-events-none"
                 style={{ width: isCurrentTabLoaded ? `${progressPercent}%` : '0%' }}
               />
-              
+
               {/* Input range invisível por cima para fluidez */}
               <input
                 type="range"
                 min={0}
-                max={duration || 100}
+                max={duration > 0 ? duration : (displayTrack?.duration || 100)}
                 step={0.1}
                 value={isCurrentTabLoaded ? seekValue : 0}
                 disabled={!isCurrentTabLoaded}
+                onMouseDown={() => {
+                  isSeeking.current = true;
+                }}
+                onTouchStart={() => {
+                  isSeeking.current = true;
+                }}
                 onChange={handleSeekChange}
+                onMouseUp={handleSeekCommit}
+                onTouchEnd={handleSeekCommit}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-default"
               />
             </div>
-            
+
             <div className="flex justify-between items-center mt-2 px-0.5">
               <span className="text-[11px] text-slate-400 font-medium tracking-wide">
                 {isCurrentTabLoaded ? fmt(seekValue) : '0:00'}
@@ -322,11 +332,11 @@ export function PlaylistTabs() {
           <div className="flex items-center justify-between w-full px-2">
             <button
               onClick={toggleShuffle}
+              aria-label={isShuffle ? 'Desativar aleatório' : 'Ativar aleatório'}
               className={cn(
                 'transition-colors p-2 rounded-full shrink-0',
                 isShuffle ? 'text-[var(--theme-primary)]' : 'text-slate-500 hover:text-slate-300'
               )}
-              disabled={!isCurrentTabLoaded}
             >
               <Shuffle className="w-5 h-5 md:w-6 md:h-6" />
             </button>
@@ -369,11 +379,11 @@ export function PlaylistTabs() {
 
             <button
               onClick={toggleRepeat}
+              aria-label={isRepeat ? 'Desativar repetição' : 'Ativar repetição'}
               className={cn(
                 'transition-colors p-2 rounded-full shrink-0',
                 isRepeat ? 'text-[var(--theme-primary)]' : 'text-slate-500 hover:text-slate-300'
               )}
-              disabled={!isCurrentTabLoaded}
             >
               <Repeat className="w-5 h-5 md:w-6 md:h-6" />
             </button>

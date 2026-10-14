@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, getIdTokenResult } from 'firebase/auth';
 import { auth } from '../../services/firebase/auth';
+import { mapClaims, type Role } from './claims';
 
-export type Role = 'super_admin' | 'site_admin' | null;
 
 interface AuthUser {
   uid: string;
@@ -17,16 +17,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({ user: null, isLoading: true });
-
-export const mapClaims = (claims?: Record<string, unknown> | null): { role: Role; siteId?: string } => {
-  if (!claims) {
-    return { role: null };
-  }
-  const rawRole = claims.role;
-  const role: Role = rawRole === 'super_admin' || rawRole === 'site_admin' ? rawRole : null;
-  const siteId = typeof claims.siteId === 'string' ? claims.siteId : undefined;
-  return { role, siteId };
-};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);

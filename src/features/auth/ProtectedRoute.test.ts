@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRouteAccess } from './ProtectedRoute';
+import { getRouteAccess } from './routeAccess';
 
 describe('getRouteAccess — protege a política de controle de acesso a rotas administrativas', () => {
   it('retorna "loading" quando o estado de autenticação ainda está carregando', () => {

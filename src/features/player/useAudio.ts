@@ -2,7 +2,7 @@
  * useAudio — Singleton de áudio global.
  *
  * O HTMLAudioElement é criado UMA vez no nível do módulo e compartilhado
- * por todos os componentes que chamarem este hook.  Isso garante que a
+ * por todos os componentes que chamarem este hook. Isso garante que a
  * música continua tocando ao navegar entre páginas/abas.
  */
 import { useEffect, useState } from 'react';
@@ -18,27 +18,51 @@ type DurListener = (dur: number) => void;
 const _timeListeners = new Set<TimeListener>();
 const _durListeners = new Set<DurListener>();
 
+let _activeTrackIndex = -1;
+let _activeUrl = '';
+
 if (_audio) {
+  _audio.preload = 'auto';
+
   _audio.addEventListener('timeupdate', () => {
     _timeListeners.forEach((fn) => fn(_audio!.currentTime));
   });
   _audio.addEventListener('durationchange', () => {
-    _durListeners.forEach((fn) => fn(_audio!.duration));
+    if (!isNaN(_audio!.duration) && isFinite(_audio!.duration)) {
+      _durListeners.forEach((fn) => fn(_audio!.duration));
+    }
   });
   _audio.addEventListener('loadedmetadata', () => {
-    _durListeners.forEach((fn) => fn(_audio!.duration));
+    if (!isNaN(_audio!.duration) && isFinite(_audio!.duration)) {
+      _durListeners.forEach((fn) => fn(_audio!.duration));
+    }
   });
   _audio.addEventListener('ended', () => {
-    useAudioStore.getState().nextTrack();
+    const { isRepeat, nextTrack } = useAudioStore.getState();
+    if (isRepeat) {
+      _audio!.currentTime = 0;
+      _timeListeners.forEach((fn) => fn(0));
+      _audio!.play().catch(console.error);
+      return;
+    }
+    nextTrack();
   });
+}
+
+export function replayCurrentAudio() {
+  if (_audio) {
+    _audio.currentTime = 0;
+    _timeListeners.forEach((fn) => fn(0));
+    _audio.play().catch(console.error);
+  }
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useAudio() {
   const { playlist, currentTrackIndex, isPlaying, volume, isMuted } = useAudioStore();
 
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(_audio ? _audio.currentTime : 0);
+  const [duration, setDuration] = useState(_audio && !isNaN(_audio.duration) ? _audio.duration : 0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,26 +82,51 @@ export function useAudio() {
   useEffect(() => {
     if (!_audio) return;
 
-    const loadTrack = async () => {
-      const track = playlist[currentTrackIndex];
-      if (!track) {
-        _audio.pause();
-        _audio.src = '';
-        return;
-      }
+    const track = playlist[currentTrackIndex];
+    if (!track) {
+      _audio.pause();
+      _audio.src = '';
+      _activeTrackIndex = -1;
+      _activeUrl = '';
+      setCurrentTime(0);
+      setDuration(0);
+      _timeListeners.forEach((fn) => fn(0));
+      _durListeners.forEach((fn) => fn(0));
+      return;
+    }
 
+    // Se já está carregando ou tocando esta faixa com a mesma URL, não duplica requisições
+    if (_activeTrackIndex === currentTrackIndex && _audio.src === _activeUrl) {
+      return;
+    }
+
+    _activeTrackIndex = currentTrackIndex;
+
+    // 1. ZERA IMEDIATAMENTE a barra e áudio anterior de forma síncrona
+    _audio.pause();
+    _audio.currentTime = 0;
+    setCurrentTime(0);
+    _timeListeners.forEach((fn) => fn(0));
+    const initialDur = track.duration && track.duration > 0 ? track.duration : 0;
+    setDuration(initialDur);
+    _durListeners.forEach((fn) => fn(initialDur));
+
+    let isCancelled = false;
+
+    const loadTrack = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
         const url = await getPlayableAudioUrl(track.url);
+        if (isCancelled) return;
 
+        _activeUrl = url;
         if (_audio.src !== url) {
           _audio.src = url;
-          _audio.load();
         }
 
-        if (isPlaying) {
+        if (useAudioStore.getState().isPlaying) {
           _audio.play().catch((e) => {
             console.error('Autoplay prevented:', e);
             if (e.name === 'NotAllowedError') {
@@ -86,22 +135,22 @@ export function useAudio() {
           });
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message || 'Erro ao carregar áudio' : 'Erro ao carregar áudio';
-        setError(msg);
+        if (!isCancelled) {
+          const msg = err instanceof Error ? err.message || 'Erro ao carregar áudio' : 'Erro ao carregar áudio';
+          setError(msg);
+        }
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
-    if (currentTrackIndex >= 0) {
-      loadTrack();
-    } else {
-      _audio.pause();
-      _audio.src = '';
-      setCurrentTime(0);
-      setDuration(0);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadTrack();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [currentTrackIndex, playlist]);
 
   // ── Play / Pause ──────────────────────────────────────────────────────────
@@ -123,9 +172,10 @@ export function useAudio() {
 
   // ── Seek ──────────────────────────────────────────────────────────────────
   const seek = (time: number) => {
-    if (_audio) {
+    if (_audio && isFinite(time)) {
       _audio.currentTime = time;
       setCurrentTime(time);
+      _timeListeners.forEach((fn) => fn(time));
     }
   };
 

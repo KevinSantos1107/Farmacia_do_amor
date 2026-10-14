@@ -8,6 +8,9 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
 import type { JsMediaTagsResult, Track } from './types';
+import { stripUndefined, parseFilename, formatAudioTime } from './playlistPureUtils';
+
+export { stripUndefined, parseFilename, formatAudioTime };
 
 // @ts-ignore
 import * as jsmediatags from 'jsmediatags/dist/jsmediatags.min.js';
@@ -50,25 +53,6 @@ export function readMp3Tags(
       resolve({});
     }
   });
-}
-
-export function stripUndefined<T extends object>(obj: T): T {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
-}
-
-export function parseFilename(filename: string): { parsedArtist: string; parsedTitle: string } {
-  const name = filename.replace(/\.[^.]+$/, '');
-  if (name.includes(' - ')) {
-    const parts = name.split(' - ');
-    return { parsedArtist: parts[0].trim(), parsedTitle: parts.slice(1).join(' - ').trim() };
-  }
-  return { parsedArtist: '', parsedTitle: name.replace(/[-_]/g, ' ') };
-}
-
-export function formatAudioTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const sec = Math.floor(seconds % 60);
-  return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
 export async function fetchAndRepairPlaylistTracks(playlistId: string): Promise<Track[]> {

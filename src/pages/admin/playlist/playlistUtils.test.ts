@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseFilename, stripUndefined, formatAudioTime } from './playlistUtils';
+import { parseFilename, stripUndefined, formatAudioTime } from './playlistPureUtils';
 
 describe('playlistUtils', () => {
   describe('parseFilename', () => {
