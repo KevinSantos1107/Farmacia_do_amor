@@ -18,6 +18,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ user: null, isLoading: true });
 
+export const mapClaims = (claims?: Record<string, unknown> | null): { role: Role; siteId?: string } => {
+  if (!claims) {
+    return { role: null };
+  }
+  const rawRole = claims.role;
+  const role: Role = rawRole === 'super_admin' || rawRole === 'site_admin' ? rawRole : null;
+  const siteId = typeof claims.siteId === 'string' ? claims.siteId : undefined;
+  return { role, siteId };
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,13 +38,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           // Usa o token em cache; só busca novamente se expirado
           const tokenResult = await getIdTokenResult(firebaseUser, false);
-          const claims = tokenResult.claims;
+          const { role, siteId } = mapClaims(tokenResult.claims);
 
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
-            role: (claims.role as Role) || null,
-            siteId: claims.siteId as string | undefined,
+            role,
+            siteId,
           });
         } catch (error) {
           console.error('Erro ao obter as claims do usuário', error);
