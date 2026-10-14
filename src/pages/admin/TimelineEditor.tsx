@@ -138,7 +138,16 @@ export default function TimelineEditor() {
         photoUrl = res.secureUrl; // Salva URL completa como "photo" para compatibilidade
       }
 
-      const payload: any = {
+      const payload: {
+        title: string;
+        date: string;
+        caption: string;
+        location: string;
+        secret: string | boolean;
+        photo: string | null;
+        publicId: string | null;
+        updatedAt: ReturnType<typeof serverTimestamp>;
+      } = {
         title: form.title,
         date: form.date,
         caption: form.description, // site antigo usa "caption"
@@ -163,8 +172,9 @@ export default function TimelineEditor() {
       }
       setEditingId(null);
       loadEvents();
-    } catch (e: any) {
-      show('Erro: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro: ' + msg, 'err');
     }
     setSaving(false);
   };
@@ -181,8 +191,9 @@ export default function TimelineEditor() {
       await deleteDoc(doc(db, 'timeline', event.id));
       setEvents((evts) => evts.filter((e) => e.id !== event.id));
       show('Evento deletado!');
-    } catch (e: any) {
-      show('Erro: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro: ' + msg, 'err');
     }
   };
 

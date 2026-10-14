@@ -238,9 +238,10 @@ export default function QuizEditor() {
 
       setAiStatus('done');
       setAiStatusMsg(`✅ ${result.generated} perguntas de IA salvas com sucesso! O quiz já vai usá-las automaticamente.`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setAiStatus('error');
-      setAiStatusMsg(`Erro: ${err.message || 'Falha desconhecida.'}`);
+      const msg = err instanceof Error ? err.message : 'Falha desconhecida.';
+      setAiStatusMsg(`Erro: ${msg}`);
     }
   };
 
@@ -253,9 +254,10 @@ export default function QuizEditor() {
       setExistingAiCount(0);
       setAiStatus('idle');
       setAiStatusMsg('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       setAiStatus('error');
-      setAiStatusMsg(`Erro ao deletar: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      setAiStatusMsg(`Erro ao deletar: ${msg}`);
     }
   };
 
@@ -319,7 +321,7 @@ export default function QuizEditor() {
               <span className="text-sm">Tipo de Recompensa:</span>
               <select 
                 value={config.secretReward?.type || 'none'}
-                onChange={(e) => setConfig({...config, secretReward: { type: e.target.value as any, content: config.secretReward?.content || '' }})}
+                onChange={(e) => setConfig({...config, secretReward: { type: e.target.value as 'none' | 'message' | 'photo', content: config.secretReward?.content || '' }})}
                 className="bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
               >
                 <option value="none">Nenhuma</option>

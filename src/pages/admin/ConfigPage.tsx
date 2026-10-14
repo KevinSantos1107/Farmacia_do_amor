@@ -73,8 +73,8 @@ export default function ConfigPage() {
     try {
       await updateConfig(siteId, formData);
       show('Configurações salvas com sucesso!');
-    } catch (err: any) {
-      show('Erro ao salvar: ' + err.message, 'err');
+    } catch (err: unknown) {
+      show('Erro ao salvar: ' + (err instanceof Error ? err.message : String(err)), 'err');
     } finally {
       setIsSaving(false);
     }
@@ -172,9 +172,9 @@ export default function ConfigPage() {
                     }
                     onPhotoDeleted={(revertedAvatar) =>
                       setFormData((prev) => {
-                        const nextPartner = { ...prev.couple!.partner1 };
+                        const nextPartner: NonNullable<SiteConfig['couple']>['partner1'] & { _photoPublicId?: string } = { ...prev.couple!.partner1 };
                         delete nextPartner.photoUrl;
-                        delete (nextPartner as any)._photoPublicId;
+                        delete nextPartner._photoPublicId;
                         nextPartner.avatar = revertedAvatar;
                         return {
                           ...prev,
@@ -282,9 +282,9 @@ export default function ConfigPage() {
                     }
                     onPhotoDeleted={(revertedAvatar) =>
                       setFormData((prev) => {
-                        const nextPartner = { ...prev.couple!.partner2 };
+                        const nextPartner: NonNullable<SiteConfig['couple']>['partner2'] & { _photoPublicId?: string } = { ...prev.couple!.partner2 };
                         delete nextPartner.photoUrl;
-                        delete (nextPartner as any)._photoPublicId;
+                        delete nextPartner._photoPublicId;
                         nextPartner.avatar = revertedAvatar;
                         return {
                           ...prev,

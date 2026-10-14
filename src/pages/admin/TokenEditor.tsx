@@ -6,6 +6,7 @@ import {
   setDoc,
   deleteDoc,
   serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { db } from '../../services/firebase/config';
@@ -22,7 +23,7 @@ interface PlayerToken {
   id: string;
   player: string;
   label?: string;
-  createdAt?: any;
+  createdAt?: Timestamp | { toMillis?: () => number } | null;
 }
 
 export default function TokenEditor() {
@@ -68,7 +69,7 @@ export default function TokenEditor() {
         return timeB - timeA;
       });
       setTokens(list);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Erro ao carregar tokens:', e);
       show('Erro ao carregar tokens. Verifique as permissões.', 'err');
     } finally {
@@ -105,9 +106,10 @@ export default function TokenEditor() {
       show('Link mágico criado com sucesso!');
       setNewLabel('');
       await loadTokens();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      show('Erro ao criar token: ' + e.message, 'err');
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao criar token: ' + msg, 'err');
     } finally {
       setIsGenerating(false);
     }
@@ -125,9 +127,10 @@ export default function TokenEditor() {
       await deleteDoc(doc(db, 'player_tokens', tokenId));
       show('Token removido com sucesso!');
       setTokens(prev => prev.filter(t => t.id !== tokenId));
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      show('Erro ao remover token: ' + e.message, 'err');
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao remover token: ' + msg, 'err');
     }
   };
 

@@ -282,8 +282,8 @@ export default function AlbumEditor() {
       setCoverFile(null);
       setCoverPreview(null);
       loadAlbums();
-    } catch (e: any) {
-      show('Erro ao criar álbum: ' + e.message, 'err');
+    } catch (e: unknown) {
+      show('Erro ao criar álbum: ' + (e instanceof Error ? e.message : String(e)), 'err');
     }
     setSaving(false);
   };
@@ -296,7 +296,14 @@ export default function AlbumEditor() {
     }
     setSavingEdit(true);
     try {
-      const updates: any = {
+      const updates: {
+        title: string;
+        description: string;
+        date: string;
+        coverPublicId?: string;
+        coverUrl?: string;
+        cover?: string;
+      } = {
         title: editAlbum.title,
         description: editAlbum.description,
         date: editAlbum.date,
@@ -315,8 +322,8 @@ export default function AlbumEditor() {
       setEditCoverFile(null);
       setEditCoverPreview(null);
       loadAlbums();
-    } catch (e: any) {
-      show('Erro ao atualizar: ' + e.message, 'err');
+    } catch (e: unknown) {
+      show('Erro ao atualizar: ' + (e instanceof Error ? e.message : String(e)), 'err');
     }
     setSavingEdit(false);
   };
@@ -392,8 +399,8 @@ export default function AlbumEditor() {
       show('Álbum deletado!');
       if (activeAlbum?.id === album.id) setActiveAlbum(null);
       loadAlbums();
-    } catch (e: any) {
-      show('Erro ao deletar: ' + e.message, 'err');
+    } catch (e: unknown) {
+      show('Erro ao deletar: ' + (e instanceof Error ? e.message : String(e)), 'err');
     }
   };
 
@@ -510,8 +517,8 @@ export default function AlbumEditor() {
       setUploadPreviews([]);
       setUploadProgress([]);
       loadAlbums();
-    } catch (e: any) {
-      show('Erro no upload: ' + e.message, 'err');
+    } catch (e: unknown) {
+      show('Erro no upload: ' + (e instanceof Error ? e.message : String(e)), 'err');
     }
     setUploading(false);
   };
@@ -574,8 +581,8 @@ export default function AlbumEditor() {
       setPhotos(updatedPhotos);
       show('Foto deletada!');
       loadAlbums();
-    } catch (e: any) {
-      show('Erro ao deletar: ' + e.message, 'err');
+    } catch (e: unknown) {
+      show('Erro ao deletar: ' + (e instanceof Error ? e.message : String(e)), 'err');
     }
   };
 

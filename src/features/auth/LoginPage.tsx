@@ -18,7 +18,8 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from?.pathname || '/admin';
+  const state = location.state as { from?: { pathname?: string } } | null;
+  const from = state?.from?.pathname || '/admin';
 
   // Redireciona automaticamente quando o contexto de auth for atualizado
   // Isso evita a "race condition" de redirecionar antes do AuthContext ler os claims
@@ -37,7 +38,7 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       // O redirect agora acontece pelo useEffect acima, 
       // garantindo que o estado global `user` já está preenchido
-    } catch (err: any) {
+    } catch {
       setError('E-mail ou senha incorretos.');
       setIsLoading(false);
     }

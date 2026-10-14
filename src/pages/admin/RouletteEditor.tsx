@@ -79,8 +79,9 @@ export default function RouletteEditor() {
       setCreating(false);
       setNewWheel({ question: '', options: '' });
       loadWheels();
-    } catch (e: any) {
-      show('Erro: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro: ' + msg, 'err');
     }
     setSaving(false);
   };
@@ -91,8 +92,9 @@ export default function RouletteEditor() {
       await deleteDoc(doc(db, 'sites', siteId, 'wheels', wheel.id));
       setWheels((w) => w.filter((x) => x.id !== wheel.id));
       show('Roleta removida!');
-    } catch (e: any) {
-      show('Erro: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro: ' + msg, 'err');
     }
   };
 

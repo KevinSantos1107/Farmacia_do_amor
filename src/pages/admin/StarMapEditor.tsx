@@ -21,6 +21,13 @@ export interface StarMapConfig {
   constellations: string[];
 }
 
+interface LocationSuggestion {
+  display_name: string;
+  lat: string;
+  lon: string;
+  [key: string]: unknown;
+}
+
 export default function StarMapEditor() {
   const { config } = useSiteConfigStore();
   const { show } = useToast();
@@ -38,7 +45,7 @@ export default function StarMapEditor() {
   
   // Geocoding state
   const [locationSearch, setLocationSearch] = useState('');
-  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -99,8 +106,9 @@ export default function StarMapEditor() {
         updatedAt: serverTimestamp(),
       });
       show('Configurações salvas com sucesso!');
-    } catch (e: any) {
-      show('Erro ao salvar: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao salvar: ' + msg, 'err');
     }
     setSaving(false);
   };
@@ -130,7 +138,7 @@ export default function StarMapEditor() {
     }, 500);
   };
 
-  const selectLocation = (loc: any) => {
+  const selectLocation = (loc: LocationSuggestion) => {
     const lat = parseFloat(loc.lat);
     const lng = parseFloat(loc.lon);
     // Extrai um nome mais amigável

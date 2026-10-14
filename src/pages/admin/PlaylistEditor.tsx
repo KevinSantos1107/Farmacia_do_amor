@@ -46,6 +46,17 @@ import {
 // @ts-ignore
 import * as jsmediatags from 'jsmediatags/dist/jsmediatags.min.js';
 
+interface JsMediaTagsResult {
+  tags: {
+    title?: string;
+    artist?: string;
+    picture?: {
+      data: number[];
+      format: string;
+    };
+  };
+}
+
 // Helper: extract ID3 tags from MP3 file
 function readMp3Tags(file: File): Promise<{ title?: string; artist?: string; coverUrl?: string }> {
   return new Promise((resolve) => {
@@ -56,7 +67,7 @@ function readMp3Tags(file: File): Promise<{ title?: string; artist?: string; cov
         return;
       }
       jsmediatags.read(file, {
-        onSuccess: (tag: any) => {
+        onSuccess: (tag: JsMediaTagsResult) => {
           console.log('ID3 tags lidas com sucesso:', tag.tags);
           const tags = tag.tags;
           let coverUrl: string | undefined;
@@ -73,7 +84,7 @@ function readMp3Tags(file: File): Promise<{ title?: string; artist?: string; cov
           }
           resolve({ title: tags.title, artist: tags.artist, coverUrl });
         },
-        onError: (error: any) => {
+        onError: (error: unknown) => {
           console.error('Erro ao ler tags ID3:', error);
           resolve({});
         },
@@ -337,9 +348,10 @@ export default function PlaylistEditor() {
             const batch = writeBatch(db);
             tSnap.forEach((d) => batch.delete(d.ref));
             allTracks.forEach((t, i) => {
-              const clean: any = stripUndefined({ ...t, orderIndex: i, playlistId: p.id });
-              delete clean.id;
-              delete clean.tracks;
+              const toClean: Record<string, unknown> = { ...t, orderIndex: i, playlistId: p.id };
+              delete toClean.id;
+              delete toClean.tracks;
+              const clean = stripUndefined(toClean);
               batch.set(doc(collection(db, 'playlist_tracks')), clean);
             });
             await batch.commit();
@@ -353,8 +365,9 @@ export default function PlaylistEditor() {
 
       loaded.sort((a, b) => a.orderIndex - b.orderIndex);
       setPlaylists(loaded);
-    } catch (e: any) {
-      show('Erro ao carregar playlists: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao carregar playlists: ' + msg, 'err');
     }
     setLoading(false);
   }, []);
@@ -382,17 +395,18 @@ export default function PlaylistEditor() {
         batch.update(doc(db, 'custom_playlists', p.id), { orderIndex: p.orderIndex })
       );
       await batch.commit();
-    } catch (e: any) {
-      show('Erro ao reordenar: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao reordenar: ' + msg, 'err');
     }
   });
 
-  const tracksWithIds = tracks.map((t, idx) => ({ 
+  const tracksWithIds: (Track & { id: string })[] = tracks.map((t, idx) => ({ 
     ...t, 
     id: t.id || t.publicId || t.url || String(idx) 
   }));
 
-  const trackSortable = useSortableList(tracksWithIds as any, async (reordered: any[]) => {
+  const trackSortable = useSortableList(tracksWithIds, async (reordered) => {
     if (!activePlaylist) return;
     setTracks(reordered);
     try {
@@ -403,15 +417,17 @@ export default function PlaylistEditor() {
       tSnap.forEach((d) => batch.delete(d.ref));
 
       reordered.forEach((t, i) => {
-        const clean: any = stripUndefined({ ...t, orderIndex: i, playlistId: activePlaylist.id });
-        delete clean.id;
-        delete clean.tracks;
+        const toClean: Record<string, unknown> = { ...t, orderIndex: i, playlistId: activePlaylist.id };
+        delete toClean.id;
+        delete toClean.tracks;
+        const clean = stripUndefined(toClean);
         batch.set(doc(collection(db, 'playlist_tracks')), clean);
       });
       await batch.commit();
       loadPlaylists();
-    } catch (e: any) {
-      show('Erro ao reordenar músicas: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao reordenar músicas: ' + msg, 'err');
     }
   });
 
@@ -446,8 +462,9 @@ export default function PlaylistEditor() {
       setCoverFile(null);
       setCoverPreview(null);
       loadPlaylists();
-    } catch (e: any) {
-      show('Erro ao criar playlist: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao criar playlist: ' + msg, 'err');
     }
     setSavingPlaylist(false);
   };
@@ -467,7 +484,13 @@ export default function PlaylistEditor() {
     }
     setSavingEdit(true);
     try {
-      const updates: any = {
+      const updates: {
+        name: string;
+        title: string;
+        description?: string;
+        cover?: string;
+        coverUrl?: string;
+      } = {
         name: editPlaylist.name,
         title: editPlaylist.name,
       };
@@ -483,8 +506,9 @@ export default function PlaylistEditor() {
       setEditCoverFile(null);
       setEditCoverPreview(null);
       loadPlaylists();
-    } catch (e: any) {
-      show('Erro ao atualizar: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao atualizar: ' + msg, 'err');
     }
     setSavingEdit(false);
   };
@@ -521,8 +545,9 @@ export default function PlaylistEditor() {
       show('Playlist deletada!');
       if (activePlaylist?.id === playlist.id) setActivePlaylist(null);
       loadPlaylists();
-    } catch (e: any) {
-      show('Erro ao deletar: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao deletar: ' + msg, 'err');
     }
   };
 
@@ -648,14 +673,16 @@ export default function PlaylistEditor() {
         prev.map((s) => (s.id === slot.id ? { ...s, uploading: false, done: true, progress: 100 } : s))
       );
       loadPlaylists();
-    } catch (e: any) {
-      if (e.name === 'AbortError') {
+    } catch (e: unknown) {
+      const isAbort = e instanceof Error && e.name === 'AbortError';
+      if (isAbort) {
         setTrackSlots((prev) =>
           prev.map((s) => (s.id === slot.id ? { ...s, uploading: false, progress: 0 } : s))
         );
       } else {
+        const msg = e instanceof Error ? e.message : String(e);
         setTrackSlots((prev) =>
-          prev.map((s) => (s.id === slot.id ? { ...s, uploading: false, error: e.message } : s))
+          prev.map((s) => (s.id === slot.id ? { ...s, uploading: false, error: msg } : s))
         );
       }
     } finally {
@@ -708,15 +735,16 @@ export default function PlaylistEditor() {
           if (d.data().tracks) {
             const updated = d
               .data()
-              .tracks.filter((t: any) => t.url !== track.url && t.src !== track.src);
+              .tracks.filter((t: Track) => t.url !== track.url && t.src !== track.src);
             await updateDoc(d.ref, { tracks: updated });
           }
         }
       }
       show('Música deletada!');
       loadPlaylists();
-    } catch (e: any) {
-      show('Erro: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro: ' + msg, 'err');
     }
   };
 

@@ -76,9 +76,10 @@ export default function RetrospectiveEditor() {
           tSnap.forEach((tDoc) => {
             const data = tDoc.data();
             if (data.tracks && Array.isArray(data.tracks)) {
-              data.tracks.forEach((t: any) => {
-                if (t.url || t.src) {
-                  loadedTracks.push({ url: t.url || t.src, title: t.title || 'Música' });
+              data.tracks.forEach((t: { url?: string; src?: string; title?: string }) => {
+                const trackUrl = t.url || t.src;
+                if (trackUrl) {
+                  loadedTracks.push({ url: trackUrl, title: t.title || 'Música' });
                 }
               });
             } else if (data.title && (data.url || data.src)) {
@@ -87,7 +88,7 @@ export default function RetrospectiveEditor() {
           });
         }
         setAvailableTracks(loadedTracks);
-      } catch (e: any) {
+      } catch {
         show('Erro ao carregar', 'err');
       }
       setLoading(false);
@@ -107,8 +108,9 @@ export default function RetrospectiveEditor() {
         { merge: true }
       ); // Use merge true so we don't overwrite unexpected keys
       show('Configurações da retrospectiva salvas!');
-    } catch (e: any) {
-      show('Erro ao salvar: ' + e.message, 'err');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      show('Erro ao salvar: ' + msg, 'err');
     }
     setSaving(false);
   };
