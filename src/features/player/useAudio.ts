@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useAudioStore } from '../../store/useAudioStore';
 import { getPlayableAudioUrl } from '../../services/mp3/audioService';
+import { shouldReloadTrack } from './playerLogic';
 
 // ── Singleton — criado uma única vez quando o módulo é importado ─────────────
 const _audio = typeof window !== 'undefined' ? new Audio() : null;
@@ -18,8 +19,8 @@ type DurListener = (dur: number) => void;
 const _timeListeners = new Set<TimeListener>();
 const _durListeners = new Set<DurListener>();
 
-let _activeTrackIndex = -1;
-let _activeUrl = '';
+let _activeTrackUrl = '';
+let _isLoadingTrack = false;
 
 if (_audio) {
   _audio.preload = 'auto';
@@ -50,6 +51,7 @@ if (_audio) {
 }
 
 export function replayCurrentAudio() {
+  if (_isLoadingTrack) return;
   if (_audio) {
     _audio.currentTime = 0;
     _timeListeners.forEach((fn) => fn(0));
@@ -86,8 +88,8 @@ export function useAudio() {
     if (!track) {
       _audio.pause();
       _audio.src = '';
-      _activeTrackIndex = -1;
-      _activeUrl = '';
+      _activeTrackUrl = '';
+      _isLoadingTrack = false;
       setCurrentTime(0);
       setDuration(0);
       _timeListeners.forEach((fn) => fn(0));
@@ -96,11 +98,12 @@ export function useAudio() {
     }
 
     // Se já está carregando ou tocando esta faixa com a mesma URL, não duplica requisições
-    if (_activeTrackIndex === currentTrackIndex && _audio.src === _activeUrl) {
+    if (!shouldReloadTrack(_activeTrackUrl, track.url, !!_audio.src)) {
       return;
     }
 
-    _activeTrackIndex = currentTrackIndex;
+    _activeTrackUrl = track.url;
+    _isLoadingTrack = true;
 
     // 1. ZERA IMEDIATAMENTE a barra e áudio anterior de forma síncrona
     _audio.pause();
@@ -121,7 +124,6 @@ export function useAudio() {
         const url = await getPlayableAudioUrl(track.url);
         if (isCancelled) return;
 
-        _activeUrl = url;
         if (_audio.src !== url) {
           _audio.src = url;
         }
@@ -136,10 +138,12 @@ export function useAudio() {
         }
       } catch (err: unknown) {
         if (!isCancelled) {
+          _activeTrackUrl = '';
           const msg = err instanceof Error ? err.message || 'Erro ao carregar áudio' : 'Erro ao carregar áudio';
           setError(msg);
         }
       } finally {
+        _isLoadingTrack = false;
         if (!isCancelled) {
           setIsLoading(false);
         }
@@ -150,6 +154,7 @@ export function useAudio() {
 
     return () => {
       isCancelled = true;
+      _isLoadingTrack = false;
     };
   }, [currentTrackIndex, playlist]);
 

@@ -76,7 +76,7 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
 
     if (currentTrackIndex < playlist.length - 1) {
       set({ currentTrackIndex: currentTrackIndex + 1, isPlaying: true });
-    } else if (isRepeat || playlist.length === 1) {
+    } else if (isRepeat) {
       if (currentTrackIndex === 0) {
         set({ isPlaying: true });
         replayCurrentAudio();
