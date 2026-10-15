@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { useAuth } from '../../features/auth/AuthContext';
+import { DEFAULT_SITE_ID } from '../../config/defaults';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/Card';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
@@ -68,7 +69,7 @@ export default function ConfigPage() {
   if (!config) return null;
 
   const handleSave = async () => {
-    const siteId = user?.siteId || 'meu-site';
+    const siteId = user?.siteId || DEFAULT_SITE_ID;
     setIsSaving(true);
     try {
       await updateConfig(siteId, formData);

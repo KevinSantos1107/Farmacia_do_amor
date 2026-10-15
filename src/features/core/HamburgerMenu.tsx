@@ -10,6 +10,7 @@ import { useThemeStore } from '../../store/useThemeStore';
 import { useRetroV2Store } from '../../features/retrospective-v2/store/useRetroV2Store';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { useModalsStore, type ModalType } from '../../store/useModalsStore';
+import { DEFAULT_SITE_ID } from '../../config/defaults';
 
 // ─── Scroll helper ───────────────────────────────────────────────────────────
 function scrollToSection(id: string) {
@@ -299,7 +300,7 @@ export function HamburgerMenu() {
             {/* ── RETROSPECTIVA ─────────────────────────────── */}
             <button
               onClick={() => {
-                openRetro(config?.id || 'meu-site');
+                openRetro(config?.id || DEFAULT_SITE_ID);
                 setIsOpen(false);
               }}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full"

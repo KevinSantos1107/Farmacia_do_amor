@@ -16,6 +16,7 @@ import { useRef, useState } from 'react';
 import { uploadImage, cloudinaryUrl } from '../../services/cloudinary/upload';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { useAuth } from '../../features/auth/AuthContext';
+import { DEFAULT_SITE_ID } from '../../config/defaults';
 import type { SiteConfig } from '../../config/siteConfig.schema';
 
 export type PartnerKey = 'partner1' | 'partner2';
@@ -40,7 +41,7 @@ export function useAvatarUpload(): UseAvatarUploadReturn {
   const [uploadProgress, setUploadProgress] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  const siteId = user?.siteId ?? config?.id ?? 'meu-site';
+  const siteId = user?.siteId ?? config?.id ?? DEFAULT_SITE_ID;
 
   const upload = async (blob: Blob, partner: PartnerKey): Promise<string> => {
     if (!config) throw new Error('Configuração não carregada.');

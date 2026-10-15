@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
+import { DEFAULT_SITE_ID } from '../../config/defaults';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import { Spinner } from '../../shared/ui/Spinner';
@@ -29,7 +30,7 @@ interface RetroV2Config {
 export default function RetrospectiveEditor() {
   const { config: siteConfig } = useSiteConfigStore();
   const { show } = useToast();
-  const siteId = siteConfig?.id || 'meu-site';
+  const siteId = siteConfig?.id || DEFAULT_SITE_ID;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

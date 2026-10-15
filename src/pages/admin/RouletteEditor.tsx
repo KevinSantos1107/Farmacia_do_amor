@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
+import { DEFAULT_SITE_ID } from '../../config/defaults';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import { Spinner } from '../../shared/ui/Spinner';
@@ -19,7 +20,7 @@ interface Wheel {
 export default function RouletteEditor() {
   const { config } = useSiteConfigStore();
   const { show } = useToast();
-  const siteId = config?.id || 'meu-site';
+  const siteId = config?.id || DEFAULT_SITE_ID;
 
   const [wheels, setWheels] = useState<Wheel[]>([]);
   const [loading, setLoading] = useState(true);

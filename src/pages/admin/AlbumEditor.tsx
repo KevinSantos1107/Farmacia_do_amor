@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
+import { DEFAULT_SITE_ID } from '../../config/defaults';
 import { uploadImage, cloudinaryUrl } from '../../services/cloudinary/upload';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
@@ -181,7 +182,7 @@ export default function AlbumEditor() {
     onConfirm: () => {},
   });
 
-  const siteId = config?.id || 'meu-site';
+  const siteId = config?.id || DEFAULT_SITE_ID;
 
   const loadAlbums = useCallback(async () => {
     setLoading(true);

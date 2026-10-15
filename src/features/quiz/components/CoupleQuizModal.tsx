@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { FullScreenOverlay } from '../../../shared/ui/FullScreenOverlay';
 import { MessageCircleHeart } from 'lucide-react';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
+import { DEFAULT_SITE_ID } from '../../../config/defaults';
 import { useQuizStore } from '../store/useQuizStore';
 import { QuizIntro } from './QuizIntro';
 import { QuizPlay } from './QuizPlay';
@@ -9,7 +10,7 @@ import { QuizResult } from './QuizResult';
 
 export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { config: siteConfig } = useSiteConfigStore();
-  const siteId = siteConfig?.id || 'meu-site';
+  const siteId = siteConfig?.id || DEFAULT_SITE_ID;
   
   const { isReady, isLoading, error, loadQuizData, gameState, config, syncQuizStats } = useQuizStore();
 

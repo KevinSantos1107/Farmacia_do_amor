@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
+import { DEFAULT_SITE_ID } from '../../config/defaults';
 import { uploadImage } from '../../services/cloudinary/upload';
 import { Button } from '../../shared/ui/Button';
 import { Spinner } from '../../shared/ui/Spinner';
@@ -35,7 +36,7 @@ import { PlaylistList } from './playlist/PlaylistList';
 export default function PlaylistEditor() {
   const { config } = useSiteConfigStore();
   const { show, Toast } = useToast();
-  const siteId = config?.id || 'meu-site';
+  const siteId = config?.id || DEFAULT_SITE_ID;
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);

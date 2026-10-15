@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { useSiteConfigStore } from '../store/siteConfigStore';
+import { DEFAULT_SITE_ID } from '../config/defaults';
 import { router } from './router';
 
 export default function App() {
@@ -8,7 +9,7 @@ export default function App() {
 
   useEffect(() => {
     // In dev, use the env var. In prod, this might come from window.location.hostname
-    const siteId = import.meta.env.VITE_SITE_ID || 'meu-site';
+    const siteId = import.meta.env.VITE_SITE_ID || DEFAULT_SITE_ID;
     loadConfig(siteId);
   }, [loadConfig]);
 

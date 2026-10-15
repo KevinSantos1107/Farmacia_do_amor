@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
+import { DEFAULT_SITE_ID } from '../../../config/defaults';
 import type { StarMapConfig } from './types';
 
 export function useStarMapConfig() {
@@ -11,7 +12,7 @@ export function useStarMapConfig() {
 
   useEffect(() => {
     const fetchMapConfig = async () => {
-      const siteId = config?.id || 'meu-site';
+      const siteId = config?.id || DEFAULT_SITE_ID;
       try {
         if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
           setTimeout(() => {

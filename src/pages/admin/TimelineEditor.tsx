@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
+import { DEFAULT_SITE_ID } from '../../config/defaults';
 import { uploadImage, cloudinaryUrl } from '../../services/cloudinary/upload';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
@@ -44,7 +45,7 @@ const emptyEvent = (): Partial<TimelineEvent> => ({
 export default function TimelineEditor() {
   const { config } = useSiteConfigStore();
   const { show } = useToast();
-  const siteId = config?.id || 'meu-site';
+  const siteId = config?.id || DEFAULT_SITE_ID;
 
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
