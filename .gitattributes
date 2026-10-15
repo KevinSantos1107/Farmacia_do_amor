@@ -1,3 +1,5 @@
+* text=auto eol=lf
+
 # Documentos internos e auditorias
 AUDITORIA*.md export-ignore
 src/services/cloudinary/CloudinaryDeliveryStrategy.md export-ignore
