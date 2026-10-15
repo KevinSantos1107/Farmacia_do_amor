@@ -54,7 +54,7 @@ Além dos comandos do `package.json`, os seguintes scripts utilitários estão d
 
 ## Variáveis de Ambiente
 
-Crie um arquivo `.env` na raiz do projeto com base no arquivo [.env.example](file:///.env.example):
+Crie um arquivo `.env` na raiz do projeto com base no arquivo [.env.example](.env.example):
 
 ### Variáveis da Aplicação Web (prefixo `VITE_*`)
 
@@ -71,8 +71,11 @@ Crie um arquivo `.env` na raiz do projeto com base no arquivo [.env.example](fil
 | `VITE_CLOUDINARY_IMAGE_PRESET` | Sim | Upload preset unsigned específico para imagens e fotos. |
 | `VITE_CLOUDINARY_AUDIO_PRESET` | Sim | Upload preset unsigned específico para faixas de áudio. |
 | `VITE_SITE_ID` | Não | ID do site multi-tenant (fallback padrão interno: `meu-site`). |
-| `VITE_GEMINI_API_KEY` | Não | Chave de API Google Gemini para criação assistida de perguntas no Quiz. |
+| `VITE_GEMINI_API_KEY` | Não | Chave de API Google Gemini para criação assistida de perguntas no Quiz (ver aviso abaixo). |
 | `VITE_USE_MOCK_DATA` | Não | Habilita dados mockados em memória para testes offline (`false` por padrão). |
+
+> [!WARNING]
+> **Exposição no client-side:** Qualquer variável com prefixo `VITE_*` é inserida diretamente no bundle JavaScript do navegador. Portanto, sua `VITE_GEMINI_API_KEY` fica pública no client. Caso haja preocupação com uso indevido ou limite de cotas, configure restrição por domínio (HTTP referrers) para esta chave no Console do Google Cloud.
 
 ### Variáveis Exclusivas de Scripts Administrativos (sem prefixo `VITE_*`)
 
@@ -80,6 +83,10 @@ Crie um arquivo `.env` na raiz do projeto com base no arquivo [.env.example](fil
 | :--- | :---: | :--- |
 | `CLOUDINARY_API_KEY` | Não | Chave de API do Cloudinary (usada somente em `npm run cleanup`). |
 | `CLOUDINARY_API_SECRET` | Não | Segredo de API do Cloudinary (usado somente em `npm run cleanup`). |
+| `ADMIN_EMAIL` | Não* | E-mail do administrador inicial (usado em `seed.mjs` e `update_password.mjs`). |
+| `ADMIN_PASSWORD` | Não* | Senha do administrador inicial (usada em `seed.mjs` e `update_password.mjs`). |
+
+*\* Podem ser fornecidas via variáveis de ambiente ou passadas como argumentos de linha de comando.*
 
 ---
 
@@ -91,7 +98,7 @@ Crie um arquivo `.env` na raiz do projeto com base no arquivo [.env.example](fil
    - Habilite o provedor **E-mail/Senha** (utilizado para acesso restrito ao painel administrativo `/admin`).
 2. **Cloud Firestore:**
    - Crie o banco de dados no modo produção.
-   - Aplique as regras de segurança presentes no arquivo [firestore.rules](file:///firestore.rules).
+   - Aplique as regras de segurança presentes no arquivo [firestore.rules](firestore.rules).
 3. **Setup Inicial:**
    - Coloque a chave da conta de serviço `serviceAccountKey.json` na pasta `scripts/`.
    - Execute `npm run seed` para criar o documento base `sites/<site-id>` e o primeiro Super Admin.
@@ -138,14 +145,14 @@ src/
 ## Deploy e PWA
 
 ### Deploy na Vercel
-- O projeto inclui configuração em [vercel.json](file:///vercel.json) definindo cabeçalhos de cache otimizados (`max-age=31536000, immutable`) para ativos estáticos, fontes e imagens.
+- O projeto inclui configuração em [vercel.json](vercel.json) definindo cabeçalhos de cache otimizados (`max-age=31536000, immutable`) para ativos estáticos, fontes e imagens.
 - Para deploy, configure as variáveis de ambiente de produção no dashboard da Vercel idênticas às especificadas na tabela de variáveis.
 
 ### Suporte a PWA (Progressive Web App)
 - O plugin `vite-plugin-pwa` gera automaticamente o manifesto web (`manifest.webmanifest`) e o Service Worker (`dist/sw.js`) no momento do build.
 - Os ícones instaláveis da aplicação estão localizados em:
-  - [public/icon-192.png](file:///public/icon-192.png) (192x192 pixels)
-  - [public/icon-512.png](file:///public/icon-512.png) (512x512 pixels)
+  - [public/icon-192.png](public/icon-192.png) (192x192 pixels)
+  - [public/icon-512.png](public/icon-512.png) (512x512 pixels)
 - Para atualizar ou regenerar os ícones a partir de uma nova imagem base, execute `node scripts/generate-icons.mjs`.
 
 ---

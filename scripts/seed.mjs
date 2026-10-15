@@ -26,9 +26,16 @@ import { dirname, join } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ─── CONFIGURAÇÃO ───────────────────────────────────────────────────────────
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.argv[2] || 'admin@example.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.argv[3] || 'TrocarPorSenhaForte123!';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.argv[2];
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.argv[3];
 const SITE_ID = process.env.VITE_SITE_ID || 'meu-site';
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  console.error('❌ ERRO: ADMIN_EMAIL e ADMIN_PASSWORD são obrigatórios.');
+  console.error('   Uso: node scripts/seed.mjs <admin-email> <admin-password>');
+  console.error('   Ou defina as variáveis de ambiente: ADMIN_EMAIL e ADMIN_PASSWORD');
+  process.exit(1);
+}
 // ────────────────────────────────────────────────────────────────────────────
 
 let serviceAccount;
@@ -123,9 +130,8 @@ async function run() {
   console.log('✅ Setup concluído com sucesso!\n');
   console.log('   Acesse: http://localhost:5173/admin/login');
   console.log(`   E-mail: ${ADMIN_EMAIL}`);
-  console.log(`   Senha:  ${ADMIN_PASSWORD}`);
+  console.log('   Senha:  [definida via argumento/ambiente]');
   console.log('\n⚠️  IMPORTANTE: Troque a senha após o primeiro login!');
-  console.log('   E DELETE este arquivo ou remova as credenciais do código.');
   console.log('═══════════════════════════════════════════════════\n');
 }
 
