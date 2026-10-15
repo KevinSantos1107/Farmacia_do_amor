@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { Spinner } from '../../shared/ui/Spinner';
-import { getRouteAccess, type RouteAccess, type RouteAccessOptions } from './routeAccess';
+import { getRouteAccess } from './routeAccess';
 
 
 interface ProtectedRouteProps {
