@@ -147,3 +147,16 @@ src/
   - [public/icon-192.png](file:///public/icon-192.png) (192x192 pixels)
   - [public/icon-512.png](file:///public/icon-512.png) (512x512 pixels)
 - Para atualizar ou regenerar os ícones a partir de uma nova imagem base, execute `node scripts/generate-icons.mjs`.
+
+---
+
+## Gerar Pacote de Entrega
+
+Para gerar um arquivo `.zip` limpo para entrega ou distribuição comercial (sem incluir credenciais locais, chaves de serviço, arquivos de ambiente `.env`, dependências ou relatórios internos), utilize o comando:
+
+```bash
+git archive --format=zip --output=../romantic-engine-release.zip HEAD
+```
+
+Os arquivos internos e sensíveis estão protegidos via `.gitattributes` (`export-ignore`) e `.gitignore`, garantindo que o pacote resultante contenha apenas o código e recursos necessários para instalação e uso por novos compradores.
+

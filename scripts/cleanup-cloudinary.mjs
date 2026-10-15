@@ -15,9 +15,14 @@ if (!CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
   process.exit(1);
 }
 
+if (!process.env.VITE_CLOUDINARY_CLOUD_NAME) {
+  console.error("ERRO: VITE_CLOUDINARY_CLOUD_NAME deve estar configurado no arquivo .env");
+  process.exit(1);
+}
+
 // Configura o Cloudinary com credenciais completas
 cloudinary.config({
-  cloud_name: process.env.VITE_CLOUDINARY_CLOUD_NAME || 'dxxnqs4gf',
+  cloud_name: process.env.VITE_CLOUDINARY_CLOUD_NAME,
   api_key: CLOUDINARY_API_KEY,
   api_secret: CLOUDINARY_API_SECRET,
   secure: true

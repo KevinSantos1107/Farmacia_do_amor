@@ -26,9 +26,9 @@ import { dirname, join } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ─── CONFIGURAÇÃO ───────────────────────────────────────────────────────────
-const ADMIN_EMAIL = 'teixeira110705@gmail.com';  // ← Troque pelo seu e-mail
-const ADMIN_PASSWORD = 'TrocarPorSenhaForte123!';  // ← Troque por uma senha forte
-const SITE_ID = 'meu-site';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.argv[2] || 'admin@example.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.argv[3] || 'TrocarPorSenhaForte123!';
+const SITE_ID = process.env.VITE_SITE_ID || 'meu-site';
 // ────────────────────────────────────────────────────────────────────────────
 
 let serviceAccount;
@@ -49,8 +49,8 @@ const authAdmin = getAuth();
 const initialSiteConfig = {
   id: SITE_ID,
   couple: {
-    partner1: { name: 'Kevin' },
-    partner2: { name: 'Iara' },
+    partner1: { name: 'Parceiro 1' },
+    partner2: { name: 'Parceiro 2' },
   },
   relationship: {
     startDate: '2025-10-27',

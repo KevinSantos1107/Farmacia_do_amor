@@ -5,12 +5,26 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const serviceAccount = JSON.parse(readFileSync(join(__dirname, 'serviceAccountKey.json'), 'utf8'));
+
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(readFileSync(join(__dirname, 'serviceAccountKey.json'), 'utf8'));
+} catch {
+  console.error('❌ ERRO: Arquivo serviceAccountKey.json não encontrado em scripts/');
+  process.exit(1);
+}
 
 initializeApp({ credential: cert(serviceAccount) });
 
-const email = 'teixeira110705@gmail.com';
-const newPassword = 'iara2025';
+const email = process.env.ADMIN_EMAIL || process.argv[2];
+const newPassword = process.env.ADMIN_PASSWORD || process.argv[3];
+
+if (!email || !newPassword) {
+  console.error('❌ ERRO: Informe o e-mail e a nova senha.');
+  console.error('   Uso: node scripts/update_password.mjs <email> <nova_senha>');
+  console.error('   Ou defina ADMIN_EMAIL e ADMIN_PASSWORD no ambiente/.env');
+  process.exit(1);
+}
 
 async function updatePassword() {
   try {

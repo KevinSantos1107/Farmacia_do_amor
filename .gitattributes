@@ -1,0 +1,12 @@
+# Documentos internos e auditorias
+AUDITORIA.md export-ignore
+AUDITORIA-PASSO-2.md export-ignore
+AUDITORIA*.md export-ignore
+src/services/cloudinary/CloudinaryDeliveryStrategy.md export-ignore
+
+# Credenciais e variáveis de ambiente
+scripts/serviceAccountKey.json export-ignore
+*serviceAccountKey* export-ignore
+.env export-ignore
+.env.local export-ignore
+.env.production export-ignore

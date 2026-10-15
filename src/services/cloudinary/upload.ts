@@ -1,7 +1,7 @@
 // Cloudinary upload utility — typed, reusable
 // Uses unsigned upload presets configured in the Cloudinary dashboard.
 
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dxxnqs4gf';
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
 const IMAGE_PRESET = import.meta.env.VITE_CLOUDINARY_IMAGE_PRESET || 'image_uploads';
 const AUDIO_PRESET = import.meta.env.VITE_CLOUDINARY_AUDIO_PRESET || 'music_uploads';
 
