@@ -21,6 +21,7 @@ const _durListeners = new Set<DurListener>();
 
 let _activeTrackUrl = '';
 let _isLoadingTrack = false;
+let _loadGeneration = 0; // incremented on every new load; each async fn captures its own snapshot
 
 if (_audio) {
   _audio.preload = 'auto';
@@ -104,6 +105,7 @@ export function useAudio() {
 
     _activeTrackUrl = track.url;
     _isLoadingTrack = true;
+    const myGeneration = ++_loadGeneration;
 
     // 1. ZERA IMEDIATAMENTE a barra e áudio anterior de forma síncrona
     _audio.pause();
@@ -137,14 +139,16 @@ export function useAudio() {
           });
         }
       } catch (err: unknown) {
-        if (!isCancelled) {
+        if (!isCancelled && myGeneration === _loadGeneration) {
           _activeTrackUrl = '';
           const msg = err instanceof Error ? err.message || 'Erro ao carregar áudio' : 'Erro ao carregar áudio';
           setError(msg);
         }
       } finally {
-        _isLoadingTrack = false;
-        if (!isCancelled) {
+        if (myGeneration === _loadGeneration) {
+          _isLoadingTrack = false;
+        }
+        if (!isCancelled && myGeneration === _loadGeneration) {
           setIsLoading(false);
         }
       }
@@ -154,7 +158,9 @@ export function useAudio() {
 
     return () => {
       isCancelled = true;
-      _isLoadingTrack = false;
+      if (myGeneration === _loadGeneration) {
+        _isLoadingTrack = false;
+      }
     };
   }, [currentTrackIndex, playlist]);
 
