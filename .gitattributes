@@ -1,8 +1,11 @@
+* text=auto eol=lf
+
 # Documentos internos e auditorias
-AUDITORIA.md export-ignore
-AUDITORIA-PASSO-2.md export-ignore
 AUDITORIA*.md export-ignore
 src/services/cloudinary/CloudinaryDeliveryStrategy.md export-ignore
+
+# Configurações de desenvolvimento interno
+.eslintrc.cjs export-ignore
 
 # Credenciais e variáveis de ambiente
 scripts/serviceAccountKey.json export-ignore

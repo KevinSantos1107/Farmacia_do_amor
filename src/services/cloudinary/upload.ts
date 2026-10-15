@@ -1,7 +1,15 @@
 // Cloudinary upload utility — typed, reusable
 // Uses unsigned upload presets configured in the Cloudinary dashboard.
 
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
+/** Returns VITE_CLOUDINARY_CLOUD_NAME or throws a clear error if absent or empty. */
+export function getCloudName(): string {
+  const name = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  if (!name || name.trim() === '') {
+    throw new Error('Cloudinary não configurado: defina VITE_CLOUDINARY_CLOUD_NAME');
+  }
+  return name;
+}
+
 const IMAGE_PRESET = import.meta.env.VITE_CLOUDINARY_IMAGE_PRESET || 'image_uploads';
 const AUDIO_PRESET = import.meta.env.VITE_CLOUDINARY_AUDIO_PRESET || 'music_uploads';
 
@@ -45,6 +53,7 @@ export async function uploadImage(
   onProgress?: (pct: number) => void,
   signal?: AbortSignal
 ): Promise<CloudinaryUploadResult> {
+  const cloudName = getCloudName();
   const base64 = await fileToBase64Jpeg(file);
 
   const formData = new FormData();
@@ -54,7 +63,7 @@ export async function uploadImage(
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
 
     if (onProgress) {
       xhr.upload.onprogress = (e) => {
@@ -99,6 +108,7 @@ export async function uploadAudio(
   onProgress?: (pct: number) => void,
   signal?: AbortSignal
 ): Promise<CloudinaryUploadResult> {
+  const cloudName = getCloudName();
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', AUDIO_PRESET);
@@ -106,7 +116,7 @@ export async function uploadAudio(
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`);
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`);
 
     if (onProgress) {
       xhr.upload.onprogress = (e) => {
@@ -145,13 +155,14 @@ export function cloudinaryUrl(
   publicId: string,
   opts: { w?: number; h?: number; q?: number | 'auto'; c?: string; f?: string; dpr?: number } = {}
 ): string {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
   const { w, h, q = 'auto', c = 'limit', f = 'auto', dpr } = opts;
   const transforms: string[] = [];
   if (w) transforms.push(`w_${w}`);
   if (h) transforms.push(`h_${h}`);
   if (dpr) transforms.push(`dpr_${dpr}`);
   transforms.push(`c_${c}`, `q_${q}`, `f_${f}`, 'fl_progressive');
-  return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${transforms.join(',')}/${publicId}`;
+  return `https://res.cloudinary.com/${cloudName}/image/upload/${transforms.join(',')}/${publicId}`;
 }
 
 /**
