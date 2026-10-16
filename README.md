@@ -71,6 +71,10 @@ Crie um arquivo `.env` na raiz do projeto com base no arquivo [.env.example](.en
 | `VITE_CLOUDINARY_IMAGE_PRESET` | Sim | Upload preset unsigned específico para imagens e fotos. |
 | `VITE_CLOUDINARY_AUDIO_PRESET` | Sim | Upload preset unsigned específico para faixas de áudio. |
 | `VITE_SITE_ID` | Não | ID do site multi-tenant (fallback padrão interno: `meu-site`). |
+| `VITE_SITE_URL` | Não | URL canônica do site para metatags OpenGraph (ex: `https://seu-dominio.vercel.app`). Se omitida, `og:url` e `og:image` não são emitidos no HTML estático. |
+| `VITE_SITE_NAME` | Não | Nome do site / casal para `<title>`, OpenGraph e manifesto PWA (ex: `Kevin & Iara`). |
+| `VITE_SITE_DESCRIPTION` | Não | Descrição do site para meta description, OpenGraph e manifesto PWA. |
+| `VITE_SITE_OG_IMAGE` | Não | URL absoluta da imagem de preview OpenGraph (fallback: `<VITE_SITE_URL>/capa_principal.jpg`). |
 | `VITE_GEMINI_API_KEY` | Não | Chave de API Google Gemini para criação assistida de perguntas no Quiz (ver aviso abaixo). |
 | `VITE_USE_MOCK_DATA` | Não | Habilita dados mockados em memória para testes offline (`false` por padrão). |
 

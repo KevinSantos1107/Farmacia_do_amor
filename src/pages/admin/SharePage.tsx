@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Heart, Copy, Check, QrCode, Link2, Download } from 'lucide-react';
+import { useSiteConfigStore } from '../../store/siteConfigStore';
 
 const SITE_URL = window.location.origin;
 
@@ -11,6 +12,7 @@ const pages = [
 ];
 
 export default function SharePage() {
+  const { config } = useSiteConfigStore();
   const [selected, setSelected] = useState(pages[0].value);
   const [customUrl, setCustomUrl] = useState('');
   const [copied, setCopied] = useState(false);
@@ -48,7 +50,16 @@ export default function SharePage() {
       const pngUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = pngUrl;
-      a.download = 'qrcode-farmacia-do-amor.png';
+      const coupleTitle = config?.couple
+        ? `${config.couple.partner1.name}-${config.couple.partner2.name}`
+        : 'site';
+      const slug = coupleTitle
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'site';
+      a.download = `qrcode-${slug}.png`;
       a.click();
     };
     img.src = url;
