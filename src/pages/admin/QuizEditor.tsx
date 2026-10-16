@@ -4,7 +4,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
-import { DEFAULT_SITE_ID } from '../../config/defaults';
+import { useSiteId } from '../../services/firestore/paths';
 import { getPlayerIds } from '../../features/auth/playerIds';
 import type { QuizQuestion, QuizConfig } from '../../features/quiz/schema';
 import { DEFAULT_QUIZ_CONFIG } from '../../features/quiz/schema';
@@ -53,7 +53,7 @@ const getPrefix = (gender?: string) => {
 
 export default function QuizEditor() {
   const { config: siteConfig } = useSiteConfigStore();
-  const siteId = siteConfig?.id || DEFAULT_SITE_ID;
+  const siteId = useSiteId();
   const { p1Id, p2Id } = getPlayerIds(siteConfig);
   
   const p1Name = siteConfig?.couple?.partner1?.name || p1Id;

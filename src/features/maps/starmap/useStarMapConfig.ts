@@ -2,17 +2,17 @@ import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
-import { DEFAULT_SITE_ID } from '../../../config/defaults';
+import { useSiteId } from '../../../services/firestore/paths';
 import type { StarMapConfig } from './types';
 
 export function useStarMapConfig() {
   const { config } = useSiteConfigStore();
+  const siteId = useSiteId();
   const [mapConfig, setMapConfig] = useState<StarMapConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMapConfig = async () => {
-      const siteId = config?.id || DEFAULT_SITE_ID;
       try {
         if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
           setTimeout(() => {
@@ -54,7 +54,7 @@ export function useStarMapConfig() {
       }
     };
     fetchMapConfig();
-  }, [config]);
+  }, [config, siteId]);
 
   return { mapConfig, loading };
 }

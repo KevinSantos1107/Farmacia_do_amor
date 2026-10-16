@@ -1,5 +1,5 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { siteDoc } from '../firestore/paths';
 import { waitForAuth } from './common';
 
 // ─── Sync Game Records ────────────────────────────────────────────────────────
@@ -12,7 +12,7 @@ export interface SyncRecord {
 
 export async function getSyncRecord(): Promise<SyncRecord | null> {
   try {
-    const ref = doc(db, 'game_records', 'sync_couple');
+    const ref = siteDoc('game_records', 'sync_couple');
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const d = snap.data();
@@ -36,7 +36,7 @@ export async function saveSyncRecordIfBetter(
 ): Promise<boolean> {
   try {
     await waitForAuth();
-    const ref = doc(db, 'game_records', 'sync_couple');
+    const ref = siteDoc('game_records', 'sync_couple');
     const snap = await getDoc(ref);
 
     let updated = false;

@@ -1,5 +1,5 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { siteDoc } from '../firestore/paths';
 import {
   type PlayerName,
   type RankingResult,
@@ -27,7 +27,7 @@ export async function getWordRecord(
 ): Promise<WordRecord | null> {
   if (!player) return null;
   try {
-    const ref = doc(db, 'game_records', recordDocId('word', player));
+    const ref = siteDoc('game_records', recordDocId('word', player));
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const d = snap.data();
@@ -61,7 +61,7 @@ export async function saveWordGameResult(
 ): Promise<void> {
   try {
     await waitForAuth();
-    const ref = doc(db, 'game_records', recordDocId('word', player));
+    const ref = siteDoc('game_records', recordDocId('word', player));
     const snap = await getDoc(ref);
 
     if (snap.exists()) {

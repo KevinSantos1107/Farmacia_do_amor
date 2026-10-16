@@ -1,17 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  collection,
   query,
   getDocs,
   addDoc,
   deleteDoc,
-  doc,
   updateDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db } from '../../services/firebase/config';
-import { useSiteConfigStore } from '../../store/siteConfigStore';
-import { DEFAULT_SITE_ID } from '../../config/defaults';
+import { siteCollection, siteDoc, useSiteId } from '../../services/firestore/paths';
 import { uploadImage, cloudinaryUrl } from '../../services/cloudinary/upload';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
@@ -43,9 +39,8 @@ const emptyEvent = (): Partial<TimelineEvent> => ({
 });
 
 export default function TimelineEditor() {
-  const { config } = useSiteConfigStore();
   const { show } = useToast();
-  const siteId = config?.id || DEFAULT_SITE_ID;
+  const siteId = useSiteId();
 
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,11 +55,10 @@ export default function TimelineEditor() {
   const loadEvents = useCallback(async () => {
     setLoading(true);
     try {
-      // MESMO caminho do site antigo: coleção raiz "timeline"
-      const snap = await getDocs(query(collection(db, 'timeline')));
+      const snap = await getDocs(query(siteCollection('timeline', siteId)));
       const loaded: TimelineEvent[] = [];
       snap.forEach((d) => {
-        if (d.id === '_placeholder') return;
+        if (d.id.startsWith('_')) return;
         const data = d.data();
         loaded.push({
           id: d.id,
@@ -85,7 +79,7 @@ export default function TimelineEditor() {
       show('Erro ao carregar eventos', 'err');
     }
     setLoading(false);
-  }, [show]);
+  }, [siteId, show]);
 
   useEffect(() => {
     loadEvents();
@@ -129,7 +123,7 @@ export default function TimelineEditor() {
         
         // Se já existia uma imagem e foi substituída, enfileira a antiga para deleção
         if (form.publicId) {
-          await addDoc(collection(db, 'cloudinary_deletions_queue'), {
+          await addDoc(siteCollection('cloudinary_deletions_queue', siteId), {
             publicId: form.publicId,
             createdAt: serverTimestamp(),
           });
@@ -161,14 +155,13 @@ export default function TimelineEditor() {
       };
 
       if (editingId === 'new') {
-        // Salva na coleção raiz "timeline" (igual ao site antigo)
-        await addDoc(collection(db, 'timeline'), {
+        await addDoc(siteCollection('timeline', siteId), {
           ...payload,
           createdAt: serverTimestamp(),
         });
         show('Evento criado!');
       } else {
-        await updateDoc(doc(db, 'timeline', editingId!), payload);
+        await updateDoc(siteDoc('timeline', editingId!, siteId), payload);
         show('Evento atualizado!');
       }
       setEditingId(null);
@@ -184,12 +177,12 @@ export default function TimelineEditor() {
     if (!confirm(`Deletar o evento "${event.title}"?`)) return;
     try {
       if (event.publicId) {
-        await addDoc(collection(db, 'cloudinary_deletions_queue'), {
+        await addDoc(siteCollection('cloudinary_deletions_queue', siteId), {
           publicId: event.publicId,
           createdAt: serverTimestamp(),
         });
       }
-      await deleteDoc(doc(db, 'timeline', event.id));
+      await deleteDoc(siteDoc('timeline', event.id, siteId));
       setEvents((evts) => evts.filter((e) => e.id !== event.id));
       show('Evento deletado!');
     } catch (e: unknown) {

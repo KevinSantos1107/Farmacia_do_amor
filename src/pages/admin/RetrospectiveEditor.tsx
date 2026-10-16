@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  collection,
   doc,
   getDoc,
   getDocs,
@@ -10,8 +9,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
-import { useSiteConfigStore } from '../../store/siteConfigStore';
-import { DEFAULT_SITE_ID } from '../../config/defaults';
+import { siteCollection, useSiteId } from '../../services/firestore/paths';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import { Spinner } from '../../shared/ui/Spinner';
@@ -28,9 +26,8 @@ interface RetroV2Config {
 }
 
 export default function RetrospectiveEditor() {
-  const { config: siteConfig } = useSiteConfigStore();
   const { show } = useToast();
-  const siteId = siteConfig?.id || DEFAULT_SITE_ID;
+  const siteId = useSiteId();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -67,14 +64,15 @@ export default function RetrospectiveEditor() {
         }
 
         // Load Tracks from all custom_playlists
-        const playlistSnap = await getDocs(collection(db, 'custom_playlists'));
+        const playlistSnap = await getDocs(siteCollection('custom_playlists', siteId));
         const loadedTracks: { url: string; title: string }[] = [];
         for (const p of playlistSnap.docs) {
-          if (p.id === '_placeholder') continue;
+          if (p.id.startsWith('_')) continue;
           const tSnap = await getDocs(
-            query(collection(db, 'playlist_tracks'), where('playlistId', '==', p.id))
+            query(siteCollection('playlist_tracks', siteId), where('playlistId', '==', p.id))
           );
           tSnap.forEach((tDoc) => {
+            if (tDoc.id.startsWith('_')) return;
             const data = tDoc.data();
             if (data.tracks && Array.isArray(data.tracks)) {
               data.tracks.forEach((t: { url?: string; src?: string; title?: string }) => {

@@ -3,8 +3,8 @@ import { FullScreenOverlay } from '../../shared/ui/FullScreenOverlay';
 import { Layers } from 'lucide-react';
 import { MemoryGame } from '../games/memory/MemoryGame';
 import type { AlbumForGame } from '../games/memory/selectPhotosForGame';
-import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
-import { db } from '../../services/firebase/config';
+import { query, orderBy, getDocs, where } from 'firebase/firestore';
+import { siteCollection } from '../../services/firestore/paths';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 
 /**
@@ -30,17 +30,18 @@ export function MemoryGameModal({
       setLoading(true);
       try {
         const snapshot = await getDocs(
-          query(collection(db, 'albums'), orderBy('orderIndex', 'asc')),
+          query(siteCollection('albums'), orderBy('orderIndex', 'asc')),
         );
-        if (snapshot.empty) { setLoading(false); return; }
+        const validDocs = snapshot.docs.filter((d) => !d.id.startsWith('_'));
+        if (validDocs.length === 0) { setLoading(false); return; }
 
-        const albumIds = snapshot.docs.map((d) => d.id);
+        const albumIds = validDocs.map((d) => d.id);
 
         const photoSnapshots = await Promise.all(
           albumIds.map((id) =>
             getDocs(
               query(
-                collection(db, 'album_photos'),
+                siteCollection('album_photos'),
                 where('albumId', '==', id),
                 orderBy('pageNumber', 'asc'),
               ),
@@ -48,10 +49,11 @@ export function MemoryGameModal({
           ),
         );
 
-        const loaded: AlbumForGame[] = snapshot.docs.map((doc, idx) => {
+        const loaded: AlbumForGame[] = validDocs.map((doc, idx) => {
           const d = doc.data();
           const photos: AlbumForGame['photos'] = [];
           photoSnapshots[idx].forEach((pageDoc) => {
+            if (pageDoc.id.startsWith('_')) return;
             const pd = pageDoc.data();
             if (Array.isArray(pd.photos)) {
               photos.push(...pd.photos);

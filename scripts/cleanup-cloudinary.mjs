@@ -8,7 +8,7 @@ import path from 'path';
 // Carrega as variáveis do .env na raiz do projeto
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const { VITE_FIREBASE_PROJECT_ID, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
+const { CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
 
 if (!CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
   console.error("ERRO: CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET devem estar no arquivo .env");
@@ -54,8 +54,7 @@ const db = getFirestore(app);
 
 async function runCleanup() {
   console.log("Iniciando varredura da fila de deleção do Cloudinary...");
-  const queueRef = db.collection('cloudinary_deletions_queue');
-  const snapshot = await queueRef.get();
+  const snapshot = await db.collectionGroup('cloudinary_deletions_queue').get();
 
   if (snapshot.empty) {
     console.log("Nenhum item na fila de deleção.");
@@ -82,7 +81,7 @@ async function runCleanup() {
       
       if (result.result === 'ok' || result.result === 'not found') {
         // 2. Se a deleção foi bem-sucedida ou se a imagem já não existia mais, remover da fila
-        await queueRef.doc(doc.id).delete();
+        await doc.ref.delete();
         console.log(`✅ [${doc.id}] Imagem deletada com sucesso: ${publicId}`);
         successCount++;
       } else {

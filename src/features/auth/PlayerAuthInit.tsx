@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { getDoc } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
-import { db, auth } from '../../services/firebase/config';
+import { auth } from '../../services/firebase/config';
+import { siteDoc } from '../../services/firestore/paths';
 import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { getWelcomeMessage } from './welcomeMessage';
@@ -49,7 +50,7 @@ export function PlayerAuthInit() {
       if (token) {
         try {
           // Verify token in Firestore
-          const tokenRef = doc(db, 'player_tokens', token);
+          const tokenRef = siteDoc('player_tokens', token);
           const tokenSnap = await getDoc(tokenRef);
           
           if (tokenSnap.exists()) {
@@ -60,7 +61,7 @@ export function PlayerAuthInit() {
               // Grava o vínculo no Firestore usando o token como prova de identidade (Fase 3)
               if (uid) {
                 const { setDoc } = await import('firebase/firestore');
-                await setDoc(doc(db, 'player_links', uid), {
+                await setDoc(siteDoc('player_links', uid), {
                   player: currentPlayerId,
                   tokenId: token
                 });

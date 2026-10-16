@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  collection,
-  doc,
   getDocs,
   setDoc,
   deleteDoc,
@@ -9,7 +7,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { db } from '../../services/firebase/config';
+import { siteCollection, siteDoc } from '../../services/firestore/paths';
 import { useAuth } from '../../features/auth/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/Card';
 import { Button } from '../../shared/ui/Button';
@@ -58,7 +56,7 @@ export default function TokenEditor() {
     setIsLoading(true);
     try {
       await ensureFreshToken();
-      const snap = await getDocs(collection(db, 'player_tokens'));
+      const snap = await getDocs(siteCollection('player_tokens'));
       const list: PlayerToken[] = [];
       snap.forEach(docSnap => {
         list.push({ id: docSnap.id, ...docSnap.data() } as PlayerToken);
@@ -98,7 +96,7 @@ export default function TokenEditor() {
     try {
       await ensureFreshToken();
       const token = generateTokenString();
-      await setDoc(doc(db, 'player_tokens', token), {
+      await setDoc(siteDoc('player_tokens', token), {
         player: newPlayer,
         label: newLabel || `Acesso de ${newPlayer === p2Id || newPlayer === 'iara' ? partner2Name : partner1Name}`,
         createdAt: serverTimestamp(),
@@ -124,7 +122,7 @@ export default function TokenEditor() {
       return;
     try {
       await ensureFreshToken();
-      await deleteDoc(doc(db, 'player_tokens', tokenId));
+      await deleteDoc(siteDoc('player_tokens', tokenId));
       show('Token removido com sucesso!');
       setTokens(prev => prev.filter(t => t.id !== tokenId));
     } catch (e: unknown) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { collection, query, getDocs } from 'firebase/firestore';
-import { db } from '../../services/firebase/config';
+import { query, getDocs } from 'firebase/firestore';
+import { siteCollection } from '../../services/firestore/paths';
 import { TimelineModalContent } from '../timeline/TimelineModal';
 import type { TimelineEvent } from '../timeline/Timeline';
 
@@ -14,10 +14,10 @@ export function TimelineModalWrapper({ isOpen, onClose }: { isOpen: boolean; onC
       const fetchEvents = async () => {
         setLoading(true);
         try {
-          const snap = await getDocs(query(collection(db, 'timeline')));
+          const snap = await getDocs(query(siteCollection('timeline')));
           const loaded: (TimelineEvent & { orderIndex?: number })[] = [];
           snap.forEach((doc) => {
-            if (doc.id === '_placeholder') return;
+            if (doc.id.startsWith('_')) return;
             const d = doc.data();
             loaded.push({
               id: doc.id,

@@ -1,16 +1,10 @@
 /**
- * SCRIPT DE MIGRAÇÃO DE DADOS
- * 
- * Este script copia os dados das coleções globais do site antigo:
- * - timeline
- * - albums, album_photos
- * - custom_playlists, playlist_tracks
- * 
- * E salva na nova estrutura multi-site:
- * - sites/meu-site/timeline
- * - sites/meu-site/album
- * - sites/meu-site/playlist
+ * ❌ OBSOLETO — NÃO EXECUTAR.
+ * Este script foi substituído por scripts/migrate-to-site-layout.mjs.
+ * Ele usava nomes de coleções e schemas incompatíveis ('album' em vez de 'albums', publicId, etc.).
  */
+console.error('❌ OBSOLETO: Este script foi substituído por migrate-to-site-layout.mjs. Não execute.');
+process.exit(1);
 
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';

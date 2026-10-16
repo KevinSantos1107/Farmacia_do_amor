@@ -45,10 +45,11 @@ Além dos comandos do `package.json`, os seguintes scripts utilitários estão d
 | **Geração de Ícones PWA** | `node scripts/generate-icons.mjs` | Gera os ícones PWA `public/icon-192.png` e `public/icon-512.png` otimizados via Sharp a partir de `assets-src/icon-original.png`. |
 | **Geração de Tokens** | `node scripts/generateTokens.mjs` | Gera pares de tokens hexadecimais aleatórios (32 caracteres) para vincular jogadores no Firestore. |
 | **Atualização de Senha Admin** | `node scripts/update_password.mjs` | Altera a senha de acesso de um usuário administrador no Firebase Auth utilizando o Firebase Admin SDK. |
-| **Migração de Dados Legados** | `node scripts/migrate_data.mjs` | Migra registros antigos de coleções da raiz do Firestore para as subcoleções sob `sites/<site-id>`. |
+| **Migração Multi-Tenant** | `node scripts/migrate-to-site-layout.mjs` | Copia com segurança as coleções da raiz para `sites/<site-id>/...` com backup prévio e flags `--dry-run`, `--execute`, `--verify`. |
+| **Migração Legada (Obsoleto)** | `node scripts/migrate_data.mjs` | *Obsoleto — bloqueado contra execução.* |
 
 > [!NOTE]
-> Os scripts que utilizam o Firebase Admin SDK (`seed.mjs`, `cleanup-cloudinary.mjs`, `update_password.mjs` e `migrate_data.mjs`) requerem o arquivo de credencial `scripts/serviceAccountKey.json`.
+> Os scripts que utilizam o Firebase Admin SDK (`seed.mjs`, `cleanup-cloudinary.mjs`, `update_password.mjs` e `migrate-to-site-layout.mjs`) requerem o arquivo de credencial `scripts/serviceAccountKey.json`.
 
 ---
 
@@ -71,12 +72,17 @@ Crie um arquivo `.env` na raiz do projeto com base no arquivo [.env.example](.en
 | `VITE_CLOUDINARY_IMAGE_PRESET` | Sim | Upload preset unsigned específico para imagens e fotos. |
 | `VITE_CLOUDINARY_AUDIO_PRESET` | Sim | Upload preset unsigned específico para faixas de áudio. |
 | `VITE_SITE_ID` | Não | ID do site multi-tenant (fallback padrão interno: `meu-site`). |
+| `VITE_DATA_LAYOUT` | Não | Layout de armazenamento no Firestore: `'legacy'` (padrão, coleções na raiz) ou `'site'` (sob `sites/{siteId}/...`). |
 | `VITE_SITE_URL` | Não | URL canônica do site para metatags OpenGraph (ex: `https://seu-dominio.vercel.app`). Se omitida, `og:url` e `og:image` não são emitidos no HTML estático. |
 | `VITE_SITE_NAME` | Não | Nome do site / casal para `<title>`, OpenGraph e manifesto PWA (ex: `Kevin & Iara`). |
 | `VITE_SITE_DESCRIPTION` | Não | Descrição do site para meta description, OpenGraph e manifesto PWA. |
 | `VITE_SITE_OG_IMAGE` | Não | URL absoluta da imagem de preview OpenGraph (fallback: `<VITE_SITE_URL>/capa_principal.jpg`). |
 | `VITE_GEMINI_API_KEY` | Não | Chave de API Google Gemini para criação assistida de perguntas no Quiz (ver aviso abaixo). |
 | `VITE_USE_MOCK_DATA` | Não | Habilita dados mockados em memória para testes offline (`false` por padrão). |
+
+> [!CAUTION]
+> **SEGURANÇA DO FIRESTORE (VITE_DATA_LAYOUT):**
+> NUNCA virar `VITE_DATA_LAYOUT=site` em produção antes de reescrevermos as `firestore.rules`! As regras atuais deixam leituras/escritas sob `sites/` abertas, o que exporia dados sensíveis como `player_tokens`, `game_records` e `player_links`.
 
 > [!WARNING]
 > **Exposição no client-side:** Qualquer variável com prefixo `VITE_*` é inserida diretamente no bundle JavaScript do navegador. Portanto, sua `VITE_GEMINI_API_KEY` fica pública no client. Caso haja preocupação com uso indevido ou limite de cotas, configure restrição por domínio (HTTP referrers) para esta chave no Console do Google Cloud.

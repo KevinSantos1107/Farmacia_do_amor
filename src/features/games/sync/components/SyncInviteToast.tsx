@@ -2,7 +2,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSyncRoom } from '../useSyncRoom';
 import { useModalsStore } from '../../../../store/useModalsStore';
 import { X, Check } from 'lucide-react';
-import { doc, runTransaction } from 'firebase/firestore';
+import { runTransaction } from 'firebase/firestore';
+import { siteDoc } from '../../../../services/firestore/paths';
 import { db } from '../../../../services/firebase/config';
 
 export function SyncInviteToast() {
@@ -14,7 +15,7 @@ export function SyncInviteToast() {
   const handleAccept = async () => {
     openModal('sync');
     const roomId = `${p1Id}_${p2Id}`;
-    const ref = doc(db, 'sync_rooms', roomId);
+    const ref = siteDoc('sync_rooms', roomId);
     await runTransaction(db, async (t) => {
       const snap = await t.get(ref);
       if (!snap.exists()) return;
@@ -25,7 +26,7 @@ export function SyncInviteToast() {
 
   const handleReject = async () => {
     const roomId = `${p1Id}_${p2Id}`;
-    const ref = doc(db, 'sync_rooms', roomId);
+    const ref = siteDoc('sync_rooms', roomId);
     await runTransaction(db, async (t) => {
       const snap = await t.get(ref);
       if (!snap.exists()) return;

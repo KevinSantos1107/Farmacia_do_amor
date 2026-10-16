@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
-import { db } from '../../services/firebase/config';
+import { query, orderBy, getDocs, where } from 'firebase/firestore';
+import { siteCollection } from '../../services/firestore/paths';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { AlbumViewerModal } from './AlbumViewerModal';
 import { Images } from 'lucide-react';
@@ -103,25 +103,27 @@ export function AlbumCarousel() {
     const fetchAlbums = async () => {
       try {
         const snapshot = await getDocs(
-          query(collection(db, 'albums'), orderBy('orderIndex', 'asc'))
+          query(siteCollection('albums'), orderBy('orderIndex', 'asc'))
         );
-        if (snapshot.empty) { setAlbums([]); setLoading(false); return; }
+        const validDocs = snapshot.docs.filter((d) => !d.id.startsWith('_'));
+        if (validDocs.length === 0) { setAlbums([]); setLoading(false); return; }
 
-        const albumIds = snapshot.docs.map((d) => d.id);
+        const albumIds = validDocs.map((d) => d.id);
         const photoSnapshots = await Promise.all(
           albumIds.map((id) =>
             getDocs(query(
-              collection(db, 'album_photos'),
+              siteCollection('album_photos'),
               where('albumId', '==', id),
               orderBy('pageNumber', 'asc')
             ))
           )
         );
 
-        const loaded: Album[] = snapshot.docs.map((doc, idx) => {
+        const loaded: Album[] = validDocs.map((doc, idx) => {
           const d = doc.data();
           const allPhotos: Photo[] = [];
           photoSnapshots[idx].forEach((pageDoc) => {
+            if (pageDoc.id.startsWith('_')) return;
             const pd = pageDoc.data();
             if (Array.isArray(pd.photos)) allPhotos.push(...pd.photos);
           });

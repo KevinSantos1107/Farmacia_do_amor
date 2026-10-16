@@ -15,8 +15,7 @@
 import { useRef, useState } from 'react';
 import { uploadImage, cloudinaryUrl } from '../../services/cloudinary/upload';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
-import { useAuth } from '../../features/auth/AuthContext';
-import { DEFAULT_SITE_ID } from '../../config/defaults';
+import { useSiteId } from '../../services/firestore/paths';
 import type { SiteConfig } from '../../config/siteConfig.schema';
 
 export type PartnerKey = 'partner1' | 'partner2';
@@ -35,13 +34,11 @@ function blobToFile(blob: Blob, filename: string): File {
 
 export function useAvatarUpload(): UseAvatarUploadReturn {
   const { config, updateConfig } = useSiteConfigStore();
-  const { user } = useAuth();
+  const siteId = useSiteId();
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-
-  const siteId = user?.siteId ?? config?.id ?? DEFAULT_SITE_ID;
 
   const upload = async (blob: Blob, partner: PartnerKey): Promise<string> => {
     if (!config) throw new Error('Configuração não carregada.');
