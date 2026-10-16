@@ -85,7 +85,7 @@ export default function TimelineEditor() {
       show('Erro ao carregar eventos', 'err');
     }
     setLoading(false);
-  }, [siteId]);
+  }, [show]);
 
   useEffect(() => {
     loadEvents();

@@ -95,7 +95,7 @@ export default function RetrospectiveEditor() {
       setLoading(false);
     };
     loadData();
-  }, [siteId]);
+  }, [siteId, show]);
 
   const handleSave = async () => {
     setSaving(true);

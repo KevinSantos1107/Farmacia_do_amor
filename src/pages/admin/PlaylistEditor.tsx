@@ -101,14 +101,15 @@ export default function PlaylistEditor() {
     loadPlaylists();
   }, [loadPlaylists]);
 
+  const activePlaylistId = activePlaylist?.id;
   useEffect(() => {
-    if (activePlaylist) {
-      const latest = playlists.find((p) => p.id === activePlaylist.id);
+    if (activePlaylistId) {
+      const latest = playlists.find((p) => p.id === activePlaylistId);
       setTracks(latest?.tracks || []);
     } else {
       setTracks([]);
     }
-  }, [playlists, activePlaylist?.id]);
+  }, [playlists, activePlaylistId]);
 
   // Track upload hook
   const {

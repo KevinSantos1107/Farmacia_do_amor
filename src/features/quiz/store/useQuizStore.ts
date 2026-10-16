@@ -91,7 +91,7 @@ function loadLocalStats() {
   try {
     const data = localStorage.getItem(LOCAL_STATS_KEY);
     if (data) return JSON.parse(data);
-  } catch (e) {}
+  } catch {}
   return { personalBest: 0, highestCombo: 0, gamesPlayed: 0 };
 }
 

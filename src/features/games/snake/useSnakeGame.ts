@@ -82,7 +82,7 @@ function playBeep(freq: number, type: OscillatorType, duration: number, audioEna
     
     osc.start();
     osc.stop(ctx.currentTime + duration);
-  } catch (e) {
+  } catch {
     // Ignore audio context errors
   }
 }

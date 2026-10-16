@@ -95,7 +95,7 @@ function ZoomableImage({ src, srcSet, alt }: { src: string; srcSet?: string; alt
 
       // Rouba o controle absoluto do ponteiro para a imagem
       pointers.current.forEach((_, id) => {
-        try { target.setPointerCapture(id); } catch(err) {}
+        try { target.setPointerCapture(id); } catch {}
       });
 
       if (pts.length === 2) {

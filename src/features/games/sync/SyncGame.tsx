@@ -54,15 +54,15 @@ export function SyncGame({ onClose, registerLeaveGame }: { onClose: () => void; 
 
   // Register leaveGame with the modal so the X button can trigger it
   // Only register when in an active game (not lobby/sessionDone)
+  const isInGame = !!room && room.status !== 'lobby' && room.status !== 'sessionDone' && room.status !== 'inviting' && !room.leftBy;
   useEffect(() => {
     if (!registerLeaveGame) return;
-    const isInGame = room && room.status !== 'lobby' && room.status !== 'sessionDone' && room.status !== 'inviting' && !room.leftBy;
     if (isInGame) {
       registerLeaveGame(leaveGame);
     } else {
       registerLeaveGame(null);
     }
-  }, [room?.status, room?.leftBy, leaveGame, registerLeaveGame]);
+  }, [isInGame, leaveGame, registerLeaveGame]);
 
   useEffect(() => {
     if (room?.leftBy !== partnerId) {
@@ -128,15 +128,17 @@ export function SyncGame({ onClose, registerLeaveGame }: { onClose: () => void; 
 
 
   // Play again timeout checker
+  const isSessionDone = room?.status === 'sessionDone';
+  const playAgainDeadline = room?.playAgainDeadline;
   useEffect(() => {
-    if (!room || room.status !== 'sessionDone' || !room.playAgainDeadline) return;
+    if (!isSessionDone || !playAgainDeadline) return;
     const interval = setInterval(() => {
-      if (Date.now() > room.playAgainDeadline!) {
+      if (Date.now() > playAgainDeadline) {
         forceEndGame();
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [room?.status, room?.playAgainDeadline, forceEndGame]);
+  }, [isSessionDone, playAgainDeadline, forceEndGame]);
 
   // ── Auto-advance on non-synced revealed rounds (2.3) ──────────────────────
   const autoAdvanceRef = useRef(false);
@@ -144,35 +146,42 @@ export function SyncGame({ onClose, registerLeaveGame }: { onClose: () => void; 
     autoAdvanceRef.current = false;
   }, [room?.roundNumber, room?.status]);
 
-  useEffect(() => {
-    if (!room || room.status !== 'revealed') return;
-    // Only auto-advance on non-synced rounds 1–5
-    if (room.lastRoundSynced) return;
-    if (room.roundNumber >= 6) return;
-    // Pause if synonym proposal pending
-    if (room.synonymProposal) return;
-    if (!room.nextAt) return;
+  const isRevealed = room?.status === 'revealed';
+  const lastRoundSynced = room?.lastRoundSynced;
+  const roundNumber = room?.roundNumber ?? 0;
+  const hasSynonymProposal = !!room?.synonymProposal;
+  const nextAt = room?.nextAt;
 
-    const remaining = Math.max(0, room.nextAt - now);
+  useEffect(() => {
+    if (!isRevealed) return;
+    // Only auto-advance on non-synced rounds 1–5
+    if (lastRoundSynced) return;
+    if (roundNumber >= 6) return;
+    // Pause if synonym proposal pending
+    if (hasSynonymProposal) return;
+    if (!nextAt) return;
+
+    const remaining = Math.max(0, nextAt - now);
     if (remaining <= 0 && !autoAdvanceRef.current) {
       autoAdvanceRef.current = true;
       nextRound();
     }
-  }, [room?.status, room?.roundNumber, room?.lastRoundSynced, room?.synonymProposal, room?.nextAt, now, nextRound]);
+  }, [isRevealed, lastRoundSynced, roundNumber, hasSynonymProposal, nextAt, now, nextRound]);
 
   // ── Vibrate when partner locks ─────────────────────────────────────────────
   const partnerLockedRef = useRef(false);
+  const isPlaying = room?.status === 'playing';
+  const partnerNowLocked = room?.locked?.[partnerId] ?? false;
   useEffect(() => {
-    if (!room || room.status !== 'playing') {
+    if (!isPlaying) {
       partnerLockedRef.current = false;
       return;
     }
-    const partnerNowLocked = room.locked?.[partnerId] ?? false;
     if (partnerNowLocked && !partnerLockedRef.current) {
       navigator.vibrate?.(30);
     }
     partnerLockedRef.current = partnerNowLocked;
-  }, [room?.status, room?.locked, partnerId]);
+  }, [isPlaying, partnerNowLocked]);
 
   // ── WaitingFor items builder ───────────────────────────────────────────────
   const buildWaitingItems = useCallback(

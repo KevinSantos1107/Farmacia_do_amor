@@ -29,7 +29,7 @@ class ImagePreloaderQueue {
       try {
         await this.loadImage(url);
         this.cache.add(url);
-      } catch (e) {
+      } catch {
         // Ignora erro e continua a fila (pode ser problema de rede temporário)
       }
     }

@@ -54,7 +54,7 @@ function applyTheme(name: keyof typeof THEMES) {
   root.style.setProperty('--theme-accent',        t.accent);
   root.style.setProperty('--theme-accent-rgb',    t.accentRgb);
   // Persiste para restaurar no próximo carregamento
-  try { localStorage.setItem(ACTIVE_THEME_KEY, name); } catch (e) {}
+  try { localStorage.setItem(ACTIVE_THEME_KEY, name); } catch {}
 }
 
 // Restaura o tema IMEDIATAMENTE ao carregar o módulo (elimina flash)
@@ -65,7 +65,7 @@ function restoreTheme(): keyof typeof THEMES {
       applyTheme(saved);
       return saved;
     }
-  } catch (e) {}
+  } catch {}
   
   // Se não tem tema salvo, aplica o meteors como padrão
   applyTheme('meteors');

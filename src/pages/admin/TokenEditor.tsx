@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   collection,
   doc,
@@ -54,7 +54,7 @@ export default function TokenEditor() {
     }
   };
 
-  const loadTokens = async () => {
+  const loadTokens = useCallback(async () => {
     setIsLoading(true);
     try {
       await ensureFreshToken();
@@ -75,14 +75,14 @@ export default function TokenEditor() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [show]);
 
   // Só carrega quando o Firebase Auth confirmar que o admin está autenticado
   useEffect(() => {
     if (user) {
       loadTokens();
     }
-  }, [user]);
+  }, [user, loadTokens]);
 
   const generateTokenString = () => {
     const array = new Uint8Array(24);

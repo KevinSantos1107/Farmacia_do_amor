@@ -204,14 +204,18 @@ export function useSyncRoom() {
       window.removeEventListener('pagehide', clearPresence);
       clearPresence();
     };
-  }, [isPlayer, player, roomId]);
+  }, [isPlayer, player, roomId, p1Id, p2Id]);
 
   // ── Invite auto-expire ────────────────────────────────────────────────────
+  const roomStatus = room?.status;
+  const inviteExpiresAt = room?.inviteExpiresAt;
+  const roomHostId = room?.hostId;
+
   useEffect(() => {
-    if (!room || room.status !== 'inviting' || room.hostId !== player) return;
-    if (!room.inviteExpiresAt) return;
+    if (roomStatus !== 'inviting' || roomHostId !== player) return;
+    if (!inviteExpiresAt) return;
     const ref = docRefStable.current;
-    const delay = room.inviteExpiresAt - Date.now();
+    const delay = inviteExpiresAt - Date.now();
     const expire = () => {
       runTransaction(db, async (t) => {
         const snap = await t.get(ref);
@@ -223,7 +227,7 @@ export function useSyncRoom() {
     if (delay <= 0) { expire(); return; }
     const timer = setTimeout(expire, delay);
     return () => clearTimeout(timer);
-  }, [room?.status, room?.inviteExpiresAt, room?.hostId, player]);
+  }, [roomStatus, inviteExpiresAt, roomHostId, player]);
 
 
 
@@ -675,18 +679,16 @@ export function useSyncRoom() {
   }, [assertOnline]);
 
   // Fallback for dead tab: if partner hasn't sent presence in 20s
+  const deadTabStatus = room?.status;
+  const deadTabLeftBy = room?.leftBy;
+  const deadTabPartnerTs = room?.presence?.[partnerId] || 0;
+
   useEffect(() => {
-    if (!room || room.status === 'lobby' || room.status === 'sessionDone' || room.leftBy) return;
-    const partnerTs = room.presence?.[partnerId] || 0;
-    if (partnerTs > 0 && Date.now() - partnerTs > 20000) {
-      // It's possible we just opened the app and the last presence is old, 
-      // but in that case we'd rather be safe and suspend. 
-      // Actually we should use `now` instead of Date.now() so it doesn't trigger wildly in background
-      if (now - partnerTs > 20000) {
-        leaveGame(partnerId).catch(() => {});
-      }
+    if (!deadTabStatus || deadTabStatus === 'lobby' || deadTabStatus === 'sessionDone' || deadTabLeftBy) return;
+    if (deadTabPartnerTs > 0 && now - deadTabPartnerTs > 20000) {
+      leaveGame(partnerId).catch(() => {});
     }
-  }, [room?.status, room?.leftBy, room?.presence, partnerId, now, leaveGame]);
+  }, [deadTabStatus, deadTabLeftBy, deadTabPartnerTs, partnerId, now, leaveGame]);
 
   const returnToGame = useCallback(async () => {
     assertOnline();

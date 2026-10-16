@@ -22,7 +22,7 @@ function useAnimatedCounter(target: number, isInView: boolean) {
 
     // Cleanup só cancela se o componente for desmontado antes de terminar
     return () => controls.stop();
-  }, [isInView, target]); // hasAnimatedRef não entra aqui — é uma ref estável
+  }, [isInView, target, setValue]); // hasAnimatedRef não entra aqui — é uma ref estável
 
   return value;
 }

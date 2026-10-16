@@ -228,7 +228,7 @@ export default function AlbumEditor() {
       show('Erro ao carregar álbuns', 'err');
     }
     setLoading(false);
-  }, []);
+  }, [show]);
 
   useEffect(() => {
     loadAlbums();

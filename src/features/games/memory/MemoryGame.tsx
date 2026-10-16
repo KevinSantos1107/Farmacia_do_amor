@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, memo, useEffectEvent } from 'react';
 import { Trophy, RotateCcw, Heart, Clock, Zap, Leaf, Star, Flame } from 'lucide-react';
 import { cn } from '../../../shared/utils/cn';
 import { shuffle } from '../../../shared/utils/shuffle';
@@ -144,8 +144,9 @@ function useParticles() {
     setParticles((prev) => [...prev, ...newP]);
   }, []);
 
+  const hasParticles = particles.length > 0;
   useEffect(() => {
-    if (particles.length === 0) return;
+    if (!hasParticles) return;
     let rafId: number;
     const tick = () => {
       setParticles((prev) => {
@@ -158,7 +159,7 @@ function useParticles() {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [particles.length > 0]);
+  }, [hasParticles]);
 
   return { particles, burst };
 }
@@ -295,27 +296,30 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
 
   const revealed = useMemo(() => cards.filter((c) => c.state === 'revealed'), [cards]);
 
-  useEffect(() => {
-    if (screen !== 'playing' || phase !== 'playing' || cards.length === 0) return;
-    if (cards.every((c) => c.state === 'matched')) {
-      const timeMult = getTimeMultiplier(elapsed, activeDiff);
-      const final = Math.round(score * timeMult);
-      setFinalScore(final);
-      setScreen('won');
+  const onGameWon = useEffectEvent(() => {
+    const timeMult = getTimeMultiplier(elapsed, activeDiff);
+    const final = Math.round(score * timeMult);
+    setFinalScore(final);
+    setScreen('won');
 
-      const { p1Id, p2Id } = getPlayerIds(config);
-      if (!didSaveRef.current && (player === p1Id || player === p2Id || player === 'kevin' || player === 'iara')) {
-        didSaveRef.current = true;
-        void saveMemoryRecordIfBetter(player, final, elapsed, activeDiff.id, maxCombo);
-      }
+    const { p1Id, p2Id } = getPlayerIds(config);
+    if (!didSaveRef.current && (player === p1Id || player === p2Id || player === 'kevin' || player === 'iara')) {
+      didSaveRef.current = true;
+      void saveMemoryRecordIfBetter(player, final, elapsed, activeDiff.id, maxCombo);
     }
-  }, [cards, screen, phase]); 
+  });
+
+  const allMatched = cards.length > 0 && cards.every((c) => c.state === 'matched');
 
   useEffect(() => {
-    // Only process matches during actual gameplay — never during preview/gather/deal
-    if (phase !== 'playing' || revealed.length < 2) return;
+    if (screen !== 'playing' || phase !== 'playing') return;
+    if (allMatched) {
+      onGameWon();
+    }
+  }, [allMatched, screen, phase]);
+
+  const onPairRevealed = useEffectEvent((a: Card, b: Card) => {
     setIsLocked(true);
-    const [a, b] = revealed;
 
     if (a.photoId === b.photoId) {
       const newCombo = combo + 1;
@@ -361,7 +365,13 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
         setIsLocked(false);
       }, 1000);
     }
-  }, [revealed]); 
+  });
+
+  useEffect(() => {
+    // Only process matches during actual gameplay — never during preview/gather/deal
+    if (phase !== 'playing' || revealed.length < 2) return;
+    onPairRevealed(revealed[0], revealed[1]);
+  }, [revealed, phase]); 
 
   useEffect(() => {
     if (scorePopups.length === 0) return;

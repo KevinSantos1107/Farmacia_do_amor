@@ -93,7 +93,7 @@ export default function StarMapEditor() {
       setLoading(false);
     };
     loadConfig();
-  }, [siteId]);
+  }, [siteId, show]);
 
   const handleSave = async () => {
     if (!form.specialDate || !form.customLocation.name || form.customLocation.lat === 0) {

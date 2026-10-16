@@ -50,7 +50,7 @@ export default function RouletteEditor() {
       show('Erro ao carregar roletas', 'err');
     }
     setLoading(false);
-  }, [siteId]);
+  }, [siteId, show]);
 
   useEffect(() => {
     loadWheels();
