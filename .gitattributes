@@ -4,9 +4,6 @@
 AUDITORIA*.md export-ignore
 src/services/cloudinary/CloudinaryDeliveryStrategy.md export-ignore
 
-# Configurações de desenvolvimento interno
-.eslintrc.cjs export-ignore
-
 # Credenciais e variáveis de ambiente
 scripts/serviceAccountKey.json export-ignore
 *serviceAccountKey* export-ignore
