@@ -3,12 +3,12 @@ import { RouterProvider } from 'react-router-dom';
 import { useSiteConfigStore } from '../store/siteConfigStore';
 import { DEFAULT_SITE_ID } from '../config/defaults';
 import { router } from './router';
+import { SplashScreen } from '../features/core/SplashScreen';
 
 export default function App() {
   const { config, isLoading, error, loadConfig } = useSiteConfigStore();
 
   useEffect(() => {
-    // In dev, use the env var. In prod, this might come from window.location.hostname
     const siteId = import.meta.env.VITE_SITE_ID || DEFAULT_SITE_ID;
     loadConfig(siteId);
   }, [loadConfig]);
@@ -20,9 +20,9 @@ export default function App() {
     if (couple) {
       const title = `${couple.partner1.name} & ${couple.partner2.name}`;
       document.title = title;
-      
+
       const desc = (config as { seo?: { description?: string } }).seo?.description || `O nosso espaço especial — ${title}`;
-      
+
       // Update or create Description
       let metaDesc = document.querySelector('meta[name="description"]');
       if (!metaDesc) {
@@ -49,21 +49,38 @@ export default function App() {
     }
   }, [config]);
 
-  // Removido o if(isLoading) para que o SplashScreen cuide de toda a UI de loading inicial
+  // Enquanto carrega, mostra SplashScreen genérica (sem nomes do casal)
+  if (isLoading) {
+    return (
+      <SplashScreen
+        isReady={false}
+        onComplete={() => {}}
+        title=""
+      />
+    );
+  }
 
-  // Only show error if we are done loading and there is still an error or no config
-  if (!isLoading && (error || !config)) {
+  // Erro: sem config e sem cache — mostra tela de erro com botão de retry
+  if (error || !config) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 px-4">
           <h1 className="text-2xl font-bold text-red-400">Erro ao carregar</h1>
           <p className="text-slate-400">{error || 'Configuração não encontrada'}</p>
+          <button
+            onClick={() => {
+              const siteId = import.meta.env.VITE_SITE_ID || DEFAULT_SITE_ID;
+              void loadConfig(siteId);
+            }}
+            className="mt-4 px-6 py-2 bg-rose-600 hover:bg-rose-500 rounded-lg text-white font-medium transition-colors"
+          >
+            Tentar novamente
+          </button>
         </div>
       </div>
     );
   }
 
-  return (
-    <RouterProvider router={router} />
-  );
+  return <RouterProvider router={router} />;
 }
+

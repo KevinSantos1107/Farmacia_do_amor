@@ -13,7 +13,8 @@ interface SiteConfigState {
 }
 
 const THEME_CACHE_KEY = 're_theme_cache';
-
+const CONFIG_CACHE_KEY = 're_config_cache';
+const LOAD_TIMEOUT_MS = 8000;
 
 // Aplica apenas variáveis estruturais de UI — NÃO toca em primary/secondary/accent
 // As cores do tema são responsabilidade exclusiva do useThemeStore
@@ -26,41 +27,116 @@ function applyThemeVars(colors: SiteConfig['theme']['colors']) {
   root.style.setProperty('--theme-card-border',    colors.cardBorder    || '#2d2d4a');
 }
 
+function saveConfigCache(config: SiteConfig) {
+  try {
+    localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(config));
+    if (config.theme?.colors) {
+      localStorage.setItem(THEME_CACHE_KEY, JSON.stringify(config.theme.colors));
+    }
+  } catch { /* ignora erros de quota */ }
+}
+
+function loadConfigCache(): SiteConfig | null {
+  try {
+    const raw = localStorage.getItem(CONFIG_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SiteConfig;
+  } catch {
+    return null;
+  }
+}
+
 // Restaura apenas as vars estruturais do cache — as cores do tema vêm do useThemeStore
 try {
   const cached = localStorage.getItem(THEME_CACHE_KEY);
   if (cached) applyThemeVars(JSON.parse(cached) as SiteConfig['theme']['colors']);
-} catch (e) {}
+} catch {}
 
 export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
-  // ── Inicializa com config local IMEDIATAMENTE ──────────────────────────────
-  // Garante isReady = true desde o início, evitando tela preta em abas anônimas
-  // (sem cache IndexedDB). O Firestore ainda atualiza em background se disponível.
-  config: meuSiteConfig,
-  isLoading: false,
+  // Inicia sem config e com isLoading=true para que nenhum dado de 'meu-site'
+  // vaze para outros sites antes do Firestore responder.
+  config: null,
+  isLoading: true,
   error: null,
 
   loadConfig: async (siteId: string) => {
-    // Atualiza em background sem bloquear a UI
-    try {
-      if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
-        applyThemeVars(meuSiteConfig.theme.colors);
-        return;
+    // Em modo mock/dev usa a config local imediatamente, sem Firestore
+    if (import.meta.env.VITE_USE_MOCK_DATA === 'true' || import.meta.env.DEV) {
+      applyThemeVars(meuSiteConfig.theme.colors);
+      saveConfigCache(meuSiteConfig);
+      set({ config: meuSiteConfig, isLoading: false, error: null });
+      return;
+    }
+
+    // Aplica cache da sessão anterior para evitar flash enquanto Firestore responde
+    const cached = loadConfigCache();
+    if (cached) {
+      if (cached.theme?.colors) applyThemeVars(cached.theme.colors);
+      // Mantém isLoading=true: o Firestore ainda vai confirmar/atualizar
+      set({ config: cached });
+    }
+
+    // Timeout de segurança para nunca ficar em splash infinito
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        const { config } = get();
+        if (!config) {
+          // Sem cache e sem Firestore → mostrar erro
+          set({
+            isLoading: false,
+            error: 'Tempo esgotado ao carregar configurações. Verifique sua conexão.',
+          });
+        } else {
+          // Tem cache → usa e segue; Firestore demorou mas o site funciona
+          set({ isLoading: false });
+        }
       }
+    }, LOAD_TIMEOUT_MS);
+
+    try {
       const docRef = doc(db, 'sites', siteId);
       const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data() as SiteConfig;
-        if (data.theme?.colors) applyThemeVars(data.theme.colors);
-        set({ config: data });
-      } else {
-        // Firestore sem doc → config local já está ativa, só aplica cores
-        applyThemeVars(meuSiteConfig.theme.colors);
+
+      if (!settled) {
+        settled = true;
+        clearTimeout(timeoutId);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data() as SiteConfig;
+          if (data.theme?.colors) applyThemeVars(data.theme.colors);
+          saveConfigCache(data);
+          set({ config: data, isLoading: false, error: null });
+        } else {
+          // Documento não existe: usa cache se disponível, senão erro
+          if (cached) {
+            set({ isLoading: false, error: null });
+          } else {
+            set({
+              isLoading: false,
+              error: 'Configuração do site não encontrada no servidor.',
+            });
+          }
+        }
       }
     } catch (err: unknown) {
-      // Erro de rede: config local continua ativa, site funciona normalmente
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn('siteConfigStore: Firestore indisponível, usando config local.', msg);
+      if (!settled) {
+        settled = true;
+        clearTimeout(timeoutId);
+        const msg = err instanceof Error ? err.message : String(err);
+        if (cached) {
+          // Falha de rede mas tem cache: usa o cache em silêncio
+          console.warn('siteConfigStore: Firestore indisponível, usando cache local.', msg);
+          set({ isLoading: false, error: null });
+        } else {
+          // Sem cache e sem Firestore: mostra erro
+          set({
+            isLoading: false,
+            error: 'Erro ao carregar configurações: ' + msg,
+          });
+        }
+      }
     }
   },
 
@@ -79,6 +155,7 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
     }
     const newConfig = { ...config, ...updates };
     if (updates.theme?.colors) applyThemeVars(updates.theme.colors);
+    saveConfigCache(newConfig);
     set({ config: newConfig });
   },
 }));

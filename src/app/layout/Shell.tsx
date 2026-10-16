@@ -23,7 +23,7 @@ export function Shell() {
 
   const title = config?.couple
     ? `${config.couple.partner1.name} & ${config.couple.partner2.name}`
-    : 'Kevin & Iara';
+    : '';
 
   // Previne rolagem do body enquanto a splash screen estiver ativa
   useEffect(() => {

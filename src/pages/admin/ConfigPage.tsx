@@ -72,7 +72,26 @@ export default function ConfigPage() {
     const siteId = user?.siteId || DEFAULT_SITE_ID;
     setIsSaving(true);
     try {
-      await updateConfig(siteId, formData);
+      // Deriva playerId do nome (minúsculas) apenas se ainda não estiver definido.
+      // Nunca sobrescreve um playerId existente — os IDs são estáveis como chaves do Firestore.
+      const updatedFormData = { ...formData };
+      if (updatedFormData.couple) {
+        const p1 = updatedFormData.couple.partner1;
+        const p2 = updatedFormData.couple.partner2;
+        if (!p1.playerId && p1.name) {
+          updatedFormData.couple = {
+            ...updatedFormData.couple,
+            partner1: { ...p1, playerId: p1.name.toLowerCase() },
+          };
+        }
+        if (!p2.playerId && p2.name) {
+          updatedFormData.couple = {
+            ...updatedFormData.couple,
+            partner2: { ...p2, playerId: p2.name.toLowerCase() },
+          };
+        }
+      }
+      await updateConfig(siteId, updatedFormData);
       show('Configurações salvas com sucesso!');
     } catch (err: unknown) {
       show('Erro ao salvar: ' + (err instanceof Error ? err.message : String(err)), 'err');

@@ -1,24 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { db, auth } from '../../services/firebase/config';
 import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { getWelcomeMessage } from './welcomeMessage';
+import { getPlayerIds } from './playerIds';
 import { AnimatePresence, motion } from 'framer-motion';
 
 
 export function PlayerAuthInit() {
   const { setPlayer, setUid } = usePlayerIdentityStore();
   const { config, isLoading } = useSiteConfigStore();
-  const initRef = useRef(false);
   const [welcomeMsg, setWelcomeMsg] = useState<string | null>(null);
   const [isCelebration, setIsCelebration] = useState(false);
-
-  const partner1Name = config?.couple?.partner1?.name || 'Kevin';
-  const partner2Name = config?.couple?.partner2?.name || 'Iara';
-  const p1Id = partner1Name.toLowerCase();
-  const p2Id = partner2Name.toLowerCase();
 
   const showGreeting = (msg: string) => {
     // Detect if this is a special-day message (birthday, anniversary, holiday)
@@ -34,9 +29,7 @@ export function PlayerAuthInit() {
     // Só prossegue quando o config estiver carregado!
     if (isLoading || !config) return;
 
-    // Evita rodar duas vezes no Strict Mode do React
-    if (initRef.current) return;
-    initRef.current = true;
+    const { p1Id, p2Id } = getPlayerIds(config);
 
     const initAuth = async () => {
       let uid = '';
@@ -61,11 +54,8 @@ export function PlayerAuthInit() {
           
           if (tokenSnap.exists()) {
             const data = tokenSnap.data();
-            if (data.player === p1Id || data.player === p2Id || data.player === 'kevin' || data.player === 'iara') {
-              // Mapeia kevin/iara legados para os novos IDs, se necessário, ou apenas os mantém.
-              const currentPlayerId = (data.player === 'iara' && p2Id !== 'iara') ? p2Id : 
-                                      (data.player === 'kevin' && p1Id !== 'kevin') ? p1Id : 
-                                      data.player;
+            if (data.player === p1Id || data.player === p2Id) {
+              const currentPlayerId = data.player;
 
               // Grava o vínculo no Firestore usando o token como prova de identidade (Fase 3)
               if (uid) {

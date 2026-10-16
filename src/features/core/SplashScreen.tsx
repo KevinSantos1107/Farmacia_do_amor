@@ -21,7 +21,7 @@ const STARS = Array.from({ length: 60 }, (_, i) => ({
 
 export function SplashScreen({
   onComplete,
-  title = 'Kevin & Iara',
+  title = '',
   isReady = false,
 }: SplashScreenProps) {
   const [progress, setProgress] = useState(0);
@@ -29,8 +29,8 @@ export function SplashScreen({
 
   // Extrai os dois nomes do título (formato "Nome1 & Nome2")
   const parts = title.split('&').map(s => s.trim());
-  const name1 = parts[0] || 'Kevin';
-  const name2 = parts[1] || 'Iara';
+  const name1 = parts[0] || '';
+  const name2 = parts[1] || '';
 
   const currentProgressRef = useRef(0);
   const startRef = useRef(performance.now());
