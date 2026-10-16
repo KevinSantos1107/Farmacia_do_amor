@@ -1,16 +1,14 @@
 import { useEffect } from 'react';
 import { FullScreenOverlay } from '../../../shared/ui/FullScreenOverlay';
 import { MessageCircleHeart } from 'lucide-react';
-import { useSiteConfigStore } from '../../../store/siteConfigStore';
-import { DEFAULT_SITE_ID } from '../../../config/defaults';
+import { useSiteId } from '../../../services/firestore/paths';
 import { useQuizStore } from '../store/useQuizStore';
 import { QuizIntro } from './QuizIntro';
 import { QuizPlay } from './QuizPlay';
 import { QuizResult } from './QuizResult';
 
 export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { config: siteConfig } = useSiteConfigStore();
-  const siteId = siteConfig?.id || DEFAULT_SITE_ID;
+  const siteId = useSiteId();
   
   const { isReady, isLoading, error, loadQuizData, gameState, config, syncQuizStats } = useQuizStore();
 

@@ -1,11 +1,10 @@
 import {
-  collection,
   query,
   where,
   getDocs,
-  doc,
   writeBatch,
 } from 'firebase/firestore';
+import { siteCollection, siteDoc } from '../../../services/firestore/paths';
 import { db } from '../../../services/firebase/config';
 import type { JsMediaTagsResult, Track } from './types';
 import { stripUndefined, parseFilename, formatAudioTime } from './playlistPureUtils';
@@ -55,14 +54,15 @@ export function readMp3Tags(
   });
 }
 
-export async function fetchAndRepairPlaylistTracks(playlistId: string): Promise<Track[]> {
+export async function fetchAndRepairPlaylistTracks(playlistId: string, siteId?: string): Promise<Track[]> {
   const tSnap = await getDocs(
-    query(collection(db, 'playlist_tracks'), where('playlistId', '==', playlistId))
+    query(siteCollection('playlist_tracks', siteId), where('playlistId', '==', playlistId))
   );
   const allTracks: Track[] = [];
   let needsRepair = false;
 
   tSnap.forEach((tDoc) => {
+    if (tDoc.id.startsWith('_')) return;
     const data = tDoc.data();
     if (data.tracks && Array.isArray(data.tracks)) {
       allTracks.push(...data.tracks.map((t: Track) => ({ ...t, id: tDoc.id })));
@@ -83,7 +83,7 @@ export async function fetchAndRepairPlaylistTracks(playlistId: string): Promise<
         delete toClean.id;
         delete toClean.tracks;
         const clean = stripUndefined(toClean);
-        batch.set(doc(collection(db, 'playlist_tracks')), clean);
+        batch.set(siteDoc('playlist_tracks', undefined, siteId), clean);
       });
       await batch.commit();
     } catch (e) {
@@ -96,11 +96,12 @@ export async function fetchAndRepairPlaylistTracks(playlistId: string): Promise<
 
 export async function reorderPlaylistTracks(
   playlistId: string,
-  reordered: (Track & { id: string })[]
+  reordered: (Track & { id: string })[],
+  siteId?: string
 ): Promise<void> {
   const batch = writeBatch(db);
   const tSnap = await getDocs(
-    query(collection(db, 'playlist_tracks'), where('playlistId', '==', playlistId))
+    query(siteCollection('playlist_tracks', siteId), where('playlistId', '==', playlistId))
   );
   tSnap.forEach((d) => batch.delete(d.ref));
 
@@ -113,7 +114,7 @@ export async function reorderPlaylistTracks(
     delete toClean.id;
     delete toClean.tracks;
     const clean = stripUndefined(toClean);
-    batch.set(doc(collection(db, 'playlist_tracks')), clean);
+    batch.set(siteDoc('playlist_tracks', undefined, siteId), clean);
   });
   await batch.commit();
 }

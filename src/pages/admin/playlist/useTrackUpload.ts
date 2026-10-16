@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../../../services/firebase/config';
+import { addDoc } from 'firebase/firestore';
+import { siteCollection } from '../../../services/firestore/paths';
 import { uploadImage, uploadAudio } from '../../../services/cloudinary/upload';
 import type { TrackSlot, Playlist, Track } from './types';
 import { parseFilename, readMp3Tags, stripUndefined } from './playlistUtils';
@@ -133,7 +133,7 @@ export function useTrackUpload({
       }
 
       await addDoc(
-        collection(db, 'playlist_tracks'),
+        siteCollection('playlist_tracks', siteId),
         stripUndefined({
           title: slot.title,
           artist: slot.artist || undefined,

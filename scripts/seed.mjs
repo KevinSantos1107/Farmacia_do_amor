@@ -95,22 +95,17 @@ async function run() {
   await db.collection('sites').doc(SITE_ID).set(initialSiteConfig, { merge: true });
   console.log('   ✅ Documento criado com sucesso.\n');
 
-  // 2. Criar subcoleções vazias (placeholders)
-  console.log('📁 Criando subcoleções vazias (timeline, album, playlist)...');
-  await db.collection('sites').doc(SITE_ID).collection('timeline').doc('_placeholder').set({ _init: true });
-  await db.collection('sites').doc(SITE_ID).collection('album').doc('_placeholder').set({ _init: true });
-  await db.collection('sites').doc(SITE_ID).collection('playlist').doc('_placeholder').set({ _init: true });
-  console.log('   ✅ Subcoleções criadas.\n');
-
-  // 3. Criar usuário Super Admin
+  // 2. Criar usuário Super Admin
   console.log(`👤 Criando usuário Super Admin: ${ADMIN_EMAIL}...`);
   let user;
+  let isNewUser = false;
   try {
     user = await authAdmin.createUser({
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD,
       displayName: 'Super Admin',
     });
+    isNewUser = true;
     console.log(`   ✅ Usuário criado: ${user.uid}\n`);
   } catch (err) {
     if (err.code === 'auth/email-already-exists') {
@@ -121,9 +116,14 @@ async function run() {
     }
   }
 
-  // 4. Definir Custom Claims
-  console.log('🔑 Definindo Custom Claims (role: super_admin)...');
-  await authAdmin.setCustomUserClaims(user.uid, { role: 'super_admin' });
+  // 3. Definir Custom Claims
+  if (isNewUser) {
+    console.log(`🔑 Definindo Custom Claims para novo usuário (role: super_admin, siteId: ${SITE_ID})...`);
+    await authAdmin.setCustomUserClaims(user.uid, { role: 'super_admin', siteId: SITE_ID });
+  } else {
+    console.log('🔑 Atualizando claims de usuário existente (role: super_admin)...');
+    await authAdmin.setCustomUserClaims(user.uid, { role: 'super_admin' });
+  }
   console.log('   ✅ Claims definidas.\n');
 
   console.log('═══════════════════════════════════════════════════');

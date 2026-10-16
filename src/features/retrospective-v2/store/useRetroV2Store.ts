@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { collection, getDocs, query, orderBy, doc, getDoc, where } from 'firebase/firestore';
+import { siteCollection } from '../../../services/firestore/paths';
 import { db } from '../../../services/firebase/config';
 
 interface RawAlbumPhoto {
@@ -93,11 +94,11 @@ export const useRetroV2Store = create<RetroState>((set, get) => ({
     set({ isOpen: true, isReady: false });
 
     try {
-      // 1. Fetch Timeline Events — mesma coleção raiz que o TimelineEditor usa
-      const tlSnap = await getDocs(query(collection(db, 'timeline')));
+      // 1. Fetch Timeline Events
+      const tlSnap = await getDocs(query(siteCollection('timeline', siteId)));
       const events: RetroEvent[] = [];
       tlSnap.forEach((d) => {
-        if (d.id === '_placeholder') return;
+        if (d.id.startsWith('_')) return;
         const data = d.data();
         if (data.date || data.createdAt) {
           events.push({
@@ -107,29 +108,30 @@ export const useRetroV2Store = create<RetroState>((set, get) => ({
         }
       });
 
-      // 2. Fetch Albums & Map Pins — mesmas coleções raiz que o AlbumEditor usa
-      const albumSnap = await getDocs(query(collection(db, 'albums'), orderBy('orderIndex', 'asc')));
+      // 2. Fetch Albums & Map Pins
+      const albumSnap = await getDocs(query(siteCollection('albums', siteId), orderBy('orderIndex', 'asc')));
       const allPhotosRaw: RetroPhoto[] = [];
       const mapPins: MapPin[] = [];
 
       if (!albumSnap.empty) {
-        const albumIds = albumSnap.docs.map((d) => d.id);
+        const validAlbumDocs = albumSnap.docs.filter((d) => !d.id.startsWith('_'));
+        const albumIds = validAlbumDocs.map((d) => d.id);
 
         // Busca fotos de todos os albums em paralelo
         const photoSnapshots = await Promise.all(
           albumIds.map((id) =>
-            getDocs(query(collection(db, 'album_photos'), where('albumId', '==', id)))
+            getDocs(query(siteCollection('album_photos', siteId), where('albumId', '==', id)))
           )
         );
 
-        albumSnap.docs.forEach((albumDoc, albumIdx) => {
-          if (albumDoc.id === '_placeholder') return;
+        validAlbumDocs.forEach((albumDoc, albumIdx) => {
           const d = albumDoc.data();
           const pSnap = photoSnapshots[albumIdx];
 
           // Junta fotos de todos os docs album_photos desse album
           const albumPhotos: RawAlbumPhoto[] = [];
           pSnap.forEach((pDoc) => {
+            if (pDoc.id.startsWith('_')) return;
             const pData = pDoc.data();
             if (Array.isArray(pData.photos)) albumPhotos.push(...(pData.photos as RawAlbumPhoto[]));
           });

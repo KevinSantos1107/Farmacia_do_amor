@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { db } from '../../../services/firebase/config';
+import { getDocs, orderBy, query } from 'firebase/firestore';
+import { siteCollection } from '../../../services/firestore/paths';
 import type { Question, WordData } from './types';
 import { DEFAULT_QUESTIONS } from './wordConstants';
 import { normalizeWord } from './wordLogic';
@@ -21,16 +21,17 @@ export function useWordQuestions() {
         }
 
         const snap = await getDocs(
-          query(collection(db, 'word_game'), orderBy('createdAt', 'asc'))
+          query(siteCollection('word_game'), orderBy('createdAt', 'asc'))
         );
-        if (snap.empty) {
+        const validDocs = snap.docs.filter((d) => !d.id.startsWith('_'));
+        if (validDocs.length === 0) {
           setQuestions(DEFAULT_QUESTIONS);
           setQuestionsLoaded(true);
           return;
         }
 
         const loaded: Question[] = [];
-        snap.forEach((d) => {
+        validDocs.forEach((d) => {
           const data = d.data();
           if (data.pergunta && data.palavras && Array.isArray(data.palavras)) {
             const valid = data.palavras.filter(

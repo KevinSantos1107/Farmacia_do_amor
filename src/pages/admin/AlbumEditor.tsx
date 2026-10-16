@@ -1,20 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  collection,
   getDocs,
   deleteDoc,
   query,
   where,
   orderBy,
-  doc,
   updateDoc,
   writeBatch,
   addDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
-import { useSiteConfigStore } from '../../store/siteConfigStore';
-import { DEFAULT_SITE_ID } from '../../config/defaults';
+import { siteCollection, siteDoc, useSiteId } from '../../services/firestore/paths';
 import { uploadImage, cloudinaryUrl } from '../../services/cloudinary/upload';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
@@ -136,7 +133,6 @@ function ProgressBar({ pct }: { pct: number }) {
 
 // ─── ALBUM EDITOR ─────────────────────────────────────────────────────────────
 export default function AlbumEditor() {
-  const { config } = useSiteConfigStore();
   const { show } = useToast();
 
   // ─ State ─
@@ -182,28 +178,29 @@ export default function AlbumEditor() {
     onConfirm: () => {},
   });
 
-  const siteId = config?.id || DEFAULT_SITE_ID;
+  const siteId = useSiteId();
 
   const loadAlbums = useCallback(async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(query(collection(db, 'albums')));
+      const snap = await getDocs(query(siteCollection('albums', siteId)));
       const loaded: Album[] = [];
 
-      const albumIds = snap.docs.map((d) => d.id);
+      const albumDocs = snap.docs.filter((d) => !d.id.startsWith('_'));
+      const albumIds = albumDocs.map((d) => d.id);
 
       // Load photos from album_photos in parallel
       const photoPromises = albumIds.map((id) =>
-        getDocs(query(collection(db, 'album_photos'), where('albumId', '==', id), orderBy('pageNumber', 'asc')))
+        getDocs(query(siteCollection('album_photos', siteId), where('albumId', '==', id), orderBy('pageNumber', 'asc')))
       );
       const photoSnapshots = await Promise.all(photoPromises);
 
-      snap.docs.forEach((d, index) => {
-        if (d.id === '_placeholder') return;
+      albumDocs.forEach((d, index) => {
         const data = d.data();
         const pSnap = photoSnapshots[index];
         const allPhotos: Photo[] = [];
         pSnap.docs.forEach((pDoc) => {
+          if (pDoc.id.startsWith('_')) return;
           const pData = pDoc.data();
           if (pData.photos && Array.isArray(pData.photos)) {
             allPhotos.push(...pData.photos);
@@ -228,7 +225,7 @@ export default function AlbumEditor() {
       show('Erro ao carregar álbuns', 'err');
     }
     setLoading(false);
-  }, [show]);
+  }, [siteId, show]);
 
   useEffect(() => {
     loadAlbums();
@@ -267,7 +264,7 @@ export default function AlbumEditor() {
         coverPublicId = res.publicId;
         coverUrl = res.secureUrl;
       }
-      await addDoc(collection(db, 'albums'), {
+      await addDoc(siteCollection('albums', siteId), {
         title: newAlbum.title,
         description: newAlbum.description,
         date: newAlbum.date,
@@ -317,7 +314,7 @@ export default function AlbumEditor() {
         updates.cover = res.secureUrl;
       }
 
-      await updateDoc(doc(db, 'albums', editingAlbumId), updates);
+      await updateDoc(siteDoc('albums', editingAlbumId, siteId), updates);
       show('Álbum atualizado com sucesso!');
       setEditingAlbumId(null);
       setEditCoverFile(null);
@@ -361,7 +358,7 @@ export default function AlbumEditor() {
     try {
       // 1. Deletar todos os docs de album_photos em batch ANTES do álbum e enfileirar fotos para deleção
       const pSnap = await getDocs(
-        query(collection(db, 'album_photos'), where('albumId', '==', album.id))
+        query(siteCollection('album_photos', siteId), where('albumId', '==', album.id))
       );
       
       const deletionsQueue = [];
@@ -389,13 +386,13 @@ export default function AlbumEditor() {
       if (deletionsQueue.length > 0) {
         const delBatch = writeBatch(db);
         deletionsQueue.forEach(item => {
-          delBatch.set(doc(collection(db, 'cloudinary_deletions_queue')), item);
+          delBatch.set(siteDoc('cloudinary_deletions_queue', undefined, siteId), item);
         });
         await delBatch.commit();
       }
 
       // 2. Só então deletar o documento do álbum
-      await deleteDoc(doc(db, 'albums', album.id));
+      await deleteDoc(siteDoc('albums', album.id, siteId));
 
       show('Álbum deletado!');
       if (activeAlbum?.id === album.id) setActiveAlbum(null);
@@ -410,7 +407,7 @@ export default function AlbumEditor() {
     const indexed = reordered.map((a, i) => ({ ...a, orderIndex: i }));
     setAlbums(indexed);
     const batch = writeBatch(db);
-    indexed.forEach((a) => batch.update(doc(db, 'albums', a.id), { orderIndex: a.orderIndex }));
+    indexed.forEach((a) => batch.update(siteDoc('albums', a.id, siteId), { orderIndex: a.orderIndex }));
     await batch.commit();
   };
   const albumSortable = useSortableList(albums, handleAlbumReorder);
@@ -420,7 +417,7 @@ export default function AlbumEditor() {
     setPhotos(reordered);
     const reorderedPhotos = reordered.map((p) => ({ ...p }));
     const pSnap = await getDocs(
-      query(collection(db, 'album_photos'), where('albumId', '==', activeAlbum!.id), orderBy('pageNumber', 'asc'))
+      query(siteCollection('album_photos', siteId), where('albumId', '==', activeAlbum!.id), orderBy('pageNumber', 'asc'))
     );
     if (!pSnap.empty) {
       const batch = writeBatch(db);
@@ -430,7 +427,7 @@ export default function AlbumEditor() {
       }
       await batch.commit();
     } else {
-      await addDoc(collection(db, 'album_photos'), {
+      await addDoc(siteCollection('album_photos', siteId), {
         albumId: activeAlbum!.id,
         pageNumber: 0,
         photos: reorderedPhotos,
@@ -483,12 +480,13 @@ export default function AlbumEditor() {
       // CRÍTICO: álbuns legados têm múltiplos docs (pageNumber:0, pageNumber:1…).
       // Usar activeAlbum.photos poderia estar incompleto se carregado sem ordem.
       const pSnap = await getDocs(
-        query(collection(db, 'album_photos'), where('albumId', '==', activeAlbum.id), orderBy('pageNumber', 'asc'))
+        query(siteCollection('album_photos', siteId), where('albumId', '==', activeAlbum.id), orderBy('pageNumber', 'asc'))
       );
 
       // Coleta todas as fotos existentes de todas as páginas
       const existingPhotos: Photo[] = [];
       pSnap.forEach((pDoc) => {
+        if (pDoc.id.startsWith('_')) return;
         const pData = pDoc.data();
         if (pData.photos && Array.isArray(pData.photos)) {
           existingPhotos.push(...pData.photos);
@@ -507,7 +505,7 @@ export default function AlbumEditor() {
         }
         await batch.commit();
       } else {
-        await addDoc(collection(db, 'album_photos'), {
+        await addDoc(siteCollection('album_photos', siteId), {
           albumId: activeAlbum.id,
           pageNumber: 0,
           photos: updatedPhotos,
@@ -543,7 +541,7 @@ export default function AlbumEditor() {
     setConfirmDialog({ ...confirmDialog, isOpen: false });
     try {
       if (photo.publicId) {
-        await addDoc(collection(db, 'cloudinary_deletions_queue'), {
+        await addDoc(siteCollection('cloudinary_deletions_queue', siteId), {
           publicId: photo.publicId,
           createdAt: serverTimestamp(),
         });
@@ -551,7 +549,7 @@ export default function AlbumEditor() {
 
       // ── Re-lê TODAS as páginas para garantir que nenhuma foto seja perdida ─
       const pSnap = await getDocs(
-        query(collection(db, 'album_photos'), where('albumId', '==', activeAlbum.id), orderBy('pageNumber', 'asc'))
+        query(siteCollection('album_photos', siteId), where('albumId', '==', activeAlbum.id), orderBy('pageNumber', 'asc'))
       );
 
       // Coleta todas as fotos de todas as páginas

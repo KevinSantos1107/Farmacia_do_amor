@@ -21,8 +21,13 @@ const { mockAuth, mockDb, mockDoc, mockGetDoc, mockSetDoc, mockServerTimestamp }
 });
 
 vi.mock('../firebase/config', () => ({
+  default: { name: 'mock-app' },
   auth: mockAuth,
   db: mockDb,
+}));
+
+vi.mock('../firebase/auth', () => ({
+  auth: mockAuth,
 }));
 
 vi.mock('firebase/firestore', () => ({

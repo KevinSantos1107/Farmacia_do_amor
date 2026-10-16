@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  doc,
   onSnapshot,
   runTransaction,
   serverTimestamp,
@@ -8,6 +7,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
+import { siteDoc } from '../../../services/firestore/paths';
 import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { getPlayerIds, getPlayerDisplayName } from '../../auth/playerIds';
@@ -85,9 +85,9 @@ export function useSyncRoom() {
   const partnerAvatar = partnerId === p1Id ? config?.couple?.partner1?.avatar : config?.couple?.partner2?.avatar;
 
   // Stable ref for docRef to avoid re-creating on every render
-  const docRefStable = useRef(doc(db, 'sync_rooms', roomId));
+  const docRefStable = useRef(siteDoc('sync_rooms', roomId));
   useEffect(() => {
-    docRefStable.current = doc(db, 'sync_rooms', roomId);
+    docRefStable.current = siteDoc('sync_rooms', roomId);
   }, [roomId]);
 
   const [now, setNow] = useState(Date.now());
@@ -120,7 +120,7 @@ export function useSyncRoom() {
       return;
     }
 
-    const ref = doc(db, 'sync_rooms', roomId);
+    const ref = siteDoc('sync_rooms', roomId);
 
     const unsubSnap = onSnapshot(
       ref,
@@ -138,7 +138,7 @@ export function useSyncRoom() {
       },
     );
 
-    const presenceRef = doc(db, 'sync_presence', roomId);
+    const presenceRef = siteDoc('sync_presence', roomId);
     const unsubPresence = onSnapshot(presenceRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data() as SyncPresenceDoc;

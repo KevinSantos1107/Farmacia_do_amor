@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
-import { db } from '../../services/firebase/config';
+import { query, orderBy, getDocs, where } from 'firebase/firestore';
+import { siteCollection } from '../../services/firestore/paths';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { useAudioStore } from '../../store/useAudioStore';
 import type { Track } from '../../store/useAudioStore';
@@ -70,11 +70,11 @@ export function PlaylistTabs() {
     const fetchPlaylists = async () => {
       try {
         const snapshot = await getDocs(
-          query(collection(db, 'custom_playlists'), orderBy('orderIndex', 'asc'))
+          query(siteCollection('custom_playlists'), orderBy('orderIndex', 'asc'))
         );
         const loaded: PlaylistData[] = [];
         snapshot.forEach((doc) => {
-          if (doc.id === '_placeholder') return;
+          if (doc.id.startsWith('_')) return;
           const data = doc.data();
           loaded.push({
             id: doc.id,
@@ -88,10 +88,11 @@ export function PlaylistTabs() {
         // Carregar tracks individuais de cada playlist
         for (const p of loaded) {
           const tSnap = await getDocs(
-            query(collection(db, 'playlist_tracks'), where('playlistId', '==', p.id))
+            query(siteCollection('playlist_tracks'), where('playlistId', '==', p.id))
           );
           const allTracks: (Track & { orderIndex?: number })[] = [];
           tSnap.forEach((tDoc) => {
+            if (tDoc.id.startsWith('_')) return;
             const data = tDoc.data();
             if (data.title) {
               allTracks.push({

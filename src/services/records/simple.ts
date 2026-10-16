@@ -1,5 +1,5 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { siteDoc } from '../firestore/paths';
 import {
   type GameId,
   type PlayerName,
@@ -19,7 +19,7 @@ export async function getRecord(
 ): Promise<number | null> {
   if (!player) return null; // guard: never call Firestore with undefined/empty player
   try {
-    const ref = doc(db, 'game_records', recordDocId(game, player));
+    const ref = siteDoc('game_records', recordDocId(game, player));
     const snap = await getDoc(ref);
     if (snap.exists()) {
       return snap.data().score as number;
@@ -42,7 +42,7 @@ export async function saveRecordIfBetter(
 ): Promise<boolean> {
   try {
     await waitForAuth();
-    const ref = doc(db, 'game_records', recordDocId(game, player));
+    const ref = siteDoc('game_records', recordDocId(game, player));
     const snap = await getDoc(ref);
     const currentScore = snap.exists() ? (snap.data().score as number) : -1;
 

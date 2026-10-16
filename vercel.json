@@ -18,5 +18,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/generate-quiz.ts": {
+      "maxDuration": 60
+    }
+  }
 }

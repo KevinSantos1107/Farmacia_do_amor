@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { collection, query, getDocs } from 'firebase/firestore';
-import { db } from '../../services/firebase/config';
+import { query, getDocs } from 'firebase/firestore';
+import { siteCollection } from '../../services/firestore/paths';
 import { Timeline } from './Timeline';
 import type { TimelineEvent } from './Timeline';
 import { X, Clock } from 'lucide-react';
@@ -111,10 +111,10 @@ export function TimelineModal() {
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(query(collection(db, 'timeline')));
+      const snap = await getDocs(query(siteCollection('timeline')));
       const loaded: (TimelineEvent & { orderIndex?: number })[] = [];
       snap.forEach((doc) => {
-        if (doc.id === '_placeholder') return;
+        if (doc.id.startsWith('_')) return;
         const d = doc.data();
         loaded.push({
           id: doc.id,

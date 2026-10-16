@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
-import { useSiteConfigStore } from '../../store/siteConfigStore';
-import { DEFAULT_SITE_ID } from '../../config/defaults';
+import { useSiteId } from '../../services/firestore/paths';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import { Spinner } from '../../shared/ui/Spinner';
@@ -30,9 +29,8 @@ interface LocationSuggestion {
 }
 
 export default function StarMapEditor() {
-  const { config } = useSiteConfigStore();
   const { show } = useToast();
-  const siteId = config?.id || DEFAULT_SITE_ID;
+  const siteId = useSiteId();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

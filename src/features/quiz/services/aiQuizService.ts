@@ -49,17 +49,11 @@ export interface GenerationResult {
   error?: string;
 }
 
-// ─────────────────────────────────────────────
-// Constantes
-// ─────────────────────────────────────────────
-
-const GEMINI_MODEL = 'gemini-3.5-flash-lite';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+import { auth } from '../../../services/firebase/auth';
 
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
-
 
 export type RawGeneratedQuestion = { question: string; options: QuizOption[]; correctOptionId: string };
 
@@ -67,16 +61,16 @@ export type RawGeneratedQuestion = { question: string; options: QuizOption[]; co
  * Validates that a parsed object looks like a valid quiz question.
  * Returns false if any required field is missing or malformed.
  */
-function isValidRawQuestion(q: unknown): q is RawGeneratedQuestion {
+export function isValidRawQuestion(q: unknown): q is RawGeneratedQuestion {
   if (!q || typeof q !== 'object') return false;
   const raw = q as Record<string, unknown>;
   if (typeof raw.question !== 'string' || raw.question.trim() === '') return false;
   if (!Array.isArray(raw.options) || raw.options.length < 2) return false;
-  if (typeof raw.correctOptionId !== 'string') return false;
+  if (typeof raw.correctOptionId !== 'string' || raw.correctOptionId.trim() === '') return false;
   for (const opt of raw.options) {
     if (!opt || typeof opt !== 'object') return false;
     const optObj = opt as Record<string, unknown>;
-    if (typeof optObj.id !== 'string' || typeof optObj.text !== 'string') return false;
+    if (typeof optObj.id !== 'string' || optObj.id.trim() === '' || typeof optObj.text !== 'string' || optObj.text.trim() === '') return false;
   }
   const optionIds = (raw.options as Array<{ id: string }>).map((o) => o.id);
   if (!optionIds.includes(raw.correctOptionId)) return false;
@@ -84,115 +78,65 @@ function isValidRawQuestion(q: unknown): q is RawGeneratedQuestion {
 }
 
 // ─────────────────────────────────────────────
-// Geração via Gemini
+// Geração via Serverless API (/api/generate-quiz)
 // ─────────────────────────────────────────────
 
 /**
- * Monta o prompt para o Gemini com base nos dados do casal.
- */
-function buildPrompt(data: CoupleStoryData): string {
-  const parts = [
-    data.dates && `- Datas e momentos importantes: ${data.dates}`,
-    data.places && `- Lugares especiais: ${data.places}`,
-    data.phrases && `- Frases, apelidos e piadas internas: ${data.phrases}`,
-    data.media && `- Músicas, filmes e séries favoritos: ${data.media}`,
-    data.food && `- Comidas e restaurantes preferidos: ${data.food}`,
-    data.memories && `- Momentos marcantes: ${data.memories}`,
-    data.other && `- Outros detalhes: ${data.other}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  return `Você é um assistente especializado em criar perguntas de quiz personalizadas e divertidas para casais.
-
-Com base nas informações a seguir sobre o casal formado por ${data.names}, crie o máximo possível de perguntas de múltipla escolha interessantes e relevantes. Não force um número fixo — se o material permitir 30 perguntas boas, crie 30; se permitir 60, crie 60. Priorize qualidade e variedade. Evite perguntas genéricas ou que possam ser respondidas sem conhecer o casal.
-
-Informações do casal:
-${parts}
-
-Requisitos obrigatórios:
-1. Cada pergunta deve ter exatamente 4 alternativas (options).
-2. Use IDs das alternativas como: "opt-a", "opt-b", "opt-c", "opt-d".
-3. O campo "correctOptionId" deve conter o ID da alternativa correta.
-4. As alternativas incorretas devem ser plausíveis (não obviamente erradas).
-5. As perguntas devem testar memória real do casal, não conhecimento geral.
-6. Varie os temas: algumas sobre datas, outras sobre lugares, outras sobre hábitos etc.
-
-Responda SOMENTE com um array JSON válido, sem markdown, sem explicações, sem texto fora do JSON. Formato exato:
-[
-  {
-    "question": "Texto da pergunta?",
-    "options": [
-      { "id": "opt-a", "text": "Alternativa A" },
-      { "id": "opt-b", "text": "Alternativa B" },
-      { "id": "opt-c", "text": "Alternativa C" },
-      { "id": "opt-d", "text": "Alternativa D" }
-    ],
-    "correctOptionId": "opt-a"
-  }
-]`;
-}
-
-/**
- * Chama a API Gemini e retorna as perguntas geradas (já validadas).
- * Lança exceção se a chamada falhar ou o JSON for inválido.
+ * Envia os dados da história do casal para a função serverless /api/generate-quiz,
+ * que autentica o usuário via Firebase ID Token e interage de forma segura
+ * com a API Gemini no backend sem expor credenciais ao navegador.
  */
 export async function generateQuestionsFromGemini(
   data: CoupleStoryData
 ): Promise<Array<{ question: string; options: QuizOption[]; correctOptionId: string }>> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('VITE_GEMINI_API_KEY não está definida no .env');
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Sessão expirada ou não autenticada. Faça login novamente.');
   }
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+  const token = await currentUser.getIdToken();
+
+  const response = await fetch('/api/generate-quiz', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: buildPrompt(data) }] }],
-      generationConfig: {
-        temperature: 0.9,
-        maxOutputTokens: 8192,
-      },
-    }),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
   });
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${errorBody}`);
+    if (response.status === 401) {
+      throw new Error('Sessão expirada ou não autenticada. Faça login novamente.');
+    }
+    if (response.status === 403) {
+      throw new Error('Acesso restrito a administradores.');
+    }
+    if (response.status === 429) {
+      throw new Error('Limite de requisições excedido. Aguarde alguns instantes antes de tentar novamente.');
+    }
+
+    let serverMessage = '';
+    try {
+      const errJson = await response.json();
+      if (errJson && typeof errJson === 'object' && typeof errJson.error === 'string') {
+        serverMessage = errJson.error;
+      }
+    } catch {
+      // Ignora erro ao tentar ler JSON
+    }
+
+    throw new Error(
+      serverMessage || 'Erro no servidor ao gerar perguntas. Tente novamente mais tarde.'
+    );
   }
 
-  const json = await response.json();
-  const rawText: string | undefined =
-    json?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!rawText) {
-    throw new Error('Resposta vazia ou inesperada da API Gemini.');
+  const result = await response.json();
+  if (!result || !Array.isArray(result.questions)) {
+    throw new Error('Resposta inesperada do servidor ao gerar perguntas.');
   }
 
-  // Extrai o JSON mesmo se vier com marcadores de código (```json ... ```)
-  const cleaned = rawText
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/, '')
-    .trim();
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    throw new Error('A IA retornou JSON inválido. Tente novamente.');
-  }
-
-  if (!Array.isArray(parsed)) {
-    throw new Error('A IA não retornou um array de perguntas.');
-  }
-
-  const valid = parsed.filter(isValidRawQuestion);
-  if (valid.length === 0) {
-    throw new Error('Nenhuma pergunta válida foi gerada. Verifique os dados e tente novamente.');
-  }
-
-  return valid;
+  return result.questions;
 }
 
 // ─────────────────────────────────────────────

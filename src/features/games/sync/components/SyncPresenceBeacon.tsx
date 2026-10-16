@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../../../services/firebase/config';
+import { setDoc, serverTimestamp } from 'firebase/firestore';
+import { siteDoc } from '../../../../services/firestore/paths';
 import { usePlayerIdentityStore } from '../../../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../../../store/siteConfigStore';
 import { getPlayerIds } from '../../../auth/playerIds';
@@ -25,7 +25,7 @@ export function SyncPresenceBeacon() {
     if (player !== p1Id && player !== p2Id) return;
 
     const roomId = `${p1Id}_${p2Id}`;
-    const ref = doc(db, 'sync_presence', roomId);
+    const ref = siteDoc('sync_presence', roomId);
 
     // IMPORTANT: Use nested objects (not dot-notation keys) so Firestore
     // merges them as sub-fields, not literal dot-in-key field names.

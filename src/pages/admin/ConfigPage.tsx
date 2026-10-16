@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
-import { useAuth } from '../../features/auth/AuthContext';
-import { DEFAULT_SITE_ID } from '../../config/defaults';
+import { useSiteId } from '../../services/firestore/paths';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/Card';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
@@ -30,7 +29,7 @@ function getOrderedAvatarOptions(savedAvatar: string | undefined): string[] {
 
 export default function ConfigPage() {
   const { config, updateConfig } = useSiteConfigStore();
-  const { user } = useAuth();
+  const siteId = useSiteId();
   const { show } = useToast();
 
   const [formData, setFormData] = useState<Partial<SiteConfig>>({
@@ -69,7 +68,6 @@ export default function ConfigPage() {
   if (!config) return null;
 
   const handleSave = async () => {
-    const siteId = user?.siteId || DEFAULT_SITE_ID;
     setIsSaving(true);
     try {
       // Deriva playerId do nome (minúsculas) apenas se ainda não estiver definido.

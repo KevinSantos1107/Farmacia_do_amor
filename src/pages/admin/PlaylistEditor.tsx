@@ -1,18 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  collection,
   query,
   getDocs,
   addDoc,
   deleteDoc,
-  doc,
   updateDoc,
   writeBatch,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
-import { useSiteConfigStore } from '../../store/siteConfigStore';
-import { DEFAULT_SITE_ID } from '../../config/defaults';
+import { siteCollection, siteDoc, useSiteId } from '../../services/firestore/paths';
 import { uploadImage } from '../../services/cloudinary/upload';
 import { Button } from '../../shared/ui/Button';
 import { Spinner } from '../../shared/ui/Spinner';
@@ -34,9 +31,8 @@ import { PlaylistCreateCard } from './playlist/PlaylistCreateCard';
 import { PlaylistList } from './playlist/PlaylistList';
 
 export default function PlaylistEditor() {
-  const { config } = useSiteConfigStore();
   const { show, Toast } = useToast();
-  const siteId = config?.id || DEFAULT_SITE_ID;
+  const siteId = useSiteId();
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,10 +65,10 @@ export default function PlaylistEditor() {
   const loadPlaylists = useCallback(async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(query(collection(db, 'custom_playlists')));
+      const snap = await getDocs(query(siteCollection('custom_playlists', siteId)));
       const loaded: Playlist[] = [];
       snap.forEach((d) => {
-        if (d.id === '_placeholder') return;
+        if (d.id.startsWith('_')) return;
         const data = d.data();
         loaded.push({
           id: d.id,
@@ -85,7 +81,7 @@ export default function PlaylistEditor() {
       });
 
       for (const p of loaded) {
-        p.tracks = await fetchAndRepairPlaylistTracks(p.id);
+        p.tracks = await fetchAndRepairPlaylistTracks(p.id, siteId);
       }
 
       loaded.sort((a, b) => a.orderIndex - b.orderIndex);
@@ -95,7 +91,7 @@ export default function PlaylistEditor() {
       show('Erro ao carregar playlists: ' + msg, 'err');
     }
     setLoading(false);
-  }, [show]);
+  }, [show, siteId]);
 
   useEffect(() => {
     loadPlaylists();
@@ -141,7 +137,7 @@ export default function PlaylistEditor() {
     try {
       const batch = writeBatch(db);
       indexed.forEach((p) =>
-        batch.update(doc(db, 'custom_playlists', p.id), { orderIndex: p.orderIndex })
+        batch.update(siteDoc('custom_playlists', p.id, siteId), { orderIndex: p.orderIndex })
       );
       await batch.commit();
     } catch (e: unknown) {
@@ -159,7 +155,7 @@ export default function PlaylistEditor() {
     if (!activePlaylist) return;
     setTracks(reordered);
     try {
-      await reorderPlaylistTracks(activePlaylist.id, reordered);
+      await reorderPlaylistTracks(activePlaylist.id, reordered, siteId);
       loadPlaylists();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -181,7 +177,7 @@ export default function PlaylistEditor() {
         coverUrl = res.secureUrl;
       }
       await addDoc(
-        collection(db, 'custom_playlists'),
+        siteCollection('custom_playlists', siteId),
         stripUndefined({
           name: newPlaylist.name,
           title: newPlaylist.name,
@@ -236,7 +232,7 @@ export default function PlaylistEditor() {
         updates.cover = res.secureUrl;
         updates.coverUrl = res.secureUrl;
       }
-      await updateDoc(doc(db, 'custom_playlists', editingPlaylistId), updates);
+      await updateDoc(siteDoc('custom_playlists', editingPlaylistId, siteId), updates);
       show('Playlist atualizada!');
       setEditingPlaylistId(null);
       setEditCoverFile(null);
@@ -267,7 +263,7 @@ export default function PlaylistEditor() {
     try {
       const { where: firestoreWhere } = await import('firebase/firestore');
       const tSnap = await getDocs(
-        query(collection(db, 'playlist_tracks'), firestoreWhere('playlistId', '==', playlist.id))
+        query(siteCollection('playlist_tracks', siteId), firestoreWhere('playlistId', '==', playlist.id))
       );
       if (!tSnap.empty) {
         const batch = writeBatch(db);
@@ -275,7 +271,7 @@ export default function PlaylistEditor() {
         await batch.commit();
       }
 
-      await deleteDoc(doc(db, 'custom_playlists', playlist.id));
+      await deleteDoc(siteDoc('custom_playlists', playlist.id, siteId));
 
       show('Playlist deletada!');
       if (activePlaylist?.id === playlist.id) setActivePlaylist(null);
@@ -304,11 +300,11 @@ export default function PlaylistEditor() {
     setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
     try {
       if (track.id) {
-        await deleteDoc(doc(db, 'playlist_tracks', track.id));
+        await deleteDoc(siteDoc('playlist_tracks', track.id, siteId));
       } else {
         const { where: firestoreWhere } = await import('firebase/firestore');
         const tSnap = await getDocs(
-          query(collection(db, 'playlist_tracks'), firestoreWhere('playlistId', '==', activePlaylist!.id))
+          query(siteCollection('playlist_tracks', siteId), firestoreWhere('playlistId', '==', activePlaylist!.id))
         );
         for (const d of tSnap.docs) {
           if (d.data().tracks) {
