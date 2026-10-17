@@ -7,9 +7,9 @@ import {
 import { siteCollection, siteDoc } from '../../../services/firestore/paths';
 import { db } from '../../../services/firebase/config';
 import type { JsMediaTagsResult, Track } from './types';
-import { stripUndefined, parseFilename, formatAudioTime } from './playlistPureUtils';
+import { stripUndefined, parseFilename, formatAudioTime, resolveMediaCoverUrl } from './playlistPureUtils';
 
-export { stripUndefined, parseFilename, formatAudioTime };
+export { stripUndefined, parseFilename, formatAudioTime, resolveMediaCoverUrl };
 
 // @ts-ignore
 import * as jsmediatags from 'jsmediatags/dist/jsmediatags.min.js';

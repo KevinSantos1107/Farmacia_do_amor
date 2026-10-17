@@ -333,8 +333,8 @@ export default function PlaylistEditor() {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
         {Toast}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
             <button
               onClick={() => setActivePlaylist(null)}
               className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm shrink-0"
@@ -342,16 +342,16 @@ export default function PlaylistEditor() {
               <ArrowLeft className="w-4 h-4" /> Playlists
             </button>
             <span className="text-slate-600 shrink-0">/</span>
-            <h1 className="text-xl md:text-2xl font-bold text-white truncate max-w-[200px] md:max-w-md">
+            <h1 className="text-xl sm:text-2xl font-bold text-white truncate max-w-[240px] sm:max-w-md">
               {activePlaylist.name}
             </h1>
-            <span className="text-slate-500 text-sm font-mono shrink-0">
+            <span className="text-slate-500 text-xs sm:text-sm font-mono shrink-0">
               {tracks.length} músicas
             </span>
           </div>
           <Button
             onClick={() => setCreatingTrack(true)}
-            className="gap-2 shrink-0 self-start md:self-auto"
+            className="gap-2 shrink-0 self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" /> Adicionar Música
           </Button>
@@ -402,12 +402,12 @@ export default function PlaylistEditor() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {Toast}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Playlists</h1>
-          <p className="text-slate-400 mt-1">Gerencie as playlists e músicas do site.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Playlists</h1>
+          <p className="text-slate-400 text-sm sm:text-base mt-1">Gerencie as playlists e músicas do site.</p>
         </div>
-        <Button onClick={() => setCreatingPlaylist(true)} className="gap-2 shrink-0">
+        <Button onClick={() => setCreatingPlaylist(true)} className="gap-2 shrink-0 self-start sm:self-auto">
           <Plus className="w-4 h-4" /> Nova Playlist
         </Button>
       </div>

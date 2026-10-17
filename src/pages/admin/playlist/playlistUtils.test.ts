@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseFilename, stripUndefined, formatAudioTime } from './playlistPureUtils';
+import { parseFilename, stripUndefined, formatAudioTime, resolveMediaCoverUrl } from './playlistPureUtils';
 
 describe('playlistUtils', () => {
   describe('parseFilename', () => {
@@ -63,6 +63,33 @@ describe('playlistUtils', () => {
     it('formata minutos exatos e tempos longos', () => {
       expect(formatAudioTime(120)).toBe('2:00');
       expect(formatAudioTime(3600)).toBe('60:00');
+    });
+  });
+
+  describe('resolveMediaCoverUrl', () => {
+    it('retorna null quando o valor é nulo, indefinido ou vazio', () => {
+      expect(resolveMediaCoverUrl(null)).toBeNull();
+      expect(resolveMediaCoverUrl(undefined)).toBeNull();
+      expect(resolveMediaCoverUrl('   ')).toBeNull();
+    });
+
+    it('retorna a URL original quando já é http ou https', () => {
+      const url = 'https://res.cloudinary.com/demo/image/upload/sample.jpg';
+      expect(resolveMediaCoverUrl(url)).toBe(url);
+      const httpUrl = 'http://example.com/cover.png';
+      expect(resolveMediaCoverUrl(httpUrl)).toBe(httpUrl);
+    });
+
+    it('retorna blob: ou data: inalterados', () => {
+      const blob = 'blob:http://localhost:5173/uuid-1234';
+      expect(resolveMediaCoverUrl(blob)).toBe(blob);
+      const dataUri = 'data:image/jpeg;base64,...';
+      expect(resolveMediaCoverUrl(dataUri)).toBe(dataUri);
+    });
+
+    it('transforma publicId avulso em URL segura do Cloudinary em vez de caminho relativo', () => {
+      const res = resolveMediaCoverUrl('vox45ukrle194b7wyczaz', 'teste-cloud');
+      expect(res).toBe('https://res.cloudinary.com/teste-cloud/image/upload/w_120,h_120,c_fill,q_auto,f_auto,fl_progressive/vox45ukrle194b7wyczaz');
     });
   });
 });

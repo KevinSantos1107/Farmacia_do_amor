@@ -1,11 +1,12 @@
+import { useState } from 'react';
 import { DndContext } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { GripVertical, Trash2, Music } from 'lucide-react';
 import { SortableItem } from '../../../shared/ui/SortableItem';
-import { cloudinaryUrl } from '../../../services/cloudinary/upload';
 import { cn } from '../../../shared/utils/cn';
 import { useSortableList } from '../../../shared/hooks/useSortableList';
 import { TrackPlayer } from './TrackPlayer';
+import { resolveMediaCoverUrl } from './playlistUtils';
 import type { Track } from './types';
 
 interface TrackListProps {
@@ -13,6 +14,30 @@ interface TrackListProps {
   tracksWithIds: (Track & { id: string })[];
   trackSortable: ReturnType<typeof useSortableList<Track & { id: string }>>;
   onDeleteTrack: (track: Track) => void;
+}
+
+function TrackCover({ track }: { track: Track }) {
+  const [hasError, setHasError] = useState(false);
+  const rawCover = track.coverPublicId || track.coverUrl || track.cover;
+  const coverUrl = resolveMediaCoverUrl(rawCover);
+
+  if (!coverUrl || hasError) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-slate-700/60 text-slate-400">
+        <Music className="w-4 h-4" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={coverUrl}
+      alt={track.title || 'Capa da música'}
+      className="w-full h-full object-cover"
+      onError={() => setHasError(true)}
+      loading="lazy"
+    />
+  );
 }
 
 export function TrackList({
@@ -33,7 +58,7 @@ export function TrackList({
   return (
     <DndContext sensors={trackSortable.sensors} onDragEnd={trackSortable.handleDragEnd}>
       <SortableContext items={trackSortable.ids} strategy={verticalListSortingStrategy}>
-        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden divide-y divide-slate-700/50">
           {tracksWithIds.map((track) => {
             const tId = track.id;
             return (
@@ -43,60 +68,58 @@ export function TrackList({
                     ref={setNodeRef}
                     style={style}
                     className={cn(
-                      'flex flex-wrap md:flex-nowrap items-center gap-3 md:gap-4 p-3 md:p-4 border-b border-slate-700/50 last:border-0 hover:bg-slate-700/30 transition-colors group',
+                      'flex flex-col md:flex-row md:items-center gap-3 p-3 md:p-4 hover:bg-slate-700/30 transition-colors group',
                       isDragging ? 'bg-slate-700 shadow-2xl z-10' : ''
                     )}
                   >
-                    <div
-                      {...handleProps}
-                      style={handleStyle}
-                      className="p-2 -ml-2 cursor-grab active:cursor-grabbing text-slate-600 hover:text-white transition-colors"
-                    >
-                      <GripVertical className="w-4 h-4 flex-shrink-0" />
-                    </div>
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {track.coverPublicId ? (
-                        <img
-                          src={cloudinaryUrl(track.coverPublicId, { w: 80, h: 80, c: 'fill' })}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : track.cover || track.coverUrl ? (
-                        <img
-                          src={track.cover || track.coverUrl}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Music className="w-4 h-4 text-slate-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 md:w-48 md:flex-none">
-                      <p className="font-semibold text-white truncate text-sm">{track.title}</p>
-                      <p className="text-xs text-slate-500 truncate">
-                        {track.artist || 'Artista desconhecido'}
-                      </p>
-                    </div>
+                    {/* Linha principal de identificação (Grip, Capa, Nome/Artista e Botão Deletar no mobile) */}
+                    <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                      <div
+                        {...handleProps}
+                        style={handleStyle}
+                        className="p-1.5 -ml-1 cursor-grab active:cursor-grabbing text-slate-500 hover:text-white transition-colors shrink-0"
+                        title="Arrastar para reordenar"
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </div>
 
-                    <div className="flex items-center justify-end shrink-0 md:hidden ml-auto">
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden border border-white/5">
+                        <TrackCover track={track} />
+                      </div>
+
+                      <div className="flex-1 min-w-0 pr-1">
+                        <p className="font-semibold text-white truncate text-sm" title={track.title}>
+                          {track.title}
+                        </p>
+                        <p className="text-xs text-slate-400 truncate" title={track.artist || 'Artista desconhecido'}>
+                          {track.artist || 'Artista desconhecido'}
+                        </p>
+                      </div>
+
+                      {/* Botão Deletar no Mobile (< md) */}
                       <button
                         onClick={() => onDeleteTrack(track)}
-                        className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                        className="p-2 text-slate-400 hover:text-red-400 transition-colors md:hidden shrink-0 rounded-lg hover:bg-red-500/10"
+                        aria-label="Deletar música"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <div className="w-full md:w-auto md:flex-1 order-last md:order-none mt-2 md:mt-0 flex items-center">
+                    {/* Área do Player de Áudio */}
+                    <div className="w-full md:w-auto md:flex-1 md:max-w-md lg:max-w-none flex items-center min-w-0 pl-7 md:pl-0">
                       {track.src || track.url ? (
                         <TrackPlayer src={track.src || track.url || ''} trackId={tId} />
                       ) : (
                         <div className="flex-1" />
                       )}
                     </div>
+
+                    {/* Botão Deletar no Tablet e Desktop (>= md) */}
                     <button
                       onClick={() => onDeleteTrack(track)}
-                      className="hidden md:block p-2 text-slate-500 hover:text-red-400 transition-colors opacity-50 group-hover:opacity-100 shrink-0"
+                      className="hidden md:flex items-center justify-center p-2 text-slate-400 hover:text-red-400 transition-colors shrink-0 rounded-lg hover:bg-red-500/10"
+                      aria-label="Deletar música"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

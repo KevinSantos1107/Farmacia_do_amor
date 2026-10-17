@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { DndContext } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { GripVertical, Music, Pencil, Trash2, Upload, X, Save } from 'lucide-react';
@@ -7,7 +7,31 @@ import { Button } from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
 import { cn } from '../../../shared/utils/cn';
 import { useSortableList } from '../../../shared/hooks/useSortableList';
+import { resolveMediaCoverUrl } from './playlistUtils';
 import type { Playlist } from './types';
+
+function PlaylistCover({ coverUrl, name }: { coverUrl?: string; name: string }) {
+  const [hasError, setHasError] = useState(false);
+  const resolved = resolveMediaCoverUrl(coverUrl);
+
+  if (!resolved || hasError) {
+    return (
+      <div className="w-14 h-14 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
+        <Music className="w-6 h-6 text-slate-500" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={resolved}
+      alt={name}
+      className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+      onError={() => setHasError(true)}
+      loading="lazy"
+    />
+  );
+}
 
 interface PlaylistListProps {
   playlists: Playlist[];
@@ -73,17 +97,7 @@ export function PlaylistList({
                       className="flex-1 flex items-center gap-4 min-w-0 cursor-pointer"
                       onClick={() => onSelectPlaylist(playlist)}
                     >
-                      {playlist.coverUrl ? (
-                        <img
-                          src={playlist.coverUrl}
-                          alt=""
-                          className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
-                          <Music className="w-6 h-6 text-slate-500" />
-                        </div>
-                      )}
+                      <PlaylistCover coverUrl={playlist.coverUrl} name={playlist.name} />
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-white truncate">{playlist.name}</p>
                         <p className="text-xs text-slate-500 mt-0.5">

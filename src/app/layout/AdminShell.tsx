@@ -53,17 +53,17 @@ export function AdminShell() {
   return (
     <ToastProvider>
       <div className="h-[100dvh] w-full flex bg-slate-900 text-slate-100 font-sans overflow-hidden">
-        {/* Overlay do Mobile */}
+      {/* Overlay do Mobile e Tablet */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Sidebar - Fixa na esquerda (Desktop) ou Drawer (Mobile) */}
+      {/* Sidebar - Fixa na esquerda (Desktop >= lg) ou Drawer (Mobile e Tablet < lg) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-950 border-r border-slate-800 flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-950 border-r border-slate-800 flex flex-col transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
           <div className="flex items-center">
@@ -77,7 +77,7 @@ export function AdminShell() {
             )}
           </div>
           <button
-            className="md:hidden text-slate-400 hover:text-white"
+            className="lg:hidden text-slate-400 hover:text-white"
             aria-label="Fechar menu"
             onClick={() => setIsMobileMenuOpen(false)}
           >
@@ -143,8 +143,8 @@ export function AdminShell() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-900">
-        {/* Mobile Header */}
-        <header className="h-16 md:hidden flex items-center justify-between px-4 border-b border-slate-800 bg-slate-950">
+        {/* Mobile & Tablet Header */}
+        <header className="h-16 lg:hidden flex items-center justify-between px-4 sm:px-6 border-b border-slate-800 bg-slate-950">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
@@ -160,7 +160,7 @@ export function AdminShell() {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
           <Outlet />
         </div>
       </main>

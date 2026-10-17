@@ -21,3 +21,29 @@ export function formatAudioTime(seconds: number): string {
   const sec = Math.floor(seconds % 60);
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
+
+/**
+ * Converte qualquer referência de capa (URL absoluta, publicId do Cloudinary, blob local ou data-URI)
+ * para uma URL utilizável pelo navegador, evitando que publicIds virem URLs relativas locais (404).
+ */
+export function resolveMediaCoverUrl(raw?: string | null, cloudName?: string): string | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  // Se já for URL absoluta ou blob local
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('data:')
+  ) {
+    return trimmed;
+  }
+
+  // Se for um publicId do Cloudinary
+  const cName = cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
+  if (!cName) return null;
+  return `https://res.cloudinary.com/${cName}/image/upload/w_120,h_120,c_fill,q_auto,f_auto,fl_progressive/${trimmed}`;
+}
+
