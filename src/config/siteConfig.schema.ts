@@ -11,6 +11,7 @@ export interface SiteConfig {
        */
       playerId: string;
       photoUrl?: string;
+      _photoPublicId?: string;
       birthDate?: string;
       gender?: 'M' | 'F';
       avatar?: string;
@@ -19,6 +20,7 @@ export interface SiteConfig {
       name: string;
       playerId: string;
       photoUrl?: string;
+      _photoPublicId?: string;
       birthDate?: string;
       gender?: 'M' | 'F';
       avatar?: string;

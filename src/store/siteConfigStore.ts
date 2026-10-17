@@ -4,12 +4,15 @@ import { db } from '../services/firebase/config';
 import type { SiteConfig } from '../config/siteConfig.schema';
 import { meuSiteConfig } from '../config/sites/meu-site';
 
+export type ConfigSource = 'server' | 'cache' | 'mock' | null;
+
 interface SiteConfigState {
   config: SiteConfig | null;
+  configSource: ConfigSource;
   isLoading: boolean;
   error: string | null;
   loadConfig: (siteId: string) => Promise<void>;
-  updateConfig: (siteId: string, updates: Partial<SiteConfig>) => Promise<void>;
+  updateConfig: (siteId: string, updates: Record<string, unknown> | Partial<SiteConfig>) => Promise<void>;
 }
 
 const THEME_CACHE_KEY = 're_theme_cache';
@@ -46,25 +49,101 @@ function loadConfigCache(): SiteConfig | null {
   }
 }
 
+/**
+ * Mapeia erros do Firebase para mensagens amigáveis em português
+ */
+export function mapFirebaseError(err: unknown): string {
+  const code = (err as { code?: string })?.code;
+  const rawMsg = err instanceof Error ? err.message : String(err);
+
+  if (code) {
+    switch (code) {
+      case 'permission-denied':
+        return 'Permissão negada (permission-denied). Verifique se você está autenticado como administrador.';
+      case 'unavailable':
+        return 'Serviço temporariamente indisponível (unavailable). Verifique sua conexão com a internet.';
+      case 'deadline-exceeded':
+        return 'Tempo limite de conexão esgotado (deadline-exceeded). Tente novamente.';
+      case 'unauthenticated':
+        return 'Sessão não autenticada (unauthenticated). Faça login novamente.';
+      case 'not-found':
+        return 'Documento de configuração não encontrado no servidor (not-found).';
+      default:
+        return `Erro no Firebase (${code}): ${rawMsg}`;
+    }
+  }
+
+  return rawMsg || 'Falha ao salvar as configurações.';
+}
+
+/**
+ * Aplica atualizações parciais ou com dot-notation (ex.: 'couple.partner1.name')
+ * sobre um objeto SiteConfig com merge profundo seguro.
+ */
+export function applyConfigUpdates(
+  base: SiteConfig,
+  updates: Record<string, unknown> | Partial<SiteConfig>
+): SiteConfig {
+  const result = JSON.parse(JSON.stringify(base)) as SiteConfig;
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (key.includes('.')) {
+      const parts = key.split('.');
+      let current: Record<string, unknown> = result as unknown as Record<string, unknown>;
+      for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+        if (current[part] === undefined || typeof current[part] !== 'object' || current[part] === null) {
+          current[part] = {};
+        }
+        current = current[part] as Record<string, unknown>;
+      }
+      current[parts[parts.length - 1]] = value;
+    } else {
+      const resRec = result as unknown as Record<string, unknown>;
+      if (
+        value &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        typeof resRec[key] === 'object' &&
+        resRec[key] !== null
+      ) {
+        resRec[key] = {
+          ...(resRec[key] as Record<string, unknown>),
+          ...(value as Record<string, unknown>),
+        };
+      } else {
+        resRec[key] = value;
+      }
+    }
+  }
+
+  return result;
+}
+
 // Restaura apenas as vars estruturais do cache — as cores do tema vêm do useThemeStore
 try {
   const cached = localStorage.getItem(THEME_CACHE_KEY);
   if (cached) applyThemeVars(JSON.parse(cached) as SiteConfig['theme']['colors']);
 } catch {}
 
+let currentLoadId = 0;
+
 export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
   // Inicia sem config e com isLoading=true para que nenhum dado de 'meu-site'
   // vaze para outros sites antes do Firestore responder.
   config: null,
+  configSource: null,
   isLoading: true,
   error: null,
 
   loadConfig: async (siteId: string) => {
-    // Em modo mock/dev usa a config local imediatamente, sem Firestore
-    if (import.meta.env.VITE_USE_MOCK_DATA === 'true' || import.meta.env.DEV) {
+    const loadId = ++currentLoadId;
+
+    // Modo mock explícito: ativado APENAS por VITE_USE_MOCK_DATA === 'true'
+    if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
       applyThemeVars(meuSiteConfig.theme.colors);
       saveConfigCache(meuSiteConfig);
-      set({ config: meuSiteConfig, isLoading: false, error: null });
+      set({ config: meuSiteConfig, configSource: 'mock', isLoading: false, error: null });
       return;
     }
 
@@ -73,25 +152,22 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
     if (cached) {
       if (cached.theme?.colors) applyThemeVars(cached.theme.colors);
       // Mantém isLoading=true: o Firestore ainda vai confirmar/atualizar
-      set({ config: cached });
+      set({ config: cached, configSource: 'cache' });
     }
 
     // Timeout de segurança para nunca ficar em splash infinito
-    let settled = false;
     const timeoutId = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        const { config } = get();
-        if (!config) {
-          // Sem cache e sem Firestore → mostrar erro
-          set({
-            isLoading: false,
-            error: 'Tempo esgotado ao carregar configurações. Verifique sua conexão.',
-          });
-        } else {
-          // Tem cache → usa e segue; Firestore demorou mas o site funciona
-          set({ isLoading: false });
-        }
+      if (loadId !== currentLoadId) return;
+      const { config } = get();
+      if (!config) {
+        // Sem cache e sem Firestore → mostrar erro
+        set({
+          isLoading: false,
+          error: 'Tempo esgotado ao carregar configurações. Verifique sua conexão.',
+        });
+      } else {
+        // Tem cache → usa e segue; Firestore demorou mas o site funciona
+        set({ isLoading: false });
       }
     }, LOAD_TIMEOUT_MS);
 
@@ -99,62 +175,73 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
       const docRef = doc(db, 'sites', siteId);
       const docSnap = await getDoc(docRef);
 
-      if (!settled) {
-        settled = true;
+      if (loadId !== currentLoadId) {
         clearTimeout(timeoutId);
+        return;
+      }
+      clearTimeout(timeoutId);
 
-        if (docSnap.exists()) {
-          const data = docSnap.data() as SiteConfig;
-          if (data.theme?.colors) applyThemeVars(data.theme.colors);
-          saveConfigCache(data);
-          set({ config: data, isLoading: false, error: null });
+      if (docSnap.exists()) {
+        const data = docSnap.data() as SiteConfig;
+        if (data.theme?.colors) applyThemeVars(data.theme.colors);
+        saveConfigCache(data);
+        set({ config: data, configSource: 'server', isLoading: false, error: null });
+      } else {
+        // Documento não existe: usa cache se disponível, senão erro
+        if (cached) {
+          set({ isLoading: false, error: null, configSource: 'cache' });
         } else {
-          // Documento não existe: usa cache se disponível, senão erro
-          if (cached) {
-            set({ isLoading: false, error: null });
-          } else {
-            set({
-              isLoading: false,
-              error: 'Configuração do site não encontrada no servidor.',
-            });
-          }
+          set({
+            isLoading: false,
+            error: 'Configuração do site não encontrada no servidor.',
+          });
         }
       }
     } catch (err: unknown) {
-      if (!settled) {
-        settled = true;
+      if (loadId !== currentLoadId) {
         clearTimeout(timeoutId);
-        const msg = err instanceof Error ? err.message : String(err);
-        if (cached) {
-          // Falha de rede mas tem cache: usa o cache em silêncio
-          console.warn('siteConfigStore: Firestore indisponível, usando cache local.', msg);
-          set({ isLoading: false, error: null });
-        } else {
-          // Sem cache e sem Firestore: mostra erro
-          set({
-            isLoading: false,
-            error: 'Erro ao carregar configurações: ' + msg,
-          });
-        }
+        return;
+      }
+      clearTimeout(timeoutId);
+
+      const msg = err instanceof Error ? err.message : String(err);
+      if (cached) {
+        // Falha de rede mas tem cache: usa o cache em silêncio
+        console.warn('siteConfigStore: Firestore indisponível, usando cache local.', msg);
+        set({ isLoading: false, error: null, configSource: 'cache' });
+      } else {
+        // Sem cache e sem Firestore: mostra erro
+        set({
+          isLoading: false,
+          error: 'Erro ao carregar configurações: ' + msg,
+        });
       }
     }
   },
 
-  updateConfig: async (siteId: string, updates: Partial<SiteConfig>) => {
-    const { config } = get();
+  updateConfig: async (siteId: string, updates: Record<string, unknown> | Partial<SiteConfig>) => {
+    const { config, configSource } = get();
     if (!config) return;
-    if (import.meta.env.VITE_USE_MOCK_DATA !== 'true') {
+
+    const isMock = import.meta.env.VITE_USE_MOCK_DATA === 'true' || configSource === 'mock';
+    if (configSource !== 'server' && !isMock) {
+      throw new Error('Aguarde a configuração carregar do servidor antes de salvar');
+    }
+
+    if (!isMock) {
       try {
         const { updateDoc } = await import('firebase/firestore');
         const docRef = doc(db, 'sites', siteId);
         await updateDoc(docRef, updates as Record<string, unknown>);
       } catch (err: unknown) {
         console.error('Erro ao atualizar Firestore:', err);
-        throw new Error('Falha ao salvar as configuracoes.');
+        const msg = mapFirebaseError(err);
+        throw new Error(msg);
       }
     }
-    const newConfig = { ...config, ...updates };
-    if (updates.theme?.colors) applyThemeVars(updates.theme.colors);
+
+    const newConfig = applyConfigUpdates(config, updates);
+    if (newConfig.theme?.colors) applyThemeVars(newConfig.theme.colors);
     saveConfigCache(newConfig);
     set({ config: newConfig });
   },

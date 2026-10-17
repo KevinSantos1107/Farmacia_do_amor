@@ -77,7 +77,7 @@ Crie um arquivo `.env` na raiz do projeto com base no arquivo [.env.example](.en
 | `VITE_SITE_NAME` | Não | Nome do site / casal para `<title>`, OpenGraph e manifesto PWA (ex: `Kevin & Iara`). |
 | `VITE_SITE_DESCRIPTION` | Não | Descrição do site para meta description, OpenGraph e manifesto PWA. |
 | `VITE_SITE_OG_IMAGE` | Não | URL absoluta da imagem de preview OpenGraph (fallback: `<VITE_SITE_URL>/capa_principal.jpg`). |
-| `VITE_USE_MOCK_DATA` | Não | Habilita dados mockados em memória para testes offline (`false` por padrão). |
+| `VITE_USE_MOCK_DATA` | Não | Único modo offline da aplicação (`false` por padrão). Quando `'true'`, carrega a configuração estática local (`meu-site.ts`) e **NUNCA** lê nem grava no Firestore. Em desenvolvimento normal (`npm run dev`), deve ser mantido como `false` para que a configuração venha do Firestore, exatamente como em produção. |
 
 > [!CAUTION]
 > **SEGURANÇA DO FIRESTORE (VITE_DATA_LAYOUT):**

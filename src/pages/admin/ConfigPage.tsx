@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { useSiteId } from '../../services/firestore/paths';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/Card';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
-import { Save } from 'lucide-react';
+import { Spinner } from '../../shared/ui/Spinner';
+import { Save, AlertTriangle } from 'lucide-react';
 import type { SiteConfig } from '../../config/siteConfig.schema';
 import { AvatarPicker } from '../../features/avatar/AvatarPicker';
 
@@ -27,17 +28,171 @@ function getOrderedAvatarOptions(savedAvatar: string | undefined): string[] {
   return [savedAvatar, ...others];
 }
 
+/**
+ * Mescla as alterações vindas do store no formData local, preservando
+ * edições não salvas do usuário nos campos do formulário (ex.: texto digitado).
+ */
+export function mergeStoreConfigIntoForm(
+  prevConfig: SiteConfig | null,
+  newConfig: SiteConfig,
+  currentForm: Partial<SiteConfig>
+): Partial<SiteConfig> {
+  if (!prevConfig) {
+    return {
+      couple: newConfig.couple,
+      relationship: newConfig.relationship,
+      features: newConfig.features,
+      theme: newConfig.theme,
+    };
+  }
+
+  const p1Prev = prevConfig.couple?.partner1;
+  const p1New = newConfig.couple?.partner1;
+  const p1Form = currentForm.couple?.partner1;
+
+  const partner1 = {
+    ...p1New,
+    name: (p1Form?.name !== undefined && p1Form.name !== p1Prev?.name) ? p1Form.name : (p1New?.name ?? ''),
+    birthDate: (p1Form?.birthDate !== undefined && p1Form.birthDate !== p1Prev?.birthDate) ? p1Form.birthDate : (p1New?.birthDate ?? ''),
+    gender: (p1Form?.gender !== undefined && p1Form.gender !== p1Prev?.gender) ? p1Form.gender : (p1New?.gender ?? 'M'),
+    avatar: (p1New?.avatar !== p1Prev?.avatar) ? (p1New?.avatar ?? '') : (p1Form?.avatar ?? p1New?.avatar ?? ''),
+    photoUrl: p1New?.photoUrl,
+    _photoPublicId: p1New?._photoPublicId,
+    playerId: p1New?.playerId ?? p1Form?.playerId,
+  };
+
+  const p2Prev = prevConfig.couple?.partner2;
+  const p2New = newConfig.couple?.partner2;
+  const p2Form = currentForm.couple?.partner2;
+
+  const partner2 = {
+    ...p2New,
+    name: (p2Form?.name !== undefined && p2Form.name !== p2Prev?.name) ? p2Form.name : (p2New?.name ?? ''),
+    birthDate: (p2Form?.birthDate !== undefined && p2Form.birthDate !== p2Prev?.birthDate) ? p2Form.birthDate : (p2New?.birthDate ?? ''),
+    gender: (p2Form?.gender !== undefined && p2Form.gender !== p2Prev?.gender) ? p2Form.gender : (p2New?.gender ?? 'F'),
+    avatar: (p2New?.avatar !== p2Prev?.avatar) ? (p2New?.avatar ?? '') : (p2Form?.avatar ?? p2New?.avatar ?? ''),
+    photoUrl: p2New?.photoUrl,
+    _photoPublicId: p2New?._photoPublicId,
+    playerId: p2New?.playerId ?? p2Form?.playerId,
+  };
+
+  const relPrev = prevConfig.relationship;
+  const relNew = newConfig.relationship;
+  const relForm = currentForm.relationship;
+
+  const relationship = {
+    ...relNew,
+    startDate: (relForm?.startDate !== undefined && relForm.startDate !== relPrev?.startDate)
+      ? relForm.startDate
+      : (relNew?.startDate ?? ''),
+  };
+
+  const featPrev = prevConfig.features || ({} as SiteConfig['features']);
+  const featNew = newConfig.features || ({} as SiteConfig['features']);
+  const featForm = currentForm.features || ({} as SiteConfig['features']);
+
+  const features = { ...featNew };
+  for (const key of Object.keys(featNew) as Array<keyof SiteConfig['features']>) {
+    if (featForm[key] !== undefined && featForm[key] !== featPrev[key]) {
+      features[key] = featForm[key];
+    }
+  }
+
+  return {
+    couple: { partner1, partner2 },
+    relationship,
+    features,
+    theme: newConfig.theme,
+  };
+}
+
+/**
+ * Calcula apenas os campos alterados pelo formulário em relação à config atual,
+ * utilizando notação de ponto (dot-notation) para campos aninhados do casal.
+ */
+export function getChangedConfigFields(
+  current: SiteConfig,
+  form: Partial<SiteConfig>
+): Record<string, unknown> {
+  const updates: Record<string, unknown> = {};
+
+  // Partner 1
+  if (form.couple?.partner1) {
+    const f1 = form.couple.partner1;
+    const c1 = current.couple?.partner1;
+
+    if (f1.name !== undefined && f1.name !== c1?.name) {
+      updates['couple.partner1.name'] = f1.name;
+    }
+    if (f1.birthDate !== undefined && f1.birthDate !== c1?.birthDate) {
+      updates['couple.partner1.birthDate'] = f1.birthDate;
+    }
+    if (f1.gender !== undefined && f1.gender !== c1?.gender) {
+      updates['couple.partner1.gender'] = f1.gender;
+    }
+    if (f1.avatar !== undefined && f1.avatar !== c1?.avatar) {
+      updates['couple.partner1.avatar'] = f1.avatar;
+    }
+    if (!c1?.playerId && f1.name) {
+      updates['couple.partner1.playerId'] = f1.name.toLowerCase();
+    }
+  }
+
+  // Partner 2
+  if (form.couple?.partner2) {
+    const f2 = form.couple.partner2;
+    const c2 = current.couple?.partner2;
+
+    if (f2.name !== undefined && f2.name !== c2?.name) {
+      updates['couple.partner2.name'] = f2.name;
+    }
+    if (f2.birthDate !== undefined && f2.birthDate !== c2?.birthDate) {
+      updates['couple.partner2.birthDate'] = f2.birthDate;
+    }
+    if (f2.gender !== undefined && f2.gender !== c2?.gender) {
+      updates['couple.partner2.gender'] = f2.gender;
+    }
+    if (f2.avatar !== undefined && f2.avatar !== c2?.avatar) {
+      updates['couple.partner2.avatar'] = f2.avatar;
+    }
+    if (!c2?.playerId && f2.name) {
+      updates['couple.partner2.playerId'] = f2.name.toLowerCase();
+    }
+  }
+
+  // Relationship
+  if (form.relationship) {
+    if (form.relationship.startDate !== undefined && form.relationship.startDate !== current.relationship?.startDate) {
+      updates['relationship.startDate'] = form.relationship.startDate;
+    }
+  }
+
+  // Features
+  if (form.features) {
+    for (const [key, val] of Object.entries(form.features)) {
+      if (val !== current.features?.[key as keyof SiteConfig['features']]) {
+        updates[`features.${key}`] = val;
+      }
+    }
+  }
+
+  return updates;
+}
+
 export default function ConfigPage() {
-  const { config, updateConfig } = useSiteConfigStore();
+  const { config, configSource, updateConfig } = useSiteConfigStore();
   const siteId = useSiteId();
   const { show } = useToast();
 
-  const [formData, setFormData] = useState<Partial<SiteConfig>>({
+  const isServerConfig = configSource === 'server' || import.meta.env.VITE_USE_MOCK_DATA === 'true' || configSource === 'mock';
+  const prevConfigRef = useRef<SiteConfig | null>(config);
+
+  const [formData, setFormData] = useState<Partial<SiteConfig>>(() => ({
     couple: config?.couple,
     relationship: config?.relationship,
     features: config?.features,
     theme: config?.theme,
-  });
+  }));
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -53,45 +208,44 @@ export default function ConfigPage() {
     [config?.couple?.partner2?.avatar]
   );
 
-  // Sincroniza formData com o store quando o config é carregado ou atualizado
+  // Sincroniza formData com o store quando o config é carregado ou atualizado sem perder edições não salvas
   useEffect(() => {
     if (config) {
-      setFormData({
-        couple: config.couple,
-        relationship: config.relationship,
-        features: config.features,
-        theme: config.theme,
-      });
+      setFormData((current) => mergeStoreConfigIntoForm(prevConfigRef.current, config, current));
+      prevConfigRef.current = config;
     }
   }, [config]);
 
-  if (!config) return null;
+  if (!config) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   const handleSave = async () => {
+    if (!config) return;
+
+    if (!isServerConfig) {
+      show('Aguarde a configuração carregar do servidor antes de salvar.', 'err');
+      return;
+    }
+
+    const updates = getChangedConfigFields(config, formData);
+
+    if (Object.keys(updates).length === 0) {
+      show('Nenhuma alteração para salvar');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      // Deriva playerId do nome (minúsculas) apenas se ainda não estiver definido.
-      // Nunca sobrescreve um playerId existente — os IDs são estáveis como chaves do Firestore.
-      const updatedFormData = { ...formData };
-      if (updatedFormData.couple) {
-        const p1 = updatedFormData.couple.partner1;
-        const p2 = updatedFormData.couple.partner2;
-        if (!p1.playerId && p1.name) {
-          updatedFormData.couple = {
-            ...updatedFormData.couple,
-            partner1: { ...p1, playerId: p1.name.toLowerCase() },
-          };
-        }
-        if (!p2.playerId && p2.name) {
-          updatedFormData.couple = {
-            ...updatedFormData.couple,
-            partner2: { ...p2, playerId: p2.name.toLowerCase() },
-          };
-        }
-      }
-      await updateConfig(siteId, updatedFormData);
+      await updateConfig(siteId, updates);
+      prevConfigRef.current = useSiteConfigStore.getState().config;
       show('Configurações salvas com sucesso!');
     } catch (err: unknown) {
+      console.error('Falha ao salvar configurações:', err);
       show('Erro ao salvar: ' + (err instanceof Error ? err.message : String(err)), 'err');
     } finally {
       setIsSaving(false);
@@ -389,10 +543,22 @@ export default function ConfigPage() {
 
       </div>
 
-      <div className="flex items-center gap-4 pt-4 border-t border-slate-800">
-        <Button onClick={handleSave} isLoading={isSaving} className="gap-2 px-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4 border-t border-slate-800">
+        <Button
+          onClick={handleSave}
+          isLoading={isSaving}
+          disabled={!isServerConfig || isSaving}
+          className="gap-2 px-8"
+        >
           <Save className="w-4 h-4" /> Salvar Alterações
         </Button>
+
+        {!isServerConfig && (
+          <p className="text-xs text-amber-400 flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-md">
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+            Carregando configuração atualizada do servidor... Aguarde a sincronização para salvar.
+          </p>
+        )}
       </div>
     </div>
   );
