@@ -388,6 +388,7 @@ export default function PlaylistEditor() {
           tracksWithIds={tracksWithIds}
           trackSortable={trackSortable}
           onDeleteTrack={handleDeleteTrack}
+          playlistCoverUrl={activePlaylist.coverUrl}
         />
 
         <ConfirmModal

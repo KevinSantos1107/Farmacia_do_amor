@@ -31,6 +31,13 @@ export function resolveMediaCoverUrl(raw?: string | null, cloudName?: string): s
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
+  const cName = (cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dxxnqs4gf').trim();
+
+  // Corrige URLs do Cloudinary salvas com // duplo (quando cloudName estava vazio)
+  if (trimmed.includes('res.cloudinary.com//')) {
+    return trimmed.replace(/res\.cloudinary\.com\/\//g, `res.cloudinary.com/${cName}/`);
+  }
+
   // Se já for URL absoluta ou blob local
   if (
     trimmed.startsWith('http://') ||
@@ -41,9 +48,19 @@ export function resolveMediaCoverUrl(raw?: string | null, cloudName?: string): s
     return trimmed;
   }
 
+  // Se for caminho absoluto local (ex: /capa_principal.jpg ou /avatars/avatar_1.webp)
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  // Se for referência a arquivo estático da raiz (ex: capa_principal.jpg)
+  if (trimmed === 'capa_principal.jpg') {
+    return `/${trimmed}`;
+  }
+
   // Se for um publicId do Cloudinary
-  const cName = cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
   if (!cName) return null;
-  return `https://res.cloudinary.com/${cName}/image/upload/w_120,h_120,c_fill,q_auto,f_auto,fl_progressive/${trimmed}`;
+  const cleanId = trimmed.replace(/^\/+/, '');
+  return `https://res.cloudinary.com/${cName}/image/upload/w_120,h_120,c_fill,q_auto,f_auto,fl_progressive/${cleanId}`;
 }
 

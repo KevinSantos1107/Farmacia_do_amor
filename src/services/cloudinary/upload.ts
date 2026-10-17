@@ -155,7 +155,7 @@ export function cloudinaryUrl(
   publicId: string,
   opts: { w?: number; h?: number; q?: number | 'auto'; c?: string; f?: string; dpr?: number } = {}
 ): string {
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dxxnqs4gf';
   const { w, h, q = 'auto', c = 'limit', f = 'auto', dpr } = opts;
   const transforms: string[] = [];
   if (w) transforms.push(`w_${w}`);

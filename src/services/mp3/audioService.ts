@@ -30,8 +30,8 @@ export async function getPlayableAudioUrl(publicId: string): Promise<string> {
     */
 
     // Como ainda não temos o backend Node rodando localmente, mockamos o retorno
-    // O backend real usaria o cloudinary.v2.url() com sign_url: true
-    return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/video/authenticated/${publicId}?timestamp=${Date.now()}`;
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dxxnqs4gf';
+    return `https://res.cloudinary.com/${cloudName}/video/authenticated/${publicId}?timestamp=${Date.now()}`;
   } catch (error) {
     console.error('Error fetching signed audio URL:', error);
     throw new Error('Falha ao obter a assinatura do áudio.');

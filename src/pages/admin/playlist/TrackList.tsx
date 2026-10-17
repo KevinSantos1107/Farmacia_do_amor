@@ -14,12 +14,32 @@ interface TrackListProps {
   tracksWithIds: (Track & { id: string })[];
   trackSortable: ReturnType<typeof useSortableList<Track & { id: string }>>;
   onDeleteTrack: (track: Track) => void;
+  playlistCoverUrl?: string;
 }
 
-function TrackCover({ track }: { track: Track }) {
+function TrackCover({ track, playlistCoverUrl }: { track: Track; playlistCoverUrl?: string }) {
   const [hasError, setHasError] = useState(false);
-  const rawCover = track.coverPublicId || track.coverUrl || track.cover;
-  const coverUrl = resolveMediaCoverUrl(rawCover);
+  const [useFallbackPlaylistCover, setUseFallbackPlaylistCover] = useState(false);
+
+  const rawTrackCover =
+    track.coverPublicId ||
+    track.coverUrl ||
+    track.cover ||
+    track.coverLarge ||
+    track.coverThumb ||
+    track.photoUrl ||
+    track.image;
+
+  const targetCover = !useFallbackPlaylistCover && rawTrackCover ? rawTrackCover : playlistCoverUrl;
+  const coverUrl = resolveMediaCoverUrl(targetCover);
+
+  const handleError = () => {
+    if (!useFallbackPlaylistCover && rawTrackCover && playlistCoverUrl) {
+      setUseFallbackPlaylistCover(true);
+    } else {
+      setHasError(true);
+    }
+  };
 
   if (!coverUrl || hasError) {
     return (
@@ -34,7 +54,7 @@ function TrackCover({ track }: { track: Track }) {
       src={coverUrl}
       alt={track.title || 'Capa da música'}
       className="w-full h-full object-cover"
-      onError={() => setHasError(true)}
+      onError={handleError}
       loading="lazy"
     />
   );
@@ -45,6 +65,7 @@ export function TrackList({
   tracksWithIds,
   trackSortable,
   onDeleteTrack,
+  playlistCoverUrl,
 }: TrackListProps) {
   if (tracks.length === 0) {
     return (
@@ -84,7 +105,7 @@ export function TrackList({
                       </div>
 
                       <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden border border-white/5">
-                        <TrackCover track={track} />
+                        <TrackCover track={track} playlistCoverUrl={playlistCoverUrl} />
                       </div>
 
                       <div className="flex-1 min-w-0 pr-1">

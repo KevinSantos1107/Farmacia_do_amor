@@ -32,6 +32,10 @@ export interface Track {
   artist?: string;
   coverPublicId?: string;
   coverUrl?: string;
+  coverLarge?: string; // campo legado
+  coverThumb?: string; // campo legado
+  photoUrl?: string; // campo legado
+  image?: string; // campo legado
   date?: string;
   orderIndex?: number;
 }

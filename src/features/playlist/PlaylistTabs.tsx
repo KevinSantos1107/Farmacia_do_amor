@@ -7,6 +7,7 @@ import type { Track } from '../../store/useAudioStore';
 import { useAudio } from '../player/useAudio';
 import { Play, Pause, Music, SkipBack, SkipForward, Shuffle, Repeat } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
+import { resolveMediaCoverUrl } from '../../pages/admin/playlist/playlistPureUtils';
 
 interface PlaylistData {
   id: string;
@@ -99,7 +100,7 @@ export function PlaylistTabs() {
                 ...data,
                 id: tDoc.id,
                 url: data.url || data.src,
-                coverUrl: data.coverUrl || data.cover,
+                coverUrl: (data.coverUrl || data.cover || (data as Record<string, unknown>).coverLarge || (data as Record<string, unknown>).coverThumb || (data as Record<string, unknown>).coverPublicId) as string | undefined,
               } as Track);
             }
           });
@@ -247,14 +248,17 @@ export function PlaylistTabs() {
                 : ''
             )}
           >
-            {displayTrack?.coverUrl || activeTabPlaylist.coverUrl ? (
+            {resolveMediaCoverUrl(displayTrack?.coverUrl || activeTabPlaylist.coverUrl) ? (
               <img
-                src={displayTrack?.coverUrl || activeTabPlaylist.coverUrl}
+                src={resolveMediaCoverUrl(displayTrack?.coverUrl || activeTabPlaylist.coverUrl)!}
                 alt={displayTrack?.title || activeTabPlaylist.name}
                 className={cn(
                   'w-full h-full object-cover transition-transform duration-1000',
                   isCurrentTabLoaded && isPlaying ? 'scale-105' : 'hover:scale-105'
                 )}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-slate-800 to-rose-950 flex items-center justify-center">
@@ -449,11 +453,14 @@ export function PlaylistTabs() {
                 </div>
 
                 {/* Capa pequena */}
-                {track.coverUrl ? (
+                {resolveMediaCoverUrl(track.coverUrl || activeTabPlaylist.coverUrl) ? (
                   <img
-                    src={track.coverUrl}
+                    src={resolveMediaCoverUrl(track.coverUrl || activeTabPlaylist.coverUrl)!}
                     alt=""
                     className="w-8 h-8 rounded-md object-cover flex-shrink-0 bg-slate-800"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-md bg-slate-800 flex items-center justify-center flex-shrink-0">

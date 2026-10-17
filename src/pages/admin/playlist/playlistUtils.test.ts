@@ -91,5 +91,22 @@ describe('playlistUtils', () => {
       const res = resolveMediaCoverUrl('vox45ukrle194b7wyczaz', 'teste-cloud');
       expect(res).toBe('https://res.cloudinary.com/teste-cloud/image/upload/w_120,h_120,c_fill,q_auto,f_auto,fl_progressive/vox45ukrle194b7wyczaz');
     });
+
+    it('usa dxxnqs4gf como fallback quando cloudName não é informado', () => {
+      const res = resolveMediaCoverUrl('vox45ukrle194b7wyczaz');
+      expect(res).toBe('https://res.cloudinary.com/dxxnqs4gf/image/upload/w_120,h_120,c_fill,q_auto,f_auto,fl_progressive/vox45ukrle194b7wyczaz');
+    });
+
+    it('repara URLs do Cloudinary salvas com // duplo (quando cloudName estava vazio)', () => {
+      const badUrl = 'https://res.cloudinary.com//image/upload/w_80,h_80/cover_123';
+      const fixed = resolveMediaCoverUrl(badUrl);
+      expect(fixed).toBe('https://res.cloudinary.com/dxxnqs4gf/image/upload/w_80,h_80/cover_123');
+    });
+
+    it('preserva caminhos absolutos locais e converte arquivos estáticos da raiz', () => {
+      expect(resolveMediaCoverUrl('/capa_principal.jpg')).toBe('/capa_principal.jpg');
+      expect(resolveMediaCoverUrl('/avatars/avatar_1.webp')).toBe('/avatars/avatar_1.webp');
+      expect(resolveMediaCoverUrl('capa_principal.jpg')).toBe('/capa_principal.jpg');
+    });
   });
 });

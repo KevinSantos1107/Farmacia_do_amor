@@ -65,10 +65,22 @@ export async function fetchAndRepairPlaylistTracks(playlistId: string, siteId?: 
     if (tDoc.id.startsWith('_')) return;
     const data = tDoc.data();
     if (data.tracks && Array.isArray(data.tracks)) {
-      allTracks.push(...data.tracks.map((t: Track) => ({ ...t, id: tDoc.id })));
+      allTracks.push(
+        ...data.tracks.map((t: Track) => ({
+          ...t,
+          id: tDoc.id,
+          coverUrl: t.coverUrl || t.cover || t.coverLarge || t.coverThumb || t.coverPublicId,
+          cover: t.cover || t.coverUrl || t.coverLarge || t.coverThumb,
+        }))
+      );
       needsRepair = true;
     } else if (data.title) {
-      allTracks.push({ id: tDoc.id, ...data } as Track);
+      allTracks.push({
+        id: tDoc.id,
+        ...data,
+        coverUrl: (data.coverUrl || data.cover || data.coverLarge || data.coverThumb || data.coverPublicId) as string | undefined,
+        cover: (data.cover || data.coverUrl || data.coverLarge || data.coverThumb) as string | undefined,
+      } as Track);
     }
   });
 
