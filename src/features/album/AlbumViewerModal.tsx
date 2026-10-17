@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { cn } from '../../shared/utils/cn';
+import { lockBodyScroll } from '../../shared/utils/scrollLock';
 import { imagePreloader } from './ImagePreloader';
 import { cloudinaryUrl, cloudinaryResponsiveSrcSet } from '../../services/cloudinary/upload';
 
@@ -298,9 +299,8 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
 
   // ── Bloquear scroll do fundo ──────────────────────────────────────────────
   useEffect(() => {
-    const orig = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = orig; };
+    const unlock = lockBodyScroll();
+    return () => { unlock(); };
   }, []);
 
   // ── SMART PRELOADING ──────────────────────────────────────────────────────

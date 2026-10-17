@@ -86,7 +86,7 @@ export function SideSheet({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">{children}</div>
+        <div className="flex-1 overflow-y-auto p-6 no-scrollbar">{children}</div>
       </div>
     </div>,
     document.body

@@ -28,15 +28,28 @@
 }
 
 /* Base styles */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   background-color: var(--theme-bg, #0d0d14);
   color: var(--theme-text, #f1f0fb);
   font-family: var(--font-family-sans, 'Poppins', sans-serif);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+body::-webkit-scrollbar {
+  display: none;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar discreta para áreas do painel admin */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -44,6 +57,6 @@ body {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--theme-card-border, #2d2d4a);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 3px;
 }

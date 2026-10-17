@@ -15,7 +15,7 @@ export function PlaylistManager() {
   }
 
   return (
-    <div className="flex flex-col space-y-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+    <div className="flex flex-col space-y-2 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
       {playlist.map((track, index) => {
         const isCurrent = index === currentTrackIndex;
 

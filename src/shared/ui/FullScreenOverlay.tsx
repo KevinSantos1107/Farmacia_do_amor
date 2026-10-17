@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { lockBodyScroll } from '../utils/scrollLock';
 
 
 interface FullScreenOverlayProps {
@@ -19,11 +20,11 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      const unlock = lockBodyScroll();
       const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
       window.addEventListener('keydown', onKey);
       return () => {
-        document.body.style.overflow = '';
+        unlock();
         window.removeEventListener('keydown', onKey);
       };
     }
@@ -32,7 +33,7 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] h-[100dvh] max-h-[100dvh] bg-theme-bg flex flex-col animate-in fade-in zoom-in-[0.98] duration-300">
+    <div className="fixed inset-0 z-[99999] h-[100dvh] max-h-[100dvh] bg-theme-bg flex flex-col overscroll-contain animate-in fade-in zoom-in-[0.98] duration-300">
       {/* Dynamic Background matching theme */}
       <div className="absolute inset-0 pointer-events-none opacity-50 bg-[radial-gradient(circle_at_center,rgba(var(--theme-primary-rgb),0.15)_0%,transparent_70%)]" />
 
@@ -76,7 +77,7 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
         className={
           fill
             ? 'relative z-10 flex-1 min-h-0 overflow-hidden flex flex-col'
-            : 'relative z-10 flex-1 overflow-y-auto custom-scrollbar'
+            : 'relative z-10 flex-1 overflow-y-auto no-scrollbar'
         }
       >
         {children}

@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { cn } from '../../../shared/utils/cn';
 
 export function useToast() {
   const [msg, setMsg] = useState<{ text: string; type: 'ok' | 'err' } | null>(null);
-  const show = (text: string, type: 'ok' | 'err' = 'ok') => {
+  const show = useCallback((text: string, type: 'ok' | 'err' = 'ok') => {
     setMsg({ text, type });
     setTimeout(() => setMsg(null), 3500);
-  };
+  }, []);
   const Toast = msg ? (
     <div
       className={cn(

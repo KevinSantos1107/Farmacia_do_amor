@@ -7,6 +7,7 @@ import type { TimelineEvent } from './Timeline';
 import { X, Clock } from 'lucide-react';
 import { Spinner } from '../../shared/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { lockBodyScroll } from '../../shared/utils/scrollLock';
 
 // ─── Modal via Portal (bypasses overflow-x-hidden stacking context) ────────────
 export function TimelineModalContent({
@@ -21,11 +22,11 @@ export function TimelineModalContent({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    const unlock = lockBodyScroll();
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = '';
+      unlock();
       window.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
@@ -84,6 +85,7 @@ export function TimelineModalContent({
       {/* Body com scroll */}
       <div
         ref={scrollRef}
+        className="no-scrollbar"
         style={{ flex: 1, overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}
       >

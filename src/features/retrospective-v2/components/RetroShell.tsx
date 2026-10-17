@@ -9,6 +9,7 @@ import { RouletteSlide } from './slides/05-RouletteSlide';
 import { WordGameSlide } from './slides/06-WordGameSlide';
 import { SummarySlide } from './slides/07-SummarySlide';
 import { OutroSlide } from './slides/08-OutroSlide';
+import { lockBodyScroll } from '../../../shared/utils/scrollLock';
 import '../styles/retro-v2.css';
 
 
@@ -55,13 +56,14 @@ export function RetroShell() {
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      const unlock = lockBodyScroll();
       setCurrentSlide(0);
+      return () => {
+        unlock();
+      };
     } else {
-      document.body.style.overflow = '';
       stopMusic();
     }
-    return () => { document.body.style.overflow = ''; };
   }, [isOpen, stopMusic]);
 
   const hasRoulette = config.rouletteOptions && config.rouletteOptions.length > 0;

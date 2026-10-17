@@ -10,6 +10,7 @@ import {
 } from '../../../services/gameRecords';
 import type { WordRecord, QuizRecord, MemoryRecord } from '../../../services/gameRecords';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
+import { lockBodyScroll } from '../../../shared/utils/scrollLock';
 
 export type RankingGame = 'snake' | 'word' | 'quiz' | 'memory';
 
@@ -419,9 +420,10 @@ export function RankingModal({ isOpen, onClose, initialGame = 'snake' }: Props) 
   }, [isOpen, initialGame]);
 
   useEffect(() => {
-    if (isOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
+    if (isOpen) {
+      const unlock = lockBodyScroll();
+      return () => { unlock(); };
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;

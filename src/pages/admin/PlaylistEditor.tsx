@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   query,
   getDocs,
@@ -36,6 +36,7 @@ export default function PlaylistEditor() {
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
+  const isFirstLoad = useRef(true);
   const [activePlaylist, setActivePlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
 
@@ -63,7 +64,9 @@ export default function PlaylistEditor() {
 
   // ─── Load playlists + tracks ──────────────────────────────────────────────
   const loadPlaylists = useCallback(async () => {
-    setLoading(true);
+    if (isFirstLoad.current) {
+      setLoading(true);
+    }
     try {
       const snap = await getDocs(query(siteCollection('custom_playlists', siteId)));
       const loaded: Playlist[] = [];
@@ -89,8 +92,10 @@ export default function PlaylistEditor() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       show('Erro ao carregar playlists: ' + msg, 'err');
+    } finally {
+      setLoading(false);
+      isFirstLoad.current = false;
     }
-    setLoading(false);
   }, [show, siteId]);
 
   useEffect(() => {

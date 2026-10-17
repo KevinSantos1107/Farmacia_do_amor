@@ -7,6 +7,7 @@ import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { lazy, Suspense } from 'react';
 import { GlobalModals } from '../../features/modals/GlobalModals';
 import { PlayerAuthInit } from '../../features/auth/PlayerAuthInit';
+import { lockBodyScroll } from '../../shared/utils/scrollLock';
 
 const RetroShell = lazy(() => import('../../features/retrospective-v2/components/RetroShell').then(m => ({ default: m.RetroShell })));
 const AudioEngine = lazy(() => import('../../features/player/AudioEngine').then(m => ({ default: m.AudioEngine })));
@@ -28,13 +29,11 @@ export function Shell() {
   // Previne rolagem do body enquanto a splash screen estiver ativa
   useEffect(() => {
     if (showSplash) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+      const unlock = lockBodyScroll();
+      return () => {
+        unlock();
+      };
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
   }, [showSplash]);
 
   return (

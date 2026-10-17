@@ -10,6 +10,7 @@ import { useThemeStore } from '../../store/useThemeStore';
 import { useRetroV2Store } from '../../features/retrospective-v2/store/useRetroV2Store';
 import { useModalsStore, type ModalType } from '../../store/useModalsStore';
 import { useSiteId } from '../../services/firestore/paths';
+import { lockBodyScroll } from '../../shared/utils/scrollLock';
 
 // ─── Scroll helper ───────────────────────────────────────────────────────────
 function scrollToSection(id: string) {
@@ -125,10 +126,14 @@ export function HamburgerMenu() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Bloqueia scroll do body quando aberto
+  // Bloqueia scroll do body e html quando aberto
   useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    if (isOpen) {
+      const unlock = lockBodyScroll();
+      return () => {
+        unlock();
+      };
+    }
   }, [isOpen]);
 
   return (
@@ -165,7 +170,7 @@ export function HamburgerMenu() {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
+        <div className="flex flex-col h-full overflow-y-auto no-scrollbar">
           {/* Header do painel */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/10">
             <h2
