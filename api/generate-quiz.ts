@@ -136,9 +136,11 @@ export function checkRateLimit(
 // Validação de Dados de Entrada
 // ─────────────────────────────────────────────
 
-export function validateStoryData(body: unknown):
-  | { valid: true; data: CoupleStoryData }
-  | { valid: false; error: string } {
+export type ValidationResult =
+  | { valid: true; data: CoupleStoryData; error?: never }
+  | { valid: false; error: string; data?: never };
+
+export function validateStoryData(body: unknown): ValidationResult {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { valid: false, error: 'Corpo da requisição inválido.' };
   }
@@ -298,14 +300,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   // 3. Verificação das variáveis de ambiente necessárias
-  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
   if (!projectId) {
     console.error('Configuração do servidor incompleta: FIREBASE_PROJECT_ID não definido.');
     res.status(500).json({ error: 'Erro de configuração no servidor.' });
     return;
   }
 
-  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   if (!geminiApiKey) {
     console.error('Configuração do servidor incompleta: GEMINI_API_KEY não definida.');
     res.status(500).json({ error: 'Erro de configuração no servidor.' });
@@ -365,8 +367,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   const validation = validateStoryData(parsedBody);
-  if (!validation.valid) {
-    res.status(400).json({ error: validation.error });
+  if (!validation.valid || 'error' in validation) {
+    res.status(400).json({ error: 'error' in validation ? validation.error : 'Corpo da requisição inválido.' });
     return;
   }
 

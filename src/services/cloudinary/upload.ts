@@ -3,15 +3,41 @@
 
 /** Returns VITE_CLOUDINARY_CLOUD_NAME or throws a clear error if absent or empty. */
 export function getCloudName(): string {
-  const name = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const name =
+    import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || (import.meta.env.PROD ? 'dxxnqs4gf' : '');
   if (!name || name.trim() === '') {
     throw new Error('Cloudinary não configurado: defina VITE_CLOUDINARY_CLOUD_NAME');
   }
   return name;
 }
 
-const IMAGE_PRESET = import.meta.env.VITE_CLOUDINARY_IMAGE_PRESET || 'image_uploads';
+const IMAGE_PRESET =
+  import.meta.env.VITE_CLOUDINARY_IMAGE_PRESET ||
+  import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
+  'image_uploads';
 const AUDIO_PRESET = import.meta.env.VITE_CLOUDINARY_AUDIO_PRESET || 'music_uploads';
+
+function formatCloudinaryError(responseText: string, presetName: string, prefix = 'Upload failed'): Error {
+  try {
+    const data = JSON.parse(responseText);
+    const msg = data.error?.message;
+    if (msg) {
+      if (
+        msg.toLowerCase().includes('unsigned') ||
+        msg.toLowerCase().includes('api_key') ||
+        msg.toLowerCase().includes('preset')
+      ) {
+        return new Error(
+          `Erro no Cloudinary: O preset de upload "${presetName}" precisa estar configurado como "Unsigned" no painel do Cloudinary. (${msg})`
+        );
+      }
+      return new Error(`Erro no Cloudinary: ${msg}`);
+    }
+  } catch {
+    // ignorar erro de parse e usar texto padrão
+  }
+  return new Error(`${prefix}: ${responseText}`);
+}
 
 export interface CloudinaryUploadResult {
   publicId: string;
@@ -91,7 +117,7 @@ export async function uploadImage(
           resourceType: data.resource_type,
         });
       } else {
-        reject(new Error(`Upload failed: ${xhr.responseText}`));
+        reject(formatCloudinaryError(xhr.responseText, IMAGE_PRESET, 'Upload failed'));
       }
     };
     xhr.onerror = () => reject(new Error('Network error during upload'));
@@ -142,7 +168,7 @@ export async function uploadAudio(
           resourceType: data.resource_type,
         });
       } else {
-        reject(new Error(`Audio upload failed: ${xhr.responseText}`));
+        reject(formatCloudinaryError(xhr.responseText, AUDIO_PRESET, 'Audio upload failed'));
       }
     };
     xhr.onerror = () => reject(new Error('Network error during upload'));
