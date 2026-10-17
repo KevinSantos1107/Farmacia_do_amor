@@ -132,6 +132,20 @@ export default function Home() {
     root.style.setProperty('--theme-accent', t.accent);
   }, [activeTheme]);
 
+  // Preload dinâmico da imagem de capa apenas quando a rota Home estiver montada
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = '/capa_principal.jpg';
+    document.head.appendChild(link);
+    return () => {
+      if (document.head.contains(link)) {
+        document.head.removeChild(link);
+      }
+    };
+  }, []);
+
   if (!config) return null;
 
   const { partner1, partner2 } = config.couple;

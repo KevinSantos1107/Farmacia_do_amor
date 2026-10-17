@@ -3,7 +3,7 @@ import { RouterProvider } from 'react-router-dom';
 import { useSiteConfigStore } from '../store/siteConfigStore';
 import { DEFAULT_SITE_ID } from '../config/defaults';
 import { router } from './router';
-import { SplashScreen } from '../features/core/SplashScreen';
+import { Spinner } from '../shared/ui/Spinner';
 
 export default function App() {
   const { config, isLoading, error, loadConfig } = useSiteConfigStore();
@@ -49,19 +49,19 @@ export default function App() {
     }
   }, [config]);
 
-  // Enquanto carrega, mostra SplashScreen genérica (sem nomes do casal)
-  if (isLoading) {
+  const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
+  // Em rotas que começam com /admin: enquanto isLoading, mostrar apenas o Spinner com fundo escuro do admin
+  if (isAdmin && isLoading) {
     return (
-      <SplashScreen
-        isReady={false}
-        onComplete={() => {}}
-        title=""
-      />
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <Spinner size="lg" className="text-indigo-400" />
+      </div>
     );
   }
 
-  // Erro: sem config e sem cache — mostra tela de erro com botão de retry
-  if (error || !config) {
+  // Erro: sem config e sem cache — mostra tela de erro com botão de retry no site público
+  if (!isAdmin && !isLoading && (error || !config)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
         <div className="text-center space-y-4 px-4">
@@ -81,6 +81,8 @@ export default function App() {
     );
   }
 
+  // No site público ('/'): renderiza RouterProvider imediatamente.
+  // O Shell.tsx é quem gerencia uma ÚNICA SplashScreen com a barra contínua.
   return <RouterProvider router={router} />;
 }
 
