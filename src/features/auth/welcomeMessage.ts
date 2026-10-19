@@ -1,15 +1,10 @@
 import type { SiteConfig } from '../../config/siteConfig.schema';
+import { parseSafeDate } from '../../shared/utils/dateUtils';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 function parseDateStr(dateStr: string): Date | null {
-  if (!dateStr) return null;
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const [y, m, d] = parts.map(Number);
-    return new Date(y, m - 1, d);
-  }
-  return null;
+  return parseSafeDate(dateStr);
 }
 
 function getMonthsTogether(startDateStr: string, now: Date): number {

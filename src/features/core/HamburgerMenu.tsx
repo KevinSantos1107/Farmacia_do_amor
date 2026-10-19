@@ -139,7 +139,13 @@ export function HamburgerMenu() {
   return (
     <>
       {/* Botão hambúrguer */}
-      <div className="fixed top-3 left-3 sm:top-4 sm:left-4 md:top-5 md:left-5 lg:top-6 lg:left-6 z-50">
+      <div
+        className="fixed z-50"
+        style={{
+          top: 'max(0.75rem, env(safe-area-inset-top, 0px))',
+          left: 'max(0.75rem, env(safe-area-inset-left, 0px))',
+        }}
+      >
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="p-1.5 sm:p-2 text-white/80 hover:text-white transition-all duration-200 hover:scale-110 active:scale-95 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]"
@@ -172,7 +178,12 @@ export function HamburgerMenu() {
       >
         <div className="flex flex-col h-full overflow-y-auto no-scrollbar">
           {/* Header do painel */}
-          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/10">
+          <div
+            className="flex items-center justify-between px-5 pb-4 border-b border-white/10"
+            style={{
+              paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))',
+            }}
+          >
             <h2
               className="text-lg font-serif font-bold text-white"
               style={{ textShadow: '0 0 12px var(--theme-primary)' }}

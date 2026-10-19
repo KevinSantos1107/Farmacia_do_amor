@@ -2,6 +2,7 @@ import { useSiteConfigStore } from '../../../../store/siteConfigStore';
 import { useEffect, useRef, useMemo } from 'react';
 import { animate, motion, useInView } from 'framer-motion';
 import { useCounterState } from '../../../../shared/hooks/useCounterState';
+import { getSafeTime } from '../../../../shared/utils/dateUtils';
 
 // Hook simples para o contador — usando ref para evitar re-render que mata a animação
 function useAnimatedCounter(target: number, isInView: boolean) {
@@ -34,12 +35,10 @@ export function TimeSlide() {
   const rootRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(rootRef, { once: true, amount: 0.3 });
 
-  // Cálculo das horas com fix de fuso horário
+  // Cálculo das horas com fix de fuso horário seguro
   const targetHours = useMemo(() => {
     const startStr = siteConfig?.relationship?.startDate;
-    const startMs = startStr
-      ? new Date(`${startStr}T12:00:00`).getTime()
-      : new Date('2025-10-27T12:00:00').getTime();
+    const startMs = getSafeTime(startStr) ?? getSafeTime('2025-10-27') ?? Date.now();
     const diff = Math.floor((Date.now() - startMs) / (1000 * 60 * 60));
     return isNaN(diff) || diff < 0 ? 0 : diff;
   }, [siteConfig?.relationship?.startDate]);

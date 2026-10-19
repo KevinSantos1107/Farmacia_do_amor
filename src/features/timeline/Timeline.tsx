@@ -3,6 +3,7 @@ import { MapPin, Heart } from 'lucide-react';
 import { CloudinaryImage } from '../album/CloudinaryImage';
 import { cn } from '../../shared/utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatSafeDate } from '../../shared/utils/dateUtils';
 
 export interface TimelineEvent {
   id: string;
@@ -95,7 +96,7 @@ function TimelineItem({ event, index }: { event: TimelineEvent; index: number })
           {/* Header do Card (Data e Local) */}
           <div className={cn("flex flex-col gap-0.5", isEven ? "items-end text-right" : "items-start text-left")}>
             <span className="text-[9px] md:text-xs text-theme-primary font-medium tracking-widest uppercase">
-              {new Date(`${event.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {formatSafeDate(event.date, 'pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
             </span>
             {event.location && (
               <span className="text-[8px] md:text-[10px] text-theme-text-secondary/70 flex items-center gap-1 mt-0.5">

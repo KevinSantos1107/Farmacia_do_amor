@@ -10,6 +10,7 @@ import { Countdown } from './home/Countdown';
 const PlaylistTabs = lazy(() => import('../features/playlist/PlaylistTabs').then(m => ({ default: m.PlaylistTabs })));
 const AlbumCarousel = lazy(() => import('../features/album/AlbumCarousel').then(m => ({ default: m.AlbumCarousel })));
 import { useModalsStore } from '../store/useModalsStore';
+import { getSafeTime } from '../shared/utils/dateUtils';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 const LOVE_MESSAGES = [
@@ -92,9 +93,8 @@ export default function Home() {
   const [openAcrostic, setOpenAcrostic] = useState<number | null>(null);
 
   const startMs = useMemo(() => {
-    if (!config?.relationship.startDate) return null;
-    return new Date(config.relationship.startDate + 'T00:00:00').getTime();
-  }, [config?.relationship.startDate]);
+    return getSafeTime(config?.relationship?.startDate);
+  }, [config?.relationship?.startDate]);
 
   useEffect(() => {
     const THEMES = {

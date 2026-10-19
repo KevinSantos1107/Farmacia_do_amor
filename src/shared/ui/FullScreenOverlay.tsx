@@ -42,7 +42,11 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
         className={`relative z-10 flex items-center justify-between px-3 sm:px-4 md:px-6 border-b border-white/5 bg-black/40 backdrop-blur-md shrink-0 ${
           fill ? 'py-1.5 sm:py-2.5' : 'py-4'
         }`}
-        style={fill ? { paddingTop: 'max(0.4rem, env(safe-area-inset-top))' } : undefined}
+        style={{
+          paddingTop: `max(${fill ? '0.4rem' : '1rem'}, env(safe-area-inset-top, 0px))`,
+          paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0px))',
+        }}
       >
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
           {icon && (
@@ -79,6 +83,9 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
             ? 'relative z-10 flex-1 min-h-0 overflow-hidden flex flex-col'
             : 'relative z-10 flex-1 overflow-y-auto no-scrollbar'
         }
+        style={{
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+        }}
       >
         {children}
       </div>

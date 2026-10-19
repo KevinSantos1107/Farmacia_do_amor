@@ -2,11 +2,11 @@ import { useSiteConfigStore } from '../../../../store/siteConfigStore';
 import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { animate } from 'framer-motion';
+import { parseSafeDate } from '../../../../shared/utils/dateUtils';
 
-// Fix de fuso horário: lê a data como meio-dia local para nunca cruzar a barreira UTC
+// Fix de fuso horário seguro: lê a data local para nunca cruzar a barreira UTC
 function parseLocalDate(dateStr: string): Date {
-  // "YYYY-MM-DD" → injeta T12:00:00 para evitar o shift de UTC
-  return new Date(`${dateStr}T12:00:00`);
+  return parseSafeDate(dateStr) || new Date();
 }
 
 // Estrelas com tamanho e posição estáveis (sem Math.random() no render)

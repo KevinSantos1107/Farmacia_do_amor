@@ -49,6 +49,19 @@ if (_audio) {
     }
     nextTrack();
   });
+
+  // Desbloqueia o elemento de áudio na primeira interação do usuário no iOS Safari
+  if (typeof window !== 'undefined') {
+    const unlockAudio = () => {
+      if (_audio && _audio.paused && !_audio.src) {
+        _audio.load();
+      }
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('click', unlockAudio);
+    };
+    window.addEventListener('touchstart', unlockAudio, { passive: true, capture: true });
+    window.addEventListener('click', unlockAudio, { passive: true, capture: true });
+  }
 }
 
 export function getAudioElement(): HTMLAudioElement | null {
@@ -179,7 +192,11 @@ export function useAudio() {
   // ── Volume / Mute ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!_audio) return;
-    _audio.volume = volume;
+    try {
+      _audio.volume = volume;
+    } catch {
+      // Ignora erro no iOS onde volume é controlado apenas por botões físicos
+    }
     _audio.muted = isMuted;
   }, [volume, isMuted]);
 

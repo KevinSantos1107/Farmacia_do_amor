@@ -16,6 +16,7 @@ import { useToast } from '../../shared/ui/ToastProvider';
 import { Trash2, Copy, Plus, RefreshCw, KeyRound, ExternalLink } from 'lucide-react';
 
 import { useSiteConfigStore } from '../../store/siteConfigStore';
+import { copyToClipboard } from '../../shared/utils/clipboard';
 
 interface PlayerToken {
   id: string;
@@ -132,10 +133,15 @@ export default function TokenEditor() {
     }
   };
 
-  const copyLink = (tokenId: string) => {
-    const url = `${window.location.origin}/?token=${tokenId}`;
-    navigator.clipboard.writeText(url);
-    show('Link copiado para área de transferência!');
+  const copyLink = async (tokenId: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = `${origin}/?token=${tokenId}`;
+    const success = await copyToClipboard(url);
+    if (success) {
+      show('Link copiado para área de transferência!');
+    } else {
+      show('Não foi possível copiar automaticamente.', 'err');
+    }
   };
 
   return (

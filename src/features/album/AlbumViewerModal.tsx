@@ -426,7 +426,11 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       direction: 'idle',
       pointerId: e.pointerId,
     };
-    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    try {
+      (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Ignora erro se WebKit/Safari recusar pointer capture
+    }
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -528,8 +532,12 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
           e.stopPropagation();
           onClose();
         }}
-        className="absolute top-5 right-5 z-[100000] p-3 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 hover:bg-black/80 active:scale-90 transition-transform shadow-2xl cursor-pointer"
-        style={{ touchAction: 'manipulation' }}
+        className="absolute z-[100000] p-3 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 hover:bg-black/80 active:scale-90 transition-transform shadow-2xl cursor-pointer"
+        style={{
+          touchAction: 'manipulation',
+          top: 'max(1.25rem, env(safe-area-inset-top, 0px))',
+          right: 'max(1.25rem, env(safe-area-inset-right, 0px))',
+        }}
         aria-label="Fechar álbum"
       >
         <X className="w-5 h-5 text-white" />

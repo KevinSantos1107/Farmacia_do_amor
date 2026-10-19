@@ -55,23 +55,34 @@ async function fileToBase64Jpeg(file: File, maxWidth = 1600, quality = 0.88): Pr
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      URL.revokeObjectURL(url);
-      const scale = Math.min(1, maxWidth / img.width);
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      try {
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, maxWidth / (img.width || 1));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas 2D context unavailable'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } catch (err) {
+        reject(err);
+      }
     };
-    img.onerror = reject;
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    };
     img.src = url;
   });
 }
 
 /**
  * Upload an image to Cloudinary.
- * Converts to JPEG base64 first to handle HEIC/iOS quirks.
+ * Converts to JPEG base64 first to handle HEIC/iOS quirks with fallback to raw file.
  */
 export async function uploadImage(
   file: File,
@@ -80,10 +91,16 @@ export async function uploadImage(
   signal?: AbortSignal
 ): Promise<CloudinaryUploadResult> {
   const cloudName = getCloudName();
-  const base64 = await fileToBase64Jpeg(file);
+  let filePayload: Blob | File | string = file;
+  try {
+    filePayload = await fileToBase64Jpeg(file);
+  } catch (convErr) {
+    console.warn('Canvas conversion failed, uploading raw file directly to Cloudinary:', convErr);
+    filePayload = file;
+  }
 
   const formData = new FormData();
-  formData.append('file', base64);
+  formData.append('file', filePayload);
   formData.append('upload_preset', IMAGE_PRESET);
   if (folder) formData.append('folder', folder);
 

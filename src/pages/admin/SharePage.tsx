@@ -3,7 +3,9 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Heart, Copy, Check, QrCode, Link2, Download } from 'lucide-react';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 
-const SITE_URL = window.location.origin;
+import { copyToClipboard } from '../../shared/utils/clipboard';
+
+const SITE_URL = typeof window !== 'undefined' ? window.location.origin : '';
 
 const pages = [
   { label: 'Página Principal', value: SITE_URL + '/', description: 'A página inicial completa do site' },
@@ -21,12 +23,10 @@ export default function SharePage() {
   const activeUrl = customUrl.trim() || selected;
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(activeUrl);
+    const success = await copyToClipboard(activeUrl);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
     }
   };
 

@@ -81,7 +81,12 @@ export function AudioPlayer() {
   if (!currentTrack) {
     // Sem música: mostrar apenas mini navbar de navegação
     return (
-      <div className="fixed bottom-0 left-0 w-full bg-theme-bg/95 backdrop-blur border-t border-theme-card-border z-50 animate-in slide-in-from-bottom-full duration-500">
+      <div
+        className="fixed bottom-0 left-0 w-full bg-theme-bg/95 backdrop-blur border-t border-theme-card-border z-50 animate-in slide-in-from-bottom-full duration-500"
+        style={{
+          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
+        }}
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 h-14 px-4">
           <NavLink to="/" icon={Heart} label="Início" />
           <NavLink to="/mapa" icon={Map} label="Nosso Mundo" />
@@ -103,7 +108,12 @@ export function AudioPlayer() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 w-full bg-[#05050A]/70 backdrop-blur-2xl border-t border-[var(--theme-primary)]/30 p-3 px-4 z-50 animate-in slide-in-from-bottom-full duration-500 shadow-[0_-10px_40px_rgba(var(--theme-primary-rgb),0.15)]">
+    <div
+      className="fixed bottom-0 left-0 w-full bg-[#05050A]/70 backdrop-blur-2xl border-t border-[var(--theme-primary)]/30 p-3 px-4 z-50 animate-in slide-in-from-bottom-full duration-500 shadow-[0_-10px_40px_rgba(var(--theme-primary-rgb),0.15)]"
+      style={{
+        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
+      }}
+    >
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Track Info + Mobile Nav */}
         <div className="flex items-center gap-3 w-full md:w-1/3 overflow-hidden">

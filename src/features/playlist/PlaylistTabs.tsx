@@ -35,7 +35,6 @@ export function PlaylistTabs() {
   const {
     playlist: currentTracks,
     isPlaying,
-    setPlaylist,
     setPlaylistAndPlay,
     togglePlayPause,
     nextTrack,
@@ -347,8 +346,8 @@ export function PlaylistTabs() {
             <button
               onClick={() => {
                 if (!isCurrentTabLoaded) {
-                  setPlaylist(activeTabPlaylist.tracks);
-                  setTimeout(() => useAudioStore.getState().previousTrack(), 50);
+                  const targetIdx = Math.max(0, activeTabPlaylist.tracks.length - 1);
+                  setPlaylistAndPlay(activeTabPlaylist.tracks, targetIdx);
                 } else previousTrack();
               }}
               className="text-slate-200 hover:text-white transition-colors p-2 shrink-0"
@@ -371,8 +370,8 @@ export function PlaylistTabs() {
             <button
               onClick={() => {
                 if (!isCurrentTabLoaded) {
-                  setPlaylist(activeTabPlaylist.tracks);
-                  setTimeout(() => useAudioStore.getState().nextTrack(), 50);
+                  const targetIdx = activeTabPlaylist.tracks.length > 1 ? 1 : 0;
+                  setPlaylistAndPlay(activeTabPlaylist.tracks, targetIdx);
                 } else nextTrack();
               }}
               className="text-slate-200 hover:text-white transition-colors p-2 shrink-0"

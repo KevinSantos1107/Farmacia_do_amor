@@ -59,7 +59,7 @@ export function useStarMapCanvas(
     const resize = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = parent.clientWidth;
       const h = window.innerWidth < 768 ? 750 : Math.max(600, window.innerHeight - 130);
 
@@ -80,8 +80,8 @@ export function useStarMapCanvas(
       if (!startTime) startTime = ts;
       const elapsed = ts - startTime;
 
-      const w = parseFloat(canvas.style.width);
-      const h = parseFloat(canvas.style.height);
+      const w = parseFloat(canvas.style.width) || canvas.clientWidth || 300;
+      const h = parseFloat(canvas.style.height) || canvas.clientHeight || 500;
 
       ctx.clearRect(0, 0, w, h);
 
