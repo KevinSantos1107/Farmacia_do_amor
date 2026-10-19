@@ -113,8 +113,7 @@ export function AlbumCarousel() {
           albumIds.map((id) =>
             getDocs(query(
               siteCollection('album_photos'),
-              where('albumId', '==', id),
-              orderBy('pageNumber', 'asc')
+              where('albumId', '==', id)
             ))
           )
         );
@@ -122,8 +121,11 @@ export function AlbumCarousel() {
         const loaded: Album[] = validDocs.map((doc, idx) => {
           const d = doc.data();
           const allPhotos: Photo[] = [];
-          photoSnapshots[idx].forEach((pageDoc) => {
-            if (pageDoc.id.startsWith('_')) return;
+          const sortedPages = photoSnapshots[idx].docs
+            .filter((pDoc) => !pDoc.id.startsWith('_'))
+            .sort((a, b) => (a.data().pageNumber ?? 0) - (b.data().pageNumber ?? 0));
+
+          sortedPages.forEach((pageDoc) => {
             const pd = pageDoc.data();
             if (Array.isArray(pd.photos)) allPhotos.push(...pd.photos);
           });
@@ -201,9 +203,7 @@ export function AlbumCarousel() {
         const isActive = dist === 0;
 
         if (isActive) {
-          if (Date.now() - lastNavigatedAt.current > 350) {
-            setSelectedAlbumIndex(clickedIdx);
-          }
+          setSelectedAlbumIndex(clickedIdx);
         } else {
           lastNavigatedAt.current = Date.now();
           goToIndex(clickedIdx, albums.length);
@@ -291,7 +291,16 @@ export function AlbumCarousel() {
               <div
                 key={album.id}
                 data-album-index={realIdx}
-                className="absolute group"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isActive) {
+                    setSelectedAlbumIndex(realIdx);
+                  } else {
+                    lastNavigatedAt.current = Date.now();
+                    goToIndex(realIdx, albums.length);
+                  }
+                }}
+                className="absolute group select-none"
                 style={{
                   width:   CARD_W,
                   height:  CARD_H,
@@ -305,8 +314,9 @@ export function AlbumCarousel() {
                   zIndex:     style.zIndex,
                   visibility: style.hidden ? 'hidden' : 'visible',
                   transition: 'transform 0.4s cubic-bezier(0.25,0.8,0.25,1), opacity 0.4s ease',
-                  cursor:     isActive ? 'pointer' : 'pointer',
+                  cursor:     'pointer',
                   willChange: 'transform, opacity',
+                  touchAction: 'manipulation',
                 }}
               >
                 <div className="relative w-full h-full rounded-2xl overflow-hidden border border-white/10">

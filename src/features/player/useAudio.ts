@@ -24,7 +24,7 @@ let _isLoadingTrack = false;
 let _loadGeneration = 0; // incremented on every new load; each async fn captures its own snapshot
 
 if (_audio) {
-  _audio.preload = 'auto';
+  _audio.preload = 'metadata';
 
   _audio.addEventListener('timeupdate', () => {
     _timeListeners.forEach((fn) => fn(_audio!.currentTime));
@@ -49,6 +49,10 @@ if (_audio) {
     }
     nextTrack();
   });
+}
+
+export function getAudioElement(): HTMLAudioElement | null {
+  return _audio;
 }
 
 export function replayCurrentAudio() {
@@ -123,7 +127,8 @@ export function useAudio() {
         setIsLoading(true);
         setError(null);
 
-        const url = await getPlayableAudioUrl(track.url);
+        const isDirectUrl = track.url.startsWith('http://') || track.url.startsWith('https://');
+        const url = isDirectUrl ? track.url : await getPlayableAudioUrl(track.url);
         if (isCancelled) return;
 
         if (_audio.src !== url) {
@@ -132,10 +137,7 @@ export function useAudio() {
 
         if (useAudioStore.getState().isPlaying) {
           _audio.play().catch((e) => {
-            console.error('Autoplay prevented:', e);
-            if (e.name === 'NotAllowedError') {
-              useAudioStore.getState().togglePlayPause();
-            }
+            console.warn('Audio play deferred by browser policy:', e);
           });
         }
       } catch (err: unknown) {

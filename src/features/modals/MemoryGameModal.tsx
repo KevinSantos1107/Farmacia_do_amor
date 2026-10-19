@@ -42,8 +42,7 @@ export function MemoryGameModal({
             getDocs(
               query(
                 siteCollection('album_photos'),
-                where('albumId', '==', id),
-                orderBy('pageNumber', 'asc'),
+                where('albumId', '==', id)
               ),
             ),
           ),
@@ -52,8 +51,11 @@ export function MemoryGameModal({
         const loaded: AlbumForGame[] = validDocs.map((doc, idx) => {
           const d = doc.data();
           const photos: AlbumForGame['photos'] = [];
-          photoSnapshots[idx].forEach((pageDoc) => {
-            if (pageDoc.id.startsWith('_')) return;
+          const sortedPages = photoSnapshots[idx].docs
+            .filter((pDoc) => !pDoc.id.startsWith('_'))
+            .sort((a, b) => (a.data().pageNumber ?? 0) - (b.data().pageNumber ?? 0));
+
+          sortedPages.forEach((pageDoc) => {
             const pd = pageDoc.data();
             if (Array.isArray(pd.photos)) {
               photos.push(...pd.photos);

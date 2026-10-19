@@ -36,6 +36,7 @@ export function PlaylistTabs() {
     playlist: currentTracks,
     isPlaying,
     setPlaylist,
+    setPlaylistAndPlay,
     togglePlayPause,
     nextTrack,
     previousTrack,
@@ -86,28 +87,29 @@ export function PlaylistTabs() {
           });
         });
 
-        // Carregar tracks individuais de cada playlist
-        for (const p of loaded) {
-          const tSnap = await getDocs(
-            query(siteCollection('playlist_tracks'), where('playlistId', '==', p.id))
-          );
-          const allTracks: (Track & { orderIndex?: number })[] = [];
-          tSnap.forEach((tDoc) => {
-            if (tDoc.id.startsWith('_')) return;
-            const data = tDoc.data();
-            if (data.title) {
-              allTracks.push({
-                ...data,
-                id: tDoc.id,
-                url: data.url || data.src,
-                coverUrl: (data.coverUrl || data.cover || (data as Record<string, unknown>).coverLarge || (data as Record<string, unknown>).coverThumb || (data as Record<string, unknown>).coverPublicId) as string | undefined,
-              } as Track);
-            }
-          });
-          // Ordenar por orderIndex (legado)
-          allTracks.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
-          p.tracks = allTracks;
-        }
+        // Carregar tracks de cada playlist em PARALELO
+        await Promise.all(
+          loaded.map(async (p) => {
+            const tSnap = await getDocs(
+              query(siteCollection('playlist_tracks'), where('playlistId', '==', p.id))
+            );
+            const allTracks: (Track & { orderIndex?: number })[] = [];
+            tSnap.forEach((tDoc) => {
+              if (tDoc.id.startsWith('_')) return;
+              const data = tDoc.data();
+              if (data.title) {
+                allTracks.push({
+                  ...data,
+                  id: tDoc.id,
+                  url: data.url || data.src,
+                  coverUrl: (data.coverUrl || data.cover || (data as Record<string, unknown>).coverLarge || (data as Record<string, unknown>).coverThumb || (data as Record<string, unknown>).coverPublicId) as string | undefined,
+                } as Track);
+              }
+            });
+            allTracks.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+            p.tracks = allTracks;
+          })
+        );
 
         setPlaylists(loaded);
         if (loaded.length > 0) setActiveTabId(loaded[0].id);
@@ -162,18 +164,14 @@ export function PlaylistTabs() {
       // A playlist da tab ativa já está no store → apenas toggle
       togglePlayPause();
     } else {
-      // Carregar a playlist da tab ativa e dar play
-      setPlaylist(activeTabPlaylist.tracks);
-      // isPlaying será true após setPlaylist + useAudio reagir
-      // Mas precisamos de um tick para o store atualizar — usamos setTimeout 0
-      setTimeout(() => useAudioStore.getState().playTrack(0), 50);
+      // Carregar a playlist da tab ativa e dar play imediatamente (síncrono, mantendo contexto de toque do iOS)
+      setPlaylistAndPlay(activeTabPlaylist.tracks, 0);
     }
   };
 
   const handleTrackClick = (idx: number) => {
     if (!isCurrentTabLoaded) {
-      setPlaylist(activeTabPlaylist.tracks);
-      setTimeout(() => useAudioStore.getState().playTrack(idx), 50);
+      setPlaylistAndPlay(activeTabPlaylist.tracks, idx);
     } else {
       playTrack(idx);
     }

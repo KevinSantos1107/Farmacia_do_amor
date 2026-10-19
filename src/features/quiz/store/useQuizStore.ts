@@ -77,7 +77,7 @@ interface QuizState {
   gamesPlayed: number;
 
   // Actions
-  loadQuizData: (siteId: string) => Promise<void>;
+  loadQuizData: (siteId: string, force?: boolean) => Promise<void>;
   startGame: () => void;
   answerQuestion: (isCorrect: boolean, points?: number) => void;
   advanceQuestion: () => void;
@@ -120,7 +120,12 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   highestCombo: initialStats.highestCombo,
   gamesPlayed: initialStats.gamesPlayed,
 
-  loadQuizData: async (siteId: string) => {
+  loadQuizData: async (siteId: string, force = false) => {
+    // Se já temos perguntas carregadas e não foi forçado reload, exibe instantaneamente
+    if (!force && get().isReady && get().questions.length > 0) {
+      return;
+    }
+
     set({ isLoading: true, error: null });
     try {
       if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
@@ -142,15 +147,40 @@ export const useQuizStore = create<QuizState>((set, get) => ({
             isLoading: false,
             isReady: true,
           });
-        }, 500);
+        }, 300);
         return;
       }
 
-      // ── Busca config ──────────────────────────────────────────────────
+      // ── Busca config, perguntas manuais e perguntas de IA em PARALELO ────────
       const configRef = doc(db, 'sites', siteId, 'quiz_config', 'main');
-      const configSnap = await getDoc(configRef);
+      const qRef = collection(db, 'sites', siteId, 'quiz_questions');
+      const qQuery = query(qRef, orderBy('order', 'asc'));
+
+      // Timeout de segurança de 3.5s para IA não travar o carregamento do quiz
+      const aiPromiseWithTimeout = Promise.race([
+        fetchAiQuestions(siteId).catch((aiErr) => {
+          console.warn('Não foi possível carregar perguntas de IA:', aiErr);
+          return [];
+        }),
+        new Promise<import('../schema').AiQuizQuestion[]>((resolve) =>
+          setTimeout(() => resolve([]), 3500)
+        ),
+      ]);
+
+      const [configSnap, qSnap, rawAi] = await Promise.all([
+        getDoc(configRef).catch((e) => {
+          console.warn('Erro ao carregar quiz_config:', e);
+          return null;
+        }),
+        getDocs(qQuery).catch((e) => {
+          console.warn('Erro ao carregar quiz_questions:', e);
+          return null;
+        }),
+        aiPromiseWithTimeout,
+      ]);
+
       let loadedConfig = DEFAULT_QUIZ_CONFIG;
-      if (configSnap.exists()) {
+      if (configSnap && configSnap.exists()) {
         loadedConfig = { ...DEFAULT_QUIZ_CONFIG, ...configSnap.data() } as QuizConfig;
       }
 
@@ -160,40 +190,27 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       const { p1Id, p2Id } = getPlayerIds(siteConfig);
       const isKnownPlayer = currentPlayer === p1Id || currentPlayer === p2Id;
 
-      // ── Busca perguntas manuais ───────────────────────────────────────
-      const qRef = collection(db, 'sites', siteId, 'quiz_questions');
-      const qQuery = query(qRef, orderBy('order', 'asc'));
-      const qSnap = await getDocs(qQuery);
-      const manualQuestions = qSnap.docs.map((d) => ({ id: d.id, ...d.data() } as QuizQuestion));
+      // ── Processa perguntas manuais ────────────────────────────────────
+      const manualQuestions = qSnap
+        ? qSnap.docs.map((d) => ({ id: d.id, ...d.data() } as QuizQuestion))
+        : [];
 
-      // ── Busca perguntas de IA ─────────────────────────────────────────
-      // fetchAiQuestions retorna AiQuizQuestion[], que tem o mesmo shape que QuizQuestion
-      // para fins de exibição no quiz (question, options, correctOptionId, points).
-      let aiQuestions: QuizQuestion[] = [];
-      try {
-        const rawAi = await fetchAiQuestions(siteId);
-        // Mapeia AiQuizQuestion para QuizQuestion (sem createdBy, sempre elegível)
-        aiQuestions = rawAi.map((q) => ({
-          id: q.id,
-          siteId: q.siteId,
-          question: q.question,
-          options: q.options,
-          correctOptionId: q.correctOptionId,
-          points: q.points,
-          active: true,
-          order: 0,
-          // createdBy omitido → elegível para todos
-        } as QuizQuestion));
-      } catch (aiErr) {
-        // Falha silenciosa: usa só manuais se as perguntas de IA não carregarem
-        console.warn('Não foi possível carregar perguntas de IA:', aiErr);
-      }
+      // ── Processa perguntas de IA ──────────────────────────────────────
+      const aiQuestions: QuizQuestion[] = (rawAi || []).map((q) => ({
+        id: q.id,
+        siteId: q.siteId,
+        question: q.question,
+        options: q.options,
+        correctOptionId: q.correctOptionId,
+        points: q.points,
+        active: true,
+        order: 0,
+      } as QuizQuestion));
 
       // ── Monta o pool final ────────────────────────────────────────────
       let loadedQuestions: QuizQuestion[];
 
       if (isKnownPlayer) {
-        // Jogador identificado: aplica filtro de createdBy + mistura com IA
         loadedQuestions = buildQuizPool(
           manualQuestions,
           aiQuestions,
@@ -201,13 +218,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
           loadedConfig
         );
       } else {
-        // Visitante: mostra todas as manuais ativas + IA (sem filtro de createdBy)
         const allEligible = manualQuestions.filter((q) => q.active);
         loadedQuestions = buildQuizPool(allEligible, aiQuestions, '', loadedConfig);
       }
 
-      // Embaralha perguntas (se configurado) — o buildQuizPool já embaralha,
-      // mas respeitamos a flag do config para o comportamento de reset também.
       if (loadedConfig.shuffleQuestions) {
         loadedQuestions = shuffle(loadedQuestions);
       }

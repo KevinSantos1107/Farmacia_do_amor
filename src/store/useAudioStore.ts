@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { replayCurrentAudio } from '../features/player/useAudio';
+import { replayCurrentAudio, getAudioElement } from '../features/player/useAudio';
 
 export interface Track {
   id: string;
@@ -21,6 +21,7 @@ interface PlayerState {
 
   // Actions
   setPlaylist: (tracks: Track[]) => void;
+  setPlaylistAndPlay: (tracks: Track[], index?: number) => void;
   playTrack: (index: number) => void;
   togglePlayPause: () => void;
   nextTrack: () => void;
@@ -42,6 +43,22 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
 
   setPlaylist: (tracks) => set({ playlist: tracks, currentTrackIndex: tracks.length > 0 ? 0 : -1 }),
 
+  setPlaylistAndPlay: (tracks, index = 0) => {
+    if (tracks.length === 0) return;
+    const safeIdx = Math.min(Math.max(0, index), tracks.length - 1);
+    set({ playlist: tracks, currentTrackIndex: safeIdx, isPlaying: true });
+    const audio = getAudioElement();
+    if (audio) {
+      const target = tracks[safeIdx];
+      if (target?.url && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
+        if (audio.src !== target.url) {
+          audio.src = target.url;
+        }
+        audio.play().catch(() => {});
+      }
+    }
+  },
+
   playTrack: (index) => {
     const { playlist, currentTrackIndex } = get();
     if (index >= 0 && index < playlist.length) {
@@ -50,14 +67,37 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
         replayCurrentAudio();
       } else {
         set({ currentTrackIndex: index, isPlaying: true });
+        const audio = getAudioElement();
+        if (audio) {
+          const target = playlist[index];
+          if (target?.url && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
+            if (audio.src !== target.url) {
+              audio.src = target.url;
+            }
+            audio.play().catch(() => {});
+          }
+        }
       }
     }
   },
 
   togglePlayPause: () => {
-    const { currentTrackIndex, isPlaying } = get();
+    const { currentTrackIndex, isPlaying, playlist } = get();
     if (currentTrackIndex !== -1) {
-      set({ isPlaying: !isPlaying });
+      const nextPlaying = !isPlaying;
+      set({ isPlaying: nextPlaying });
+      const audio = getAudioElement();
+      if (audio) {
+        if (nextPlaying) {
+          const target = playlist[currentTrackIndex];
+          if (target?.url && !audio.src && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
+            audio.src = target.url;
+          }
+          audio.play().catch(() => {});
+        } else {
+          audio.pause();
+        }
+      }
     }
   },
 

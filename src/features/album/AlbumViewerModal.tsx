@@ -5,6 +5,7 @@ import { cn } from '../../shared/utils/cn';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
 import { imagePreloader } from './ImagePreloader';
 import { cloudinaryUrl, cloudinaryResponsiveSrcSet } from '../../services/cloudinary/upload';
+import { X } from 'lucide-react';
 
 interface Photo {
   id?: string;
@@ -88,12 +89,6 @@ function ZoomableImage({ src, srcSet, alt }: { src: string; srcSet?: string; alt
       
       const target = e.currentTarget as HTMLDivElement;
       
-      // Se o modal pai estava acompanhando um swipe (1 dedo) e de repente o usuário colocou o segundo dedo,
-      // nós enviamos um evento de cancelamento falso para o modal abortar o swipe e limpar seus estados.
-      if (pts.length === 2 && scale === 1) {
-        target.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true }));
-      }
-
       // Rouba o controle absoluto do ponteiro para a imagem
       pointers.current.forEach((_, id) => {
         try { target.setPointerCapture(id); } catch {}
@@ -220,7 +215,7 @@ function ZoomableImage({ src, srcSet, alt }: { src: string; srcSet?: string; alt
         className="max-w-full max-h-full object-contain pointer-events-none"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-          transition: pointers.current.size === 0 ? 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)' : 'none',
+          transition: scale === 1 && pan.x === 0 && pan.y === 0 ? 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)' : 'none',
           willChange: 'transform'
         }}
       />
@@ -229,8 +224,41 @@ function ZoomableImage({ src, srcSet, alt }: { src: string; srcSet?: string; alt
 }
 
 // ─── Painel de um álbum ───────────────────────────────────────────────────────
-function AlbumPanel({ album, photoIndex }: { album: Album | undefined; photoIndex: number }) {
-  if (!album) return <div className="w-full h-full bg-black" />;
+function AlbumPanel({
+  album,
+  photoIndex,
+  onClose,
+}: {
+  album: Album | undefined;
+  photoIndex: number;
+  onClose?: () => void;
+}) {
+  if (!album || !album.photos || album.photos.length === 0) {
+    return (
+      <div className="w-full h-full bg-black flex flex-col items-center justify-center p-6 text-center">
+        <p className="text-white/80 text-lg font-medium mb-2">
+          {album?.title || 'Álbum'}
+        </p>
+        <p className="text-white/50 text-sm mb-6 max-w-xs">
+          Este álbum ainda não possui fotos adicionadas.
+        </p>
+        {onClose && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="px-6 py-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-semibold text-sm border border-white/30 active:scale-95 transition-transform"
+            style={{ touchAction: 'manipulation' }}
+          >
+            Voltar
+          </button>
+        )}
+      </div>
+    );
+  }
+
   const photo = album.photos[photoIndex];
   const url = photo ? getPhotoUrl(photo) : '';
   const srcSet = photo ? getPhotoSrcSet(photo) : undefined;
@@ -454,8 +482,8 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
         animate(dragX, 0, { type: 'spring', stiffness: 320, damping: 32 });
       }
     } else if (direction === 'v') {
-      if (absDy > 120 || Math.abs(velY) > 0.4) {
-        animate(y, dy > 0 ? window.innerHeight : -window.innerHeight, { duration: 0.25 })
+      if (absDy > 60 || Math.abs(velY) > 0.3) {
+        animate(y, dy > 0 ? window.innerHeight : -window.innerHeight, { duration: 0.22 })
           .then(onClose);
       } else {
         animate(y, 0, { type: 'spring', stiffness: 300, damping: 30 });
@@ -487,27 +515,56 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
       style={{ backgroundColor: bgColor }}
-      className="fixed inset-0 z-[99999] touch-none"
+      className="fixed inset-0 z-[99999] touch-none select-none"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
-      <motion.div style={{ y, scale: contentScale }} className="w-full h-[100dvh] overflow-hidden">
+      {/* Botão Fechar (X) — essencial para iOS / Mobile */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className="absolute top-5 right-5 z-[100000] p-3 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 hover:bg-black/80 active:scale-90 transition-transform shadow-2xl cursor-pointer"
+        style={{ touchAction: 'manipulation' }}
+        aria-label="Fechar álbum"
+      >
+        <X className="w-5 h-5 text-white" />
+      </button>
+
+      <motion.div style={{ y, scale: contentScale }} className="w-full h-full overflow-hidden">
         <motion.div
           style={{ x: stripX }}
           className="flex h-full"
         >
           <div className="w-[100vw] shrink-0">
-            <AlbumPanel key={prevAlbum?.id || 'prev-none'} album={prevAlbum} photoIndex={getPhotoIdx(prevAlbum)} />
+            <AlbumPanel
+              key={prevAlbum?.id || 'prev-none'}
+              album={prevAlbum}
+              photoIndex={getPhotoIdx(prevAlbum)}
+              onClose={onClose}
+            />
           </div>
 
           <div className="w-[100vw] shrink-0">
-            <AlbumPanel key={curAlbum?.id || 'cur-none'} album={curAlbum} photoIndex={getPhotoIdx(curAlbum)} />
+            <AlbumPanel
+              key={curAlbum?.id || 'cur-none'}
+              album={curAlbum}
+              photoIndex={getPhotoIdx(curAlbum)}
+              onClose={onClose}
+            />
           </div>
 
           <div className="w-[100vw] shrink-0">
-            <AlbumPanel key={nextAlbum?.id || 'next-none'} album={nextAlbum} photoIndex={getPhotoIdx(nextAlbum)} />
+            <AlbumPanel
+              key={nextAlbum?.id || 'next-none'}
+              album={nextAlbum}
+              photoIndex={getPhotoIdx(nextAlbum)}
+              onClose={onClose}
+            />
           </div>
         </motion.div>
       </motion.div>
