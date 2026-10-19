@@ -103,3 +103,17 @@ a,
   background: rgba(255, 255, 255, 0.15);
   border-radius: 3px;
 }
+
+/* Otimização de GPU para iPhones antigos ou com economia/acessibilidade de movimento ativada */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-3xl {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: rgba(13, 13, 20, 0.95) !important;
+  }
+}

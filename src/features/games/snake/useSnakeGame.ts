@@ -49,6 +49,7 @@ declare global {
 let audioCtx: AudioContext | null = null;
 
 function getAudioContext() {
+  if (typeof window === 'undefined') return null;
   if (!audioCtx) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (AudioContextClass) {
@@ -56,9 +57,23 @@ function getAudioContext() {
     }
   }
   if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    audioCtx.resume().catch(() => {});
   }
   return audioCtx;
+}
+
+// Desbloqueia o AudioContext do jogo no primeiro toque/clique no iOS
+if (typeof window !== 'undefined') {
+  const unlockSnakeAudio = () => {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    window.removeEventListener('touchstart', unlockSnakeAudio);
+    window.removeEventListener('click', unlockSnakeAudio);
+  };
+  window.addEventListener('touchstart', unlockSnakeAudio, { passive: true });
+  window.addEventListener('click', unlockSnakeAudio, { passive: true });
 }
 
 // Simple Web Audio API beep generator

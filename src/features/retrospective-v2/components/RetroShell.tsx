@@ -31,16 +31,27 @@ export function RetroShell() {
   }>({ startX: 0, startY: 0, startTime: 0, moved: false, pointerId: null });
 
   // ── Música ─────────────────────────────────────────────────────────────────
-  const startMusic = useCallback(async () => {
+  const startMusic = useCallback(() => {
     if (!config.musicUrl) return;
     try {
       if (!audioRef.current) {
-        audioRef.current = new Audio(config.musicUrl);
-        audioRef.current.loop = true;
-        audioRef.current.volume = 0.5;
-        audioRef.current.crossOrigin = 'anonymous';
+        const audio = new Audio();
+        audio.crossOrigin = 'anonymous'; // DEVE ser definido ANTES do src no Safari
+        audio.src = config.musicUrl;
+        audio.loop = true;
+        try {
+          audio.volume = 0.5;
+        } catch {
+          // Volume de hardware no iOS
+        }
+        audioRef.current = audio;
       }
-      await audioRef.current.play();
+      const playPromise = audioRef.current.play();
+      if (playPromise) {
+        playPromise.catch((e) => {
+          console.warn('Audio playback deferred by browser policy:', e);
+        });
+      }
     } catch (e) {
       console.warn('Audio playback failed', e);
     }
@@ -109,7 +120,11 @@ export function RetroShell() {
       pointerId: e.pointerId,
     };
     // Captura o pointer SÓ quando não é um elemento interativo
-    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    try {
+      (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Ignora erro se WebKit recusar pointer capture
+    }
   }, []);
 
   const y = useMotionValue(0);
