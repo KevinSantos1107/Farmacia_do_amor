@@ -29,44 +29,7 @@ interface Album {
   photos: Photo[];
 }
 
-// ─── Circular math ────────────────────────────────────────────────────────────
-
-/** Normaliza qualquer índice para o intervalo [0, total). */
-function circularIndex(index: number, total: number): number {
-  return ((index % total) + total) % total;
-}
-
-/**
- * Distância circular com sinal de `from` até `to`.
- * Retorna um número no intervalo  [-(total/2), total/2].
- * Negativo = `to` está à esquerda de `from`.
- * Positivo = `to` está à direita de `from`.
- */
-function circularDistance(from: number, to: number, total: number): number {
-  const raw = circularIndex(to - from, total);
-  return raw > total / 2 ? raw - total : raw;
-}
-
-// ─── Card transform ───────────────────────────────────────────────────────────
-
-/** Parâmetros visuais por slot de distância. */
-function getCardStyle(distance: number, cardWidth: number, gap: number) {
-  const absD = Math.abs(distance);
-  const sign  = distance < 0 ? -1 : distance > 0 ? 1 : 0;
-
-  // Quantos slots estão visíveis de cada lado
-  const MAX_VISIBLE = 3;
-  const hidden = absD > MAX_VISIBLE;
-
-  const translateX = sign * absD * (cardWidth + gap);
-  const translateZ = hidden ? -1200 : -absD * 120;
-  const rotateY    = hidden ? 0    : sign * absD * 20;
-  const scale      = hidden ? 0    : 1 - absD * 0.08;
-  const opacity    = hidden ? 0    : 1 - absD * 0.25;
-  const zIndex     = hidden ? 0    : 10 - absD;
-
-  return { translateX, translateZ, rotateY, scale, opacity, zIndex, hidden };
-}
+import { circularIndex, circularDistance, getCardStyle } from './albumCarouselMath';
 
 // ─── Carousel component ───────────────────────────────────────────────────────
 
@@ -94,6 +57,7 @@ export function AlbumCarousel() {
   // ─── Navegação ─────────────────────────────────────────────────────────────
 
   const goToIndex = useCallback((index: number, total: number) => {
+    lastNavigatedAt.current = Date.now();
     setActiveIndex(circularIndex(index, total));
   }, []);
 
@@ -152,6 +116,7 @@ export function AlbumCarousel() {
   const SWIPE_THRESHOLD = 30; // px
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) return;
     dragStartX.current   = e.clientX;
     dragStartY.current   = e.clientY;
     isDragging.current   = false;
@@ -177,6 +142,7 @@ export function AlbumCarousel() {
     if (isDragging.current || Math.abs(dx) > SWIPE_THRESHOLD) {
       // Confirma que é mais horizontal do que vertical
       if (Math.abs(dx) > Math.abs(dy)) {
+        lastNavigatedAt.current = Date.now();
         setActiveIndex((prev) =>
           circularIndex(dx < 0 ? prev + 1 : prev - 1, albums.length)
         );
@@ -203,7 +169,10 @@ export function AlbumCarousel() {
         const isActive = dist === 0;
 
         if (isActive) {
-          setSelectedAlbumIndex(clickedIdx);
+          // Só abre o álbum se não houve navegação nos últimos 450ms (duração da transição CSS é 400ms)
+          if (Date.now() - lastNavigatedAt.current > 450) {
+            setSelectedAlbumIndex(clickedIdx);
+          }
         } else {
           lastNavigatedAt.current = Date.now();
           goToIndex(clickedIdx, albums.length);
@@ -222,11 +191,16 @@ export function AlbumCarousel() {
   // Teclado (acessibilidade)
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight') {
-      setActiveIndex((prev) => circularIndex(prev + 1, albums.length));
+      goToIndex(activeIndex + 1, albums.length);
     } else if (e.key === 'ArrowLeft') {
-      setActiveIndex((prev) => circularIndex(prev - 1, albums.length));
+      goToIndex(activeIndex - 1, albums.length);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (Date.now() - lastNavigatedAt.current > 450) {
+        setSelectedAlbumIndex(activeIndex);
+      }
     }
-  }, [albums.length]);
+  }, [albums.length, activeIndex, goToIndex]);
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -293,12 +267,6 @@ export function AlbumCarousel() {
                 data-album-index={realIdx}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (isActive) {
-                    setSelectedAlbumIndex(realIdx);
-                  } else {
-                    lastNavigatedAt.current = Date.now();
-                    goToIndex(realIdx, albums.length);
-                  }
                 }}
                 className="absolute group select-none"
                 style={{
@@ -361,7 +329,10 @@ export function AlbumCarousel() {
           <AlbumViewerModal
             albums={albums}
             initialAlbumIndex={selectedAlbumIndex}
-            onClose={() => setSelectedAlbumIndex(null)}
+            onClose={() => {
+              lastNavigatedAt.current = Date.now();
+              setSelectedAlbumIndex(null);
+            }}
             onAlbumChange={(idx) => setActiveIndex(circularIndex(idx, albums.length))}
           />
         )}
