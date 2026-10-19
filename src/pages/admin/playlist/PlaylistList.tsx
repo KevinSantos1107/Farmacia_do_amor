@@ -181,7 +181,7 @@ export function PlaylistList({
                       ref={editCoverRef}
                       type="file"
                       className="hidden"
-                      accept="image/*"
+                      accept="image/*,.heic,.heif,.HEIC,.HEIF"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
                         if (f) onSelectEditCover(f);

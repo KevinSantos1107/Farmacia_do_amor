@@ -65,6 +65,8 @@ interface Photo {
 
 
 // ─── Upload Drop Zone ─────────────────────────────────────────────────────────
+const IMAGE_ACCEPT = 'image/*,.heic,.heif,.HEIC,.HEIF';
+
 interface DropZoneProps {
   onFiles: (files: File[]) => void;
   accept?: string;
@@ -73,7 +75,7 @@ interface DropZoneProps {
 }
 function DropZone({
   onFiles,
-  accept = 'image/*',
+  accept = IMAGE_ACCEPT,
   multiple = true,
   label = 'Solte as fotos aqui ou clique para selecionar',
 }: DropZoneProps) {
@@ -83,9 +85,11 @@ function DropZone({
   const handle = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    const files = Array.from(e.dataTransfer.files).filter((f) =>
-      f.type.startsWith(accept.replace('/*', ''))
-    );
+    const files = Array.from(e.dataTransfer.files).filter((f) => {
+      if (f.type.startsWith('image/')) return true;
+      const ext = f.name.split('.').pop()?.toLowerCase();
+      return ['heic', 'heif', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'bmp', 'svg'].includes(ext || '');
+    });
     if (files.length) onFiles(files);
   };
 
@@ -636,7 +640,20 @@ export default function AlbumEditor() {
                   key={i}
                   className="aspect-square rounded-lg overflow-hidden relative bg-slate-900 group"
                 >
-                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={src}
+                    alt=""
+                    className="w-full h-full object-cover relative z-10"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-800 text-slate-400 p-1 text-center">
+                    <ImageIcon className="w-5 h-5 mb-1 text-rose-400" />
+                    <span className="text-[10px] font-mono leading-tight truncate max-w-full px-1">
+                      {uploadFiles[i]?.name.split('.').pop()?.toUpperCase() || 'FOTO'}
+                    </span>
+                  </div>
                   {!uploading && (
                     <button
                       onClick={() => handleRemoveFromQueue(i)}
@@ -675,10 +692,10 @@ export default function AlbumEditor() {
                 Limpar Fila
               </Button>
               <DropZone
-                 onFiles={handlePhotoFiles}
-                 label="Adicionar mais"
-                 accept="image/*"
-                 multiple
+                onFiles={handlePhotoFiles}
+                label="Adicionar mais"
+                accept={IMAGE_ACCEPT}
+                multiple
               />
             </div>
           </div>

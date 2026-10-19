@@ -99,7 +99,7 @@ export function TrackUploadSection({
         ref={coverInputRef}
         type="file"
         className="hidden"
-        accept="image/*"
+        accept="image/*,.heic,.heif,.HEIC,.HEIF"
         onChange={handleCoverChange}
       />
 

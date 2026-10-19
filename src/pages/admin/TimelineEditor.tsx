@@ -282,7 +282,7 @@ export default function TimelineEditor() {
             ref={fileRef}
             type="file"
             className="hidden"
-            accept="image/*"
+            accept="image/*,.heic,.heif,.HEIC,.HEIF"
             onChange={handlePhotoSelect}
           />
         </div>

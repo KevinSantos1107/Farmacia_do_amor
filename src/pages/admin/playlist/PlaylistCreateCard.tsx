@@ -71,7 +71,7 @@ export function PlaylistCreateCard({
           ref={coverRef}
           type="file"
           className="hidden"
-          accept="image/*"
+          accept="image/*,.heic,.heif,.HEIC,.HEIF"
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) onSelectCover(f);

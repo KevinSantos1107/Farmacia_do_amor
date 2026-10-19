@@ -5,7 +5,6 @@ import { cn } from '../../shared/utils/cn';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
 import { imagePreloader } from './ImagePreloader';
 import { cloudinaryUrl, cloudinaryResponsiveSrcSet } from '../../services/cloudinary/upload';
-import { X } from 'lucide-react';
 
 interface Photo {
   id?: string;
@@ -525,23 +524,6 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
-      {/* Botão Fechar (X) — essencial para iOS / Mobile */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        className="absolute z-[100000] p-3 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 hover:bg-black/80 active:scale-90 transition-transform shadow-2xl cursor-pointer"
-        style={{
-          touchAction: 'manipulation',
-          top: 'max(1.25rem, env(safe-area-inset-top, 0px))',
-          right: 'max(1.25rem, env(safe-area-inset-right, 0px))',
-        }}
-        aria-label="Fechar álbum"
-      >
-        <X className="w-5 h-5 text-white" />
-      </button>
 
       <motion.div style={{ y, scale: contentScale }} className="w-full h-full overflow-hidden">
         <motion.div
