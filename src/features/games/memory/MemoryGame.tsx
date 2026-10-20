@@ -810,7 +810,7 @@ const MemoryCard = memo(function MemoryCard({ card, imgSrc, onClick, registerRef
           <img
             src={imgSrc}
             alt=""
-            loading="lazy"
+            loading="eager"
             draggable={false}
             className="w-full h-full object-cover"
           />
