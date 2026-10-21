@@ -7,9 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 import { useThemeStore } from '../../store/useThemeStore';
-import { useRetroV2Store } from '../../features/retrospective-v2/store/useRetroV2Store';
 import { useModalsStore, type ModalType } from '../../store/useModalsStore';
-import { useSiteId } from '../../services/firestore/paths';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
 
 // ─── Scroll helper ───────────────────────────────────────────────────────────
@@ -75,14 +73,15 @@ const NAV_SECTIONS = [
 const INTERACTIVE_ITEMS: {
   label: string;
   modal: ModalType;
+  route: string;
   Icon: React.ElementType;
 }[] = [
-  { modal: 'word-game',    label: 'Jogo de Palavras', Icon: Gamepad2 },
-  { modal: 'snake',        label: 'Cobrinha',          Icon: Worm },
-  { modal: 'star-map',     label: 'Mapa das Estrelas', Icon: Stars },
-  { modal: 'couple-quiz',  label: 'Quiz do Casal',     Icon: MessageCircleHeart },
-  { modal: 'memory-game',  label: 'Jogo da Memória',   Icon: Layers },
-  { modal: 'sync',         label: 'Sincronia',         Icon: Heart },
+  { modal: 'word-game',    label: 'Jogo de Palavras', route: '/word-game',   Icon: Gamepad2 },
+  { modal: 'snake',        label: 'Cobrinha',         route: '/snake',       Icon: Worm },
+  { modal: 'star-map',     label: 'Mapa das Estrelas', route: '/star-map',   Icon: Stars },
+  { modal: 'couple-quiz',  label: 'Quiz do Casal',    route: '/quiz',        Icon: MessageCircleHeart },
+  { modal: 'memory-game',  label: 'Jogo da Memória',  route: '/memory-game', Icon: Layers },
+  { modal: 'sync',         label: 'Sincronia',        route: '/sync',        Icon: Heart },
 ];
 
 export function HamburgerMenu() {
@@ -95,13 +94,15 @@ export function HamburgerMenu() {
   const navigate = useNavigate();
 
   const { activeTheme, setTheme } = useThemeStore();
-  const { openRetro } = useRetroV2Store();
   const { openModal } = useModalsStore();
-  const siteId = useSiteId();
 
-  const handleOpenModal = (modal: ModalType) => {
-    openModal(modal);
+  const handleOpenModal = (modal: ModalType, route?: string) => {
     setIsOpen(false);
+    if (route) {
+      navigate(route);
+    } else if (modal) {
+      openModal(modal);
+    }
   };
 
   const handleScrollTo = (sectionId: string) => {
@@ -115,15 +116,26 @@ export function HamburgerMenu() {
     }
   };
 
-  // Fecha ao clicar fora
+  // Fecha ao clicar fora ou pressionar Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen]);
 
   // Bloqueia scroll do body e html quando aberto
@@ -250,7 +262,7 @@ export function HamburgerMenu() {
                   {INTERACTIVE_ITEMS.map((item) => (
                     <button
                       key={item.modal}
-                      onClick={() => handleOpenModal(item.modal)}
+                      onClick={() => handleOpenModal(item.modal, item.route)}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full text-left"
                     >
                       <item.Icon className="w-4 h-4 opacity-70" style={{ shapeRendering: 'geometricPrecision' }} />
@@ -315,7 +327,8 @@ export function HamburgerMenu() {
             {/* ── DEVOCIONAL DO CASAL ───────────────────────── */}
             <button
               onClick={() => {
-                handleOpenModal('devotional');
+                setIsOpen(false);
+                navigate('/devotional');
               }}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/80 hover:bg-[#D4AF37]/15 hover:text-[#D4AF37] transition-all text-sm w-full font-medium group"
             >
@@ -337,8 +350,8 @@ export function HamburgerMenu() {
             {/* ── RETROSPECTIVA ─────────────────────────────── */}
             <button
               onClick={() => {
-                openRetro(siteId);
                 setIsOpen(false);
+                navigate('/retrospective');
               }}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full"
             >

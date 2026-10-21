@@ -8,6 +8,7 @@ import { Spinner } from '../../shared/ui/Spinner';
 import { useToast } from '../../shared/ui/ToastProvider';
 import { Save, Star, Search, MapPin } from 'lucide-react';
 import { calculateVisibleConstellations } from '../../features/maps/utils/astronomy';
+import { AdminPageHeader } from './AdminPageHeader';
 
 export interface StarMapConfig {
   specialDate: string;
@@ -162,17 +163,15 @@ export default function StarMapEditor() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Mapa de Estrelas</h1>
-          <p className="text-slate-400 mt-1">
-            Configure a data e o local para calcularmos o céu exato daquele momento.
-          </p>
-        </div>
-        <Button onClick={handleSave} isLoading={saving} className="gap-2 shrink-0">
-          <Save className="w-4 h-4" /> Salvar Alterações
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Mapa de Estrelas"
+        description="Configure a data e o local para calcularmos o céu exato daquele momento."
+        actions={
+          <Button onClick={handleSave} isLoading={saving} className="gap-2 shrink-0">
+            <Save className="w-4 h-4" /> Salvar Alterações
+          </Button>
+        }
+      />
 
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-6">
         <div className="flex items-center gap-3 pb-4 border-b border-slate-700">

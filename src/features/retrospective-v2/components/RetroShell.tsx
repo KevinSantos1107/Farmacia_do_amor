@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, ArrowLeft, X } from 'lucide-react';
 import { useRetroV2Store } from '../store/useRetroV2Store';
 import { IntroSlide } from './slides/01-IntroSlide';
 import { TimeSlide } from './slides/02-TimeSlide';
@@ -10,6 +10,7 @@ import { WordGameSlide } from './slides/06-WordGameSlide';
 import { SummarySlide } from './slides/07-SummarySlide';
 import { OutroSlide } from './slides/08-OutroSlide';
 import { lockBodyScroll } from '../../../shared/utils/scrollLock';
+import { useOverlayHistory } from '../../../shared/hooks/useOverlayHistory';
 import '../styles/retro-v2.css';
 
 
@@ -87,6 +88,21 @@ export function RetroShell() {
   const prevSlide = useCallback(() => {
     setCurrentSlide((prev) => Math.max(prev - 1, 0));
   }, []);
+
+  const handleRetroBack = useCallback(() => {
+    if (currentSlide > 0) {
+      prevSlide();
+    } else {
+      closeRetro();
+    }
+  }, [currentSlide, prevSlide, closeRetro]);
+
+  useOverlayHistory({
+    id: `retro-shell-slide-${currentSlide}`,
+    isOpen,
+    onClose: closeRetro,
+    onBack: handleRetroBack,
+  });
 
   const handleStart = () => {
     startMusic();
@@ -223,22 +239,42 @@ export function RetroShell() {
           </div>
         )}
 
-      {/* Controles do topo — apenas mudo (X removido) */}
+      {/* Controles do topo — botão voltar e mudo/fechar */}
       <div className="absolute top-5 left-4 right-4 z-50 flex justify-between items-center pointer-events-none">
-        <div /> {/* Espaçador */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleRetroBack(); }}
+          className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center pointer-events-auto active:scale-95 transition-transform border border-white/10 text-white/80 hover:text-white"
+          aria-label="Voltar"
+          title="Voltar"
+        >
+          <ArrowLeft className="w-4 h-4 text-white" />
+        </button>
 
-        {currentSlide > 0 && (
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {currentSlide > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+              className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center active:scale-95 transition-transform border border-white/10"
+              aria-label={isMuted ? 'Ativar som' : 'Desativar som'}
+              title={isMuted ? 'Ativar som' : 'Desativar som'}
+            >
+              {isMuted ? (
+                <VolumeX className="w-4 h-4 text-white" />
+              ) : (
+                <Volume2 className="w-4 h-4 text-white" />
+              )}
+            </button>
+          )}
+
           <button
-            onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center pointer-events-auto active:scale-95 transition-transform border border-white/10"
+            onClick={(e) => { e.stopPropagation(); closeRetro(); }}
+            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center active:scale-95 transition-transform border border-white/10 text-white/80 hover:text-white"
+            aria-label="Fechar retrospectiva"
+            title="Fechar"
           >
-            {isMuted ? (
-              <VolumeX className="w-4 h-4 text-white" />
-            ) : (
-              <Volume2 className="w-4 h-4 text-white" />
-            )}
+            <X className="w-4 h-4 text-white" />
           </button>
-        )}
+        </div>
       </div>
 
       {/* Indicador visual de zona de clique — aparece brevemente no primeiro slide não-intro */}

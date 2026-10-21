@@ -4,10 +4,11 @@ import { query, getDocs } from 'firebase/firestore';
 import { siteCollection } from '../../services/firestore/paths';
 import { Timeline } from './Timeline';
 import type { TimelineEvent } from './Timeline';
-import { X, Clock } from 'lucide-react';
+import { X, Clock, ArrowLeft } from 'lucide-react';
 import { Spinner } from '../../shared/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
+import { useOverlayHistory } from '../../shared/hooks/useOverlayHistory';
 
 // ─── Modal via Portal (bypasses overflow-x-hidden stacking context) ────────────
 export function TimelineModalContent({
@@ -21,15 +22,21 @@ export function TimelineModalContent({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const { handleDismiss, handleBack } = useOverlayHistory({
+    id: 'timeline-modal',
+    isOpen: true,
+    onClose,
+  });
+
   useEffect(() => {
     const unlock = lockBodyScroll();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleDismiss(); };
     window.addEventListener('keydown', onKey);
     return () => {
       unlock();
       window.removeEventListener('keydown', onKey);
     };
-  }, [onClose]);
+  }, [handleDismiss]);
 
   const modal = (
     <motion.div
@@ -37,7 +44,7 @@ export function TimelineModalContent({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) handleDismiss(); }}
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
@@ -54,23 +61,42 @@ export function TimelineModalContent({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '20px 24px',
+        padding: '16px 20px',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         backgroundColor: 'rgba(0,0,0,0.4)',
         flexShrink: 0,
       }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#fff', fontFamily: 'serif' }}>
-            Nossa História
-          </h2>
-          <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: '#94a3b8' }}>
-            Cada momento juntos é um capítulo especial
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <button
+            onClick={handleBack}
+            aria-label="Voltar"
+            title="Voltar"
+            style={{
+              width: 40, height: 40, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              color: '#fff', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <ArrowLeft style={{ width: 20, height: 20 }} />
+          </button>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: '#fff', fontFamily: 'serif' }}>
+              Nossa História
+            </h2>
+            <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+              Cada momento juntos é um capítulo especial
+            </p>
+          </div>
         </div>
         <button
-          onClick={onClose}
+          onClick={handleDismiss}
+          aria-label="Fechar"
+          title="Fechar"
           style={{
-            width: 44, height: 44, borderRadius: '50%',
+            width: 40, height: 40, borderRadius: '50%',
             background: 'rgba(255,255,255,0.1)',
             border: '1px solid rgba(255,255,255,0.25)',
             color: '#fff', cursor: 'pointer',
@@ -78,7 +104,7 @@ export function TimelineModalContent({
             flexShrink: 0,
           }}
         >
-          <X style={{ width: 22, height: 22 }} />
+          <X style={{ width: 20, height: 20 }} />
         </button>
       </div>
 

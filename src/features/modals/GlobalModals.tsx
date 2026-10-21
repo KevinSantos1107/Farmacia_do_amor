@@ -1,28 +1,28 @@
-import { lazy, Suspense } from 'react';
-import { useModalsStore } from '../../store/useModalsStore';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useModalsStore, type ModalType } from '../../store/useModalsStore';
 
-const WordGameModal = lazy(() => import('./WordGameModal').then(module => ({ default: module.WordGameModal })));
-const SnakeModal = lazy(() => import('./SnakeModal').then(module => ({ default: module.SnakeModal })));
-const StarMapModal = lazy(() => import('./StarMapModal').then(module => ({ default: module.StarMapModal })));
-const TimelineModalWrapper = lazy(() => import('./TimelineModalWrapper').then(module => ({ default: module.TimelineModalWrapper })));
-const CoupleQuizModal = lazy(() => import('../quiz/components/CoupleQuizModal').then(module => ({ default: module.CoupleQuizModal })));
-const MemoryGameModal = lazy(() => import('./MemoryGameModal').then(module => ({ default: module.MemoryGameModal })));
-const SyncModal = lazy(() => import('./SyncModal').then(module => ({ default: module.SyncModal })));
-const DevotionalModal = lazy(() => import('./DevotionalModal').then(module => ({ default: module.DevotionalModal })));
+const MODAL_ROUTES: Record<NonNullable<ModalType>, string> = {
+  'timeline': '/timeline',
+  'word-game': '/word-game',
+  'snake': '/snake',
+  'star-map': '/star-map',
+  'couple-quiz': '/quiz',
+  'memory-game': '/memory-game',
+  'sync': '/sync',
+  'devotional': '/devotional',
+};
 
 export function GlobalModals() {
   const { activeModal, closeModal } = useModalsStore();
+  const navigate = useNavigate();
 
-  return (
-    <Suspense fallback={null}>
-      {activeModal === 'timeline' && <TimelineModalWrapper isOpen={true} onClose={closeModal} />}
-      {activeModal === 'word-game' && <WordGameModal isOpen={true} onClose={closeModal} />}
-      {activeModal === 'snake' && <SnakeModal isOpen={true} onClose={closeModal} />}
-      {activeModal === 'star-map' && <StarMapModal isOpen={true} onClose={closeModal} />}
-      {activeModal === 'couple-quiz' && <CoupleQuizModal isOpen={true} onClose={closeModal} />}
-      {activeModal === 'memory-game' && <MemoryGameModal isOpen={true} onClose={closeModal} />}
-      {activeModal === 'sync' && <SyncModal isOpen={true} onClose={closeModal} />}
-      {activeModal === 'devotional' && <DevotionalModal isOpen={true} onClose={closeModal} />}
-    </Suspense>
-  );
+  useEffect(() => {
+    if (activeModal && MODAL_ROUTES[activeModal]) {
+      navigate(MODAL_ROUTES[activeModal]);
+      closeModal();
+    }
+  }, [activeModal, closeModal, navigate]);
+
+  return null;
 }

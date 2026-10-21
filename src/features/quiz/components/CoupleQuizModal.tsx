@@ -3,6 +3,7 @@ import { FullScreenOverlay } from '../../../shared/ui/FullScreenOverlay';
 import { MessageCircleHeart } from 'lucide-react';
 import { useSiteId } from '../../../services/firestore/paths';
 import { useQuizStore } from '../store/useQuizStore';
+import { useOverlayHistory } from '../../../shared/hooks/useOverlayHistory';
 import { QuizIntro } from './QuizIntro';
 import { QuizPlay } from './QuizPlay';
 import { QuizResult } from './QuizResult';
@@ -10,7 +11,23 @@ import { QuizResult } from './QuizResult';
 export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const siteId = useSiteId();
   
-  const { isReady, isLoading, error, loadQuizData, gameState, config, syncQuizStats } = useQuizStore();
+  const { isReady, isLoading, error, loadQuizData, gameState, config, syncQuizStats, resetGame } = useQuizStore();
+
+  // Permite que o botão Voltar do navegador/notebook retorne da partida/resultado para a introdução
+  useOverlayHistory({
+    id: 'quiz-active-game',
+    isOpen: isOpen && (gameState === 'playing' || gameState === 'result'),
+    onClose: resetGame,
+    onBack: resetGame,
+  });
+
+  const handleQuizBack = () => {
+    if (gameState === 'playing' || gameState === 'result') {
+      resetGame();
+    } else {
+      onClose();
+    }
+  };
 
   // Sincroniza recordes só quando o modal abre (antes rodava ~3x por abertura)
   useEffect(() => {
@@ -27,6 +44,7 @@ export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose:
     <FullScreenOverlay
       isOpen={isOpen}
       onClose={onClose}
+      onBack={handleQuizBack}
       title="Quiz do Casal"
       subtitle="O quanto você lembra da nossa história?"
       icon={<MessageCircleHeart className="w-6 h-6" />}

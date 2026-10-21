@@ -1,19 +1,19 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useSyncRoom } from '../useSyncRoom';
-import { useModalsStore } from '../../../../store/useModalsStore';
 import { X, Check } from 'lucide-react';
 import { runTransaction } from 'firebase/firestore';
 import { siteDoc } from '../../../../services/firestore/paths';
 import { db } from '../../../../services/firebase/config';
 
 export function SyncInviteToast() {
+  const navigate = useNavigate();
   const { room, isPlayer, player, p1Id, p2Id, partnerName } = useSyncRoom();
-  const { openModal } = useModalsStore();
 
   const isInvited = isPlayer && room?.status === 'inviting' && room.hostId !== player;
 
   const handleAccept = async () => {
-    openModal('sync');
+    navigate('/sync');
     const roomId = `${p1Id}_${p2Id}`;
     const ref = siteDoc('sync_rooms', roomId);
     await runTransaction(db, async (t) => {

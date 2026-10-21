@@ -13,10 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/Card';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import { useToast } from '../../shared/ui/ToastProvider';
-import { Trash2, Copy, Plus, RefreshCw, KeyRound, ExternalLink } from 'lucide-react';
+import { Trash2, Copy, Plus, RefreshCw, ExternalLink } from 'lucide-react';
 
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { copyToClipboard } from '../../shared/utils/clipboard';
+import { AdminPageHeader } from './AdminPageHeader';
 
 interface PlayerToken {
   id: string;
@@ -146,16 +147,10 @@ export default function TokenEditor() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2">
-          <KeyRound className="w-8 h-8 text-indigo-400" />
-          Acessos Mágicos
-        </h1>
-        <p className="text-slate-400 mt-1">
-          Gerencie os links de acesso para você e para a Iara. Crie, copie ou
-          remova links quando precisar.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Acessos Mágicos"
+        description="Gerencie os links de acesso para o casal. Crie, copie ou remova links quando precisar."
+      />
 
       {/* Criar novo token */}
       <Card className="bg-slate-800 border-slate-700">

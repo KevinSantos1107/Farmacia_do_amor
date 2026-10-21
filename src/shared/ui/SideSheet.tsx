@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, ArrowLeft } from 'lucide-react';
 import { cn } from './../utils/cn';
+import { useOverlayHistory } from '../hooks/useOverlayHistory';
 
 interface SideSheetProps {
   isOpen: boolean;
@@ -22,6 +23,12 @@ export function SideSheet({
 }: SideSheetProps) {
   const [render, setRender] = useState(isOpen);
   const [mounted, setMounted] = useState(false);
+
+  const { handleDismiss, handleBack } = useOverlayHistory({
+    id: `sidesheet-${title.toLowerCase().replace(/\s+/g, '-')}`,
+    isOpen,
+    onClose,
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -62,7 +69,7 @@ export function SideSheet({
           'absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300',
           isOpen ? 'opacity-100' : 'opacity-0'
         )}
-        onClick={onClose}
+        onClick={handleDismiss}
       />
 
       {/* Sheet panel */}
@@ -74,13 +81,25 @@ export function SideSheet({
         )}
       >
         <div className="flex items-start justify-between px-6 py-5 border-b border-slate-800 shrink-0">
-          <div>
-            <h2 className="text-xl font-semibold text-white">{title}</h2>
-            {description && <p className="text-sm text-slate-400 mt-1">{description}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBack}
+              className="text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-full transition-colors shrink-0 -ml-2 cursor-pointer"
+              aria-label="Voltar"
+              title="Voltar"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h2 className="text-xl font-semibold text-white">{title}</h2>
+              {description && <p className="text-sm text-slate-400 mt-1">{description}</p>}
+            </div>
           </div>
           <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-full transition-colors shrink-0"
+            onClick={handleDismiss}
+            className="text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-full transition-colors shrink-0 cursor-pointer"
+            aria-label="Fechar"
+            title="Fechar"
           >
             <X className="w-5 h-5" />
           </button>

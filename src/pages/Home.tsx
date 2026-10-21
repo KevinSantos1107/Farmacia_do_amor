@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, ChevronDown, RefreshCw, Sparkles, Clock, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSiteConfigStore } from '../store/siteConfigStore';
@@ -9,7 +10,6 @@ import { Countdown } from './home/Countdown';
 
 const PlaylistTabs = lazy(() => import('../features/playlist/PlaylistTabs').then(m => ({ default: m.PlaylistTabs })));
 const AlbumCarousel = lazy(() => import('../features/album/AlbumCarousel').then(m => ({ default: m.AlbumCarousel })));
-import { useModalsStore } from '../store/useModalsStore';
 import { getSafeTime } from '../shared/utils/dateUtils';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -86,9 +86,9 @@ function SectionLabel({ emoji, text }: { emoji: string; text: string }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Home() {
+  const navigate = useNavigate();
   const { config } = useSiteConfigStore();
   const { activeTheme } = useThemeStore();
-  const { openModal } = useModalsStore();
   const [msgIndex, setMsgIndex] = useState(0);
   const [openAcrostic, setOpenAcrostic] = useState<number | null>(null);
 
@@ -682,7 +682,7 @@ export default function Home() {
           </div>
           <div className="flex justify-center mt-12 drop-shadow-[0_0_40px_rgba(var(--theme-primary-rgb),0.5)] hover:drop-shadow-[0_0_60px_rgba(var(--theme-primary-rgb),0.8)] transition-all duration-500 scale-110">
             <button
-              onClick={() => openModal('timeline')}
+              onClick={() => navigate('/timeline')}
               className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-2xl border transition-all duration-300 hover:scale-105"
               style={{
                 borderColor: 'rgba(var(--theme-primary-rgb, 157,78,221), 0.3)',
@@ -740,7 +740,7 @@ export default function Home() {
 
         <div className="flex justify-center mt-6">
           <button
-            onClick={() => openModal('devotional')}
+            onClick={() => navigate('/devotional')}
             className="group relative inline-flex items-center gap-4 px-8 py-4 rounded-2xl border transition-all duration-300 hover:scale-105 shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:shadow-[0_0_50px_rgba(212,175,55,0.4)] cursor-pointer"
             style={{
               borderColor: 'rgba(212, 175, 55, 0.4)',

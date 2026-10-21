@@ -10,6 +10,7 @@ import type { SiteConfig } from '../../config/siteConfig.schema';
 import { AvatarPicker } from '../../features/avatar/AvatarPicker';
 
 import { useToast } from '../../shared/ui/ToastProvider';
+import { AdminPageHeader } from './AdminPageHeader';
 
 const AVATAR_OPTIONS = Array.from({ length: 48 }, (_, i) => `/avatars/avatar_${i + 1}.webp`);
 
@@ -255,12 +256,10 @@ export default function ConfigPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Configurações Gerais</h1>
-        <p className="text-slate-400 mt-1">
-          Altere os dados básicos do casal e ative/desative funcionalidades do site.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Configurações Gerais"
+        description="Altere os dados básicos do casal e ative/desative funcionalidades do site."
+      />
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Identidade do Casal */}

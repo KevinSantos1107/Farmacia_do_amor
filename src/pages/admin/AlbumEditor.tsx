@@ -20,6 +20,8 @@ import { EmptyState } from '../../shared/ui/EmptyState';
 import { Modal } from '../../shared/ui/Modal';
 import { SideSheet } from '../../shared/ui/SideSheet';
 import { useToast } from '../../shared/ui/ToastProvider';
+import { AdminPageHeader } from './AdminPageHeader';
+import { useOverlayHistory } from '../../shared/hooks/useOverlayHistory';
 import { cn } from '../../shared/utils/cn';
 import { DndContext } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -183,6 +185,12 @@ export default function AlbumEditor() {
   });
 
   const siteId = useSiteId();
+
+  useOverlayHistory({
+    id: 'admin-album-detail',
+    isOpen: !!activeAlbum,
+    onClose: () => setActiveAlbum(null),
+  });
 
   const loadAlbums = useCallback(async () => {
     setLoading(true);
@@ -811,15 +819,15 @@ export default function AlbumEditor() {
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Álbuns de Fotos</h1>
-          <p className="text-slate-400 mt-1">Crie e organize os álbuns exibidos no site.</p>
-        </div>
-        <Button onClick={() => setCreating(true)} className="gap-2 shrink-0">
-          <Plus className="w-4 h-4" /> Novo Álbum
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Álbuns de Fotos"
+        description="Crie e organize os álbuns exibidos no site."
+        actions={
+          <Button onClick={() => setCreating(true)} className="gap-2 shrink-0">
+            <Plus className="w-4 h-4" /> Novo Álbum
+          </Button>
+        }
+      />
 
       {/* Create album form */}
       <SideSheet

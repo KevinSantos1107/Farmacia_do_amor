@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Heart, Copy, Check, QrCode, Link2, Download } from 'lucide-react';
+import { Copy, Check, QrCode, Link2, Download } from 'lucide-react';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 
 import { copyToClipboard } from '../../shared/utils/clipboard';
+import { AdminPageHeader } from './AdminPageHeader';
 
 const SITE_URL = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -67,15 +68,11 @@ export default function SharePage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-2xl mx-auto w-full">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">
-          <Heart className="w-5 h-5 text-pink-400" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold font-serif text-white">Compartilhar</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Gere um link ou QR Code para enviar ao(à) parceiro(a)</p>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Compartilhar"
+        description="Gere um link ou QR Code para enviar ao(à) parceiro(a)"
+        className="mb-8"
+      />
 
       {/* Seletor de Página */}
       <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5 mb-6">

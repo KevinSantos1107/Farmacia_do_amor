@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { cn } from '../../shared/utils/cn';
 import { SplashScreen } from '../../features/core/SplashScreen';
 import { HamburgerMenu } from '../../features/core/HamburgerMenu';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { lazy, Suspense } from 'react';
+import Home from '../../pages/Home';
 import { GlobalModals } from '../../features/modals/GlobalModals';
 import { PlayerAuthInit } from '../../features/auth/PlayerAuthInit';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
@@ -18,13 +19,33 @@ const SyncInviteToast = lazy(() => import('../../features/games/sync/components/
 export function Shell() {
   const [showSplash, setShowSplash] = useState(true);
   const { config, isLoading } = useSiteConfigStore();
+  const location = useLocation();
 
   // The site is ready when config is loaded. We can also add other ready checks here later.
   const isReady = !isLoading && !!config;
 
   const title = config?.couple
     ? `${config.couple.partner1.name} & ${config.couple.partner2.name}`
-    : '';
+    : 'Kevin & Iara';
+
+  // Se o usuário acessou diretamente uma rota de overlay (/quiz, /word-game, /devotional, etc.)
+  // como primeira página da sessão (idx === 0), prepara a raiz '/' no histórico.
+  // Assim, se o usuário pressionar Voltar no navegador ou notebook, ele voltará para a Home
+  // em vez de ser jogado para fora do site (ex: tela inicial do Google).
+  useEffect(() => {
+    const isOverlayRoute = location.pathname !== '/' && !location.pathname.startsWith('/admin');
+    const isFirstEntry = window.history.state?.idx === 0;
+
+    if (isOverlayRoute && isFirstEntry) {
+      const currentPath = window.location.pathname + window.location.search + window.location.hash;
+      try {
+        window.history.replaceState({ ...window.history.state, idx: 0 }, '', '/');
+        window.history.pushState({ ...window.history.state, idx: 1 }, '', currentPath);
+      } catch {
+        // Ignora em caso de restrição do ambiente
+      }
+    }
+  }, []); // Executa apenas na carga inicial
 
   // Previne rolagem do body enquanto a splash screen estiver ativa
   useEffect(() => {
@@ -64,6 +85,7 @@ export function Shell() {
           <HamburgerMenu />
 
           <main className="flex-1">
+            <Home />
             <Outlet />
           </main>
 

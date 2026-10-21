@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import { X, ArrowLeft } from 'lucide-react';
 import { lockBodyScroll } from '../utils/scrollLock';
-
+import { useOverlayHistory } from '../hooks/useOverlayHistory';
 
 interface FullScreenOverlayProps {
   isOpen: boolean;
@@ -16,22 +17,70 @@ interface FullScreenOverlayProps {
   fill?: boolean;
   /** Botão inteligente de voltar para passos anteriores */
   onBack?: () => void;
+  /** Identificador único para a pilha de histórico */
+  overlayId?: string;
+  /** Esconde explicitamente o botão voltar se estritamente necessário */
+  hideBackButton?: boolean;
 }
 
-export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, icon, actions, fill, onBack }: FullScreenOverlayProps) {
+export function FullScreenOverlay({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  children,
+  icon,
+  actions,
+  fill,
+  onBack,
+  overlayId,
+  hideBackButton = false,
+}: FullScreenOverlayProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+
+  // Quando o overlay é hospedado em uma rota própria (ex: /quiz, /devotional, /word-game),
+  // o React Router já gerencia o histórico e o endereço na URL nativamente.
+  const isDedicatedRoute = location.pathname !== '/' && !location.pathname.startsWith('/admin');
+
+  const { handleDismiss: overlayDismiss, handleBack: overlayBack } = useOverlayHistory({
+    id: overlayId || `overlay-${title.toLowerCase().replace(/\s+/g, '-')}`,
+    isOpen: isOpen && !isDedicatedRoute,
+    onClose,
+    onBack,
+  });
+
+  const handleDismiss = () => {
+    if (isDedicatedRoute) {
+      onClose();
+    } else {
+      overlayDismiss();
+    }
+  };
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (isDedicatedRoute) {
+      onClose();
+    } else {
+      overlayBack();
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
       const unlock = lockBodyScroll();
-      const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') handleDismiss();
+      };
       window.addEventListener('keydown', onKey);
       return () => {
         unlock();
         window.removeEventListener('keydown', onKey);
       };
     }
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -52,11 +101,11 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
         }}
       >
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
-          {onBack && (
+          {!hideBackButton && (
             <button
               type="button"
-              onClick={onBack}
-              className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all hover:scale-105 active:scale-95 ${
+              onClick={handleBack}
+              className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all hover:scale-105 active:scale-95 cursor-pointer ${
                 fill ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'
               }`}
               aria-label="Voltar"
@@ -81,13 +130,14 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
             )}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-1.5 sm:gap-2">
           {actions}
           <button
-            onClick={onClose}
-            className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-all hover:scale-105 active:scale-95 ml-1 sm:ml-2 ${fill ? 'w-9 h-9' : 'w-10 h-10'}`}
+            onClick={handleDismiss}
+            className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-all hover:scale-105 active:scale-95 ml-1 sm:ml-2 cursor-pointer ${fill ? 'w-9 h-9' : 'w-10 h-10'}`}
             aria-label="Fechar"
+            title="Fechar"
           >
             <X className={fill ? 'w-5 h-5' : 'w-6 h-6'} />
           </button>

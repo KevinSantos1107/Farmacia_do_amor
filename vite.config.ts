@@ -94,7 +94,8 @@ function htmlMetaPlugin(env: Record<string, string>): Plugin {
         tags.push({ tag: 'meta', attrs: { property: 'og:title', content: `${siteName} 💕` } });
         tags.push({ tag: 'meta', attrs: { name: 'twitter:title', content: `${siteName} 💕` } });
       } else {
-        tags.push({ tag: 'title', children: 'Nosso Espaço' });
+        tags.push({ tag: 'title', children: 'Kevin & Iara' });
+        tags.push({ tag: 'meta', attrs: { name: 'apple-mobile-web-app-title', content: 'Kevin & Iara' } });
       }
 
       if (siteDescription) {
@@ -128,7 +129,7 @@ function htmlMetaPlugin(env: Record<string, string>): Plugin {
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const siteName = env.VITE_SITE_NAME || 'Nosso Espaço';
+  const siteName = env.VITE_SITE_NAME || 'Kevin & Iara';
   const siteDescription = env.VITE_SITE_DESCRIPTION || 'Um espaço especial para nós — nossa história, memórias e momentos únicos.';
 
   // Popula process.env para que as Serverless Functions locais (/api/...) consigam ler as chaves

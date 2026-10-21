@@ -21,6 +21,20 @@ export default function App() {
       const title = `${couple.partner1.name} & ${couple.partner2.name}`;
       document.title = title;
 
+      // Nome do aplicativo no iOS (Add to Home Screen) e navegadores móveis
+      const updateMetaName = (name: string, content: string) => {
+        let tag = document.querySelector(`meta[name="${name}"]`);
+        if (!tag) {
+          tag = document.createElement('meta');
+          tag.setAttribute('name', name);
+          document.head.appendChild(tag);
+        }
+        tag.setAttribute('content', content);
+      };
+
+      updateMetaName('apple-mobile-web-app-title', title);
+      updateMetaName('application-name', title);
+
       const desc = (config as { seo?: { description?: string } }).seo?.description || `O nosso espaço especial — ${title}`;
 
       // Update or create Description

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Shell } from './layout/Shell';
 import { AdminShell } from './layout/AdminShell';
 import { ProtectedRoute } from '../features/auth/ProtectedRoute';
@@ -7,8 +7,15 @@ import { AuthProvider } from '../features/auth/AuthContext';
 import { Spinner } from '../shared/ui/Spinner';
 
 // Lazy load pages
-import Home from '../pages/Home';
 const DevotionalPage = lazy(() => import('../features/devotional/DevotionalPage'));
+const QuizPage = lazy(() => import('../features/quiz/QuizPage'));
+const WordGamePage = lazy(() => import('../features/games/word/WordGamePage'));
+const SnakePage = lazy(() => import('../features/games/snake/SnakePage'));
+const StarMapPage = lazy(() => import('../features/maps/StarMapPage'));
+const TimelinePage = lazy(() => import('../features/timeline/TimelinePage'));
+const MemoryGamePage = lazy(() => import('../features/games/memory/MemoryGamePage'));
+const SyncPage = lazy(() => import('../features/games/sync/SyncPage'));
+const RetrospectivePage = lazy(() => import('../features/retrospective-v2/RetrospectivePage'));
 const LoginPage = lazy(() => import('../features/auth/LoginPage'));
 
 // Lazy load admin pages
@@ -44,7 +51,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />,
+        element: null,
       },
       {
         path: 'devotional',
@@ -55,8 +62,152 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'quiz',
+        element: (
+          <SuspenseWrapper>
+            <QuizPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'couple-quiz',
+        element: (
+          <SuspenseWrapper>
+            <QuizPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'word-game',
+        element: (
+          <SuspenseWrapper>
+            <WordGamePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'palavras',
+        element: (
+          <SuspenseWrapper>
+            <WordGamePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'snake',
+        element: (
+          <SuspenseWrapper>
+            <SnakePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'cobrinha',
+        element: (
+          <SuspenseWrapper>
+            <SnakePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'star-map',
+        element: (
+          <SuspenseWrapper>
+            <StarMapPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'starmap',
+        element: (
+          <SuspenseWrapper>
+            <StarMapPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'mapa-estelar',
+        element: (
+          <SuspenseWrapper>
+            <StarMapPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'timeline',
+        element: (
+          <SuspenseWrapper>
+            <TimelinePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'historia',
+        element: (
+          <SuspenseWrapper>
+            <TimelinePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'nossa-historia',
+        element: (
+          <SuspenseWrapper>
+            <TimelinePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'memory-game',
+        element: (
+          <SuspenseWrapper>
+            <MemoryGamePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'memoria',
+        element: (
+          <SuspenseWrapper>
+            <MemoryGamePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'sync',
+        element: (
+          <SuspenseWrapper>
+            <SyncPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'sincronia',
+        element: (
+          <SuspenseWrapper>
+            <SyncPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'retrospective',
+        element: (
+          <SuspenseWrapper>
+            <RetrospectivePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'retrospectiva',
+        element: (
+          <SuspenseWrapper>
+            <RetrospectivePage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
         path: '*',
-        element: <div className="p-8 text-center text-red-500">Página não encontrada</div>,
+        element: <Navigate to="/" replace />,
       },
     ],
   },

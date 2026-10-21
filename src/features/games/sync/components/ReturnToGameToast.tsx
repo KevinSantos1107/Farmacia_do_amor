@@ -1,11 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useSyncRoom } from '../useSyncRoom';
 import { LogOut, Play } from 'lucide-react';
 import { useModalsStore } from '../../../../store/useModalsStore';
 
 export function ReturnToGameToast() {
+  const navigate = useNavigate();
   const { room, isPlayer, player, partnerName, forceEndGame } = useSyncRoom();
-  const { activeModal, openModal } = useModalsStore();
+  const { activeModal } = useModalsStore();
 
   const isLeft = room?.status === 'playing' || room?.status === 'choosing' || room?.status === 'revealed';
   const shouldShow = isPlayer && room?.leftBy === player && isLeft && activeModal !== 'sync';
@@ -38,7 +40,7 @@ export function ReturnToGameToast() {
           </button>
           <button
             onClick={() => {
-              openModal('sync');
+              navigate('/sync');
             }}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-[var(--theme-bg)] bg-[var(--theme-primary)] hover:opacity-90 transition-all"
           >

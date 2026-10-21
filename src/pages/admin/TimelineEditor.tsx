@@ -17,6 +17,7 @@ import { SideSheet } from '../../shared/ui/SideSheet';
 import { useToast } from '../../shared/ui/ToastProvider';
 import { cn } from '../../shared/utils/cn';
 import { Plus, Trash2, Edit2, X, Upload, CheckCircle, Calendar } from 'lucide-react';
+import { AdminPageHeader } from './AdminPageHeader';
 
 interface TimelineEvent {
   id: string;
@@ -341,18 +342,15 @@ export default function TimelineEditor() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Nossa História</h1>
-          <p className="text-slate-400 mt-1">
-            Gerencie os eventos da Linha do Tempo.{' '}
-            <span className="text-slate-500 text-xs">Os eventos são ordenados por data automaticamente.</span>
-          </p>
-        </div>
-        <Button onClick={openNew} className="gap-2 shrink-0">
-          <Plus className="w-4 h-4" /> Novo Evento
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Nossa História"
+        description="Gerencie os eventos da Linha do Tempo. Os eventos são ordenados por data automaticamente."
+        actions={
+          <Button onClick={openNew} className="gap-2 shrink-0">
+            <Plus className="w-4 h-4" /> Novo Evento
+          </Button>
+        }
+      />
 
       {EventForm}
 

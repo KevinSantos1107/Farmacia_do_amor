@@ -15,6 +15,7 @@ import { Input } from '../../shared/ui/Input';
 import { Spinner } from '../../shared/ui/Spinner';
 import { useToast } from '../../shared/ui/ToastProvider';
 import { Save, Settings2, Music } from 'lucide-react';
+import { AdminPageHeader } from './AdminPageHeader';
 
 interface RetroV2Config {
   musicUrl?: string;
@@ -132,17 +133,15 @@ export default function RetrospectiveEditor() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Retrospectiva</h1>
-          <p className="text-slate-400 mt-1">
-            Configure a música e o jogo de palavras exibidos na retrospectiva.
-          </p>
-        </div>
-        <Button onClick={handleSave} isLoading={saving} className="gap-2 shrink-0">
-          <Save className="w-4 h-4" /> Salvar Alterações
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Retrospectiva"
+        description="Configure a música e o jogo de palavras exibidos na retrospectiva."
+        actions={
+          <Button onClick={handleSave} isLoading={saving} className="gap-2 shrink-0">
+            <Save className="w-4 h-4" /> Salvar Alterações
+          </Button>
+        }
+      />
 
       <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
         <div className="p-4 bg-slate-900 border-b border-slate-700">

@@ -5,7 +5,7 @@
  * FullScreenOverlay compartilhado com todos os outros modais do app.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
@@ -24,6 +24,10 @@ import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { getPlayerIds } from '../auth/playerIds';
 import { getCurrentSiteId } from '../../services/firestore/paths';
+import {
+  pushNavigationLayer,
+  removeNavigationLayer,
+} from '../../shared/utils/navigationStack';
 
 import { MoodSelector } from '../devotional/components/MoodSelector';
 import { DevotionalSolo } from '../devotional/components/DevotionalSolo';
@@ -66,8 +70,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     name2: config?.couple.partner2.name || 'Parceiro 2',
   };
 
-  const depthRef = useRef(0);
-  const isClosingRef = useRef(false);
+  const [stepHistory, setStepHistory] = useState<DevotionalStep[]>([]);
 
   const {
     mode,
@@ -77,6 +80,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     selectedMood,
     setMood,
     soloResult,
+    syncResult,
     favorites,
     loadHistory,
     loadFavorites,
@@ -91,78 +95,68 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     handleModalClose,
   } = useDevotionalStore();
 
-  // Navegação inteligente integrada ao histórico do navegador
+  // Navegação hierárquica integrada à pilha de navegação
   const navigateToStep = (nextStep: DevotionalStep) => {
-    depthRef.current += 1;
-    window.history.pushState(
-      { devotionalModal: true, step: nextStep },
-      '',
-      window.location.href
-    );
+    setStepHistory((prev) => [...prev, step]);
     setStep(nextStep);
+
+    pushNavigationLayer({
+      id: `devotional-step-${nextStep}`,
+      onBack: handleBack,
+      onClose: handleClose,
+    });
   };
 
   const handleBack = () => {
-    if (depthRef.current > 1 && window.history.state?.devotionalModal) {
-      window.history.back();
+    if (stepHistory.length > 0) {
+      const prevStep = stepHistory[stepHistory.length - 1];
+      setStepHistory((prev) => prev.slice(0, -1));
+      setStep(prevStep);
+      removeNavigationLayer(`devotional-step-${step}`);
     } else {
-      handleClose();
+      // Se não há passos na pilha local (ex: refresh ou acesso direto em favoritos)
+      if (step === 'history') {
+        const fallbackStep: DevotionalStep = (soloResult || syncResult) ? 'result' : 'mode-select';
+        setStep(fallbackStep);
+        removeNavigationLayer(`devotional-step-${step}`);
+      } else if (step === 'mood-select') {
+        setStep('mode-select');
+        removeNavigationLayer(`devotional-step-${step}`);
+      } else if (step === 'text-input') {
+        setStep('mood-select');
+        removeNavigationLayer(`devotional-step-${step}`);
+      } else if (step === 'focus-select') {
+        setStep('text-input');
+        removeNavigationLayer(`devotional-step-${step}`);
+      } else if (step === 'result' && !soloResult) {
+        setStep('mode-select');
+        removeNavigationLayer(`devotional-step-${step}`);
+      } else {
+        // Já na tela principal do devocional: retorna para a Home
+        handleClose();
+      }
     }
   };
 
   const handleClose = () => {
-    if (depthRef.current > 0 && window.history.state?.devotionalModal) {
-      isClosingRef.current = true;
-      window.history.go(-depthRef.current);
-      depthRef.current = 0;
-    }
+    stepHistory.forEach((s) => {
+      removeNavigationLayer(`devotional-step-${s}`);
+    });
+    removeNavigationLayer(`devotional-step-${step}`);
+    setStepHistory([]);
     handleModalClose();
     onClose();
   };
 
-  // Gerenciamento de abertura, popstate (voltar do celular/PC) e virada da meia-noite
+  // Gerenciamento de abertura e virada da meia-noite
   useEffect(() => {
     if (isOpen && isPlayer) {
-      // 1. Carrega dados do Firestore
       loadHistory(siteId, player);
       loadFavorites(siteId, player);
-
-      // 2. Trata abertura inteligente:
-      // Se tiver devocional aberto hoje, reabre no resultado.
-      // Se não tiver, ou se fechou em favoritos, volta sempre para 'mode-select'.
       handleModalOpen();
+      setStepHistory([]);
 
-      // 3. Inicializa histórico para interceptar o botão voltar nativo
-      depthRef.current = 1;
-      isClosingRef.current = false;
-      const initialStep = useDevotionalStore.getState().step;
-      window.history.pushState(
-        { devotionalModal: true, step: initialStep },
-        '',
-        window.location.href
-      );
-
-      // 4. Listener do popstate
-      const onPopState = (e: PopStateEvent) => {
-        if (isClosingRef.current) return;
-
-        if (e.state && e.state.devotionalModal) {
-          depthRef.current = Math.max(1, depthRef.current - 1);
-          const targetStep = e.state.step as DevotionalStep;
-          if (targetStep) {
-            setStep(targetStep);
-          }
-        } else {
-          // Voltou além da tela inicial do modal
-          depthRef.current = 0;
-          handleModalClose();
-          onClose();
-        }
-      };
-
-      window.addEventListener('popstate', onPopState);
-
-      // 5. Monitora a virada da meia-noite (23:59:59 -> 00:00:00) a cada 10 segundos
+      // Monitora a virada da meia-noite (23:59:59 -> 00:00:00) a cada 10 segundos
       const midnightTimer = setInterval(() => {
         const expired = checkMidnightExpiration();
         if (expired) {
@@ -171,7 +165,6 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
       }, 10000);
 
       return () => {
-        window.removeEventListener('popstate', onPopState);
         clearInterval(midnightTimer);
       };
     }
@@ -183,6 +176,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
       <FullScreenOverlay
         isOpen={isOpen}
         onClose={onClose}
+        overlayId="devotional-guest"
         title="Devocional"
         icon={<BookOpen className="w-5 h-5 text-[#D4AF37]" />}
       >
@@ -227,14 +221,15 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     <FullScreenOverlay
       isOpen={isOpen}
       onClose={handleClose}
-      onBack={step !== 'mode-select' ? handleBack : undefined}
+      onBack={handleBack}
+      overlayId="devotional-root"
       title={step === 'history' ? 'Favoritos' : 'Devocional'}
       icon={<BookOpen className="w-5 h-5 text-[#D4AF37]" />}
       actions={
         <button
           type="button"
           onClick={() => (step === 'history' ? handleBack() : navigateToStep('history'))}
-          title={step === 'history' ? 'Voltar' : 'Favoritos'}
+          title={step === 'history' ? 'Voltar ao Devocional' : 'Favoritos'}
           className={cn(
             'relative p-2 rounded-xl transition-all min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer',
             step === 'history'
@@ -454,7 +449,8 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                     type="button"
                     onClick={() => {
                       reset();
-                      navigateToStep('mode-select');
+                      setStepHistory([]);
+                      setStep('mode-select');
                     }}
                     className="px-8 py-3 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/10 hover:bg-white/20 text-[#F5E6CC] border border-white/20 transition-all min-h-[44px] cursor-pointer"
                   >

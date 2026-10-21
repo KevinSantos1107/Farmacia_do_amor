@@ -9,6 +9,7 @@ import { EmptyState } from '../../shared/ui/EmptyState';
 import { SideSheet } from '../../shared/ui/SideSheet';
 import { useToast } from '../../shared/ui/ToastProvider';
 import { Plus, Trash2, Dices } from 'lucide-react';
+import { AdminPageHeader } from './AdminPageHeader';
 
 interface Wheel {
   id: string;
@@ -99,15 +100,15 @@ export default function RouletteEditor() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Roleta de Perguntas</h1>
-          <p className="text-slate-400 mt-1">Gerencie as rodas de perguntas para girar no site.</p>
-        </div>
-        <Button onClick={() => setCreating(true)} className="gap-2 shrink-0">
-          <Plus className="w-4 h-4" /> Nova Roleta
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Roleta de Perguntas"
+        description="Gerencie as rodas de perguntas para girar no site."
+        actions={
+          <Button onClick={() => setCreating(true)} className="gap-2 shrink-0">
+            <Plus className="w-4 h-4" /> Nova Roleta
+          </Button>
+        }
+      />
 
       <SideSheet
         isOpen={creating}

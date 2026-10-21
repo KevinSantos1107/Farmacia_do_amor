@@ -15,6 +15,8 @@ import { Button } from '../../shared/ui/Button';
 import { Spinner } from '../../shared/ui/Spinner';
 import { useSortableList } from '../../shared/hooks/useSortableList';
 import { Plus, ArrowLeft } from 'lucide-react';
+import { AdminPageHeader } from './AdminPageHeader';
+import { useOverlayHistory } from '../../shared/hooks/useOverlayHistory';
 
 import type { Track, Playlist, ConfirmDialogState } from './playlist/types';
 import {
@@ -39,6 +41,12 @@ export default function PlaylistEditor() {
   const isFirstLoad = useRef(true);
   const [activePlaylist, setActivePlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
+
+  useOverlayHistory({
+    id: 'admin-playlist-detail',
+    isOpen: !!activePlaylist,
+    onClose: () => setActivePlaylist(null),
+  });
 
   // Confirmation dialog
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
@@ -403,15 +411,15 @@ export default function PlaylistEditor() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {Toast}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Playlists</h1>
-          <p className="text-slate-400 text-sm sm:text-base mt-1">Gerencie as playlists e músicas do site.</p>
-        </div>
-        <Button onClick={() => setCreatingPlaylist(true)} className="gap-2 shrink-0 self-start sm:self-auto">
-          <Plus className="w-4 h-4" /> Nova Playlist
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Playlists"
+        description="Gerencie as playlists e músicas do site."
+        actions={
+          <Button onClick={() => setCreatingPlaylist(true)} className="gap-2 shrink-0 self-start sm:self-auto">
+            <Plus className="w-4 h-4" /> Nova Playlist
+          </Button>
+        }
+      />
 
       {creatingPlaylist && (
         <PlaylistCreateCard
