@@ -13,7 +13,7 @@ export function ErasSlide() {
     return () => clearInterval(interval);
   }, [photos.length]);
 
-  if (photos.length === 0) {
+  if (!photos || photos.length === 0) {
     return (
       <div className="flex-1 bg-black flex flex-col items-center justify-center text-center p-4">
         <h2 className="text-3xl font-bold mb-4 text-white">Nossas Eras</h2>
@@ -22,8 +22,23 @@ export function ErasSlide() {
     );
   }
 
-  const currentPhoto = photos[currentIndex];
-  const eraYear = currentPhoto.date ? currentPhoto.date.getFullYear() : '2025';
+  const safeIndex = Math.min(Math.max(0, currentIndex), photos.length - 1);
+  const currentPhoto = photos[safeIndex] || photos[0];
+  if (!currentPhoto) return null;
+
+  let eraYear = '2025';
+  try {
+    if (currentPhoto.date instanceof Date && !isNaN(currentPhoto.date.getTime())) {
+      eraYear = String(currentPhoto.date.getFullYear());
+    } else if (currentPhoto.date) {
+      const parsed = new Date(currentPhoto.date as unknown as string | number);
+      if (!isNaN(parsed.getTime())) {
+        eraYear = String(parsed.getFullYear());
+      }
+    }
+  } catch {
+    eraYear = '2025';
+  }
 
   return (
     <div className="flex-1 bg-black relative flex flex-col items-center justify-center overflow-hidden">
@@ -32,7 +47,7 @@ export function ErasSlide() {
       <div
         className="absolute inset-0 bg-cover bg-center scale-110"
         style={{
-          backgroundImage: `url(${currentPhoto.url})`,
+          backgroundImage: currentPhoto.url ? `url(${currentPhoto.url})` : 'none',
           filter: 'blur(28px) brightness(0.30) saturate(1.3)',
           transition: 'background-image 0.6s ease',
         }}

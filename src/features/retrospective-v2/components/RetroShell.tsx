@@ -98,10 +98,9 @@ export function RetroShell() {
   }, [currentSlide, prevSlide, closeRetro]);
 
   useOverlayHistory({
-    id: `retro-shell-slide-${currentSlide}`,
+    id: 'retro-shell',
     isOpen,
     onClose: closeRetro,
-    onBack: handleRetroBack,
   });
 
   const handleStart = () => {

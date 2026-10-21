@@ -147,4 +147,17 @@ describe('navigationStack', () => {
     // Como foi programático, o popstate gerado pelo back() não deve acionar onClose de novo
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('permite remover camada sem acionar history.back quando skipHistoryBack for true', () => {
+    const onClose = vi.fn();
+    const backSpy = vi.spyOn(window.history, 'back');
+
+    pushNavigationLayer({ id: 'modal-replace', onClose });
+    expect(getNavigationLayerCount()).toBe(1);
+
+    removeNavigationLayer('modal-replace', true);
+
+    expect(backSpy).not.toHaveBeenCalled();
+    expect(getNavigationLayerCount()).toBe(0);
+  });
 });

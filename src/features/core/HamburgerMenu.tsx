@@ -9,6 +9,8 @@ import { cn } from '../../shared/utils/cn';
 import { useThemeStore } from '../../store/useThemeStore';
 import { useModalsStore, type ModalType } from '../../store/useModalsStore';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
+import { useOverlayHistory } from '../../shared/hooks/useOverlayHistory';
+import { removeNavigationLayer } from '../../shared/utils/navigationStack';
 
 // ─── Scroll helper ───────────────────────────────────────────────────────────
 function scrollToSection(id: string) {
@@ -90,16 +92,24 @@ export function HamburgerMenu() {
   const [isInterOpen, setIsInterOpen] = useState(true);
   const [isThemeOpen, setIsThemeOpen] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
+  const toggleBtnRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   const { activeTheme, setTheme } = useThemeStore();
   const { openModal } = useModalsStore();
 
+  useOverlayHistory({
+    id: 'hamburger-menu',
+    isOpen,
+    onClose: () => setIsOpen(false),
+  });
+
   const handleOpenModal = (modal: ModalType, route?: string) => {
+    removeNavigationLayer('hamburger-menu', true);
     setIsOpen(false);
     if (route) {
-      navigate(route);
+      navigate(route, { replace: true });
     } else if (modal) {
       openModal(modal);
     }
@@ -109,7 +119,8 @@ export function HamburgerMenu() {
     setIsOpen(false);
     // Se não estiver na home, navega primeiro
     if (location.pathname !== '/') {
-      navigate('/');
+      removeNavigationLayer('hamburger-menu', true);
+      navigate('/', { replace: true });
       setTimeout(() => scrollToSection(sectionId), 400);
     } else {
       scrollToSection(sectionId);
@@ -119,6 +130,9 @@ export function HamburgerMenu() {
   // Fecha ao clicar fora ou pressionar Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (toggleBtnRef.current && toggleBtnRef.current.contains(event.target as Node)) {
+        return;
+      }
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
@@ -152,6 +166,7 @@ export function HamburgerMenu() {
     <>
       {/* Botão hambúrguer */}
       <div
+        ref={toggleBtnRef}
         className="fixed z-50"
         style={{
           top: 'max(0.75rem, env(safe-area-inset-top, 0px))',
@@ -172,6 +187,7 @@ export function HamburgerMenu() {
 
       {/* Backdrop */}
       <div
+        onClick={() => setIsOpen(false)}
         className={cn(
           'fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300',
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -327,8 +343,9 @@ export function HamburgerMenu() {
             {/* ── DEVOCIONAL DO CASAL ───────────────────────── */}
             <button
               onClick={() => {
+                removeNavigationLayer('hamburger-menu', true);
                 setIsOpen(false);
-                navigate('/devotional');
+                navigate('/devotional', { replace: true });
               }}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/80 hover:bg-[#D4AF37]/15 hover:text-[#D4AF37] transition-all text-sm w-full font-medium group"
             >
@@ -350,8 +367,9 @@ export function HamburgerMenu() {
             {/* ── RETROSPECTIVA ─────────────────────────────── */}
             <button
               onClick={() => {
+                removeNavigationLayer('hamburger-menu', true);
                 setIsOpen(false);
-                navigate('/retrospective');
+                navigate('/retrospective', { replace: true });
               }}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full"
             >

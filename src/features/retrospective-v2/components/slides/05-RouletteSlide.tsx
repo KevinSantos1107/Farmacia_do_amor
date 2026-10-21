@@ -14,7 +14,13 @@ const WHEEL_COLORS = [
 
 export function RouletteSlide() {
   const { config } = useRetroV2Store();
-  const options = config.rouletteOptions || ['Jantar', 'Cinema', 'Viagem', 'Surpresa'];
+  const rawOptions = (config.rouletteOptions && config.rouletteOptions.length > 0)
+    ? config.rouletteOptions
+    : ['Jantar', 'Cinema', 'Viagem', 'Surpresa'];
+  const sanitized = rawOptions
+    .map((o) => (typeof o === 'string' ? o.trim() : String(o ?? '')))
+    .filter(Boolean);
+  const options = sanitized.length > 0 ? sanitized : ['Jantar', 'Cinema', 'Viagem', 'Surpresa'];
 
   const rotation = useMotionValue(0);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -39,10 +45,10 @@ export function RouletteSlide() {
     
     // A fatia vencedora é a que para no topo
     const pointerDeg = (360 - deg) % 360; 
-    const sliceSize = 360 / options.length;
-    const winningIndex = Math.floor(pointerDeg / sliceSize);
+    const sliceSize = 360 / Math.max(1, options.length);
+    const winningIndex = Math.floor(pointerDeg / sliceSize) % options.length;
     
-    setWinner(options[winningIndex]);
+    setWinner(options[winningIndex] || options[0]);
   };
 
   const spinTo = (targetRotation: number, duration: number) => {
@@ -232,8 +238,9 @@ export function RouletteSlide() {
             const angle = (i * 360) / options.length + 360 / options.length / 2;
             
             // Lógica inteligente de zoom e quebra de linha
-            const lines = opt.split(' ');
-            const longestLine = Math.max(...lines.map(l => l.length));
+            const optStr = typeof opt === 'string' ? opt : String(opt ?? '');
+            const lines = optStr.split(' ');
+            const longestLine = Math.max(...lines.map(l => l.length), 1);
             
             // Baseia o zoom na maior palavra para caber na vertical
             let scale = longestLine <= 7 ? 1 : Math.max(0.4, 7 / longestLine);

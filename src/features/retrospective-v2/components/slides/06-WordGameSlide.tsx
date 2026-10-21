@@ -78,11 +78,12 @@ export function WordGameSlide(_props: { onNext: () => void }) {
   const { config } = useRetroV2Store();
   
   // A palavra vem do admin (sempre sanitizada e maiúscula)
-  const WORD = (config.wordGameAnswer || 'AMOR')
+  const sanitizedWord = (config.wordGameAnswer || 'AMOR')
     .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^A-Z]/g, '');
+  const WORD = sanitizedWord.length >= 2 ? sanitizedWord : 'AMOR';
   const WORD_LENGTH = WORD.length;
 
   const [guesses, setGuesses] = useState<LetterCell[][]>([]);

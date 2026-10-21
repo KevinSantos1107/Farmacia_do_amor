@@ -44,14 +44,14 @@ function initListener() {
 /**
  * Registra uma nova camada na pilha de navegação e empurra uma entrada segura no histórico.
  */
-export function pushNavigationLayer(layer: NavigationLayer): () => void {
+export function pushNavigationLayer(layer: NavigationLayer): (skipHistoryBack?: boolean) => void {
   initListener();
 
   // Se já existir camada com mesmo ID no topo, atualiza handlers
   const existingIndex = layers.findIndex((l) => l.id === layer.id);
   if (existingIndex !== -1) {
     layers[existingIndex] = layer;
-    return () => removeNavigationLayer(layer.id);
+    return (skipHistoryBack?: boolean) => removeNavigationLayer(layer.id, skipHistoryBack);
   }
 
   layers.push(layer);
@@ -71,18 +71,18 @@ export function pushNavigationLayer(layer: NavigationLayer): () => void {
     }
   }
 
-  return () => removeNavigationLayer(layer.id);
+  return (skipHistoryBack?: boolean) => removeNavigationLayer(layer.id, skipHistoryBack);
 }
 
 /**
  * Remove a camada da pilha programaticamente (ex: usuário clicou no X ou Voltar visual).
- * Se a camada for a do topo, recua uma entrada no histórico do navegador de forma coordenada.
+ * Se a camada for a do topo e skipHistoryBack for falso, recua uma entrada no histórico do navegador de forma coordenada.
  */
-export function removeNavigationLayer(id: string): void {
+export function removeNavigationLayer(id: string, skipHistoryBack: boolean = false): void {
   const top = layers[layers.length - 1];
   if (top && top.id === id) {
     layers.pop();
-    if (typeof window !== 'undefined' && window.history) {
+    if (!skipHistoryBack && typeof window !== 'undefined' && window.history) {
       isProgrammatic = true;
       try {
         window.history.back();
