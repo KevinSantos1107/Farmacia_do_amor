@@ -22,11 +22,22 @@ export function TimelineModalContent({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { handleDismiss } = useOverlayHistory({
+  const isDedicatedRoute = typeof window !== 'undefined' && 
+    (window.location.pathname === '/timeline' || window.location.pathname === '/historia' || window.location.pathname === '/nossa-historia');
+
+  const { handleDismiss: overlayDismiss } = useOverlayHistory({
     id: 'timeline-modal',
-    isOpen: true,
+    isOpen: !isDedicatedRoute,
     onClose,
   });
+
+  const handleDismiss = () => {
+    if (isDedicatedRoute) {
+      onClose();
+    } else {
+      overlayDismiss();
+    }
+  };
 
   useEffect(() => {
     const unlock = lockBodyScroll();

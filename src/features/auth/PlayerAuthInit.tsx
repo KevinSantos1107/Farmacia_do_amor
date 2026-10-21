@@ -81,8 +81,11 @@ export function PlayerAuthInit() {
           console.error('Erro ao verificar o token:', error);
         } finally {
           // Remove token from URL securely sem refresh
-          const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-          window.history.replaceState({ path: newUrl }, '', newUrl);
+          const newUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+          const currentState = (window.history.state && typeof window.history.state === 'object')
+            ? window.history.state
+            : {};
+          window.history.replaceState({ ...currentState, path: newUrl }, '', newUrl);
         }
       } else {
         // Se não tem token na URL, verifica se já é um jogador conhecido (salvo no Zustand/localStorage)

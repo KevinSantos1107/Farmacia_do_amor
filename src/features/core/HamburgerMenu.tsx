@@ -109,7 +109,7 @@ export function HamburgerMenu() {
     removeNavigationLayer('hamburger-menu', true);
     setIsOpen(false);
     if (route) {
-      navigate(route, { replace: true });
+      navigate(route);
     } else if (modal) {
       openModal(modal);
     }
@@ -117,13 +117,11 @@ export function HamburgerMenu() {
 
   const handleScrollTo = (sectionId: string) => {
     setIsOpen(false);
-    // Se não estiver na home, navega primeiro
     if (location.pathname !== '/') {
-      removeNavigationLayer('hamburger-menu', true);
-      navigate('/', { replace: true });
-      setTimeout(() => scrollToSection(sectionId), 400);
+      navigate('/');
+      setTimeout(() => scrollToSection(sectionId), 350);
     } else {
-      scrollToSection(sectionId);
+      setTimeout(() => scrollToSection(sectionId), 120);
     }
   };
 
@@ -201,7 +199,7 @@ export function HamburgerMenu() {
           'fixed top-0 left-0 bottom-0 z-50 w-[290px] sm:w-[320px]',
           'bg-black/90 backdrop-blur-xl border-r border-white/10 shadow-2xl',
           'transition-transform duration-300 ease-in-out flex flex-col',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          isOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'
         )}
       >
         <div className="flex flex-col h-full overflow-y-auto no-scrollbar">
@@ -248,7 +246,7 @@ export function HamburgerMenu() {
                     <button
                       key={sec.id}
                       onClick={() => handleScrollTo(sec.id)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full text-left"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full text-left cursor-pointer"
                     >
                       <sec.Icon className="w-4 h-4 opacity-70" style={{ shapeRendering: 'geometricPrecision' }} />
                       {sec.label}
@@ -264,7 +262,7 @@ export function HamburgerMenu() {
             <div className="mb-1">
               <button
                 onClick={() => setIsInterOpen(!isInterOpen)}
-                className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-widest"
+                className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer"
               >
                 <span>Interativos</span>
                 <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', isInterOpen && 'rotate-180')} />
@@ -279,7 +277,7 @@ export function HamburgerMenu() {
                     <button
                       key={item.modal}
                       onClick={() => handleOpenModal(item.modal, item.route)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full text-left"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full text-left cursor-pointer"
                     >
                       <item.Icon className="w-4 h-4 opacity-70" style={{ shapeRendering: 'geometricPrecision' }} />
                       {item.label}
@@ -342,12 +340,8 @@ export function HamburgerMenu() {
 
             {/* ── DEVOCIONAL DO CASAL ───────────────────────── */}
             <button
-              onClick={() => {
-                removeNavigationLayer('hamburger-menu', true);
-                setIsOpen(false);
-                navigate('/devotional', { replace: true });
-              }}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/80 hover:bg-[#D4AF37]/15 hover:text-[#D4AF37] transition-all text-sm w-full font-medium group"
+              onClick={() => handleOpenModal('devotional', '/devotional')}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/80 hover:bg-[#D4AF37]/15 hover:text-[#D4AF37] transition-all text-sm w-full font-medium group cursor-pointer"
             >
               <div className="w-8 h-8 rounded-lg bg-[#D4AF37]/15 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] shrink-0 group-hover:scale-110 transition-transform">
                 <BookOpen className="w-4 h-4" />
@@ -366,12 +360,8 @@ export function HamburgerMenu() {
 
             {/* ── RETROSPECTIVA ─────────────────────────────── */}
             <button
-              onClick={() => {
-                removeNavigationLayer('hamburger-menu', true);
-                setIsOpen(false);
-                navigate('/retrospective', { replace: true });
-              }}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full"
+              onClick={() => handleOpenModal(null, '/retrospective')}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/8 hover:text-white transition-colors text-sm w-full cursor-pointer"
             >
               <PlayCircle className="w-5 h-5" />
               Retrospectiva

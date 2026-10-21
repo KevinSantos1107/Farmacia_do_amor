@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { X } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
 import { imagePreloader } from './ImagePreloader';
@@ -49,6 +48,11 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
+  // Transição suave de fotos sem flickering
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [prevSrc, setPrevSrc] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(true);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   
@@ -69,7 +73,13 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     setPan({ x: 0, y: 0 });
     pointers.current.clear();
     initialGesto.current = null;
-  }, [src]);
+
+    if (src !== currentSrc) {
+      setPrevSrc(currentSrc);
+      setCurrentSrc(src);
+      setIsLoaded(false);
+    }
+  }, [src, currentSrc]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -199,16 +209,48 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       onPointerCancel={onPointerUp}
       onPointerLeave={onPointerUp}
     >
+      {/* Imagem anterior mantida visível enquanto a nova carrega (elimina piscada/flicker) */}
+      {prevSrc && (
+        <img
+          src={prevSrc}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 m-auto max-w-full max-h-full object-contain pointer-events-none transition-opacity duration-200 ease-out"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+            opacity: isLoaded ? 0 : 1,
+            zIndex: 1,
+          }}
+          onTransitionEnd={() => {
+            if (isLoaded) setPrevSrc(null);
+          }}
+        />
+      )}
+
+      {/* Imagem atual */}
       <img
-        src={src}
+        key={currentSrc}
+        src={currentSrc}
         alt={alt}
-        decoding="async"
         draggable={false}
-        className="max-w-full max-h-full object-contain pointer-events-none"
+        onLoad={() => {
+          setIsLoaded(true);
+          const t = setTimeout(() => setPrevSrc(null), 250);
+          return () => clearTimeout(t);
+        }}
+        onError={() => {
+          setIsLoaded(true);
+          setPrevSrc(null);
+        }}
+        className={cn(
+          "max-w-full max-h-full object-contain pointer-events-none transition-opacity duration-200 ease-out",
+          !isLoaded && prevSrc ? "opacity-0" : "opacity-100"
+        )}
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-          transition: scale === 1 && pan.x === 0 && pan.y === 0 ? 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)' : 'none',
-          willChange: 'transform'
+          transition: scale === 1 && pan.x === 0 && pan.y === 0 ? 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-out' : 'opacity 0.2s ease-out',
+          willChange: 'transform, opacity',
+          zIndex: 2,
         }}
       />
     </div>
@@ -296,7 +338,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   const [photoIndexes, setPhotoIndexes] = useState<Record<string, number>>({});
 
   useOverlayHistory({
-    id: `album-viewer-${initialAlbumIndex}`,
+    id: 'album-viewer-modal',
     isOpen: true,
     onClose,
   });
@@ -571,23 +613,6 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
-      {/* Controles do topo com suporte a clique direto sem interferência de gesto */}
-      <div className="absolute top-5 left-4 right-4 z-[60] flex items-center justify-between pointer-events-none">
-        <button
-          type="button"
-          data-no-gesture
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white/90 hover:text-white flex items-center justify-center pointer-events-auto active:scale-95 transition-all shadow-lg cursor-pointer hover:bg-black/80"
-          aria-label="Fechar visualizador"
-          title="Fechar visualizador"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
       <motion.div style={{ y, scale: contentScale }} className="w-full h-full overflow-hidden">
         <motion.div
           style={{ x: stripX }}
@@ -595,7 +620,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
         >
           <div className="w-[100vw] shrink-0">
             <AlbumPanel
-              key={prevAlbum?.id || 'prev-none'}
+              key={`prev-${prevAlbum?.id || 'none'}`}
               album={prevAlbum}
               photoIndex={getPhotoIdx(prevAlbum)}
               onClose={onClose}
@@ -604,7 +629,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
 
           <div className="w-[100vw] shrink-0">
             <AlbumPanel
-              key={curAlbum?.id || 'cur-none'}
+              key={`cur-${curAlbum?.id || 'none'}`}
               album={curAlbum}
               photoIndex={getPhotoIdx(curAlbum)}
               onClose={onClose}
@@ -613,7 +638,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
 
           <div className="w-[100vw] shrink-0">
             <AlbumPanel
-              key={nextAlbum?.id || 'next-none'}
+              key={`next-${nextAlbum?.id || 'none'}`}
               album={nextAlbum}
               photoIndex={getPhotoIdx(nextAlbum)}
               onClose={onClose}

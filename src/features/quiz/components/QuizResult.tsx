@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuizStore } from '../store/useQuizStore';
 import { Trophy, RefreshCw, Flame } from 'lucide-react';
-import { useModalsStore } from '../../../store/useModalsStore';
+
 
 // Particle types for the 100% celebration
 interface Particle {
@@ -67,7 +67,6 @@ function PerfectCelebration() {
 
 export function QuizResult() {
   const { score, correctAnswers, questions, maxCombo, config, resetGame } = useQuizStore();
-  const { closeModal } = useModalsStore();
   
   const percentage = (correctAnswers / questions.length) * 100;
   
@@ -177,18 +176,12 @@ export function QuizResult() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 w-full sm:flex-row">
+        <div className="w-full">
           <button
             onClick={resetGame}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[var(--theme-primary)] hover:bg-[var(--theme-accent)] text-white font-bold rounded-2xl transition-transform active:scale-95 shadow-[0_0_20px_rgba(var(--theme-primary-rgb),0.3)]"
+            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[var(--theme-primary)] hover:bg-[var(--theme-accent)] text-white font-bold rounded-2xl transition-transform active:scale-95 shadow-[0_0_20px_rgba(var(--theme-primary-rgb),0.3)]"
           >
             <RefreshCw className="w-5 h-5" /> Jogar Novamente
-          </button>
-          <button
-            onClick={closeModal}
-            className="flex-1 px-6 py-4 bg-white/10 hover:bg-white/15 text-white font-bold rounded-2xl transition-transform active:scale-95"
-          >
-            Fechar
           </button>
         </div>
       </motion.div>

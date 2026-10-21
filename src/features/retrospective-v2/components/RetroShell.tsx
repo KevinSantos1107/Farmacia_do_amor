@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Volume2, VolumeX } from 'lucide-react';
 import { useRetroV2Store } from '../store/useRetroV2Store';
@@ -89,9 +90,12 @@ export function RetroShell() {
     setCurrentSlide((prev) => Math.max(prev - 1, 0));
   }, []);
 
+  const location = useLocation();
+  const isDedicatedRoute = location.pathname === '/retrospective' || location.pathname === '/retrospectiva';
+
   useOverlayHistory({
     id: 'retro-shell',
-    isOpen,
+    isOpen: isOpen && !isDedicatedRoute,
     onClose: closeRetro,
   });
 

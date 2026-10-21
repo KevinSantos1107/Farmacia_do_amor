@@ -2,31 +2,30 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRetroV2Store } from './store/useRetroV2Store';
 import { useSiteId } from '../../services/firestore/paths';
+import { safeCloseOverlay } from '../../shared/utils/overlayNavigation';
 
 export default function RetrospectivePage() {
   const navigate = useNavigate();
   const siteId = useSiteId();
   const { openRetro, closeRetro } = useRetroV2Store();
-  const hasOpenedRef = useRef(false);
+  const isClosingRef = useRef(false);
 
   useEffect(() => {
-    if (!hasOpenedRef.current) {
-      hasOpenedRef.current = true;
-      openRetro(siteId);
-    }
-  }, [siteId, openRetro]);
+    isClosingRef.current = false;
+    openRetro(siteId);
 
-  useEffect(() => {
     const unsub = useRetroV2Store.subscribe((state, prevState) => {
-      if (prevState.isOpen && !state.isOpen) {
-        navigate('/', { replace: true });
+      if (prevState.isOpen && !state.isOpen && !isClosingRef.current) {
+        isClosingRef.current = true;
+        safeCloseOverlay(navigate);
       }
     });
+
     return () => {
       unsub();
       closeRetro();
     };
-  }, [navigate, closeRetro]);
+  }, [siteId, openRetro, closeRetro, navigate]);
 
   return null;
 }

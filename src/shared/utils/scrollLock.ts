@@ -5,13 +5,15 @@
  */
 
 let lockCount = 0;
+let savedScrollY = 0;
 let previousBodyOverflow = '';
 let previousHtmlOverflow = '';
 let previousBodyOverscroll = '';
 let previousHtmlOverscroll = '';
 
 /**
- * Trava o scroll da página (body e html) e previne bounce elástico no iOS/Mobile.
+ * Trava o scroll da página (body e html) e previne bounce elástico no iOS/Mobile,
+ * preservando a posição exata da rolagem para restauração ao fechar.
  * Retorna uma função de liberação (cleanup) para destravar o scroll.
  */
 export function lockBodyScroll(): () => void {
@@ -20,6 +22,15 @@ export function lockBodyScroll(): () => void {
   }
 
   if (lockCount === 0) {
+    if (typeof window !== 'undefined') {
+      savedScrollY =
+        window.scrollY ||
+        window.pageYOffset ||
+        document.documentElement?.scrollTop ||
+        document.body?.scrollTop ||
+        0;
+    }
+
     if (document.body?.style) {
       previousBodyOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
@@ -57,6 +68,27 @@ export function lockBodyScroll(): () => void {
           document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
         }
       }
+      if (typeof window !== 'undefined') {
+        const targetScroll = savedScrollY;
+        if (typeof window.scrollTo === 'function') {
+          window.scrollTo({
+            top: targetScroll,
+            left: 0,
+            behavior: 'instant' as ScrollBehavior,
+          });
+        }
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(() => {
+            if (typeof window.scrollTo === 'function') {
+              window.scrollTo({
+                top: targetScroll,
+                left: 0,
+                behavior: 'instant' as ScrollBehavior,
+              });
+            }
+          });
+        }
+      }
     }
   };
 }
@@ -66,6 +98,7 @@ export function lockBodyScroll(): () => void {
  */
 export function _resetScrollLockForTesting(): void {
   lockCount = 0;
+  savedScrollY = 0;
   previousBodyOverflow = '';
   previousHtmlOverflow = '';
   previousBodyOverscroll = '';

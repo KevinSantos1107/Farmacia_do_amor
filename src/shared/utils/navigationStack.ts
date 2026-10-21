@@ -47,7 +47,7 @@ function initListener() {
 export function pushNavigationLayer(layer: NavigationLayer): (skipHistoryBack?: boolean) => void {
   initListener();
 
-  // Se já existir camada com mesmo ID no topo, atualiza handlers
+  // Se já existir camada com mesmo ID na pilha, atualiza handlers
   const existingIndex = layers.findIndex((l) => l.id === layer.id);
   if (existingIndex !== -1) {
     layers[existingIndex] = layer;
@@ -75,8 +75,11 @@ export function pushNavigationLayer(layer: NavigationLayer): (skipHistoryBack?: 
 }
 
 /**
- * Remove a camada da pilha programaticamente (ex: usuário clicou no X ou Voltar visual).
- * Se a camada for a do topo e skipHistoryBack for falso, recua uma entrada no histórico do navegador de forma coordenada.
+ * Remove a camada da pilha programaticamente (ex: usuário clicou no X, gesto de swipe ou Voltar visual).
+ * Se a camada for a do topo e skipHistoryBack for falso, recua uma entrada no histórico do navegador.
+ * O duplo-recuo é evitado naturalmente: quando o back-button dispara o popstate, handlePopState já
+ * remove a camada do array, de modo que o cleanup da desmontagem do componente encontra a camada
+ * fora do topo e cai no branch else (sem chamar history.back()).
  */
 export function removeNavigationLayer(id: string, skipHistoryBack: boolean = false): void {
   const top = layers[layers.length - 1];
