@@ -13,6 +13,7 @@ import {
   Users,
   Sparkles,
   Bookmark,
+  Lock,
 } from 'lucide-react';
 import { FullScreenOverlay } from '../../shared/ui/FullScreenOverlay';
 import { useDevotionalStore } from '../devotional/store/useDevotionalStore';
@@ -40,7 +41,8 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
   const { player } = usePlayerIdentityStore();
   const { config } = useSiteConfigStore();
 
-  const { p1Id } = getPlayerIds(config);
+  const { p1Id, p2Id } = getPlayerIds(config);
+  const isPlayer = player === p1Id || player === p2Id;
   const isP1 = player === p1Id;
   const playerSlot: 'p1' | 'p2' = isP1 ? 'p1' : 'p2';
 
@@ -79,13 +81,55 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     clearToast,
   } = useDevotionalStore();
 
-  // Carrega histórico e favoritos ao abrir o modal
+  // Carrega histórico e favoritos ao abrir o modal apenas se o jogador estiver autenticado
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && isPlayer) {
       loadHistory(siteId, player);
       loadFavorites(siteId, player);
     }
-  }, [isOpen, siteId, player, loadHistory, loadFavorites]);
+  }, [isOpen, isPlayer, siteId, player, loadHistory, loadFavorites]);
+
+  // Se o usuário for visitante (sem token cadastrado), bloqueia o acesso igual ao Sincronia
+  if (!isPlayer) {
+    return (
+      <FullScreenOverlay
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Devocional"
+        icon={<BookOpen className="w-5 h-5 text-[#D4AF37]" />}
+      >
+        <div className="relative text-[#F5E6CC] min-h-full flex items-center justify-center p-4 sm:p-6">
+          <div className="w-full max-w-md mx-auto text-center space-y-6 p-7 sm:p-9 rounded-3xl bg-[#1F1630]/75 border border-[#D4AF37]/30 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-[#D4AF37]/20 to-[#9d4edd]/20 border border-[#D4AF37]/35 flex items-center justify-center text-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.2)]">
+              <Lock className="w-8 h-8 text-[#D4AF37]" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs uppercase tracking-widest text-[#D4AF37] font-semibold">
+                Acesso Exclusivo
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-serif text-[#F5E6CC]">
+                Abra pelo seu link pessoal
+              </h2>
+              <p className="text-xs sm:text-sm text-[#F5E6CC]/70 font-light leading-relaxed max-w-xs mx-auto">
+                O devocional é uma experiência personalizada para o casal. Acesse através do seu link exclusivo com token para poder participar.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-8 py-3 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/10 hover:bg-white/20 text-[#F5E6CC] border border-white/20 transition-all min-h-[44px] cursor-pointer"
+              >
+                Voltar
+              </button>
+            </div>
+          </div>
+        </div>
+      </FullScreenOverlay>
+    );
+  }
 
   const isFavorited = favorites.some(
     (f) => f.reference === soloResult?.reference
