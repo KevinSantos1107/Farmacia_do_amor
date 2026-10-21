@@ -104,6 +104,10 @@ interface DevotionalState {
   toggleFavorite: (siteId: string, playerId: string) => Promise<void>;
   removeFavoriteItem: (siteId: string, favoriteId: string) => Promise<void>;
 
+  checkMidnightExpiration: () => boolean;
+  handleModalOpen: () => void;
+  handleModalClose: () => void;
+
   reset: () => void;
 }
 
@@ -146,11 +150,108 @@ export const useDevotionalStore = create<DevotionalState>((set, get) => ({
   setFocus: (focus) => set({ selectedFocus: focus }),
   setSession: (session) => {
     set({ session });
+    const today = getTodayDateString();
     if (session?.status === 'revealed' && session.result) {
-      set({ syncResult: session.result, step: 'sync-reveal' });
+      set({
+        syncResult: { ...session.result, date: session.date || today },
+        step: 'sync-reveal',
+      });
     }
   },
   clearError: () => set({ error: null }),
+
+  checkMidnightExpiration: () => {
+    const today = getTodayDateString();
+    const { soloResult, syncResult, session } = get();
+
+    const isSoloExpired = Boolean(soloResult && soloResult.date && soloResult.date !== today);
+    const isSyncExpired = Boolean(
+      (syncResult && syncResult.date && syncResult.date !== today) ||
+      (session && session.date && session.date !== today)
+    );
+
+    if (isSoloExpired || isSyncExpired) {
+      set({
+        soloResult: null,
+        syncResult: null,
+        session: null,
+        selectedMood: null,
+        freeText: '',
+        selectedFocus: null,
+        mode: null,
+        step: 'mode-select',
+      });
+      return true;
+    }
+    return false;
+  },
+
+  handleModalOpen: () => {
+    const today = getTodayDateString();
+    const { soloResult, syncResult, session, checkMidnightExpiration } = get();
+
+    // 1. Verifica se o dia virou (expira devocional do dia anterior)
+    if (checkMidnightExpiration()) {
+      return;
+    }
+
+    // 2. Verifica se existe um devocional de hoje concluído/aberto
+    const hasTodaySolo = Boolean(
+      soloResult && (!soloResult.date || soloResult.date === today)
+    );
+    const hasTodaySync = Boolean(
+      (session && (!session.date || session.date === today) && session.status === 'revealed') ||
+      (syncResult && (!syncResult.date || syncResult.date === today))
+    );
+
+    if (hasTodaySolo) {
+      set({ mode: 'solo', step: 'result', error: null });
+    } else if (hasTodaySync) {
+      set({ mode: 'sync', step: 'sync-reveal', error: null });
+    } else {
+      // Se não tem devocional concluído hoje, volta sempre na tela inicial
+      set({
+        mode: null,
+        step: 'mode-select',
+        selectedMood: null,
+        freeText: '',
+        selectedFocus: null,
+        error: null,
+      });
+    }
+  },
+
+  handleModalClose: () => {
+    const today = getTodayDateString();
+    const { soloResult, syncResult, session, checkMidnightExpiration } = get();
+
+    if (checkMidnightExpiration()) {
+      return;
+    }
+
+    const hasTodaySolo = Boolean(
+      soloResult && (!soloResult.date || soloResult.date === today)
+    );
+    const hasTodaySync = Boolean(
+      (session && (!session.date || session.date === today) && session.status === 'revealed') ||
+      (syncResult && (!syncResult.date || syncResult.date === today))
+    );
+
+    if (hasTodaySolo) {
+      set({ mode: 'solo', step: 'result', error: null });
+    } else if (hasTodaySync) {
+      set({ mode: 'sync', step: 'sync-reveal', error: null });
+    } else {
+      set({
+        mode: null,
+        step: 'mode-select',
+        selectedMood: null,
+        freeText: '',
+        selectedFocus: null,
+        error: null,
+      });
+    }
+  },
 
   generateSoloDevotional: async (siteId, playerName, playerId) => {
     const { selectedMood, freeText, selectedFocus, history } = get();
@@ -178,6 +279,7 @@ export const useDevotionalStore = create<DevotionalState>((set, get) => ({
               meditationAngle: 'descanso e provisão',
               challengeTheme: 'gratidão e oração',
             },
+            date: getTodayDateString(),
           },
           step: 'result',
           isGenerating: false,
@@ -214,7 +316,7 @@ export const useDevotionalStore = create<DevotionalState>((set, get) => ({
       }
 
       set({
-        soloResult: result,
+        soloResult: { ...result, date: today },
         step: 'result',
         isGenerating: false,
       });
@@ -289,7 +391,8 @@ export const useDevotionalStore = create<DevotionalState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const result = await triggerSyncGeneration(siteId, partnerNames, history);
-      set({ syncResult: result, isLoading: false, step: 'sync-reveal' });
+      const today = getTodayDateString();
+      set({ syncResult: { ...result, date: today }, isLoading: false, step: 'sync-reveal' });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       set({

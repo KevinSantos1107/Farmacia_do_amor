@@ -5,7 +5,7 @@
  * FullScreenOverlay compartilhado com todos os outros modais do app.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
@@ -16,7 +16,10 @@ import {
   Lock,
 } from 'lucide-react';
 import { FullScreenOverlay } from '../../shared/ui/FullScreenOverlay';
-import { useDevotionalStore } from '../devotional/store/useDevotionalStore';
+import {
+  useDevotionalStore,
+  type DevotionalStep,
+} from '../devotional/store/useDevotionalStore';
 import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { getPlayerIds } from '../auth/playerIds';
@@ -63,6 +66,9 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     name2: config?.couple.partner2.name || 'Parceiro 2',
   };
 
+  const depthRef = useRef(0);
+  const isClosingRef = useRef(false);
+
   const {
     mode,
     step,
@@ -79,15 +85,97 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     reset,
     toast,
     clearToast,
+    showToast,
+    checkMidnightExpiration,
+    handleModalOpen,
+    handleModalClose,
   } = useDevotionalStore();
 
-  // Carrega histórico e favoritos ao abrir o modal apenas se o jogador estiver autenticado
+  // Navegação inteligente integrada ao histórico do navegador
+  const navigateToStep = (nextStep: DevotionalStep) => {
+    depthRef.current += 1;
+    window.history.pushState(
+      { devotionalModal: true, step: nextStep },
+      '',
+      window.location.href
+    );
+    setStep(nextStep);
+  };
+
+  const handleBack = () => {
+    if (depthRef.current > 1 && window.history.state?.devotionalModal) {
+      window.history.back();
+    } else {
+      handleClose();
+    }
+  };
+
+  const handleClose = () => {
+    if (depthRef.current > 0 && window.history.state?.devotionalModal) {
+      isClosingRef.current = true;
+      window.history.go(-depthRef.current);
+      depthRef.current = 0;
+    }
+    handleModalClose();
+    onClose();
+  };
+
+  // Gerenciamento de abertura, popstate (voltar do celular/PC) e virada da meia-noite
   useEffect(() => {
     if (isOpen && isPlayer) {
+      // 1. Carrega dados do Firestore
       loadHistory(siteId, player);
       loadFavorites(siteId, player);
+
+      // 2. Trata abertura inteligente:
+      // Se tiver devocional aberto hoje, reabre no resultado.
+      // Se não tiver, ou se fechou em favoritos, volta sempre para 'mode-select'.
+      handleModalOpen();
+
+      // 3. Inicializa histórico para interceptar o botão voltar nativo
+      depthRef.current = 1;
+      isClosingRef.current = false;
+      const initialStep = useDevotionalStore.getState().step;
+      window.history.pushState(
+        { devotionalModal: true, step: initialStep },
+        '',
+        window.location.href
+      );
+
+      // 4. Listener do popstate
+      const onPopState = (e: PopStateEvent) => {
+        if (isClosingRef.current) return;
+
+        if (e.state && e.state.devotionalModal) {
+          depthRef.current = Math.max(1, depthRef.current - 1);
+          const targetStep = e.state.step as DevotionalStep;
+          if (targetStep) {
+            setStep(targetStep);
+          }
+        } else {
+          // Voltou além da tela inicial do modal
+          depthRef.current = 0;
+          handleModalClose();
+          onClose();
+        }
+      };
+
+      window.addEventListener('popstate', onPopState);
+
+      // 5. Monitora a virada da meia-noite (23:59:59 -> 00:00:00) a cada 10 segundos
+      const midnightTimer = setInterval(() => {
+        const expired = checkMidnightExpiration();
+        if (expired) {
+          showToast('O devocional de ontem terminou. Um novo dia começou! 🌅', 'info');
+        }
+      }, 10000);
+
+      return () => {
+        window.removeEventListener('popstate', onPopState);
+        clearInterval(midnightTimer);
+      };
     }
-  }, [isOpen, isPlayer, siteId, player, loadHistory, loadFavorites]);
+  }, [isOpen, isPlayer, siteId, player]);
 
   // Se o usuário for visitante (sem token cadastrado), bloqueia o acesso igual ao Sincronia
   if (!isPlayer) {
@@ -138,16 +226,17 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
   return (
     <FullScreenOverlay
       isOpen={isOpen}
-      onClose={onClose}
-      title="Devocional"
+      onClose={handleClose}
+      onBack={step !== 'mode-select' ? handleBack : undefined}
+      title={step === 'history' ? 'Favoritos' : 'Devocional'}
       icon={<BookOpen className="w-5 h-5 text-[#D4AF37]" />}
       actions={
         <button
           type="button"
-          onClick={() => setStep(step === 'history' ? 'mode-select' : 'history')}
+          onClick={() => (step === 'history' ? handleBack() : navigateToStep('history'))}
           title={step === 'history' ? 'Voltar' : 'Favoritos'}
           className={cn(
-            'relative p-2 rounded-xl transition-all min-h-[36px] min-w-[36px] flex items-center justify-center',
+            'relative p-2 rounded-xl transition-all min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer',
             step === 'history'
               ? 'bg-[#D4AF37] text-[#160E24] shadow-[0_0_12px_rgba(212,175,55,0.4)]'
               : 'text-[#F5E6CC]/70 hover:text-[#D4AF37] hover:bg-white/5'
@@ -200,7 +289,10 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                     type="button"
                     whileHover={{ scale: 1.02, y: -4 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setMode('solo')}
+                    onClick={() => {
+                      setMode('solo');
+                      navigateToStep('mood-select');
+                    }}
                     className="group relative flex flex-col p-6 sm:p-7 rounded-3xl border border-[#D4AF37]/25 bg-[#1F1630]/60 hover:bg-[#1F1630]/90 backdrop-blur-xl hover:border-[#D4AF37] hover:shadow-[0_0_40px_rgba(212,175,55,0.25)] text-left transition-all duration-300 cursor-pointer"
                   >
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-[#D4AF37]/20 to-[#9d4edd]/20 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] mb-4 sm:mb-5 group-hover:scale-110 transition-transform">
@@ -225,7 +317,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       setMode('sync');
-                      setStep('mood-select');
+                      navigateToStep('mood-select');
                     }}
                     className="group relative flex flex-col p-6 sm:p-7 rounded-3xl border border-[#D4AF37]/25 bg-[#1F1630]/60 hover:bg-[#1F1630]/90 backdrop-blur-xl hover:border-[#D4AF37] hover:shadow-[0_0_40px_rgba(212,175,55,0.25)] text-left transition-all duration-300 cursor-pointer"
                   >
@@ -249,7 +341,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                 <div className="flex justify-center pt-2">
                   <button
                     type="button"
-                    onClick={() => setStep('history')}
+                    onClick={() => navigateToStep('history')}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs text-[#F5E6CC]/80 hover:text-[#D4AF37] bg-[#1F1630]/60 hover:bg-[#1F1630] border border-[#D4AF37]/25 hover:border-[#D4AF37]/50 transition-all backdrop-blur-md cursor-pointer"
                   >
                     <Bookmark className="w-3.5 h-3.5 text-[#D4AF37]" />
@@ -277,8 +369,8 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                 <MoodSelector
                   selectedMood={selectedMood}
                   onSelectMood={setMood}
-                  onConfirm={() => setStep('text-input')}
-                  onBack={() => setStep('mode-select')}
+                  onConfirm={() => navigateToStep('text-input')}
+                  onBack={handleBack}
                 />
               </motion.div>
             )}
@@ -297,6 +389,8 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                   siteId={siteId}
                   playerName={playerName}
                   playerId={player}
+                  onBack={handleBack}
+                  onAdvance={(next) => navigateToStep(next)}
                 />
               </motion.div>
             )}
@@ -358,8 +452,11 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                 <div className="flex justify-center pt-6">
                   <button
                     type="button"
-                    onClick={reset}
-                    className="px-8 py-3 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/10 hover:bg-white/20 text-[#F5E6CC] border border-white/20 transition-all min-h-[44px]"
+                    onClick={() => {
+                      reset();
+                      navigateToStep('mode-select');
+                    }}
+                    className="px-8 py-3 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/10 hover:bg-white/20 text-[#F5E6CC] border border-white/20 transition-all min-h-[44px] cursor-pointer"
                   >
                     Fazer outro devocional
                   </button>
@@ -368,7 +465,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
             )}
 
             {/* ════════════ MODO SINCRONIZADO (SYNC) ════════════ */}
-            {mode === 'sync' && (step === 'mood-select' || step === 'sync-waiting' || step === 'sync-reveal') && (
+            {mode === 'sync' && (step === 'mood-select' || step === 'text-input' || step === 'sync-waiting' || step === 'sync-reveal') && (
               <motion.div
                 key="step-sync"
                 initial={{ opacity: 0, y: 15 }}
@@ -383,6 +480,8 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                   playerName={playerName}
                   partnerName={partnerName}
                   partnerNames={partnerNames}
+                  onBack={handleBack}
+                  onAdvance={(next) => navigateToStep(next)}
                 />
               </motion.div>
             )}
@@ -400,7 +499,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                 <DevotionalHistory
                   favorites={favorites}
                   onRemoveFavorite={(id) => removeFavoriteItem(siteId, id)}
-                  onNewDevotional={() => setStep('mode-select')}
+                  onNewDevotional={handleBack}
                 />
               </motion.div>
             )}

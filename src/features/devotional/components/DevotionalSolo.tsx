@@ -17,9 +17,17 @@ interface DevotionalSoloProps {
   siteId: string;
   playerName: string;
   playerId: string;
+  onBack?: () => void;
+  onAdvance?: (step: 'focus-select') => void;
 }
 
-export function DevotionalSolo({ siteId, playerName, playerId }: DevotionalSoloProps) {
+export function DevotionalSolo({
+  siteId,
+  playerName,
+  playerId,
+  onBack,
+  onAdvance,
+}: DevotionalSoloProps) {
   const {
     step,
     setStep,
@@ -75,7 +83,7 @@ export function DevotionalSolo({ siteId, playerName, playerId }: DevotionalSoloP
         <div className="flex items-center justify-between pt-2">
           <button
             type="button"
-            onClick={() => setStep('mood-select')}
+            onClick={() => (onBack ? onBack() : setStep('mood-select'))}
             className="px-5 py-2.5 text-xs uppercase tracking-wider text-[#F5E6CC]/60 hover:text-[#F5E6CC] transition-colors min-h-[44px]"
           >
             Voltar
@@ -85,7 +93,7 @@ export function DevotionalSolo({ siteId, playerName, playerId }: DevotionalSoloP
             type="button"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => setStep('focus-select')}
+            onClick={() => (onAdvance ? onAdvance('focus-select') : setStep('focus-select'))}
             className="px-7 sm:px-8 py-3 rounded-full text-sm font-semibold tracking-wider bg-gradient-to-r from-[#D4AF37] to-[#B8962E] text-[#160E24] shadow-[0_4px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_6px_25px_rgba(212,175,55,0.45)] transition-all cursor-pointer flex items-center gap-2 min-h-[44px]"
           >
             <span>Continuar</span>
@@ -155,7 +163,7 @@ export function DevotionalSolo({ siteId, playerName, playerId }: DevotionalSoloP
         <div className="flex items-center justify-between pt-4 flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setStep('text-input')}
+            onClick={() => (onBack ? onBack() : setStep('text-input'))}
             disabled={isGenerating}
             className="px-5 py-2.5 text-xs uppercase tracking-wider text-[#F5E6CC]/60 hover:text-[#F5E6CC] transition-colors min-h-[44px] flex items-center"
           >

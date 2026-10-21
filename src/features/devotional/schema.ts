@@ -48,6 +48,7 @@ export interface SoloDevotionalResult {
   prayer: string;
   journalPrompts?: string[];
   _meta: DevotionalMeta;
+  date?: string;
 }
 
 export interface SyncDevotionalResult {
@@ -59,6 +60,7 @@ export interface SyncDevotionalResult {
   couplePrompt: string;
   prayer: string;
   _meta: DevotionalMeta;
+  date?: string;
 }
 
 // ─── History (Anti-repetition System) ─────────────────────────────────────────

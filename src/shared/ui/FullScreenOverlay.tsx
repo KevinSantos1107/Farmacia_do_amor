@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, ArrowLeft } from 'lucide-react';
 import { lockBodyScroll } from '../utils/scrollLock';
 
 
@@ -14,9 +14,11 @@ interface FullScreenOverlayProps {
   actions?: React.ReactNode;
   /** Trava o conteúdo na viewport (sem scroll do overlay) — use em telas que precisam caber inteiras. */
   fill?: boolean;
+  /** Botão inteligente de voltar para passos anteriores */
+  onBack?: () => void;
 }
 
-export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, icon, actions, fill }: FullScreenOverlayProps) {
+export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, icon, actions, fill, onBack }: FullScreenOverlayProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,6 +52,19 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
         }}
       >
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all hover:scale-105 active:scale-95 ${
+                fill ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'
+              }`}
+              aria-label="Voltar"
+              title="Voltar"
+            >
+              <ArrowLeft className={fill ? 'w-4 h-4' : 'w-5 h-5'} />
+            </button>
+          )}
           {icon && (
             <div className="hidden md:flex items-center justify-center w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-white/5 border border-white/10 text-theme-secondary shadow-[0_0_15px_rgba(var(--theme-primary-rgb),0.3)]">
               {icon}
@@ -88,6 +103,7 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
             : 'relative z-10 flex-1 overflow-y-auto no-scrollbar'
         }
         style={{
+          WebkitOverflowScrolling: 'touch',
           paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
         }}
       >

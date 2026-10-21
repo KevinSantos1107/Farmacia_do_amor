@@ -38,6 +38,8 @@ interface DevotionalSyncProps {
   playerName: string;
   partnerName: string;
   partnerNames: { name1: string; name2: string };
+  onBack?: () => void;
+  onAdvance?: (step: 'text-input') => void;
 }
 
 export function DevotionalSync({
@@ -46,6 +48,8 @@ export function DevotionalSync({
   playerName,
   partnerName,
   partnerNames,
+  onBack,
+  onAdvance,
 }: DevotionalSyncProps) {
   const {
     setStep,
@@ -482,8 +486,14 @@ export function DevotionalSync({
             <MoodSelector
               selectedMood={selectedMood}
               onSelectMood={setMood}
-              onConfirm={() => setSyncStep('text')}
-              onBack={() => setStep('mode-select')}
+              onConfirm={() => {
+                setSyncStep('text');
+                if (onAdvance) onAdvance('text-input');
+              }}
+              onBack={() => {
+                if (onBack) onBack();
+                else setStep('mode-select');
+              }}
             />
           </motion.div>
         ) : (
@@ -529,7 +539,10 @@ export function DevotionalSync({
             <div className="flex items-center justify-between pt-2">
               <button
                 type="button"
-                onClick={() => setSyncStep('mood')}
+                onClick={() => {
+                  setSyncStep('mood');
+                  if (onBack) onBack();
+                }}
                 className="px-5 py-2.5 text-xs uppercase tracking-wider text-[#F5E6CC]/60 hover:text-[#F5E6CC] transition-colors min-h-[44px]"
               >
                 Voltar
