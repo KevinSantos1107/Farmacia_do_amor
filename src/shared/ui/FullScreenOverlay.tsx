@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import { X, ArrowLeft } from 'lucide-react';
+import { X } from 'lucide-react';
 import { lockBodyScroll } from '../utils/scrollLock';
 import { useOverlayHistory } from '../hooks/useOverlayHistory';
 
@@ -15,11 +15,10 @@ interface FullScreenOverlayProps {
   actions?: React.ReactNode;
   /** Trava o conteúdo na viewport (sem scroll do overlay) — use em telas que precisam caber inteiras. */
   fill?: boolean;
-  /** Botão inteligente de voltar para passos anteriores */
+  /** Callback opcional de voltar */
   onBack?: () => void;
   /** Identificador único para a pilha de histórico */
   overlayId?: string;
-  /** Esconde explicitamente o botão voltar se estritamente necessário */
   hideBackButton?: boolean;
 }
 
@@ -34,7 +33,6 @@ export function FullScreenOverlay({
   fill,
   onBack,
   overlayId,
-  hideBackButton = false,
 }: FullScreenOverlayProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -43,7 +41,7 @@ export function FullScreenOverlay({
   // o React Router já gerencia o histórico e o endereço na URL nativamente.
   const isDedicatedRoute = location.pathname !== '/' && !location.pathname.startsWith('/admin');
 
-  const { handleDismiss: overlayDismiss, handleBack: overlayBack } = useOverlayHistory({
+  const { handleDismiss: overlayDismiss } = useOverlayHistory({
     id: overlayId || `overlay-${title.toLowerCase().replace(/\s+/g, '-')}`,
     isOpen: isOpen && !isDedicatedRoute,
     onClose,
@@ -55,16 +53,6 @@ export function FullScreenOverlay({
       onClose();
     } else {
       overlayDismiss();
-    }
-  };
-
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-    } else if (isDedicatedRoute) {
-      onClose();
-    } else {
-      overlayBack();
     }
   };
 
@@ -101,19 +89,6 @@ export function FullScreenOverlay({
         }}
       >
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
-          {!hideBackButton && (
-            <button
-              type="button"
-              onClick={handleBack}
-              className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all hover:scale-105 active:scale-95 cursor-pointer ${
-                fill ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'
-              }`}
-              aria-label="Voltar"
-              title="Voltar"
-            >
-              <ArrowLeft className={fill ? 'w-4 h-4' : 'w-5 h-5'} />
-            </button>
-          )}
           {icon && (
             <div className="hidden md:flex items-center justify-center w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-white/5 border border-white/10 text-theme-secondary shadow-[0_0_15px_rgba(var(--theme-primary-rgb),0.3)]">
               {icon}

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { Button } from '../../shared/ui/Button';
 
 export default function Unauthorized() {
@@ -24,7 +24,6 @@ export default function Unauthorized() {
           onClick={() => navigate('/admin')}
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all shadow-lg shadow-indigo-600/20"
         >
-          <ArrowLeft className="w-4 h-4" />
           Voltar ao Painel
         </Button>
       </div>

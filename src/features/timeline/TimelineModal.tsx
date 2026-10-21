@@ -4,7 +4,7 @@ import { query, getDocs } from 'firebase/firestore';
 import { siteCollection } from '../../services/firestore/paths';
 import { Timeline } from './Timeline';
 import type { TimelineEvent } from './Timeline';
-import { X, Clock, ArrowLeft } from 'lucide-react';
+import { X, Clock } from 'lucide-react';
 import { Spinner } from '../../shared/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
@@ -22,7 +22,7 @@ export function TimelineModalContent({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { handleDismiss, handleBack } = useOverlayHistory({
+  const { handleDismiss } = useOverlayHistory({
     id: 'timeline-modal',
     isOpen: true,
     onClose,
@@ -67,21 +67,6 @@ export function TimelineModalContent({
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-          <button
-            onClick={handleBack}
-            aria-label="Voltar"
-            title="Voltar"
-            style={{
-              width: 40, height: 40, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              color: '#fff', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <ArrowLeft style={{ width: 20, height: 20 }} />
-          </button>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: '#fff', fontFamily: 'serif' }}>
               Nossa História

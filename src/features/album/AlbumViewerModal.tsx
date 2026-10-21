@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { ArrowLeft, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
 import { imagePreloader } from './ImagePreloader';
@@ -573,20 +573,6 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     >
       {/* Controles do topo com suporte a clique direto sem interferência de gesto */}
       <div className="absolute top-5 left-4 right-4 z-[60] flex items-center justify-between pointer-events-none">
-        <button
-          type="button"
-          data-no-gesture
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white/90 hover:text-white flex items-center justify-center pointer-events-auto active:scale-95 transition-all shadow-lg cursor-pointer hover:bg-black/80"
-          aria-label="Voltar aos álbuns"
-          title="Voltar aos álbuns"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-
         <button
           type="button"
           data-no-gesture

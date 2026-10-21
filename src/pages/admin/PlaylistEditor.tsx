@@ -14,7 +14,7 @@ import { uploadImage } from '../../services/cloudinary/upload';
 import { Button } from '../../shared/ui/Button';
 import { Spinner } from '../../shared/ui/Spinner';
 import { useSortableList } from '../../shared/hooks/useSortableList';
-import { Plus, ArrowLeft } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { AdminPageHeader } from './AdminPageHeader';
 import { useOverlayHistory } from '../../shared/hooks/useOverlayHistory';
 
@@ -347,7 +347,7 @@ export default function PlaylistEditor() {
               onClick={() => setActivePlaylist(null)}
               className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm shrink-0"
             >
-              <ArrowLeft className="w-4 h-4" /> Playlists
+              ← Playlists
             </button>
             <span className="text-slate-600 shrink-0">/</span>
             <h1 className="text-xl sm:text-2xl font-bold text-white truncate max-w-[240px] sm:max-w-md">

@@ -31,7 +31,6 @@ import {
   Plus,
   Trash2,
   GripVertical,
-  ArrowLeft,
   Upload,
   X,
   Image as ImageIcon,
@@ -609,7 +608,7 @@ export default function AlbumEditor() {
             onClick={() => setActiveAlbum(null)}
             className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm"
           >
-            <ArrowLeft className="w-4 h-4" /> Álbuns
+            ← Álbuns
           </button>
           <span className="text-slate-600">/</span>
           <h1 className="text-2xl font-bold text-white">{activeAlbum.title}</h1>

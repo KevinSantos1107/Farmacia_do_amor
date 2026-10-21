@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Flame, Trophy, Gamepad2, Check, ArrowLeft } from 'lucide-react';
+import { X, Flame, Trophy, Gamepad2, Check } from 'lucide-react';
 import type { GameStats } from './types';
 import { useOverlayHistory } from '../../../shared/hooks/useOverlayHistory';
 import { lockBodyScroll } from '../../../shared/utils/scrollLock';
@@ -13,7 +13,7 @@ interface WordStatsPanelProps {
 }
 
 export function WordStatsPanel({ isOpen, onClose, stats }: WordStatsPanelProps) {
-  const { handleDismiss, handleBack } = useOverlayHistory({
+  const { handleDismiss } = useOverlayHistory({
     id: 'word-game-stats',
     isOpen,
     onClose,
@@ -58,18 +58,8 @@ export function WordStatsPanel({ isOpen, onClose, stats }: WordStatsPanelProps) 
           transition={{ type: 'spring', damping: 26, stiffness: 300 }}
           className="relative z-10 w-full max-w-md sm:max-w-xl md:max-w-2xl bg-[#0e091b]/95 border border-purple-500/30 rounded-3xl p-5 sm:p-7 shadow-[0_0_60px_rgba(157,78,221,0.25)] flex flex-col my-auto"
         >
-          {/* Header com Voltar e Fechar */}
+          {/* Header com Fechar */}
           <div className="flex items-center justify-between pb-4 sm:pb-5 mb-5 border-b border-white/10">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer"
-              title="Voltar ao Jogo"
-              aria-label="Voltar ao Jogo"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" />
               <h3 className="text-xl sm:text-2xl font-bold font-serif text-white tracking-wide">
@@ -159,7 +149,7 @@ export function WordStatsPanel({ isOpen, onClose, stats }: WordStatsPanelProps) 
             onClick={handleDismiss}
             className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110 text-white font-bold rounded-2xl transition-all shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base active:scale-[0.99]"
           >
-            <ArrowLeft className="w-4 h-4" /> Voltar ao Jogo
+            Voltar ao Jogo
           </button>
         </motion.div>
       </div>

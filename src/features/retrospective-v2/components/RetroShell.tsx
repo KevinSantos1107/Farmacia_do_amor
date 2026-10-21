@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { Volume2, VolumeX, ArrowLeft, X } from 'lucide-react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { useRetroV2Store } from '../store/useRetroV2Store';
 import { IntroSlide } from './slides/01-IntroSlide';
 import { TimeSlide } from './slides/02-TimeSlide';
@@ -89,14 +89,6 @@ export function RetroShell() {
     setCurrentSlide((prev) => Math.max(prev - 1, 0));
   }, []);
 
-  const handleRetroBack = useCallback(() => {
-    if (currentSlide > 0) {
-      prevSlide();
-    } else {
-      closeRetro();
-    }
-  }, [currentSlide, prevSlide, closeRetro]);
-
   useOverlayHistory({
     id: 'retro-shell',
     isOpen,
@@ -169,8 +161,10 @@ export function RetroShell() {
     const dy = e.clientY - startY;
 
     // Swipe vertical para fechar com animação
-    if (Math.abs(dy) > Math.abs(dx) && dy > 100) {
-      animate(y, window.innerHeight, { duration: 0.25 }).then(closeRetro);
+    if (Math.abs(dy) > Math.abs(dx) && dy > 80) {
+      animate(y, window.innerHeight, { duration: 0.25 }).then(() => {
+        closeRetro();
+      });
       return;
     } else {
       animate(y, 0, { type: 'spring', stiffness: 300, damping: 30 });
@@ -238,43 +232,23 @@ export function RetroShell() {
           </div>
         )}
 
-      {/* Controles do topo — botão voltar e mudo/fechar */}
-      <div className="absolute top-5 left-4 right-4 z-50 flex justify-between items-center pointer-events-none">
-        <button
-          onClick={(e) => { e.stopPropagation(); handleRetroBack(); }}
-          className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center pointer-events-auto active:scale-95 transition-transform border border-white/10 text-white/80 hover:text-white"
-          aria-label="Voltar"
-          title="Voltar"
-        >
-          <ArrowLeft className="w-4 h-4 text-white" />
-        </button>
-
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {currentSlide > 0 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-              className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center active:scale-95 transition-transform border border-white/10"
-              aria-label={isMuted ? 'Ativar som' : 'Desativar som'}
-              title={isMuted ? 'Ativar som' : 'Desativar som'}
-            >
-              {isMuted ? (
-                <VolumeX className="w-4 h-4 text-white" />
-              ) : (
-                <Volume2 className="w-4 h-4 text-white" />
-              )}
-            </button>
-          )}
-
+      {/* Controles do topo — botão mudo */}
+      {currentSlide > 0 && (
+        <div className="absolute top-5 right-4 z-50 flex items-center pointer-events-none">
           <button
-            onClick={(e) => { e.stopPropagation(); closeRetro(); }}
-            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center active:scale-95 transition-transform border border-white/10 text-white/80 hover:text-white"
-            aria-label="Fechar retrospectiva"
-            title="Fechar"
+            onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center pointer-events-auto active:scale-95 transition-transform border border-white/10"
+            aria-label={isMuted ? 'Ativar som' : 'Desativar som'}
+            title={isMuted ? 'Ativar som' : 'Desativar som'}
           >
-            <X className="w-4 h-4 text-white" />
+            {isMuted ? (
+              <VolumeX className="w-4 h-4 text-white" />
+            ) : (
+              <Volume2 className="w-4 h-4 text-white" />
+            )}
           </button>
         </div>
-      </div>
+      )}
 
       {/* Indicador visual de zona de clique — aparece brevemente no primeiro slide não-intro */}
       {currentSlide === 1 && (

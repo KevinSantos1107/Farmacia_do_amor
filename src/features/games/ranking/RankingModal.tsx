@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { X, Trophy, Crown, Heart, Worm, Gamepad2, MessageCircleHeart, Layers, ArrowLeft } from 'lucide-react';
+import { X, Trophy, Crown, Heart, Worm, Gamepad2, MessageCircleHeart, Layers } from 'lucide-react';
 import {
   getRanking,
   getWordRanking,
@@ -416,7 +416,7 @@ const TABS: { id: RankingGame; label: string; Icon: React.ElementType }[] = [
 export function RankingModal({ isOpen, onClose, initialGame = 'snake' }: Props) {
   const [activeTab, setActiveTab] = useState<RankingGame>(initialGame);
 
-  const { handleDismiss, handleBack } = useOverlayHistory({
+  const { handleDismiss } = useOverlayHistory({
     id: 'ranking-modal',
     isOpen,
     onClose,
@@ -467,14 +467,6 @@ export function RankingModal({ isOpen, onClose, initialGame = 'snake' }: Props) 
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 pt-3 sm:pt-5 pb-2 sm:pb-3 shrink-0">
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleBack}
-              className="p-1.5 sm:p-2 -ml-1 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
-              aria-label="Voltar"
-              title="Voltar"
-            >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
             <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
             <h2 className="text-base sm:text-lg font-bold text-white">Ranking do Casal</h2>
           </div>

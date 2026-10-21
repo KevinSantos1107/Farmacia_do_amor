@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { DevotionalFavorite } from '../schema';
-import { Heart, Trash2, Calendar, ChevronDown, Sparkles, ArrowLeft } from 'lucide-react';
+import { Heart, Trash2, Calendar, ChevronDown, Sparkles } from 'lucide-react';
 
 interface DevotionalHistoryProps {
   favorites: DevotionalFavorite[];
@@ -186,7 +186,6 @@ export function DevotionalHistory({
             onClick={onNewDevotional}
             className="px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/10 hover:bg-white/20 text-[#F5E6CC] border border-white/20 transition-all min-h-[44px] flex items-center gap-2 cursor-pointer"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
             <span>Voltar ao Devocional</span>
           </button>
         </div>
