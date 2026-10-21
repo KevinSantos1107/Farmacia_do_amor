@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -15,7 +15,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
-export const db = getFirestore(app);
+// Safari/iOS (principalmente em PWA, com bloqueadores de conteúdo ou algumas redes)
+// às vezes trava o canal de streaming padrão do Firestore por vários segundos.
+// A detecção automática troca para long-polling quando isso acontece, sem
+// custo em navegadores que funcionam normalmente.
+function createFirestore() {
+  try {
+    return initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  } catch {
+    // Já inicializado (ex.: hot reload em dev) → reutiliza a instância existente
+    return getFirestore(app);
+  }
+}
+
+export const db = createFirestore();
 export const auth = getAuth(app);
 
 export default app;

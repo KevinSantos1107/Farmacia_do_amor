@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu, X, Home, Clock, Palette, PlayCircle, ChevronDown,
   Heart, Timer, Music, Images, Stars, Gamepad2,
-  Rocket, Snowflake, Waves, Mail, Worm, MessageCircleHeart, SpellCheck2, Layers
+  Rocket, Snowflake, Waves, Mail, Worm, MessageCircleHeart, SpellCheck2, Layers, BookOpen
 } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 import { useThemeStore } from '../../store/useThemeStore';
@@ -309,6 +309,28 @@ export function HamburgerMenu() {
                 </div>
               </div>
             </div>
+
+            <div className="h-px bg-white/8 my-1" />
+
+            {/* ── DEVOCIONAL DO CASAL ───────────────────────── */}
+            <button
+              onClick={() => {
+                handleOpenModal('devotional');
+              }}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/80 hover:bg-[#D4AF37]/15 hover:text-[#D4AF37] transition-all text-sm w-full font-medium group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-[#D4AF37]/15 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] shrink-0 group-hover:scale-110 transition-transform">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <div className="text-left flex-1 min-w-0">
+                <span className="block text-sm font-medium text-white/90 group-hover:text-[#D4AF37] transition-colors">
+                  Devocional do Casal
+                </span>
+                <span className="block text-[11px] text-[#D4AF37]/70 font-light truncate">
+                  Palavra e oração a dois
+                </span>
+              </div>
+            </button>
 
             <div className="h-px bg-white/8 my-1" />
 

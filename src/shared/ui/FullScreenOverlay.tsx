@@ -11,11 +11,12 @@ interface FullScreenOverlayProps {
   subtitle?: string;
   children: React.ReactNode;
   icon?: React.ReactNode;
+  actions?: React.ReactNode;
   /** Trava o conteúdo na viewport (sem scroll do overlay) — use em telas que precisam caber inteiras. */
   fill?: boolean;
 }
 
-export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, icon, fill }: FullScreenOverlayProps) {
+export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, icon, actions, fill }: FullScreenOverlayProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,13 +67,16 @@ export function FullScreenOverlay({ isOpen, onClose, title, subtitle, children, 
           </div>
         </div>
         
-        <button
-          onClick={onClose}
-          className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-all hover:scale-105 active:scale-95 ml-2 ${fill ? 'w-9 h-9' : 'w-10 h-10'}`}
-          aria-label="Fechar"
-        >
-          <X className={fill ? 'w-5 h-5' : 'w-6 h-6'} />
-        </button>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {actions}
+          <button
+            onClick={onClose}
+            className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-all hover:scale-105 active:scale-95 ml-1 sm:ml-2 ${fill ? 'w-9 h-9' : 'w-10 h-10'}`}
+            aria-label="Fechar"
+          >
+            <X className={fill ? 'w-5 h-5' : 'w-6 h-6'} />
+          </button>
+        </div>
       </div>
 
       {/* Content Area */}

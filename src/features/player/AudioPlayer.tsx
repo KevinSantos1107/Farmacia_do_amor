@@ -62,7 +62,7 @@ export function AudioPlayer() {
     toggleRepeat,
   } = useAudioStore();
 
-  const { currentTime, duration, isLoading, error, seek } = useAudio();
+  const { currentTime, duration, isLoading, isBuffering, error, seek } = useAudio();
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);
@@ -166,7 +166,7 @@ export function AudioPlayer() {
               className="w-10 h-10 rounded-full bg-[var(--theme-primary)] text-white flex items-center justify-center hover:bg-[var(--theme-secondary)] transition-transform hover:scale-105 active:scale-95 shadow-[0_0_15px_var(--theme-primary)]"
               disabled={isLoading}
             >
-              {isLoading ? (
+              {isLoading || (isPlaying && isBuffering) ? (
                 <Spinner size="sm" className="text-white" />
               ) : isPlaying ? (
                 <Pause className="w-5 h-5 fill-current" />

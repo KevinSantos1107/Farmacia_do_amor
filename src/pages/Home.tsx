@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Heart, ChevronDown, RefreshCw, Sparkles, Clock } from 'lucide-react';
+import { Heart, ChevronDown, RefreshCw, Sparkles, Clock, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSiteConfigStore } from '../store/siteConfigStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -715,6 +715,52 @@ export default function Home() {
           </div>
         </motion.section>
       )}
+
+      {/* ══════════════════════════ DEVOCIONAL DO CASAL ══════════════════════════ */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-100px' }}
+        variants={fadeUpVariant}
+        className="py-24 px-4 text-center space-y-8 z-10 relative"
+        id="section-devocional"
+      >
+        <div className="max-w-3xl mx-auto space-y-4">
+          <SectionLabel emoji="✝️" text="Devocional do Casal" />
+          <h2
+            className="text-4xl md:text-5xl font-serif font-bold text-white mt-4"
+            style={{ textShadow: '0 0 25px rgba(212,175,55,0.6)' }}
+          >
+            Conexão com Deus &amp; Entre Nós
+          </h2>
+          <p className="text-slate-300/80 text-sm md:text-base max-w-md mx-auto font-light leading-relaxed">
+            Um versículo, meditação e desafio diário gerados sob medida para os sentimentos do nosso coração.
+          </p>
+        </div>
+
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={() => openModal('devotional')}
+            className="group relative inline-flex items-center gap-4 px-8 py-4 rounded-2xl border transition-all duration-300 hover:scale-105 shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:shadow-[0_0_50px_rgba(212,175,55,0.4)] cursor-pointer"
+            style={{
+              borderColor: 'rgba(212, 175, 55, 0.4)',
+              backgroundColor: 'rgba(212, 175, 55, 0.08)',
+            }}
+          >
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
+              style={{ backgroundColor: 'rgba(212, 175, 55, 0.15)' }}
+            >
+              <BookOpen className="w-5 h-5 text-[#D4AF37]" />
+            </div>
+            <div className="text-left">
+              <p className="text-white font-bold text-base">Abrir Devocional</p>
+              <p className="text-[#D4AF37]/80 text-xs">A sós ou sincronizado com seu amor</p>
+            </div>
+            <div className="w-2 h-2 rounded-full animate-pulse ml-2 bg-[#D4AF37]" />
+          </button>
+        </div>
+      </motion.section>
 
       {/* Bottom glow */}
       <div className="py-16" />

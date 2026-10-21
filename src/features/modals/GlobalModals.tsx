@@ -8,6 +8,7 @@ const TimelineModalWrapper = lazy(() => import('./TimelineModalWrapper').then(mo
 const CoupleQuizModal = lazy(() => import('../quiz/components/CoupleQuizModal').then(module => ({ default: module.CoupleQuizModal })));
 const MemoryGameModal = lazy(() => import('./MemoryGameModal').then(module => ({ default: module.MemoryGameModal })));
 const SyncModal = lazy(() => import('./SyncModal').then(module => ({ default: module.SyncModal })));
+const DevotionalModal = lazy(() => import('./DevotionalModal').then(module => ({ default: module.DevotionalModal })));
 
 export function GlobalModals() {
   const { activeModal, closeModal } = useModalsStore();
@@ -21,6 +22,7 @@ export function GlobalModals() {
       {activeModal === 'couple-quiz' && <CoupleQuizModal isOpen={true} onClose={closeModal} />}
       {activeModal === 'memory-game' && <MemoryGameModal isOpen={true} onClose={closeModal} />}
       {activeModal === 'sync' && <SyncModal isOpen={true} onClose={closeModal} />}
+      {activeModal === 'devotional' && <DevotionalModal isOpen={true} onClose={closeModal} />}
     </Suspense>
   );
 }

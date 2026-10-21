@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { replayCurrentAudio, getAudioElement } from '../features/player/useAudio';
+import { isSameAudioUrl } from '../features/player/playerLogic';
 
 export interface Track {
   id: string;
@@ -51,7 +52,7 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
     if (audio) {
       const target = tracks[safeIdx];
       if (target?.url && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
-        if (audio.src !== target.url) {
+        if (!isSameAudioUrl(audio.src, target.url)) {
           audio.src = target.url;
         }
         audio.play().catch(() => {});
@@ -71,7 +72,7 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
         if (audio) {
           const target = playlist[index];
           if (target?.url && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
-            if (audio.src !== target.url) {
+            if (!isSameAudioUrl(audio.src, target.url)) {
               audio.src = target.url;
             }
             audio.play().catch(() => {});

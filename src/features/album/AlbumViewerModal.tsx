@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { cn } from '../../shared/utils/cn';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
 import { imagePreloader } from './ImagePreloader';
-import { cloudinaryUrl, cloudinaryResponsiveSrcSet } from '../../services/cloudinary/upload';
+import { cloudinaryUrl } from '../../services/cloudinary/upload';
 
 interface Photo {
   id?: string;
@@ -42,16 +42,8 @@ function getPhotoUrl(photo: Photo): string {
   return photo.srcLarge || photo.src || photo.url || (photo.publicId ?? '') || '';
 }
 
-function getPhotoSrcSet(photo: Photo): string | undefined {
-  // Só gera srcSet para publicIds limpos (não URLs completas)
-  if (photo.publicId && !photo.publicId.startsWith('http')) {
-    return cloudinaryResponsiveSrcSet(photo.publicId, [600, 900, 1200]);
-  }
-  return undefined;
-}
-
 // ─── Foto com Pinch to Zoom e Pan ─────────────────────────────────────────────
-function ZoomableImage({ src, srcSet, alt }: { src: string; srcSet?: string; alt: string }) {
+function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
@@ -207,9 +199,8 @@ function ZoomableImage({ src, srcSet, alt }: { src: string; srcSet?: string; alt
     >
       <img
         src={src}
-        srcSet={srcSet}
-        sizes="(max-width: 768px) 100vw, 90vw"
         alt={alt}
+        decoding="async"
         draggable={false}
         className="max-w-full max-h-full object-contain pointer-events-none"
         style={{
@@ -248,6 +239,7 @@ function AlbumPanel({
               e.stopPropagation();
               onClose();
             }}
+            data-no-gesture
             className="px-6 py-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-semibold text-sm border border-white/30 active:scale-95 transition-transform"
             style={{ touchAction: 'manipulation' }}
           >
@@ -260,7 +252,6 @@ function AlbumPanel({
 
   const photo = album.photos[photoIndex];
   const url = photo ? getPhotoUrl(photo) : '';
-  const srcSet = photo ? getPhotoSrcSet(photo) : undefined;
   const caption = photo?.caption || photo?.description;
 
   return (
@@ -283,7 +274,7 @@ function AlbumPanel({
       </div>
 
       {/* Foto customizada com Zoom & Pan isolados */}
-      {url && <ZoomableImage src={url} srcSet={srcSet} alt={caption || `Foto ${photoIndex + 1}`} />}
+      {url && <ZoomableImage src={url} alt={caption || `Foto ${photoIndex + 1}`} />}
 
       {/* Legenda */}
       {caption && (
@@ -378,6 +369,42 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     onAlbumChange?.(wrappedIdx);
   }, [albums.length, onAlbumChange]);
 
+  // ── Transição de álbum (com rede de segurança) ────────────────────────────
+  // IMPORTANTE: no framer-motion, se uma animação é interrompida por outra no
+  // mesmo MotionValue, o .then() da primeira NUNCA dispara. Por isso a conclusão
+  // não depende só do promise: usa onComplete + um timer de segurança, e
+  // `finish` é idempotente. Assim `transitioning` nunca fica preso em true.
+  const swipeTimer = useRef<number | null>(null);
+
+  const commitAlbumSwipe = useCallback((targetX: number, newIdx: number) => {
+    transitioning.current = true;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (swipeTimer.current !== null) {
+        window.clearTimeout(swipeTimer.current);
+        swipeTimer.current = null;
+      }
+      // flushSync: troca o conteúdo dos painéis ANTES de recentralizar a faixa,
+      // evitando o "piscar" do álbum antigo por 1 frame.
+      flushSync(() => goToAlbum(newIdx));
+      dragX.set(0);
+      transitioning.current = false;
+    };
+    animate(dragX, targetX, {
+      type: 'tween',
+      duration: 0.28,
+      ease: [0.25, 0.46, 0.45, 0.94],
+      onComplete: finish,
+    });
+    swipeTimer.current = window.setTimeout(finish, 450);
+  }, [goToAlbum, dragX]);
+
+  useEffect(() => () => {
+    if (swipeTimer.current !== null) window.clearTimeout(swipeTimer.current);
+  }, []);
+
   // ── Navegar foto / transbordar para álbum ─────────────────────────────────
   const navigatePhoto = useCallback((dir: number) => {
     if (transitioning.current || albums.length === 0) return;
@@ -392,17 +419,32 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       photoIndexesRef.current = updated;
       setPhotoIndexes({ ...updated });
     } else {
-      const newIdx = albumIndexRef.current + dir;
-      const targetX = dir > 0 ? -window.innerWidth : window.innerWidth;
-      transitioning.current = true;
-      animate(dragX, targetX, { type: 'tween', duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] })
-        .then(() => {
-          goToAlbum(newIdx);
-          dragX.set(0);
-          transitioning.current = false;
-        });
+      commitAlbumSwipe(dir > 0 ? -window.innerWidth : window.innerWidth, albumIndexRef.current + dir);
     }
-  }, [albums, goToAlbum, dragX]);
+  }, [albums, commitAlbumSwipe]);
+
+  // ── Fechar deslizando (idempotente, mesma proteção da troca de álbum) ─────
+  const closeTimer = useRef<number | null>(null);
+  const closedRef = useRef(false);
+
+  const closeBySlide = useCallback((targetY: number) => {
+    if (closedRef.current) return;
+    const finish = () => {
+      if (closedRef.current) return;
+      closedRef.current = true;
+      if (closeTimer.current !== null) {
+        window.clearTimeout(closeTimer.current);
+        closeTimer.current = null;
+      }
+      onClose();
+    };
+    animate(y, targetY, { duration: 0.22, onComplete: finish });
+    closeTimer.current = window.setTimeout(finish, 400);
+  }, [y, onClose]);
+
+  useEffect(() => () => {
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+  }, []);
 
   // ── Teclado ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -418,6 +460,8 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   // ── Pointer events ────────────────────────────────────────────────────────
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (gesture.current.pointerId !== null || transitioning.current) return;
+    // Botões marcados (ex.: "Voltar" de álbum vazio) não iniciam gesto nem capturam o ponteiro
+    if ((e.target as HTMLElement).closest?.('[data-no-gesture]')) return;
     gesture.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -473,28 +517,23 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       const shouldSwipe = (absDx > 50 || Math.abs(velX) > 0.25) && albums.length > 1;
 
       if (shouldSwipe) {
-        transitioning.current = true;
-        const targetX = dx < 0 ? -window.innerWidth : window.innerWidth;
-        animate(dragX, targetX, { type: 'tween', duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] })
-          .then(() => {
-            goToAlbum(newIdx);
-            dragX.set(0);
-            transitioning.current = false;
-          });
+        commitAlbumSwipe(dx < 0 ? -window.innerWidth : window.innerWidth, newIdx);
       } else {
         animate(dragX, 0, { type: 'spring', stiffness: 320, damping: 32 });
       }
     } else if (direction === 'v') {
       if (absDy > 60 || Math.abs(velY) > 0.3) {
-        animate(y, dy > 0 ? window.innerHeight : -window.innerHeight, { duration: 0.22 })
-          .then(onClose);
+        closeBySlide(dy > 0 ? window.innerHeight : -window.innerHeight);
       } else {
         animate(y, 0, { type: 'spring', stiffness: 300, damping: 30 });
       }
     }
   };
 
-  const onPointerCancel = () => {
+  const onPointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Durante a troca de álbum, ou se o cancel é de outro dedo, não mexe em nada
+    if (transitioning.current) return;
+    if (gesture.current.pointerId !== e.pointerId) return;
     gesture.current.pointerId = null;
     gesture.current.direction = 'idle';
     animate(dragX, 0, { type: 'spring', stiffness: 320, damping: 32 });

@@ -12,14 +12,16 @@ export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose:
   
   const { isReady, isLoading, error, loadQuizData, gameState, config, syncQuizStats } = useQuizStore();
 
+  // Sincroniza recordes só quando o modal abre (antes rodava ~3x por abertura)
   useEffect(() => {
-    if (isOpen) {
-      syncQuizStats();
-      if (!isReady && !isLoading) {
-        loadQuizData(siteId);
-      }
+    if (isOpen) syncQuizStats();
+  }, [isOpen, syncQuizStats]);
+
+  useEffect(() => {
+    if (isOpen && !isReady && !isLoading) {
+      loadQuizData(siteId);
     }
-  }, [isOpen, isReady, isLoading, loadQuizData, siteId, syncQuizStats]);
+  }, [isOpen, isReady, isLoading, loadQuizData, siteId]);
 
   return (
     <FullScreenOverlay

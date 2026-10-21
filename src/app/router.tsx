@@ -8,6 +8,7 @@ import { Spinner } from '../shared/ui/Spinner';
 
 // Lazy load pages
 import Home from '../pages/Home';
+const DevotionalPage = lazy(() => import('../features/devotional/DevotionalPage'));
 const LoginPage = lazy(() => import('../features/auth/LoginPage'));
 
 // Lazy load admin pages
@@ -44,6 +45,14 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <Home />,
+      },
+      {
+        path: 'devotional',
+        element: (
+          <SuspenseWrapper>
+            <DevotionalPage />
+          </SuspenseWrapper>
+        ),
       },
       {
         path: '*',

@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useAudioStore } from '../../store/useAudioStore';
 import { getPlayableAudioUrl } from '../../services/mp3/audioService';
-import { shouldReloadTrack } from './playerLogic';
+import { shouldReloadTrack, isSameAudioUrl, describeMediaError } from './playerLogic';
 
 // ── Singleton — criado uma única vez quando o módulo é importado ─────────────
 const _audio = typeof window !== 'undefined' ? new Audio() : null;
@@ -18,6 +18,13 @@ type TimeListener = (time: number) => void;
 type DurListener = (dur: number) => void;
 const _timeListeners = new Set<TimeListener>();
 const _durListeners = new Set<DurListener>();
+
+// Estado de buffering / erro do elemento <audio> (para a UI mostrar feedback)
+type StatusListener = (s: { buffering: boolean; error: string | null }) => void;
+const _statusListeners = new Set<StatusListener>();
+const _emitStatus = (buffering: boolean, error: string | null = null) => {
+  _statusListeners.forEach((fn) => fn({ buffering, error }));
+};
 
 let _activeTrackUrl = '';
 let _isLoadingTrack = false;
@@ -39,6 +46,20 @@ if (_audio) {
       _durListeners.forEach((fn) => fn(_audio!.duration));
     }
   });
+  // Feedback de carregamento: antes, se o MP3 demorasse ou falhasse, a UI ficava
+  // "tocando" sem nenhuma indicação.
+  _audio.addEventListener('loadstart', () => { if (_audio!.src) _emitStatus(true); });
+  _audio.addEventListener('waiting', () => _emitStatus(true));
+  _audio.addEventListener('stalled', () => { if (!_audio!.paused) _emitStatus(true); });
+  _audio.addEventListener('canplay', () => _emitStatus(false));
+  _audio.addEventListener('playing', () => _emitStatus(false));
+  _audio.addEventListener('error', () => {
+    // src vazio (ao limpar a faixa) também dispara 'error' — ignorar
+    if (!_audio!.src) return;
+    _emitStatus(false, describeMediaError(_audio!.error?.code));
+    if (useAudioStore.getState().isPlaying) useAudioStore.setState({ isPlaying: false });
+  });
+
   _audio.addEventListener('ended', () => {
     const { isRepeat, nextTrack } = useAudioStore.getState();
     if (isRepeat) {
@@ -56,8 +77,9 @@ if (_audio) {
       if (_audio && _audio.paused && !_audio.src) {
         _audio.load();
       }
-      window.removeEventListener('touchstart', unlockAudio);
-      window.removeEventListener('click', unlockAudio);
+      // O flag de capture precisa ser o mesmo do addEventListener, senão não remove
+      window.removeEventListener('touchstart', unlockAudio, true);
+      window.removeEventListener('click', unlockAudio, true);
     };
     window.addEventListener('touchstart', unlockAudio, { passive: true, capture: true });
     window.addEventListener('click', unlockAudio, { passive: true, capture: true });
@@ -84,6 +106,7 @@ export function useAudio() {
   const [currentTime, setCurrentTime] = useState(_audio ? _audio.currentTime : 0);
   const [duration, setDuration] = useState(_audio && !isNaN(_audio.duration) ? _audio.duration : 0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // ── Subscrever/desinscrever listeners de tempo ────────────────────────────
@@ -96,6 +119,17 @@ export function useAudio() {
       _timeListeners.delete(onTime);
       _durListeners.delete(onDur);
     };
+  }, []);
+
+  // ── Buffering / erro do elemento <audio> ──────────────────────────────────
+  useEffect(() => {
+    const onStatus: StatusListener = ({ buffering, error: err }) => {
+      setIsBuffering(buffering);
+      if (err) setError(err);
+      else if (!buffering) setError(null);
+    };
+    _statusListeners.add(onStatus);
+    return () => { _statusListeners.delete(onStatus); };
   }, []);
 
   // ── Carregar track quando index/playlist mudar ────────────────────────────
@@ -124,9 +158,17 @@ export function useAudio() {
     _isLoadingTrack = true;
     const myGeneration = ++_loadGeneration;
 
+    // O store já define `audio.src` e chama play() de forma síncrona dentro do toque
+    // (exigência do iOS). Se o src já é o desta faixa, NÃO pausa/zera de novo —
+    // isso abortaria o play() recém-iniciado e atrasaria o começo da música.
+    const isDirectUrlTrack = track.url.startsWith('http://') || track.url.startsWith('https://');
+    const alreadyLoadedByStore = isDirectUrlTrack && isSameAudioUrl(_audio.src, track.url);
+
     // 1. ZERA IMEDIATAMENTE a barra e áudio anterior de forma síncrona
-    _audio.pause();
-    _audio.currentTime = 0;
+    if (!alreadyLoadedByStore) {
+      _audio.pause();
+      _audio.currentTime = 0;
+    }
     setCurrentTime(0);
     _timeListeners.forEach((fn) => fn(0));
     const initialDur = track.duration && track.duration > 0 ? track.duration : 0;
@@ -144,11 +186,11 @@ export function useAudio() {
         const url = isDirectUrl ? track.url : await getPlayableAudioUrl(track.url);
         if (isCancelled) return;
 
-        if (_audio.src !== url) {
+        if (!isSameAudioUrl(_audio.src, url)) {
           _audio.src = url;
         }
 
-        if (useAudioStore.getState().isPlaying) {
+        if (useAudioStore.getState().isPlaying && _audio.paused) {
           _audio.play().catch((e) => {
             console.warn('Audio play deferred by browser policy:', e);
           });
@@ -209,5 +251,5 @@ export function useAudio() {
     }
   };
 
-  return { currentTime, duration, isLoading, error, seek };
+  return { currentTime, duration, isLoading, isBuffering, error, seek };
 }
