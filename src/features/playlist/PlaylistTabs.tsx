@@ -392,17 +392,7 @@ export function PlaylistTabs() {
                 />
               </div>
 
-              {/* Indicador que acompanha a posição do dedo com precisão */}
-              {isCurrentTabLoaded && (
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)] pointer-events-none transition-transform duration-75"
-                  style={{
-                    left: `calc(${progressPercent}% - 7px)`,
-                    transform: `translateY(-50%) scale(${isDragging ? 1.25 : 0.85})`,
-                    opacity: isDragging ? 1 : 0.6,
-                  }}
-                />
-              )}
+
             </div>
 
             <div className="flex justify-between items-center mt-2 px-0.5 pointer-events-none">
