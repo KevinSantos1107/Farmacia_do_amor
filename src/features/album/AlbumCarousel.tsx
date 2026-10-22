@@ -283,7 +283,7 @@ export function AlbumCarousel() {
                   visibility: style.hidden ? 'hidden' : 'visible',
                   transition: 'transform 0.25s cubic-bezier(0.25,1,0.5,1), opacity 0.25s ease',
                   cursor:     'pointer',
-                  willChange: 'transform, opacity',
+                  willChange: style.hidden ? undefined : 'transform, opacity',
                   touchAction: 'manipulation',
                 }}
               >
@@ -295,6 +295,7 @@ export function AlbumCarousel() {
                       sizes="240px"
                       alt={album.title}
                       loading="lazy"
+                      decoding="async"
                       className={`w-full h-full object-cover transition-transform duration-700 ${isActive ? 'group-hover:scale-105' : ''}`}
                       draggable={false}
                     />

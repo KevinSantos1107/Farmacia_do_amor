@@ -17,6 +17,13 @@ class ImagePreloaderQueue {
     this.process();
   }
 
+  /**
+   * Limpa a fila pendente de preloading (chamado ao fechar o modal ou desmontar).
+   */
+  clear() {
+    this.queue = [];
+  }
+
   private async process() {
     if (this.loading || this.queue.length === 0) return;
     this.loading = true;
@@ -40,8 +47,20 @@ class ImagePreloaderQueue {
   private loadImage(url: string): Promise<void> {
     return new Promise((resolve) => {
       const img = new Image();
-      img.onload = () => resolve();
-      img.onerror = () => resolve(); // Resolve mesmo com erro para não travar a fila
+      // Decodificação assíncrona evita travar a main thread e picos de GPU no iOS/Safari
+      if ('decoding' in img) {
+        img.decoding = 'async';
+      }
+      img.onload = () => {
+        img.onload = null;
+        img.onerror = null;
+        resolve();
+      };
+      img.onerror = () => {
+        img.onload = null;
+        img.onerror = null;
+        resolve(); // Resolve mesmo com erro para não travar a fila
+      };
       img.src = url;
     });
   }

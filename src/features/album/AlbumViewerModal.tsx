@@ -33,13 +33,24 @@ interface AlbumViewerModalProps {
   onAlbumChange?: (index: number) => void;
 }
 
-// ─── Helper para URL da foto ────────────────────────────────────────────────
-function getPhotoUrl(photo: Photo): string {
-  // Prioriza publicId limpo → URL Cloudinary otimizada (1200px, sem crop embutido)
+// ─── Helper para Detecção Mobile & URL da foto ──────────────────────────────
+function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth <= 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
+function getPhotoUrl(photo: Photo, isMobile = isMobileDevice()): string {
+  // Prioriza publicId limpo → URL Cloudinary otimizada
+  // No mobile/iPhone, 900px é perfeito para tela Retina (2.3x supersampling em 390px)
+  // enquanto consome mais de 60% menos memória uncompressed de GPU, prevenindo crashes no WebKit/Safari.
   if (photo.publicId && !photo.publicId.startsWith('http')) {
-    return cloudinaryUrl(photo.publicId, { w: 1200 });
+    return cloudinaryUrl(photo.publicId, { w: isMobile ? 900 : 1200 });
   }
-  // Fotos legadas do site antigo: prefere srcLarge (1600px) > src (800px) > url
+  // Fotos legadas do site antigo:
+  // No mobile, prefere src (800px) ao invés de srcLarge (1600px) para não estourar limite Jetsam de RAM
+  if (isMobile) {
+    return photo.src || photo.srcLarge || photo.url || (photo.publicId ?? '') || '';
+  }
   return photo.srcLarge || photo.src || photo.url || (photo.publicId ?? '') || '';
 }
 
@@ -179,6 +190,12 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const onPointerUp = (e: React.PointerEvent) => {
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.delete(e.pointerId);
+
+    try {
+      if ((e.currentTarget as HTMLDivElement).hasPointerCapture?.(e.pointerId)) {
+        (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+      }
+    } catch {}
     
     if (scale > 1) e.stopPropagation();
 
@@ -199,6 +216,8 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     }
   };
 
+  const isZoomedOrPanning = scale > 1 || pan.x !== 0 || pan.y !== 0;
+
   return (
     <div
       ref={containerRef}
@@ -214,6 +233,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
         <img
           src={prevSrc}
           alt=""
+          decoding="async"
           draggable={false}
           className="absolute inset-0 m-auto max-w-full max-h-full object-contain pointer-events-none"
           style={{
@@ -227,6 +247,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       <img
         src={currentSrc}
         alt={alt}
+        decoding="async"
         draggable={false}
         onLoad={() => {
           setIsLoaded(true);
@@ -243,7 +264,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
           transition: scale === 1 && pan.x === 0 && pan.y === 0 ? 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-out' : 'opacity 0.2s ease-out',
-          willChange: 'transform, opacity',
+          willChange: isZoomedOrPanning ? 'transform' : undefined,
           zIndex: 2,
         }}
       />
@@ -294,8 +315,13 @@ function AlbumPanel({
 
   return (
     <div className="w-full h-full relative bg-black flex items-center justify-center">
-      {/* Barras de progresso com transição fluida nativa estilo Instagram */}
-      <div className="absolute top-4 inset-x-0 z-50 flex gap-[3px] px-4 drop-shadow-md pointer-events-none">
+      {/* Barras de progresso com transição fluida nativa estilo Instagram (respeita Dynamic Island / Notch) */}
+      <div
+        className="absolute inset-x-0 z-50 flex gap-[3px] px-4 drop-shadow-md pointer-events-none"
+        style={{
+          top: 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))',
+        }}
+      >
         {album.photos.map((_, i) => (
           <div key={i} className="flex-1 h-[3px] bg-white/25 rounded-full overflow-hidden">
             <div
@@ -308,17 +334,27 @@ function AlbumPanel({
         ))}
       </div>
 
-      {/* Título */}
-      <div className="absolute top-9 left-4 z-50 pointer-events-none">
+      {/* Título (respeita safe-area-inset do iPhone) */}
+      <div
+        className="absolute left-4 z-50 pointer-events-none"
+        style={{
+          top: 'max(2.25rem, calc(env(safe-area-inset-top, 0px) + 1.6rem))',
+        }}
+      >
         <p className="text-white/90 font-semibold text-sm drop-shadow">{album.title}</p>
       </div>
 
       {/* Foto customizada com Zoom & Pan isolados */}
       {url && <ZoomableImage src={url} alt={caption || `Foto ${photoIndex + 1}`} />}
 
-      {/* Legenda */}
+      {/* Legenda (respeita barra de navegação/Home indicator do iOS) */}
       {caption && (
-        <div className="absolute bottom-8 inset-x-0 flex justify-center px-6 pointer-events-none">
+        <div
+          className="absolute inset-x-0 flex justify-center px-6 pointer-events-none"
+          style={{
+            bottom: 'max(2rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))',
+          }}
+        >
           <div className="bg-black/55 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl text-center max-w-sm shadow-lg pointer-events-auto">
             {caption}
           </div>
@@ -376,10 +412,14 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     };
     syncWidth();
     window.addEventListener('resize', syncWidth);
-    window.addEventListener('orientationchange', syncWidth);
+    // Em navegadores móveis / WebKit iOS, aguarda o reflow completo da rotação de tela
+    const onOrientation = () => {
+      setTimeout(syncWidth, 100);
+    };
+    window.addEventListener('orientationchange', onOrientation);
     return () => {
       window.removeEventListener('resize', syncWidth);
-      window.removeEventListener('orientationchange', syncWidth);
+      window.removeEventListener('orientationchange', onOrientation);
     };
   }, [getWidth, x]);
 
@@ -401,10 +441,13 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     pointerId: number | null;
   }>({ startX: 0, startY: 0, startMotionX: 0, startTime: 0, direction: 'idle', pointerId: null });
 
-  // ── Bloquear scroll do fundo ──────────────────────────────────────────────
+  // ── Bloquear scroll do fundo e limpar preloader no desmonte ───────────────
   useEffect(() => {
     const unlock = lockBodyScroll();
-    return () => { unlock(); };
+    return () => {
+      unlock();
+      imagePreloader.clear();
+    };
   }, []);
 
   // ── SMART PRELOADING ──────────────────────────────────────────────────────
@@ -414,6 +457,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
 
   useEffect(() => {
     if (albums.length === 0) return;
+    const isMobile = isMobileDevice();
     const urls: string[] = [];
     
     const addUrl = (aIdx: number, pIdx: number) => {
@@ -422,26 +466,27 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       if (!a) return;
       const p = a.photos[pIdx];
       if (!p) return;
-      const url = getPhotoUrl(p);
+      const url = getPhotoUrl(p, isMobile);
       if (url && !urls.includes(url)) urls.push(url);
     };
 
     const curA = actualIndex;
     const curP = photoIndexes[albums[curA]?.id] ?? 0;
 
-    // 1. Alta prioridade: Próximas fotos no mesmo álbum
+    // 1. Alta prioridade: Próxima foto no mesmo álbum
     addUrl(curA, curP + 1);
-    addUrl(curA, curP + 2);
-    addUrl(curA, curP + 3);
+    if (!isMobile) {
+      addUrl(curA, curP + 2);
+      addUrl(curA, curP + 3);
+    }
 
-    // 2. Média prioridade: Foto anterior (se o usuário voltar)
+    // 2. Foto anterior (se o usuário voltar)
     addUrl(curA, curP - 1);
 
     // 3. Primeira foto do PRÓXIMO álbum (em loop circular)
     const nextA = curA + 1;
     const nextAP = photoIndexes[albums[((nextA % albums.length) + albums.length) % albums.length]?.id] ?? 0;
     addUrl(nextA, nextAP);
-    addUrl(nextA, nextAP + 1);
 
     // 4. Primeira foto do ÁLBUM ANTERIOR (em loop circular)
     const prevA = curA - 1;
@@ -600,6 +645,12 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     gesture.current.pointerId = null;
     gesture.current.direction = 'idle';
 
+    try {
+      if ((e.currentTarget as HTMLDivElement).hasPointerCapture?.(e.pointerId)) {
+        (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+
     if (direction === 'idle' || (absDx < 12 && absDy < 12)) {
       const width = getWidth();
       const restingX = -virtualIndexRef.current * width;
@@ -678,6 +729,13 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     if (gesture.current.pointerId !== e.pointerId) return;
     gesture.current.pointerId = null;
     gesture.current.direction = 'idle';
+
+    try {
+      if ((e.currentTarget as HTMLDivElement).hasPointerCapture?.(e.pointerId)) {
+        (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+
     const width = getWidth();
     if (animControls.current) animControls.current.stop();
     animControls.current = animate(x, -virtualIndexRef.current * width, {
