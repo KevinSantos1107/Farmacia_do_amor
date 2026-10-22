@@ -19,9 +19,7 @@ describe('Correções de navegação, modais e interface', () => {
       
       expect(content).not.toContain("aria-label=\"Fechar visualizador\"");
       expect(content).not.toContain("import { X } from 'lucide-react'");
-      expect(content).toContain('key="slot-prev"');
-      expect(content).toContain('key="slot-cur"');
-      expect(content).toContain('key="slot-next"');
+      expect(content).toContain('key={`slot-${item.slotKey}`}');
     });
 
     it('implementa buffer duplo para transição suave de imagens sem flicker', async () => {

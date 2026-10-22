@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { createPortal, flushSync } from 'react-dom';
+import { createPortal } from 'react-dom';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { cn } from '../../shared/utils/cn';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
@@ -294,14 +294,16 @@ function AlbumPanel({
 
   return (
     <div className="w-full h-full relative bg-black flex items-center justify-center">
-      {/* Barras de progresso */}
-      <div key={`progress-${album.id}`} className="absolute top-4 inset-x-0 z-50 flex gap-[3px] px-4 drop-shadow-md pointer-events-none">
+      {/* Barras de progresso com transição fluida nativa estilo Instagram */}
+      <div className="absolute top-4 inset-x-0 z-50 flex gap-[3px] px-4 drop-shadow-md pointer-events-none">
         {album.photos.map((_, i) => (
-          <div key={`${album.id}-${i}`} className="flex-1 h-[3px] bg-white/25 rounded-full overflow-hidden">
-            <div className={cn(
-              'h-full bg-white rounded-full origin-left',
-              i <= photoIndex ? 'scale-x-100' : 'scale-x-0'
-            )} />
+          <div key={i} className="flex-1 h-[3px] bg-white/25 rounded-full overflow-hidden">
+            <div
+              className={cn(
+                'h-full bg-white rounded-full transition-transform duration-200 origin-left',
+                i <= photoIndex ? 'scale-x-100' : 'scale-x-0'
+              )}
+            />
           </div>
         ))}
       </div>
@@ -328,7 +330,7 @@ function AlbumPanel({
 
 // ─── Modal principal ──────────────────────────────────────────────────────────
 export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumChange }: AlbumViewerModalProps) {
-  const [albumIndex, setAlbumIndex] = useState(initialAlbumIndex);
+  const [virtualIndex, setVirtualIndex] = useState(initialAlbumIndex);
   const [photoIndexes, setPhotoIndexes] = useState<Record<string, number>>({});
 
   useOverlayHistory({
@@ -338,9 +340,11 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   });
 
   // Refs para acesso sem stale closures
-  const albumIndexRef = useRef(initialAlbumIndex);
+  const virtualIndexRef = useRef(initialAlbumIndex);
   const photoIndexesRef = useRef<Record<string, number>>({});
   const transitioning = useRef(false);
+
+  const getWindowWidth = () => (typeof window !== 'undefined' ? window.innerWidth : 400);
 
   // ── Motion values ─────────────────────────────────────────────────────────
   const y = useMotionValue(0);
@@ -348,8 +352,17 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   const contentScale = useTransform(y, [-300, 0, 300], [0.85, 1, 0.85]);
   const bgColor = useTransform(bgOpacity, (o) => `rgba(0,0,0,${Number(o) * 0.97})`);
 
-  const dragX = useMotionValue(0);
-  const stripX = useTransform(dragX, (v) => `calc(-100vw + ${v}px)`);
+  // Posicionamento horizontal contínuo com suporte a loop infinito circular
+  const x = useMotionValue(-initialAlbumIndex * getWindowWidth());
+
+  useEffect(() => {
+    const syncX = () => {
+      x.set(-virtualIndexRef.current * getWindowWidth());
+    };
+    syncX();
+    window.addEventListener('resize', syncX);
+    return () => window.removeEventListener('resize', syncX);
+  }, [x]);
 
   const gesture = useRef<{
     startX: number;
@@ -366,11 +379,17 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   }, []);
 
   // ── SMART PRELOADING ──────────────────────────────────────────────────────
+  const actualIndex = albums.length > 0
+    ? ((virtualIndex % albums.length) + albums.length) % albums.length
+    : 0;
+
   useEffect(() => {
+    if (albums.length === 0) return;
     const urls: string[] = [];
     
     const addUrl = (aIdx: number, pIdx: number) => {
-      const a = albums[aIdx];
+      const normalizedIdx = ((aIdx % albums.length) + albums.length) % albums.length;
+      const a = albums[normalizedIdx];
       if (!a) return;
       const p = a.photos[pIdx];
       if (!p) return;
@@ -378,7 +397,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       if (url && !urls.includes(url)) urls.push(url);
     };
 
-    const curA = albumIndex;
+    const curA = actualIndex;
     const curP = photoIndexes[albums[curA]?.id] ?? 0;
 
     // 1. Alta prioridade: Próximas fotos no mesmo álbum
@@ -389,93 +408,67 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     // 2. Média prioridade: Foto anterior (se o usuário voltar)
     addUrl(curA, curP - 1);
 
-    // 3. Primeira foto do PRÓXIMO álbum (caso passe de álbum)
+    // 3. Primeira foto do PRÓXIMO álbum (em loop circular)
     const nextA = curA + 1;
-    const nextAP = photoIndexes[albums[nextA]?.id] ?? 0;
+    const nextAP = photoIndexes[albums[((nextA % albums.length) + albums.length) % albums.length]?.id] ?? 0;
     addUrl(nextA, nextAP);
-    addUrl(nextA, nextAP + 1); // e a seguinte também
+    addUrl(nextA, nextAP + 1);
 
-    // 4. Primeira foto do ÁLBUM ANTERIOR
+    // 4. Primeira foto do ÁLBUM ANTERIOR (em loop circular)
     const prevA = curA - 1;
-    const prevAP = photoIndexes[albums[prevA]?.id] ?? 0;
+    const prevAP = photoIndexes[albums[((prevA % albums.length) + albums.length) % albums.length]?.id] ?? 0;
     addUrl(prevA, prevAP);
 
     // Envia fila para o worker de cache
     imagePreloader.setPriority(urls);
-  }, [albumIndex, photoIndexes, albums]);
+  }, [actualIndex, photoIndexes, albums]);
 
-  // ── Ir para álbum ─────────────────────────────────────────────────────────
-  const goToAlbum = useCallback((idx: number) => {
-    if (albums.length === 0) return;
-    const wrappedIdx = (idx + albums.length) % albums.length;
-    albumIndexRef.current = wrappedIdx;
-    setAlbumIndex(wrappedIdx);
-    onAlbumChange?.(wrappedIdx);
-  }, [albums.length, onAlbumChange]);
-
-  // ── Transição de álbum (com rede de segurança) ────────────────────────────
-  // IMPORTANTE: no framer-motion, se uma animação é interrompida por outra no
-  // mesmo MotionValue, o .then() da primeira NUNCA dispara. Por isso a conclusão
-  // não depende só do promise: usa onComplete + um timer de segurança, e
-  // `finish` é idempotente. Assim `transitioning` nunca fica preso em true.
-  const swipeTimer = useRef<number | null>(null);
-
-  const commitAlbumSwipe = useCallback((targetX: number, newIdx: number) => {
-    transitioning.current = true;
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      if (swipeTimer.current !== null) {
-        window.clearTimeout(swipeTimer.current);
-        swipeTimer.current = null;
-      }
-      // flushSync: troca o conteúdo dos painéis ANTES de recentralizar a faixa,
-      // evitando o "piscar" do álbum antigo por 1 frame.
-      flushSync(() => goToAlbum(newIdx));
-      dragX.set(0);
-      transitioning.current = false;
-    };
-    animate(dragX, targetX, {
-      type: 'tween',
-      duration: 0.28,
-      ease: [0.25, 0.46, 0.45, 0.94],
-      onComplete: finish,
-    });
-    swipeTimer.current = window.setTimeout(finish, 450);
-  }, [goToAlbum, dragX]);
-
-  useEffect(() => () => {
-    if (swipeTimer.current !== null) window.clearTimeout(swipeTimer.current);
-  }, []);
-
-  // ── Navegar foto / transbordar para álbum ─────────────────────────────────
+  // ── Navegar foto / transbordar para álbum em loop infinito ─────────────────
   const navigatePhoto = useCallback((dir: number) => {
     if (transitioning.current || albums.length === 0) return;
-    const album = albums[albumIndexRef.current];
-    if (!album) return;
+    const currentActualIndex = ((virtualIndexRef.current % albums.length) + albums.length) % albums.length;
+    const currentAlbum = albums[currentActualIndex];
+    if (!currentAlbum) return;
 
-    const curr = photoIndexesRef.current[album.id] ?? 0;
+    const curr = photoIndexesRef.current[currentAlbum.id] ?? 0;
     const next = curr + dir;
 
-    if (next >= 0 && next < album.photos.length) {
-      const updated = { ...photoIndexesRef.current, [album.id]: next };
+    if (next >= 0 && next < currentAlbum.photos.length) {
+      const updated = { ...photoIndexesRef.current, [currentAlbum.id]: next };
       photoIndexesRef.current = updated;
-      setPhotoIndexes({ ...updated });
-    } else {
-      const targetAlbumIdx = (albumIndexRef.current + dir + albums.length) % albums.length;
-      const targetAlbum = albums[targetAlbumIdx];
+      setPhotoIndexes(updated);
+    } else if (albums.length > 1) {
+      // Transborda para o próximo álbum ou anterior com loop infinito circular
+      const targetVirtualIndex = virtualIndexRef.current + dir;
+      const targetActualIndex = ((targetVirtualIndex % albums.length) + albums.length) % albums.length;
+      const targetAlbum = albums[targetActualIndex];
+
       if (targetAlbum && targetAlbum.photos.length > 0) {
         const targetPhotoIdx = dir > 0 ? 0 : targetAlbum.photos.length - 1;
         const updated = { ...photoIndexesRef.current, [targetAlbum.id]: targetPhotoIdx };
         photoIndexesRef.current = updated;
-        setPhotoIndexes({ ...updated });
+        setPhotoIndexes(updated);
       }
-      commitAlbumSwipe(dir > 0 ? -window.innerWidth : window.innerWidth, albumIndexRef.current + dir);
-    }
-  }, [albums, commitAlbumSwipe]);
 
-  // ── Fechar deslizando (idempotente, mesma proteção da troca de álbum) ─────
+      transitioning.current = true;
+      const width = getWindowWidth();
+      const targetX = -targetVirtualIndex * width;
+
+      animate(x, targetX, {
+        type: 'tween',
+        duration: 0.28,
+        ease: [0.25, 0.46, 0.45, 0.94],
+        onComplete: () => {
+          transitioning.current = false;
+          virtualIndexRef.current = targetVirtualIndex;
+          setVirtualIndex(targetVirtualIndex);
+          onAlbumChange?.(targetActualIndex);
+        },
+      });
+    }
+  }, [albums, onAlbumChange, x]);
+
+  // ── Fechar deslizando ─────────────────────────────────────────────────────
   const closeTimer = useRef<number | null>(null);
   const closedRef = useRef(false);
 
@@ -512,7 +505,6 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   // ── Pointer events ────────────────────────────────────────────────────────
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (gesture.current.pointerId !== null || transitioning.current) return;
-    // Botões marcados (ex.: "Voltar" de álbum vazio) não iniciam gesto nem capturam o ponteiro
     if ((e.target as HTMLElement).closest?.('[data-no-gesture]')) return;
     gesture.current = {
       startX: e.clientX,
@@ -540,7 +532,13 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     }
 
     if (gesture.current.direction === 'h') {
-      dragX.set(dx); // Removida a resistência nas bordas para permitir loop livre
+      const width = getWindowWidth();
+      const baseX = -virtualIndexRef.current * width;
+      let effectiveDx = dx;
+      if (albums.length <= 1) {
+        effectiveDx = dx * 0.35; // Resistência elástica se só existir 1 álbum
+      }
+      x.set(baseX + effectiveDx);
     } else if (gesture.current.direction === 'v') {
       y.set(dy);
     }
@@ -564,15 +562,38 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     if (direction === 'idle' || (absDx < 12 && absDy < 12)) {
       navigatePhoto(e.clientX > window.innerWidth / 2 ? +1 : -1);
     } else if (direction === 'h') {
-      const swipeDir = dx < 0 ? +1 : -1;
-      const newIdx = albumIndexRef.current + swipeDir;
+      const width = getWindowWidth();
+      let targetVirtualIndex = virtualIndexRef.current;
       const shouldSwipe = (absDx > 50 || Math.abs(velX) > 0.25) && albums.length > 1;
 
       if (shouldSwipe) {
-        commitAlbumSwipe(dx < 0 ? -window.innerWidth : window.innerWidth, newIdx);
-      } else {
-        animate(dragX, 0, { type: 'spring', stiffness: 320, damping: 32 });
+        targetVirtualIndex = virtualIndexRef.current + (dx < 0 ? 1 : -1);
+        const targetActualIndex = ((targetVirtualIndex % albums.length) + albums.length) % albums.length;
+        const targetAlbum = albums[targetActualIndex];
+        if (targetAlbum && targetAlbum.photos.length > 0 && !(targetAlbum.id in photoIndexesRef.current)) {
+          const targetPhotoIdx = dx < 0 ? 0 : targetAlbum.photos.length - 1;
+          const updated = { ...photoIndexesRef.current, [targetAlbum.id]: targetPhotoIdx };
+          photoIndexesRef.current = updated;
+          setPhotoIndexes(updated);
+        }
       }
+
+      transitioning.current = true;
+      const targetX = -targetVirtualIndex * width;
+      animate(x, targetX, {
+        type: 'spring',
+        stiffness: 320,
+        damping: 32,
+        onComplete: () => {
+          transitioning.current = false;
+          if (targetVirtualIndex !== virtualIndexRef.current) {
+            virtualIndexRef.current = targetVirtualIndex;
+            setVirtualIndex(targetVirtualIndex);
+            const actualIdx = ((targetVirtualIndex % albums.length) + albums.length) % albums.length;
+            onAlbumChange?.(actualIdx);
+          }
+        },
+      });
     } else if (direction === 'v') {
       if (absDy > 60 || Math.abs(velY) > 0.3) {
         closeBySlide(dy > 0 ? window.innerHeight : -window.innerHeight);
@@ -583,25 +604,24 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   };
 
   const onPointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Durante a troca de álbum, ou se o cancel é de outro dedo, não mexe em nada
     if (transitioning.current) return;
     if (gesture.current.pointerId !== e.pointerId) return;
     gesture.current.pointerId = null;
     gesture.current.direction = 'idle';
-    animate(dragX, 0, { type: 'spring', stiffness: 320, damping: 32 });
+    animate(x, -virtualIndexRef.current * getWindowWidth(), { type: 'spring', stiffness: 320, damping: 32 });
     animate(y, 0, { type: 'spring', stiffness: 300, damping: 30 });
   };
 
-  // ── Dados dos três painéis ────────────────────────────────────────────────
-  const N = albums.length;
-  const prevAlbum = N > 0 ? albums[(albumIndex - 1 + N) % N] : undefined;
-  const curAlbum = N > 0 ? albums[albumIndex] : undefined;
-  const nextAlbum = N > 0 ? albums[(albumIndex + 1) % N] : undefined;
-  
-  const getPhotoIdx = (album: Album | undefined) =>
-    album ? (photoIndexes[album.id] ?? 0) : 0;
+  // ── Renderização com Sliding Window de 3 Slots Contínuos ──────────────────
+  const offsets = albums.length > 1 ? [-1, 0, 1] : [0];
+  const activeItems = offsets.map((k) => {
+    const v = virtualIndex + k;
+    const slotKey = ((v % 3) + 3) % 3;
+    const albumIdx = ((v % albums.length) + albums.length) % albums.length;
+    const album = albums[albumIdx];
+    return { v, slotKey, album };
+  });
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
@@ -615,37 +635,27 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
-      <motion.div style={{ y, scale: contentScale }} className="w-full h-full overflow-hidden">
+      <motion.div style={{ y, scale: contentScale }} className="w-full h-full overflow-hidden relative">
         <motion.div
-          style={{ x: stripX }}
-          className="flex h-full"
+          style={{ x }}
+          className="w-full h-full relative"
         >
-          <div className="w-[100vw] shrink-0">
-            <AlbumPanel
-              key="slot-prev"
-              album={prevAlbum}
-              photoIndex={getPhotoIdx(prevAlbum)}
-              onClose={onClose}
-            />
-          </div>
-
-          <div className="w-[100vw] shrink-0">
-            <AlbumPanel
-              key="slot-cur"
-              album={curAlbum}
-              photoIndex={getPhotoIdx(curAlbum)}
-              onClose={onClose}
-            />
-          </div>
-
-          <div className="w-[100vw] shrink-0">
-            <AlbumPanel
-              key="slot-next"
-              album={nextAlbum}
-              photoIndex={getPhotoIdx(nextAlbum)}
-              onClose={onClose}
-            />
-          </div>
+          {activeItems.map((item) => (
+            <div
+              key={`slot-${item.slotKey}`}
+              className="absolute inset-0 w-[100vw] h-full"
+              style={{
+                transform: `translateX(${item.v * 100}vw)`,
+                WebkitTransform: `translateX(${item.v * 100}vw)`,
+              }}
+            >
+              <AlbumPanel
+                album={item.album}
+                photoIndex={photoIndexes[item.album.id] ?? 0}
+                onClose={onClose}
+              />
+            </div>
+          ))}
         </motion.div>
       </motion.div>
     </motion.div>,
