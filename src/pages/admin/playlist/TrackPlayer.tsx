@@ -34,7 +34,7 @@ export function TrackPlayer({ src, trackId }: { src: string; trackId: string }) 
       document.querySelectorAll('[data-admin-audio]').forEach((el) => {
         el.dispatchEvent(new CustomEvent('pause-others', { detail: trackId }));
       });
-      audio.play();
+      audio.play().catch(() => {});
       setPlaying(true);
     }
   };

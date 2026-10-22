@@ -9,7 +9,7 @@ interface WordKeyboardProps {
 
 export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
   return (
-    <div className="w-full pb-2 pt-0.5 px-2">
+    <div className="w-full pb-2 pt-0.5 px-2" style={{ touchAction: 'manipulation' }}>
       {/* Botões de apagar e confirmar */}
       <div className="flex items-center justify-center gap-5 mb-2">
         <button
@@ -22,6 +22,7 @@ export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
             background: 'rgba(239, 68, 68, 0.08)',
             border: '1.5px solid rgba(239, 68, 68, 0.3)',
             boxShadow: '0 0 20px rgba(239, 68, 68, 0.08)',
+            touchAction: 'manipulation',
           }}
         >
           <Delete className="w-4 h-4 text-red-400 group-hover:text-red-300 transition-colors" />
@@ -40,6 +41,7 @@ export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
             background: 'rgba(52, 211, 153, 0.08)',
             border: '1.5px solid rgba(52, 211, 153, 0.35)',
             boxShadow: '0 0 20px rgba(52, 211, 153, 0.12)',
+            touchAction: 'manipulation',
           }}
         >
           <Check
@@ -87,7 +89,7 @@ export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
                     'border rounded-[7px] font-semibold uppercase select-none flex items-center justify-center transition-all duration-150',
                     KEY_BG[state || 'default']
                   )}
-                  style={{ flex: 1, height: 'clamp(38px, 10.5vw, 50px)' }}
+                  style={{ flex: 1, height: 'clamp(38px, 10.5vw, 50px)', touchAction: 'manipulation' }}
                 >
                   <span className="text-[12px]">{key}</span>
                 </button>

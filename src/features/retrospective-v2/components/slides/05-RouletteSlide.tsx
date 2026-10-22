@@ -114,7 +114,7 @@ export function RouletteSlide() {
     setIsSpinning(false);
     setWinner(null);
     
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
     isDragging.current = true;
     velocities.current = [];
     
@@ -157,7 +157,7 @@ export function RouletteSlide() {
     e.stopPropagation();
     if (!isDragging.current) return;
     isDragging.current = false;
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
     
     // Média de velocidade para inércia do arremesso
     const avgVelocity = velocities.current.length 

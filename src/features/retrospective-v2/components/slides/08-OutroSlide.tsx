@@ -102,7 +102,7 @@ function ScratchCard({ text }: { text: string }) {
             onPointerDown={(e) => {
               e.stopPropagation();
               isDrawing.current = true;
-              (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
+              try { (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId); } catch {}
               scratch(getPos(e).x, getPos(e).y);
             }}
             onPointerMove={(e) => {

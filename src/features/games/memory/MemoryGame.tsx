@@ -207,7 +207,7 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
     if (card.src) return card.src;
     if (card.publicId) {
       if (card.publicId.startsWith('http')) return card.publicId;
-      return cloudinaryUrl(card.publicId, { q: 'auto', f: 'auto' });
+      return cloudinaryUrl(card.publicId, { w: 350, h: 350, c: 'fill', q: 'auto', f: 'auto' });
     }
     return '';
   };
@@ -243,7 +243,7 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
     setLoadProgress(0);
 
     const srcs = photos.map((p) =>
-      p.src ? p.src : p.publicId ? cloudinaryUrl(p.publicId, { q: 'auto', f: 'auto' }) : ''
+      p.src ? p.src : p.publicId ? cloudinaryUrl(p.publicId, { w: 350, h: 350, c: 'fill', q: 'auto', f: 'auto' }) : ''
     ).filter(Boolean);
 
     let loaded = 0;
