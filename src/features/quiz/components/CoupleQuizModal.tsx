@@ -4,6 +4,7 @@ import { MessageCircleHeart } from 'lucide-react';
 import { useSiteId } from '../../../services/firestore/paths';
 import { useQuizStore } from '../store/useQuizStore';
 import { useOverlayHistory } from '../../../shared/hooks/useOverlayHistory';
+import { removeNavigationLayer } from '../../../shared/utils/navigationStack';
 import { QuizIntro } from './QuizIntro';
 import { QuizPlay } from './QuizPlay';
 import { QuizResult } from './QuizResult';
@@ -21,11 +22,17 @@ export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose:
     onBack: resetGame,
   });
 
+  const handleQuizClose = () => {
+    removeNavigationLayer('quiz-active-game', true);
+    resetGame();
+    onClose();
+  };
+
   const handleQuizBack = () => {
     if (gameState === 'playing' || gameState === 'result') {
       resetGame();
     } else {
-      onClose();
+      handleQuizClose();
     }
   };
 
@@ -43,7 +50,7 @@ export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose:
   return (
     <FullScreenOverlay
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleQuizClose}
       onBack={handleQuizBack}
       title="Quiz do Casal"
       subtitle="O quanto você lembra da nossa história?"

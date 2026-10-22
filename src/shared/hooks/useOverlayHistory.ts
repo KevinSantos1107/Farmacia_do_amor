@@ -52,7 +52,7 @@ export function useOverlayHistory({ id, isOpen, onClose, onBack }: UseOverlayHis
   }, [isOpen, id, onBack !== undefined]);
 
   const handleDismiss = () => {
-    removeNavigationLayer(id);
+    removeNavigationLayer(id, true);
     onCloseRef.current();
   };
 

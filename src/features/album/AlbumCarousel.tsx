@@ -169,8 +169,8 @@ export function AlbumCarousel() {
         const isActive = dist === 0;
 
         if (isActive) {
-          // Só abre o álbum se não houve navegação nos últimos 450ms (duração da transição CSS é 400ms)
-          if (Date.now() - lastNavigatedAt.current > 450) {
+          // Abre o álbum imediatamente assim que a animação (250ms) conclui
+          if (Date.now() - lastNavigatedAt.current >= 250) {
             setSelectedAlbumIndex(clickedIdx);
           }
         } else {
@@ -196,7 +196,7 @@ export function AlbumCarousel() {
       goToIndex(activeIndex - 1, albums.length);
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      if (Date.now() - lastNavigatedAt.current > 450) {
+      if (Date.now() - lastNavigatedAt.current >= 250) {
         setSelectedAlbumIndex(activeIndex);
       }
     }
@@ -281,7 +281,7 @@ export function AlbumCarousel() {
                   opacity:    style.opacity,
                   zIndex:     style.zIndex,
                   visibility: style.hidden ? 'hidden' : 'visible',
-                  transition: 'transform 0.4s cubic-bezier(0.25,0.8,0.25,1), opacity 0.4s ease',
+                  transition: 'transform 0.25s cubic-bezier(0.25,1,0.5,1), opacity 0.25s ease',
                   cursor:     'pointer',
                   willChange: 'transform, opacity',
                   touchAction: 'manipulation',

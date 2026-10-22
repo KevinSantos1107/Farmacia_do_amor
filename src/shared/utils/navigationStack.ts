@@ -107,6 +107,13 @@ export function getTopNavigationLayer(): NavigationLayer | undefined {
 }
 
 /**
+ * Limpa todas as camadas ativas da pilha (usado ao fechar modais/overlays diretamente para a Home).
+ */
+export function clearAllNavigationLayers(): void {
+  layers = [];
+}
+
+/**
  * Retorna o número de camadas ativas.
  */
 export function getNavigationLayerCount(): number {

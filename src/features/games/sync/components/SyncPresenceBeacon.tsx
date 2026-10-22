@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { setDoc, serverTimestamp } from 'firebase/firestore';
 import { siteDoc } from '../../../../services/firestore/paths';
 import { usePlayerIdentityStore } from '../../../../store/usePlayerIdentityStore';
@@ -14,10 +15,16 @@ export interface SyncPresenceDoc {
   lastSeen: Record<string, number>;
 }
 
+/** Retorna true se o pathname indica que estamos dentro do jogo Sincronia */
+function isOnSyncRoute(pathname: string): boolean {
+  return pathname === '/sync' || pathname === '/sincronia';
+}
+
 export function SyncPresenceBeacon() {
   const player = usePlayerIdentityStore((s) => s.player);
   const config = useSiteConfigStore((s) => s.config);
   const { activeModal } = useModalsStore();
+  const location = useLocation();
 
   useEffect(() => {
     if (!player || !config) return;
@@ -26,6 +33,11 @@ export function SyncPresenceBeacon() {
 
     const roomId = `${p1Id}_${p2Id}`;
     const ref = siteDoc('sync_presence', roomId);
+
+    // Considera "no jogo" tanto quando aberto via modal (activeModal === 'sync')
+    // quanto quando acessado diretamente pela rota /sync ou /sincronia
+    const getStatus = (): SyncPresenceState =>
+      activeModal === 'sync' || isOnSyncRoute(location.pathname) ? 'game' : 'site';
 
     // IMPORTANT: Use nested objects (not dot-notation keys) so Firestore
     // merges them as sub-fields, not literal dot-in-key field names.
@@ -41,20 +53,17 @@ export function SyncPresenceBeacon() {
       ).catch(() => {});
     };
 
-    const currentStatus: SyncPresenceState = activeModal === 'sync' ? 'game' : 'site';
-    updatePresence(currentStatus);
+    updatePresence(getStatus());
 
     const ticker = setInterval(() => {
       if (document.hidden || !navigator.onLine) return;
-      const status: SyncPresenceState = activeModal === 'sync' ? 'game' : 'site';
-      updatePresence(status);
+      updatePresence(getStatus());
     }, 15000);
 
     const handleHide = () => updatePresence('offline');
     const handleVisibility = () => {
       if (!document.hidden) {
-        const status: SyncPresenceState = activeModal === 'sync' ? 'game' : 'site';
-        updatePresence(status);
+        updatePresence(getStatus());
       }
     };
 
@@ -67,7 +76,7 @@ export function SyncPresenceBeacon() {
       document.removeEventListener('visibilitychange', handleVisibility);
       updatePresence('offline');
     };
-  }, [player, config, activeModal]);
+  }, [player, config, activeModal, location.pathname]);
 
   return null;
 }

@@ -24,10 +24,7 @@ import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { getPlayerIds } from '../auth/playerIds';
 import { getCurrentSiteId } from '../../services/firestore/paths';
-import {
-  pushNavigationLayer,
-  removeNavigationLayer,
-} from '../../shared/utils/navigationStack';
+
 
 import { MoodSelector } from '../devotional/components/MoodSelector';
 import { DevotionalSolo } from '../devotional/components/DevotionalSolo';
@@ -95,16 +92,15 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     handleModalClose,
   } = useDevotionalStore();
 
-  // Navegação hierárquica integrada à pilha de navegação
+  // Navegação hierárquica — apenas estado local.
+  // Como o DevotionalModal é sempre hospedado em rota própria (/devotional),
+  // o FullScreenOverlay não empurra camadas no navigationStack (isDedicatedRoute=true),
+  // e aqui também não fazemos pushNavigationLayer para steps internos.
+  // Isso evita o bug de "duplo voltar" onde entradas fantasmas no history do browser
+  // precisavam de um clique extra para serem consumidas.
   const navigateToStep = (nextStep: DevotionalStep) => {
     setStepHistory((prev) => [...prev, step]);
     setStep(nextStep);
-
-    pushNavigationLayer({
-      id: `devotional-step-${nextStep}`,
-      onBack: handleBack,
-      onClose: handleClose,
-    });
   };
 
   const handleBack = () => {
@@ -112,38 +108,29 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
       const prevStep = stepHistory[stepHistory.length - 1];
       setStepHistory((prev) => prev.slice(0, -1));
       setStep(prevStep);
-      removeNavigationLayer(`devotional-step-${step}`);
     } else {
-      // Se não há passos na pilha local (ex: refresh ou acesso direto em favoritos)
+      // Sem steps na pilha local: navega de volta pela hierarquia do step atual
       if (step === 'history') {
         const fallbackStep: DevotionalStep = (soloResult || syncResult) ? 'result' : 'mode-select';
         setStep(fallbackStep);
-        removeNavigationLayer(`devotional-step-${step}`);
       } else if (step === 'mood-select') {
         setStep('mode-select');
-        removeNavigationLayer(`devotional-step-${step}`);
       } else if (step === 'text-input') {
         setStep('mood-select');
-        removeNavigationLayer(`devotional-step-${step}`);
       } else if (step === 'focus-select') {
         setStep('text-input');
-        removeNavigationLayer(`devotional-step-${step}`);
       } else if (step === 'result' && !soloResult) {
         setStep('mode-select');
-        removeNavigationLayer(`devotional-step-${step}`);
       } else {
-        // Já na tela principal do devocional: retorna para a Home
+        // Já na tela inicial do devocional (mode-select ou result com dado): fecha
         handleClose();
       }
     }
   };
 
   const handleClose = () => {
-    stepHistory.forEach((s) => {
-      removeNavigationLayer(`devotional-step-${s}`);
-    });
-    removeNavigationLayer(`devotional-step-${step}`);
     setStepHistory([]);
+    setStep('mode-select');
     handleModalClose();
     onClose();
   };
