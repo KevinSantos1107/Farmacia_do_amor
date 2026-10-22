@@ -29,6 +29,16 @@ describe('Correções de navegação, modais e interface', () => {
       expect(content).toContain('const [prevSrc, setPrevSrc] = useState');
       expect(content).toContain('const [isLoaded, setIsLoaded] = useState');
     });
+
+    it('elimina 100vw para evitar vazamento lateral de outros álbuns no mobile', async () => {
+      const fs = await import('fs');
+      const content = fs.readFileSync('src/features/album/AlbumViewerModal.tsx', 'utf-8');
+      
+      expect(content).not.toContain('w-[100vw]');
+      expect(content).not.toContain('100vw');
+      expect(content).toContain('containerWidth');
+      expect(content).toContain('w-full h-full overflow-hidden');
+    });
   });
 
   describe('2. Seção Devocional', () => {

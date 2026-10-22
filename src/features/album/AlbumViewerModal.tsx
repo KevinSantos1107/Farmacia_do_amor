@@ -332,6 +332,7 @@ function AlbumPanel({
 export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumChange }: AlbumViewerModalProps) {
   const [virtualIndex, setVirtualIndex] = useState(initialAlbumIndex);
   const [photoIndexes, setPhotoIndexes] = useState<Record<string, number>>({});
+  const [isInteracting, setIsInteracting] = useState(false);
 
   useOverlayHistory({
     id: 'album-viewer-modal',
@@ -339,12 +340,24 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     onClose,
   });
 
-  // Refs para acesso sem stale closures
+  const containerRef = useRef<HTMLDivElement>(null);
   const virtualIndexRef = useRef(initialAlbumIndex);
   const photoIndexesRef = useRef<Record<string, number>>({});
   const transitioning = useRef(false);
 
-  const getWindowWidth = () => (typeof window !== 'undefined' ? window.innerWidth : 400);
+  const getWidth = useCallback(() => {
+    if (containerRef.current && containerRef.current.clientWidth > 0) {
+      return containerRef.current.clientWidth;
+    }
+    if (typeof window !== 'undefined' && window.innerWidth > 0) {
+      return window.innerWidth;
+    }
+    return 400;
+  }, []);
+
+  const [containerWidth, setContainerWidth] = useState<number>(() => {
+    return typeof window !== 'undefined' && window.innerWidth > 0 ? window.innerWidth : 400;
+  });
 
   // ── Motion values ─────────────────────────────────────────────────────────
   const y = useMotionValue(0);
@@ -353,16 +366,22 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   const bgColor = useTransform(bgOpacity, (o) => `rgba(0,0,0,${Number(o) * 0.97})`);
 
   // Posicionamento horizontal contínuo com suporte a loop infinito circular
-  const x = useMotionValue(-initialAlbumIndex * getWindowWidth());
+  const x = useMotionValue(-initialAlbumIndex * (typeof window !== 'undefined' && window.innerWidth > 0 ? window.innerWidth : 400));
 
   useEffect(() => {
-    const syncX = () => {
-      x.set(-virtualIndexRef.current * getWindowWidth());
+    const syncWidth = () => {
+      const w = getWidth();
+      setContainerWidth(w);
+      x.set(-virtualIndexRef.current * w);
     };
-    syncX();
-    window.addEventListener('resize', syncX);
-    return () => window.removeEventListener('resize', syncX);
-  }, [x]);
+    syncWidth();
+    window.addEventListener('resize', syncWidth);
+    window.addEventListener('orientationchange', syncWidth);
+    return () => {
+      window.removeEventListener('resize', syncWidth);
+      window.removeEventListener('orientationchange', syncWidth);
+    };
+  }, [getWidth, x]);
 
   const gesture = useRef<{
     startX: number;
@@ -437,6 +456,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       const updated = { ...photoIndexesRef.current, [currentAlbum.id]: next };
       photoIndexesRef.current = updated;
       setPhotoIndexes(updated);
+      setIsInteracting(false);
     } else if (albums.length > 1) {
       // Transborda para o próximo álbum ou anterior com loop infinito circular
       const targetVirtualIndex = virtualIndexRef.current + dir;
@@ -451,7 +471,8 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       }
 
       transitioning.current = true;
-      const width = getWindowWidth();
+      setIsInteracting(true);
+      const width = getWidth();
       const targetX = -targetVirtualIndex * width;
 
       animate(x, targetX, {
@@ -460,13 +481,14 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
         ease: [0.25, 0.46, 0.45, 0.94],
         onComplete: () => {
           transitioning.current = false;
+          setIsInteracting(false);
           virtualIndexRef.current = targetVirtualIndex;
           setVirtualIndex(targetVirtualIndex);
           onAlbumChange?.(targetActualIndex);
         },
       });
     }
-  }, [albums, onAlbumChange, x]);
+  }, [albums, getWidth, onAlbumChange, x]);
 
   // ── Fechar deslizando ─────────────────────────────────────────────────────
   const closeTimer = useRef<number | null>(null);
@@ -528,11 +550,14 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     if (gesture.current.direction === 'idle') {
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
         gesture.current.direction = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+        if (gesture.current.direction === 'h') {
+          setIsInteracting(true);
+        }
       }
     }
 
     if (gesture.current.direction === 'h') {
-      const width = getWindowWidth();
+      const width = getWidth();
       const baseX = -virtualIndexRef.current * width;
       let effectiveDx = dx;
       if (albums.length <= 1) {
@@ -560,9 +585,10 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     gesture.current.direction = 'idle';
 
     if (direction === 'idle' || (absDx < 12 && absDy < 12)) {
+      setIsInteracting(false);
       navigatePhoto(e.clientX > window.innerWidth / 2 ? +1 : -1);
     } else if (direction === 'h') {
-      const width = getWindowWidth();
+      const width = getWidth();
       let targetVirtualIndex = virtualIndexRef.current;
       const shouldSwipe = (absDx > 50 || Math.abs(velX) > 0.25) && albums.length > 1;
 
@@ -579,6 +605,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       }
 
       transitioning.current = true;
+      setIsInteracting(true);
       const targetX = -targetVirtualIndex * width;
       animate(x, targetX, {
         type: 'spring',
@@ -586,6 +613,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
         damping: 32,
         onComplete: () => {
           transitioning.current = false;
+          setIsInteracting(false);
           if (targetVirtualIndex !== virtualIndexRef.current) {
             virtualIndexRef.current = targetVirtualIndex;
             setVirtualIndex(targetVirtualIndex);
@@ -595,6 +623,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
         },
       });
     } else if (direction === 'v') {
+      setIsInteracting(false);
       if (absDy > 60 || Math.abs(velY) > 0.3) {
         closeBySlide(dy > 0 ? window.innerHeight : -window.innerHeight);
       } else {
@@ -608,7 +637,15 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     if (gesture.current.pointerId !== e.pointerId) return;
     gesture.current.pointerId = null;
     gesture.current.direction = 'idle';
-    animate(x, -virtualIndexRef.current * getWindowWidth(), { type: 'spring', stiffness: 320, damping: 32 });
+    const width = getWidth();
+    animate(x, -virtualIndexRef.current * width, {
+      type: 'spring',
+      stiffness: 320,
+      damping: 32,
+      onComplete: () => {
+        setIsInteracting(false);
+      },
+    });
     animate(y, 0, { type: 'spring', stiffness: 300, damping: 30 });
   };
 
@@ -624,6 +661,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
 
   return createPortal(
     <motion.div
+      ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -640,22 +678,28 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
           style={{ x }}
           className="w-full h-full relative"
         >
-          {activeItems.map((item) => (
-            <div
-              key={`slot-${item.slotKey}`}
-              className="absolute inset-0 w-[100vw] h-full"
-              style={{
-                transform: `translateX(${item.v * 100}vw)`,
-                WebkitTransform: `translateX(${item.v * 100}vw)`,
-              }}
-            >
-              <AlbumPanel
-                album={item.album}
-                photoIndex={photoIndexes[item.album.id] ?? 0}
-                onClose={onClose}
-              />
-            </div>
-          ))}
+          {activeItems.map((item) => {
+            const isCurrent = item.v === virtualIndex;
+            const isVisible = isInteracting || isCurrent;
+
+            return (
+              <div
+                key={`slot-${item.slotKey}`}
+                className="absolute inset-0 w-full h-full overflow-hidden"
+                style={{
+                  transform: `translateX(${item.v * containerWidth}px)`,
+                  WebkitTransform: `translateX(${item.v * containerWidth}px)`,
+                  visibility: isVisible ? 'visible' : 'hidden',
+                }}
+              >
+                <AlbumPanel
+                  album={item.album}
+                  photoIndex={photoIndexes[item.album.id] ?? 0}
+                  onClose={onClose}
+                />
+              </div>
+            );
+          })}
         </motion.div>
       </motion.div>
     </motion.div>,
