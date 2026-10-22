@@ -224,17 +224,14 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       onPointerCancel={onPointerUp}
       onPointerLeave={onPointerUp}
     >
-      {/* Imagem com troca direta e instantânea, sem piscar e sem fade */}
+      {/* Imagem com troca direta e instantânea, sem piscar e sem animação */}
       <img
-        key={src}
         src={src}
         alt={alt}
-        decoding="async"
         draggable={false}
         className="max-w-full max-h-full object-contain pointer-events-none"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-          transition: scale === 1 && pan.x === 0 && pan.y === 0 ? 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)' : undefined,
           willChange: isZoomedOrPanning ? 'transform' : undefined,
         }}
       />
@@ -521,10 +518,10 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
     const curA = actualIndex;
     const curP = photoIndexes[albums[curA]?.id] ?? 0;
 
-    // 1. Alta prioridade: Próxima foto no mesmo álbum
+    // 1. Alta prioridade: Próximas fotos no mesmo álbum
     addUrl(curA, curP + 1);
+    addUrl(curA, curP + 2);
     if (!isMobile) {
-      addUrl(curA, curP + 2);
       addUrl(curA, curP + 3);
     }
 
