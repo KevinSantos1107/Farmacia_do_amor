@@ -295,11 +295,11 @@ function AlbumPanel({
   return (
     <div className="w-full h-full relative bg-black flex items-center justify-center">
       {/* Barras de progresso */}
-      <div className="absolute top-4 inset-x-0 z-50 flex gap-[3px] px-4 drop-shadow-md pointer-events-none">
+      <div key={`progress-${album.id}`} className="absolute top-4 inset-x-0 z-50 flex gap-[3px] px-4 drop-shadow-md pointer-events-none">
         {album.photos.map((_, i) => (
-          <div key={i} className="flex-1 h-[3px] bg-white/25 rounded-full overflow-hidden">
+          <div key={`${album.id}-${i}`} className="flex-1 h-[3px] bg-white/25 rounded-full overflow-hidden">
             <div className={cn(
-              'h-full bg-white rounded-full transition-transform duration-200 origin-left',
+              'h-full bg-white rounded-full origin-left',
               i <= photoIndex ? 'scale-x-100' : 'scale-x-0'
             )} />
           </div>
@@ -463,6 +463,14 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
       photoIndexesRef.current = updated;
       setPhotoIndexes({ ...updated });
     } else {
+      const targetAlbumIdx = (albumIndexRef.current + dir + albums.length) % albums.length;
+      const targetAlbum = albums[targetAlbumIdx];
+      if (targetAlbum && targetAlbum.photos.length > 0) {
+        const targetPhotoIdx = dir > 0 ? 0 : targetAlbum.photos.length - 1;
+        const updated = { ...photoIndexesRef.current, [targetAlbum.id]: targetPhotoIdx };
+        photoIndexesRef.current = updated;
+        setPhotoIndexes({ ...updated });
+      }
       commitAlbumSwipe(dir > 0 ? -window.innerWidth : window.innerWidth, albumIndexRef.current + dir);
     }
   }, [albums, commitAlbumSwipe]);
