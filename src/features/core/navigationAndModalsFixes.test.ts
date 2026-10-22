@@ -19,9 +19,9 @@ describe('Correções de navegação, modais e interface', () => {
       
       expect(content).not.toContain("aria-label=\"Fechar visualizador\"");
       expect(content).not.toContain("import { X } from 'lucide-react'");
-      expect(content).toContain('key={`prev-${prevAlbum?.id || \'none\'}`}');
-      expect(content).toContain('key={`cur-${curAlbum?.id || \'none\'}`}');
-      expect(content).toContain('key={`next-${nextAlbum?.id || \'none\'}`}');
+      expect(content).toContain('key="slot-prev"');
+      expect(content).toContain('key="slot-cur"');
+      expect(content).toContain('key="slot-next"');
     });
 
     it('implementa buffer duplo para transição suave de imagens sem flicker', async () => {

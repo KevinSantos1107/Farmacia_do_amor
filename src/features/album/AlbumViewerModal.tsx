@@ -215,28 +215,22 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
           src={prevSrc}
           alt=""
           draggable={false}
-          className="absolute inset-0 m-auto max-w-full max-h-full object-contain pointer-events-none transition-opacity duration-200 ease-out"
+          className="absolute inset-0 m-auto max-w-full max-h-full object-contain pointer-events-none"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-            opacity: isLoaded ? 0 : 1,
             zIndex: 1,
-          }}
-          onTransitionEnd={() => {
-            if (isLoaded) setPrevSrc(null);
           }}
         />
       )}
 
       {/* Imagem atual */}
       <img
-        key={currentSrc}
         src={currentSrc}
         alt={alt}
         draggable={false}
         onLoad={() => {
           setIsLoaded(true);
-          const t = setTimeout(() => setPrevSrc(null), 250);
-          return () => clearTimeout(t);
+          setPrevSrc(null);
         }}
         onError={() => {
           setIsLoaded(true);
@@ -620,7 +614,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
         >
           <div className="w-[100vw] shrink-0">
             <AlbumPanel
-              key={`prev-${prevAlbum?.id || 'none'}`}
+              key="slot-prev"
               album={prevAlbum}
               photoIndex={getPhotoIdx(prevAlbum)}
               onClose={onClose}
@@ -629,7 +623,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
 
           <div className="w-[100vw] shrink-0">
             <AlbumPanel
-              key={`cur-${curAlbum?.id || 'none'}`}
+              key="slot-cur"
               album={curAlbum}
               photoIndex={getPhotoIdx(curAlbum)}
               onClose={onClose}
@@ -638,7 +632,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
 
           <div className="w-[100vw] shrink-0">
             <AlbumPanel
-              key={`next-${nextAlbum?.id || 'none'}`}
+              key="slot-next"
               album={nextAlbum}
               photoIndex={getPhotoIdx(nextAlbum)}
               onClose={onClose}
