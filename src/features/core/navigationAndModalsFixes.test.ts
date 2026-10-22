@@ -22,12 +22,13 @@ describe('Correções de navegação, modais e interface', () => {
       expect(content).toContain('key={`slot-${item.slotKey}`}');
     });
 
-    it('implementa buffer duplo para transição suave de imagens sem flicker', async () => {
+    it('realiza troca direta e instantânea de foto sem piscar (estilo Instagram)', async () => {
       const fs = await import('fs');
       const content = fs.readFileSync('src/features/album/AlbumViewerModal.tsx', 'utf-8');
       
-      expect(content).toContain('const [prevSrc, setPrevSrc] = useState');
-      expect(content).toContain('const [isLoaded, setIsLoaded] = useState');
+      expect(content).toContain('ZoomableImage');
+      expect(content).not.toContain('const [prevSrc, setPrevSrc] = useState');
+      expect(content).not.toContain('transition-opacity');
     });
 
     it('elimina 100vw para evitar vazamento lateral de outros álbuns no mobile', async () => {

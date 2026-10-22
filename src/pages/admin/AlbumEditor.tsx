@@ -48,6 +48,7 @@ interface Album {
   coverUrl?: string;
   orderIndex: number;
   photos?: Photo[];
+  photoCount?: number;
 }
 
 interface Photo {
@@ -218,6 +219,10 @@ export default function AlbumEditor() {
           }
         });
 
+        if (data.photoCount === undefined || data.photoCount !== allPhotos.length) {
+          updateDoc(siteDoc('albums', d.id, siteId), { photoCount: allPhotos.length }).catch(() => {});
+        }
+
         loaded.push({
           id: d.id,
           title: data.title,
@@ -283,6 +288,7 @@ export default function AlbumEditor() {
         coverPublicId,
         coverUrl,
         orderIndex: albums.length,
+        photoCount: 0,
         createdAt: serverTimestamp(),
       });
       show('Álbum criado com sucesso!');
@@ -436,6 +442,7 @@ export default function AlbumEditor() {
       for (let i = 1; i < pSnap.docs.length; i++) {
         batch.delete(pSnap.docs[i].ref);
       }
+      batch.update(siteDoc('albums', activeAlbum!.id, siteId), { photoCount: reorderedPhotos.length });
       await batch.commit();
     } else {
       await addDoc(siteCollection('album_photos', siteId), {
@@ -443,6 +450,7 @@ export default function AlbumEditor() {
         pageNumber: 0,
         photos: reorderedPhotos,
       });
+      await updateDoc(siteDoc('albums', activeAlbum!.id, siteId), { photoCount: reorderedPhotos.length });
     }
     loadAlbums(); // refresh state
   };
@@ -523,6 +531,8 @@ export default function AlbumEditor() {
         });
       }
       show(`${uploadFiles.length} foto(s) enviada(s) com sucesso!`);
+      // Atualiza o photoCount no documento do álbum para o carrossel não precisar buscar as fotos
+      await updateDoc(siteDoc('albums', activeAlbum.id, siteId), { photoCount: updatedPhotos.length });
       setUploadFiles([]);
       setUploadPreviews([]);
       setUploadProgress([]);
@@ -590,6 +600,8 @@ export default function AlbumEditor() {
 
       setPhotos(updatedPhotos);
       show('Foto deletada!');
+      // Atualiza o photoCount no documento do álbum
+      await updateDoc(siteDoc('albums', activeAlbum.id, siteId), { photoCount: updatedPhotos.length });
       loadAlbums();
     } catch (e: unknown) {
       show('Erro ao deletar: ' + (e instanceof Error ? e.message : String(e)), 'err');

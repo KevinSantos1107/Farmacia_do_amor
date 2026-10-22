@@ -31,6 +31,12 @@ interface AlbumViewerModalProps {
   initialAlbumIndex: number;
   onClose: () => void;
   onAlbumChange?: (index: number) => void;
+  /**
+   * Callback para carregar as fotos de um álbum sob demanda.
+   * Chamado apenas quando o álbum é aberto pela primeira vez.
+   * Retorna o array de fotos que deve ser adicionado ao álbum correspondente.
+   */
+  onLoadPhotos?: (albumId: string) => Promise<Photo[]>;
 }
 
 // ─── Helper para Detecção Mobile & URL da foto ──────────────────────────────
@@ -59,11 +65,6 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
-  // Transição suave de fotos sem flickering
-  const [currentSrc, setCurrentSrc] = useState(src);
-  const [prevSrc, setPrevSrc] = useState<string | null>(null);
-  const [isLoaded, setIsLoaded] = useState(true);
-
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   
@@ -79,18 +80,13 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => Math.hypot(p2.x - p1.x, p2.y - p1.y);
   const getCenter = (p1: { x: number; y: number }, p2: { x: number; y: number }) => ({ x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 });
 
+  // Ao trocar de foto, reseta zoom e pan instantaneamente
   useEffect(() => {
     setScale(1);
     setPan({ x: 0, y: 0 });
     pointers.current.clear();
     initialGesto.current = null;
-
-    if (src !== currentSrc) {
-      setPrevSrc(currentSrc);
-      setCurrentSrc(src);
-      setIsLoaded(false);
-    }
-  }, [src, currentSrc]);
+  }, [src]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -228,44 +224,18 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       onPointerCancel={onPointerUp}
       onPointerLeave={onPointerUp}
     >
-      {/* Imagem anterior mantida visível enquanto a nova carrega (elimina piscada/flicker) */}
-      {prevSrc && (
-        <img
-          src={prevSrc}
-          alt=""
-          decoding="async"
-          draggable={false}
-          className="absolute inset-0 m-auto max-w-full max-h-full object-contain pointer-events-none"
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-            zIndex: 1,
-          }}
-        />
-      )}
-
-      {/* Imagem atual */}
+      {/* Imagem com troca direta e instantânea, sem piscar e sem fade */}
       <img
-        src={currentSrc}
+        key={src}
+        src={src}
         alt={alt}
         decoding="async"
         draggable={false}
-        onLoad={() => {
-          setIsLoaded(true);
-          setPrevSrc(null);
-        }}
-        onError={() => {
-          setIsLoaded(true);
-          setPrevSrc(null);
-        }}
-        className={cn(
-          "max-w-full max-h-full object-contain pointer-events-none transition-opacity duration-200 ease-out",
-          !isLoaded && prevSrc ? "opacity-0" : "opacity-100"
-        )}
+        className="max-w-full max-h-full object-contain pointer-events-none"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-          transition: scale === 1 && pan.x === 0 && pan.y === 0 ? 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-out' : 'opacity 0.2s ease-out',
+          transition: scale === 1 && pan.x === 0 && pan.y === 0 ? 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)' : undefined,
           willChange: isZoomedOrPanning ? 'transform' : undefined,
-          zIndex: 2,
         }}
       />
     </div>
@@ -277,11 +247,23 @@ function AlbumPanel({
   album,
   photoIndex,
   onClose,
+  isLoading,
 }: {
   album: Album | undefined;
   photoIndex: number;
   onClose?: () => void;
+  isLoading?: boolean;
 }) {
+  // Enquanto as fotos estão sendo carregadas, exibe um skeleton discreto
+  if (isLoading) {
+    return (
+      <div className="w-full h-full bg-black flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
+        <p className="text-white/50 text-sm">{album?.title || 'Carregando álbum...'}</p>
+      </div>
+    );
+  }
+
   if (!album || !album.photos || album.photos.length === 0) {
     return (
       <div className="w-full h-full bg-black flex flex-col items-center justify-center p-6 text-center">
@@ -365,10 +347,15 @@ function AlbumPanel({
 }
 
 // ─── Modal principal ──────────────────────────────────────────────────────────
-export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumChange }: AlbumViewerModalProps) {
+export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClose, onAlbumChange, onLoadPhotos }: AlbumViewerModalProps) {
   const [virtualIndex, setVirtualIndex] = useState(initialAlbumIndex);
   const [photoIndexes, setPhotoIndexes] = useState<Record<string, number>>({});
   const [isInteracting, setIsInteracting] = useState(false);
+
+  // Cópia local dos álbuns — atualizada quando as fotos chegam via onLoadPhotos
+  const [localAlbums, setLocalAlbums] = useState<Album[]>(albumsProp);
+  // IDs dos álbuns que estão com o fetch de fotos em andamento
+  const [loadingAlbums, setLoadingAlbums] = useState<Set<string>>(new Set());
 
   useOverlayHistory({
     id: 'album-viewer-modal',
@@ -380,6 +367,39 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   const virtualIndexRef = useRef(initialAlbumIndex);
   const photoIndexesRef = useRef<Record<string, number>>({});
   const animControls = useRef<{ stop: () => void } | null>(null);
+
+  // Atualiza localAlbums quando albumsProp sofre atualização externa (cache hit)
+  useEffect(() => {
+    setLocalAlbums((prev) =>
+      albumsProp.map((a) => {
+        const existing = prev.find((p) => p.id === a.id);
+        // Prefere fotos já carregadas localmente
+        if (existing && existing.photos.length > 0) return existing;
+        return a;
+      })
+    );
+  }, [albumsProp]);
+
+  // ── Lazy-load de fotos por álbum ────────────────────────────────────────────
+  const loadPhotosForAlbum = useCallback(async (albumId: string) => {
+    if (!onLoadPhotos) return;
+    setLoadingAlbums((prev) => new Set(prev).add(albumId));
+    try {
+      const photos = await onLoadPhotos(albumId);
+      setLocalAlbums((prev) =>
+        prev.map((a) => (a.id === albumId ? { ...a, photos } : a))
+      );
+    } finally {
+      setLoadingAlbums((prev) => {
+        const next = new Set(prev);
+        next.delete(albumId);
+        return next;
+      });
+    }
+  }, [onLoadPhotos]);
+
+  // Alias conveniente — usa localAlbums como fonte de verdade
+  const albums = localAlbums;
 
   const getWidth = useCallback(() => {
     if (containerRef.current && containerRef.current.clientWidth > 0) {
@@ -455,6 +475,34 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     ? ((virtualIndex % albums.length) + albums.length) % albums.length
     : 0;
 
+  // ── Dispara o lazy-load de fotos ao navegar entre álbuns ──────────────────
+  // Carrega o álbum atual + adjacentes (prev/next) com prioridade de fila.
+  useEffect(() => {
+    if (albums.length === 0 || !onLoadPhotos) return;
+
+    const toLoad: string[] = [];
+
+    const checkAndQueue = (vIdx: number) => {
+      const aIdx = ((vIdx % albums.length) + albums.length) % albums.length;
+      const album = albums[aIdx];
+      if (!album) return;
+      if (album.photos.length === 0 && !loadingAlbums.has(album.id)) {
+        toLoad.push(album.id);
+      }
+    };
+
+    // Atual
+    checkAndQueue(virtualIndex);
+    // Próximo e anterior (prefetch discreto)
+    if (albums.length > 1) {
+      checkAndQueue(virtualIndex + 1);
+      checkAndQueue(virtualIndex - 1);
+    }
+
+    // Carrega em sequência (atual primeiro)
+    toLoad.forEach((albumId) => loadPhotosForAlbum(albumId));
+  }, [virtualIndex, albums, onLoadPhotos, loadingAlbums, loadPhotosForAlbum]);
+
   useEffect(() => {
     if (albums.length === 0) return;
     const isMobile = isMobileDevice();
@@ -463,7 +511,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     const addUrl = (aIdx: number, pIdx: number) => {
       const normalizedIdx = ((aIdx % albums.length) + albums.length) % albums.length;
       const a = albums[normalizedIdx];
-      if (!a) return;
+      if (!a || a.photos.length === 0) return; // Pula álbuns sem fotos ainda
       const p = a.photos[pIdx];
       if (!p) return;
       const url = getPhotoUrl(p, isMobile);
@@ -795,8 +843,9 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
               >
                 <AlbumPanel
                   album={item.album}
-                  photoIndex={photoIndexes[item.album.id] ?? 0}
+                  photoIndex={photoIndexes[item.album?.id ?? ''] ?? 0}
                   onClose={onClose}
+                  isLoading={loadingAlbums.has(item.album?.id ?? '')}
                 />
               </div>
             );
