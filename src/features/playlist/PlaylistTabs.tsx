@@ -125,6 +125,21 @@ export function PlaylistTabs() {
     fetchPlaylists();
   }, [config?.id]);
 
+  // ── getTimeFromPointer deve ficar ANTES dos returns condicionais (regra dos hooks) ──
+  // Usa duration do hook de áudio + fallback para a duração da track ativa no store
+  const activeDuration = duration > 0
+    ? duration
+    : (currentTracks[currentTrackIndex]?.duration || 0);
+
+  const getTimeFromPointer = useCallback((clientX: number): number => {
+    const bar = progressBarRef.current;
+    if (!bar || activeDuration <= 0) return 0;
+    const rect = bar.getBoundingClientRect();
+    if (rect.width <= 0) return 0;
+    const clickX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    return (clickX / rect.width) * activeDuration;
+  }, [activeDuration]);
+
   if (loading) {
     return (
       <div className="h-64 flex items-center justify-center text-rose-300/40 animate-pulse text-sm">
@@ -179,16 +194,6 @@ export function PlaylistTabs() {
       playTrack(idx);
     }
   };
-
-  const getTimeFromPointer = useCallback((clientX: number): number => {
-    const bar = progressBarRef.current;
-    const totalDuration = duration > 0 ? duration : (displayTrack?.duration || 0);
-    if (!bar || totalDuration <= 0) return 0;
-    const rect = bar.getBoundingClientRect();
-    if (rect.width <= 0) return 0;
-    const clickX = Math.max(0, Math.min(clientX - rect.left, rect.width));
-    return (clickX / rect.width) * totalDuration;
-  }, [duration, displayTrack?.duration]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isCurrentTabLoaded) return;
