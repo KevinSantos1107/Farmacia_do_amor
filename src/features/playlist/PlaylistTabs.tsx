@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { query, orderBy, getDocs, where } from 'firebase/firestore';
 import { siteCollection } from '../../services/firestore/paths';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { useAudioStore } from '../../store/useAudioStore';
 import type { Track } from '../../store/useAudioStore';
-import { useAudio } from '../player/useAudio';
+import { useAudio, getAudioElement } from '../player/useAudio';
 import { Play, Pause, Music, SkipBack, SkipForward, Shuffle, Repeat } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 import { resolveMediaCoverUrl } from '../../pages/admin/playlist/playlistPureUtils';
@@ -52,6 +52,9 @@ export function PlaylistTabs() {
 
   // Drag na barra de progresso
   const isSeeking = useRef(false);
+  const wasPlayingRef = useRef(false);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [seekValue, setSeekValue] = useState(0);
 
   // ── Sync seekValue com currentTime quando não estiver arrastando
@@ -62,6 +65,7 @@ export function PlaylistTabs() {
   // ── Zera imediatamente o seekValue ao trocar de faixa
   useEffect(() => {
     isSeeking.current = false;
+    setIsDragging(false);
     setSeekValue(0);
   }, [currentTrackIndex]);
 
@@ -176,18 +180,85 @@ export function PlaylistTabs() {
     }
   };
 
-  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSeekValue(Number(e.target.value));
+  const getTimeFromPointer = useCallback((clientX: number): number => {
+    const bar = progressBarRef.current;
+    const totalDuration = duration > 0 ? duration : (displayTrack?.duration || 0);
+    if (!bar || totalDuration <= 0) return 0;
+    const rect = bar.getBoundingClientRect();
+    if (rect.width <= 0) return 0;
+    const clickX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    return (clickX / rect.width) * totalDuration;
+  }, [duration, displayTrack?.duration]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isCurrentTabLoaded) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+    isSeeking.current = true;
+    setIsDragging(true);
+
+    const audio = getAudioElement();
+    // Congela a reprodução sem alterar o estado do play/pause no store
+    wasPlayingRef.current = useAudioStore.getState().isPlaying;
+    if (audio && !audio.paused) {
+      audio.pause();
+    }
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+
+    const newTime = getTimeFromPointer(e.clientX);
+    setSeekValue(newTime);
   };
-  const handleSeekCommit = (e: React.SyntheticEvent) => {
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSeeking.current) return;
+    const newTime = getTimeFromPointer(e.clientX);
+    setSeekValue(newTime);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSeeking.current) return;
     isSeeking.current = false;
-    const target = e.target as HTMLInputElement;
-    if (target && !isNaN(Number(target.value))) {
-      seek(Number(target.value));
+    setIsDragging(false);
+
+    try {
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+
+    const finalTime = getTimeFromPointer(e.clientX);
+    setSeekValue(finalTime);
+    seek(finalTime);
+
+    // Retoma a reprodução apenas se estava tocando antes
+    const audio = getAudioElement();
+    if (wasPlayingRef.current && audio) {
+      audio.play().catch(console.error);
     }
   };
 
-  const progressPercent = duration > 0 ? (seekValue / duration) * 100 : 0;
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSeeking.current) return;
+    isSeeking.current = false;
+    setIsDragging(false);
+
+    try {
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+
+    const audio = getAudioElement();
+    if (wasPlayingRef.current && audio) {
+      audio.play().catch(console.error);
+    }
+  };
+
+  const totalDuration = duration > 0 ? duration : (displayTrack?.duration || 0);
+  const progressPercent = totalDuration > 0 ? Math.min(100, Math.max(0, (seekValue / totalDuration) * 100)) : 0;
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-8 px-4">
@@ -292,35 +363,44 @@ export function PlaylistTabs() {
 
           {/* ── Barra de Progresso (Spotify Style) ── */}
           <div className="mb-6 w-full">
-            <div className="relative group w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden cursor-pointer">
-              {/* Barra Preenchida */}
-              <div
-                className="absolute top-0 left-0 h-full bg-[var(--theme-primary)] rounded-full transition-all duration-100 pointer-events-none"
-                style={{ width: isCurrentTabLoaded ? `${progressPercent}%` : '0%' }}
-              />
+            {/* Contêiner com área de toque expandida (py-3) para o dedo não escapar na tela touch */}
+            <div
+              ref={progressBarRef}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerCancel}
+              className={cn(
+                "relative w-full py-3 -my-3 flex items-center select-none touch-none",
+                isCurrentTabLoaded ? "cursor-pointer" : "cursor-default opacity-50"
+              )}
+            >
+              {/* Trilho de fundo da barra */}
+              <div className="relative w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                {/* Barra Preenchida — acompanha o dedo instantaneamente sem delay de transição durante o drag */}
+                <div
+                  className={cn(
+                    "absolute top-0 left-0 h-full bg-[var(--theme-primary)] rounded-full pointer-events-none",
+                    isDragging ? "" : "transition-all duration-100"
+                  )}
+                  style={{ width: isCurrentTabLoaded ? `${progressPercent}%` : '0%' }}
+                />
+              </div>
 
-              {/* Input range invisível por cima para fluidez */}
-              <input
-                type="range"
-                min={0}
-                max={duration > 0 ? duration : (displayTrack?.duration || 100)}
-                step={0.1}
-                value={isCurrentTabLoaded ? seekValue : 0}
-                disabled={!isCurrentTabLoaded}
-                onMouseDown={() => {
-                  isSeeking.current = true;
-                }}
-                onTouchStart={() => {
-                  isSeeking.current = true;
-                }}
-                onChange={handleSeekChange}
-                onMouseUp={handleSeekCommit}
-                onTouchEnd={handleSeekCommit}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-default"
-              />
+              {/* Indicador que acompanha a posição do dedo com precisão */}
+              {isCurrentTabLoaded && (
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)] pointer-events-none transition-transform duration-75"
+                  style={{
+                    left: `calc(${progressPercent}% - 7px)`,
+                    transform: `translateY(-50%) scale(${isDragging ? 1.25 : 0.85})`,
+                    opacity: isDragging ? 1 : 0.6,
+                  }}
+                />
+              )}
             </div>
 
-            <div className="flex justify-between items-center mt-2 px-0.5">
+            <div className="flex justify-between items-center mt-2 px-0.5 pointer-events-none">
               <span className="text-[11px] text-slate-400 font-medium tracking-wide">
                 {isCurrentTabLoaded ? fmt(seekValue) : '0:00'}
               </span>
