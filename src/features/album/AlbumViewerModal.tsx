@@ -343,7 +343,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   const containerRef = useRef<HTMLDivElement>(null);
   const virtualIndexRef = useRef(initialAlbumIndex);
   const photoIndexesRef = useRef<Record<string, number>>({});
-  const transitioning = useRef(false);
+  const animControls = useRef<{ stop: () => void } | null>(null);
 
   const getWidth = useCallback(() => {
     if (containerRef.current && containerRef.current.clientWidth > 0) {
@@ -383,13 +383,23 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     };
   }, [getWidth, x]);
 
+  useEffect(() => {
+    return () => {
+      if (animControls.current) {
+        animControls.current.stop();
+        animControls.current = null;
+      }
+    };
+  }, []);
+
   const gesture = useRef<{
     startX: number;
     startY: number;
+    startMotionX: number;
     startTime: number;
     direction: 'idle' | 'h' | 'v';
     pointerId: number | null;
-  }>({ startX: 0, startY: 0, startTime: 0, direction: 'idle', pointerId: null });
+  }>({ startX: 0, startY: 0, startMotionX: 0, startTime: 0, direction: 'idle', pointerId: null });
 
   // ── Bloquear scroll do fundo ──────────────────────────────────────────────
   useEffect(() => {
@@ -444,7 +454,7 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
 
   // ── Navegar foto / transbordar para álbum em loop infinito ─────────────────
   const navigatePhoto = useCallback((dir: number) => {
-    if (transitioning.current || albums.length === 0) return;
+    if (albums.length === 0) return;
     const currentActualIndex = ((virtualIndexRef.current % albums.length) + albums.length) % albums.length;
     const currentAlbum = albums[currentActualIndex];
     if (!currentAlbum) return;
@@ -470,21 +480,22 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
         setPhotoIndexes(updated);
       }
 
-      transitioning.current = true;
+      virtualIndexRef.current = targetVirtualIndex;
+      setVirtualIndex(targetVirtualIndex);
+      onAlbumChange?.(targetActualIndex);
+
       setIsInteracting(true);
       const width = getWidth();
       const targetX = -targetVirtualIndex * width;
 
-      animate(x, targetX, {
+      if (animControls.current) animControls.current.stop();
+      animControls.current = animate(x, targetX, {
         type: 'tween',
-        duration: 0.28,
-        ease: [0.25, 0.46, 0.45, 0.94],
+        duration: 0.22,
+        ease: [0.25, 1, 0.5, 1],
         onComplete: () => {
-          transitioning.current = false;
+          animControls.current = null;
           setIsInteracting(false);
-          virtualIndexRef.current = targetVirtualIndex;
-          setVirtualIndex(targetVirtualIndex);
-          onAlbumChange?.(targetActualIndex);
         },
       });
     }
@@ -526,11 +537,18 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
 
   // ── Pointer events ────────────────────────────────────────────────────────
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (gesture.current.pointerId !== null || transitioning.current) return;
+    if (gesture.current.pointerId !== null) return;
     if ((e.target as HTMLElement).closest?.('[data-no-gesture]')) return;
+
+    if (animControls.current) {
+      animControls.current.stop();
+      animControls.current = null;
+    }
+
     gesture.current = {
       startX: e.clientX,
       startY: e.clientY,
+      startMotionX: x.get(),
       startTime: Date.now(),
       direction: 'idle',
       pointerId: e.pointerId,
@@ -557,13 +575,11 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     }
 
     if (gesture.current.direction === 'h') {
-      const width = getWidth();
-      const baseX = -virtualIndexRef.current * width;
       let effectiveDx = dx;
       if (albums.length <= 1) {
         effectiveDx = dx * 0.35; // Resistência elástica se só existir 1 álbum
       }
-      x.set(baseX + effectiveDx);
+      x.set(gesture.current.startMotionX + effectiveDx);
     } else if (gesture.current.direction === 'v') {
       y.set(dy);
     }
@@ -585,43 +601,69 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
     gesture.current.direction = 'idle';
 
     if (direction === 'idle' || (absDx < 12 && absDy < 12)) {
+      const width = getWidth();
+      const restingX = -virtualIndexRef.current * width;
+      // Se parou no meio de uma animação anterior interrompida, completa até o álbum atual
+      if (Math.abs(x.get() - restingX) > 2) {
+        if (animControls.current) animControls.current.stop();
+        animControls.current = animate(x, restingX, {
+          type: 'tween',
+          duration: 0.20,
+          ease: [0.25, 1, 0.5, 1],
+          onComplete: () => {
+            animControls.current = null;
+            setIsInteracting(false);
+          },
+        });
+        return;
+      }
       setIsInteracting(false);
       navigatePhoto(e.clientX > window.innerWidth / 2 ? +1 : -1);
     } else if (direction === 'h') {
       const width = getWidth();
-      let targetVirtualIndex = virtualIndexRef.current;
-      const shouldSwipe = (absDx > 50 || Math.abs(velX) > 0.25) && albums.length > 1;
+      const shouldSwipe = (absDx > 35 || Math.abs(velX) > 0.18) && albums.length > 1;
 
       if (shouldSwipe) {
-        targetVirtualIndex = virtualIndexRef.current + (dx < 0 ? 1 : -1);
+        const dir = dx < 0 ? 1 : -1;
+        const targetVirtualIndex = virtualIndexRef.current + dir;
         const targetActualIndex = ((targetVirtualIndex % albums.length) + albums.length) % albums.length;
         const targetAlbum = albums[targetActualIndex];
         if (targetAlbum && targetAlbum.photos.length > 0 && !(targetAlbum.id in photoIndexesRef.current)) {
-          const targetPhotoIdx = dx < 0 ? 0 : targetAlbum.photos.length - 1;
+          const targetPhotoIdx = dir > 0 ? 0 : targetAlbum.photos.length - 1;
           const updated = { ...photoIndexesRef.current, [targetAlbum.id]: targetPhotoIdx };
           photoIndexesRef.current = updated;
           setPhotoIndexes(updated);
         }
-      }
 
-      transitioning.current = true;
-      setIsInteracting(true);
-      const targetX = -targetVirtualIndex * width;
-      animate(x, targetX, {
-        type: 'spring',
-        stiffness: 320,
-        damping: 32,
-        onComplete: () => {
-          transitioning.current = false;
-          setIsInteracting(false);
-          if (targetVirtualIndex !== virtualIndexRef.current) {
-            virtualIndexRef.current = targetVirtualIndex;
-            setVirtualIndex(targetVirtualIndex);
-            const actualIdx = ((targetVirtualIndex % albums.length) + albums.length) % albums.length;
-            onAlbumChange?.(actualIdx);
-          }
-        },
-      });
+        virtualIndexRef.current = targetVirtualIndex;
+        setVirtualIndex(targetVirtualIndex);
+        onAlbumChange?.(targetActualIndex);
+
+        setIsInteracting(true);
+        const targetX = -targetVirtualIndex * width;
+        if (animControls.current) animControls.current.stop();
+        animControls.current = animate(x, targetX, {
+          type: 'tween',
+          duration: 0.22,
+          ease: [0.25, 1, 0.5, 1],
+          onComplete: () => {
+            animControls.current = null;
+            setIsInteracting(false);
+          },
+        });
+      } else {
+        const targetX = -virtualIndexRef.current * width;
+        if (animControls.current) animControls.current.stop();
+        animControls.current = animate(x, targetX, {
+          type: 'tween',
+          duration: 0.18,
+          ease: [0.25, 1, 0.5, 1],
+          onComplete: () => {
+            animControls.current = null;
+            setIsInteracting(false);
+          },
+        });
+      }
     } else if (direction === 'v') {
       setIsInteracting(false);
       if (absDy > 60 || Math.abs(velY) > 0.3) {
@@ -633,16 +675,17 @@ export function AlbumViewerModal({ albums, initialAlbumIndex, onClose, onAlbumCh
   };
 
   const onPointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (transitioning.current) return;
     if (gesture.current.pointerId !== e.pointerId) return;
     gesture.current.pointerId = null;
     gesture.current.direction = 'idle';
     const width = getWidth();
-    animate(x, -virtualIndexRef.current * width, {
-      type: 'spring',
-      stiffness: 320,
-      damping: 32,
+    if (animControls.current) animControls.current.stop();
+    animControls.current = animate(x, -virtualIndexRef.current * width, {
+      type: 'tween',
+      duration: 0.18,
+      ease: [0.25, 1, 0.5, 1],
       onComplete: () => {
+        animControls.current = null;
         setIsInteracting(false);
       },
     });
