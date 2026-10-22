@@ -5,8 +5,7 @@
  * FullScreenOverlay compartilhado com todos os outros modais do app.
  */
 
-import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
@@ -20,12 +19,12 @@ import { FullScreenOverlay } from '../../shared/ui/FullScreenOverlay';
 import {
   useDevotionalStore,
   type DevotionalStep,
-  type DevotionalMode,
 } from '../devotional/store/useDevotionalStore';
 import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { getPlayerIds } from '../auth/playerIds';
 import { getCurrentSiteId } from '../../services/firestore/paths';
+
 
 import { MoodSelector } from '../devotional/components/MoodSelector';
 import { DevotionalSolo } from '../devotional/components/DevotionalSolo';
@@ -42,11 +41,6 @@ interface DevotionalModalProps {
 
 export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
   const siteId = getCurrentSiteId();
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const urlStep = searchParams.get('step') as DevotionalStep | null;
-  const urlMode = searchParams.get('mode') as DevotionalMode | null;
 
   const { player } = usePlayerIdentityStore();
   const { config } = useSiteConfigStore();
@@ -73,6 +67,8 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     name2: config?.couple.partner2.name || 'Parceiro 2',
   };
 
+  const [stepHistory, setStepHistory] = useState<DevotionalStep[]>([]);
+
   const {
     mode,
     step,
@@ -96,63 +92,45 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
     handleModalClose,
   } = useDevotionalStore();
 
-  // O passo e modo efetivos priorizam a rota (URL search params)
-  const currentStep: DevotionalStep = urlStep || step;
-  const currentMode: DevotionalMode | null = urlMode || mode;
-
-  // Sincroniza parâmetros de URL com o store quando o usuário navega pelo browser
-  useEffect(() => {
-    if (urlStep && urlStep !== step) {
-      setStep(urlStep);
-    } else if (!urlStep && step !== 'mode-select' && !soloResult && !syncResult) {
-      setStep('mode-select');
-    }
-    if (urlMode && urlMode !== mode) {
-      setMode(urlMode);
-    }
-  }, [urlStep, urlMode, step, mode, soloResult, syncResult, setStep, setMode]);
-
-  // Sincroniza a URL quando o store avança automaticamente (ex: generating -> result)
-  useEffect(() => {
-    if (step === 'result' && urlStep !== 'result') {
-      setSearchParams({ mode: mode || 'solo', step: 'result' }, { replace: true });
-    } else if (step === 'generating' && urlStep !== 'generating') {
-      setSearchParams({ mode: mode || 'solo', step: 'generating' }, { replace: true });
-    } else if (step === 'sync-waiting' && urlStep !== 'sync-waiting') {
-      setSearchParams({ mode: mode || 'sync', step: 'sync-waiting' }, { replace: true });
-    } else if (step === 'sync-reveal' && urlStep !== 'sync-reveal') {
-      setSearchParams({ mode: mode || 'sync', step: 'sync-reveal' }, { replace: true });
-    }
-  }, [step, urlStep, mode, setSearchParams]);
-
-  // Navegação de etapas profissional via rota (React Router history)
-  const navigateToStep = (nextStep: DevotionalStep, targetMode?: DevotionalMode) => {
-    const activeMode = targetMode || currentMode || mode || 'solo';
+  // Navegação hierárquica — apenas estado local.
+  // Como o DevotionalModal é sempre hospedado em rota própria (/devotional),
+  // o FullScreenOverlay não empurra camadas no navigationStack (isDedicatedRoute=true),
+  // e aqui também não fazemos pushNavigationLayer para steps internos.
+  // Isso evita o bug de "duplo voltar" onde entradas fantasmas no history do browser
+  // precisavam de um clique extra para serem consumidas.
+  const navigateToStep = (nextStep: DevotionalStep) => {
+    setStepHistory((prev) => [...prev, step]);
     setStep(nextStep);
-    if (activeMode) setMode(activeMode);
-
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (activeMode) next.set('mode', activeMode);
-        next.set('step', nextStep);
-        return next;
-      },
-      { replace: false }
-    );
   };
 
   const handleBack = () => {
-    if (urlStep && urlStep !== 'mode-select') {
-      // Se há um step na URL diferente de mode-select, volta 1 nível no histórico do navegador
-      navigate(-1);
+    if (stepHistory.length > 0) {
+      const prevStep = stepHistory[stepHistory.length - 1];
+      setStepHistory((prev) => prev.slice(0, -1));
+      setStep(prevStep);
     } else {
-      // Já estamos na tela inicial do devocional (/devotional sem step): fecha diretamente para a home
-      handleClose();
+      // Sem steps na pilha local: navega de volta pela hierarquia do step atual
+      if (step === 'history') {
+        const fallbackStep: DevotionalStep = (soloResult || syncResult) ? 'result' : 'mode-select';
+        setStep(fallbackStep);
+      } else if (step === 'mood-select') {
+        setStep('mode-select');
+      } else if (step === 'text-input') {
+        setStep('mood-select');
+      } else if (step === 'focus-select') {
+        setStep('text-input');
+      } else if (step === 'result' && !soloResult) {
+        setStep('mode-select');
+      } else {
+        // Já na tela inicial do devocional (mode-select ou result com dado): fecha
+        handleClose();
+      }
     }
   };
 
   const handleClose = () => {
+    setStepHistory([]);
+    setStep('mode-select');
     handleModalClose();
     onClose();
   };
@@ -163,6 +141,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
       loadHistory(siteId, player);
       loadFavorites(siteId, player);
       handleModalOpen();
+      setStepHistory([]);
 
       // Monitora a virada da meia-noite (23:59:59 -> 00:00:00) a cada 10 segundos
       const midnightTimer = setInterval(() => {
@@ -231,16 +210,16 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
       onClose={handleClose}
       onBack={handleBack}
       overlayId="devotional-root"
-      title={currentStep === 'history' ? 'Favoritos' : 'Devocional'}
+      title={step === 'history' ? 'Favoritos' : 'Devocional'}
       icon={<BookOpen className="w-5 h-5 text-[#D4AF37]" />}
       actions={
         <button
           type="button"
-          onClick={() => (currentStep === 'history' ? handleBack() : navigateToStep('history'))}
-          title={currentStep === 'history' ? 'Voltar ao Devocional' : 'Favoritos'}
+          onClick={() => (step === 'history' ? handleBack() : navigateToStep('history'))}
+          title={step === 'history' ? 'Voltar ao Devocional' : 'Favoritos'}
           className={cn(
             'relative p-2 rounded-xl transition-all min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer',
-            currentStep === 'history'
+            step === 'history'
               ? 'bg-[#D4AF37] text-[#160E24] shadow-[0_0_12px_rgba(212,175,55,0.4)]'
               : 'text-[#F5E6CC]/70 hover:text-[#D4AF37] hover:bg-white/5'
           )}
@@ -265,7 +244,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
         <div className="relative z-10 w-full max-w-4xl mx-auto">
           <AnimatePresence mode="wait">
             {/* ════════════ PASSO: ESCOLHA DE MODO (SOLO vs SYNC) ════════════ */}
-            {currentStep === 'mode-select' && (
+            {step === 'mode-select' && (
               <motion.div
                 key="step-mode-select"
                 initial={{ opacity: 0, y: 15 }}
@@ -294,7 +273,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       setMode('solo');
-                      navigateToStep('mood-select', 'solo');
+                      navigateToStep('mood-select');
                     }}
                     className="group relative flex flex-col p-6 sm:p-7 rounded-3xl border border-[#D4AF37]/25 bg-[#1F1630]/60 hover:bg-[#1F1630]/90 backdrop-blur-xl hover:border-[#D4AF37] hover:shadow-[0_0_40px_rgba(212,175,55,0.25)] text-left transition-all duration-300 cursor-pointer"
                   >
@@ -320,7 +299,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       setMode('sync');
-                      navigateToStep('mood-select', 'sync');
+                      navigateToStep('mood-select');
                     }}
                     className="group relative flex flex-col p-6 sm:p-7 rounded-3xl border border-[#D4AF37]/25 bg-[#1F1630]/60 hover:bg-[#1F1630]/90 backdrop-blur-xl hover:border-[#D4AF37] hover:shadow-[0_0_40px_rgba(212,175,55,0.25)] text-left transition-all duration-300 cursor-pointer"
                   >
@@ -360,7 +339,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
             )}
 
             {/* ════════════ PASSO: SELEÇÃO DE HUMOR (MODO SOLO) ════════════ */}
-            {currentStep === 'mood-select' && currentMode === 'solo' && (
+            {step === 'mood-select' && mode === 'solo' && (
               <motion.div
                 key="step-solo-mood"
                 initial={{ opacity: 0, y: 15 }}
@@ -372,14 +351,14 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                 <MoodSelector
                   selectedMood={selectedMood}
                   onSelectMood={setMood}
-                  onConfirm={() => navigateToStep('text-input', 'solo')}
+                  onConfirm={() => navigateToStep('text-input')}
                   onBack={handleBack}
                 />
               </motion.div>
             )}
 
             {/* ════════════ PASSOS: TEXTO E FOCO (MODO SOLO) ════════════ */}
-            {(currentStep === 'text-input' || currentStep === 'focus-select') && currentMode === 'solo' && (
+            {(step === 'text-input' || step === 'focus-select') && mode === 'solo' && (
               <motion.div
                 key="step-solo-details"
                 initial={{ opacity: 0, y: 15 }}
@@ -393,13 +372,13 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                   playerName={playerName}
                   playerId={player}
                   onBack={handleBack}
-                  onAdvance={(next) => navigateToStep(next, 'solo')}
+                  onAdvance={(next) => navigateToStep(next)}
                 />
               </motion.div>
             )}
 
             {/* ════════════ PASSO: GERANDO (ANIMAÇÃO DA IA) ════════════ */}
-            {currentStep === 'generating' && (
+            {step === 'generating' && (
               <motion.div
                 key="step-generating"
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -427,7 +406,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
             )}
 
             {/* ════════════ PASSO: RESULTADO DO MODO SOLO ════════════ */}
-            {currentStep === 'result' && soloResult && (
+            {step === 'result' && soloResult && (
               <motion.div
                 key="step-solo-result"
                 initial={{ opacity: 0, y: 20 }}
@@ -457,7 +436,8 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                     type="button"
                     onClick={() => {
                       reset();
-                      setSearchParams({}, { replace: true });
+                      setStepHistory([]);
+                      setStep('mode-select');
                     }}
                     className="px-8 py-3 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/10 hover:bg-white/20 text-[#F5E6CC] border border-white/20 transition-all min-h-[44px] cursor-pointer"
                   >
@@ -468,7 +448,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
             )}
 
             {/* ════════════ MODO SINCRONIZADO (SYNC) ════════════ */}
-            {currentMode === 'sync' && (currentStep === 'mood-select' || currentStep === 'text-input' || currentStep === 'sync-waiting' || currentStep === 'sync-reveal') && (
+            {mode === 'sync' && (step === 'mood-select' || step === 'text-input' || step === 'sync-waiting' || step === 'sync-reveal') && (
               <motion.div
                 key="step-sync"
                 initial={{ opacity: 0, y: 15 }}
@@ -484,13 +464,13 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
                   partnerName={partnerName}
                   partnerNames={partnerNames}
                   onBack={handleBack}
-                  onAdvance={(next) => navigateToStep(next, 'sync')}
+                  onAdvance={(next) => navigateToStep(next)}
                 />
               </motion.div>
             )}
 
             {/* ════════════ TELA: HISTÓRICO / FAVORITOS ════════════ */}
-            {currentStep === 'history' && (
+            {step === 'history' && (
               <motion.div
                 key="step-history"
                 initial={{ opacity: 0, y: 15 }}
