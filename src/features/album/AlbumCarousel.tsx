@@ -318,25 +318,41 @@ export function AlbumCarousel() {
       return existingPromise;
     }
 
-    // 3. Fallback: busca via REST primeiro, com fallback para SDK
+    // 3. Fallback: busca via REST runQuery filtrado por albumId (sem limitação de paginação)
     const fetchPromise = (async (): Promise<Photo[]> => {
       try {
         const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCgt_eD3M_n9bhuhSzOxpf5f_ck43ZZZ-o';
         const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
-        const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/album_photos?key=${apiKey}&pageSize=100`;
+        const url = 'https://firestore.googleapis.com/v1/projects/' + projectId + '/databases/(default)/documents:runQuery?key=' + apiKey;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000);
         try {
-          const res = await fetch(url, { signal: controller.signal });
+          const res = await fetch(url, {
+            method: 'POST',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              structuredQuery: {
+                from: [{ collectionId: 'album_photos' }],
+                where: {
+                  fieldFilter: {
+                    field: { fieldPath: 'albumId' },
+                    op: 'EQUAL',
+                    value: { stringValue: albumId },
+                  },
+                },
+                orderBy: [{ field: { fieldPath: 'pageNumber' }, direction: 'ASCENDING' }],
+              },
+            }),
+          });
           clearTimeout(timeoutId);
           if (res.ok) {
-            const json = await res.json();
-            const rawDocs: Array<{ name?: string; fields?: Record<string, unknown> }> = json.documents || [];
-            const matchingDocs = rawDocs
-              .map(decodeFirestoreDoc)
-              .filter((d) => !d.id.startsWith('_') && d.data.albumId === albumId)
-              .sort((a, b) => ((a.data.pageNumber as number) ?? 0) - ((b.data.pageNumber as number) ?? 0));
+            const jsonArr: Array<{ document?: { name?: string; fields?: Record<string, unknown> } }> = await res.json();
+            const matchingDocs = jsonArr
+              .filter((r) => r.document)
+              .map((r) => decodeFirestoreDoc(r.document!))
+              .filter((d) => !d.id.startsWith('_'));
 
             const photos: Photo[] = [];
             matchingDocs.forEach((d) => {
@@ -354,7 +370,7 @@ export function AlbumCarousel() {
             }
           }
         } catch {
-          // prossegue para o fallback do SDK se REST falhar
+          // prossegue para o fallback do SDK se REST runQuery falhar
         } finally {
           clearTimeout(timeoutId);
         }
@@ -392,6 +408,34 @@ export function AlbumCarousel() {
     loadingPromiseRef.current[albumId] = fetchPromise;
     return fetchPromise;
   }, []);
+
+  // ─── Pré-aquece a primeira foto do álbum ativo quando ele fica centralizado ──
+  // Dispara quando o activeIndex muda (swipe entre cards) ou quando os álbuns carregam.
+  // Como as fotos legadas já têm URL pronta (src/srcWebP), o preload é imediato.
+  // Isso garante que a foto 0 já está no cache do browser quando o modal abre.
+  useEffect(() => {
+    if (albums.length === 0) return;
+    const album = albums[activeIndex];
+    if (!album) return;
+
+    // Obtém a URL da primeira foto do álbum (se já estiver carregada)
+    const photos = album.photos ?? photoCacheRef.current[album.id];
+    if (!photos || photos.length === 0) return;
+
+    const firstPhoto = photos[0];
+    const url = firstPhoto.src || (firstPhoto as unknown as Record<string, string>).srcWebP || firstPhoto.url || '';
+    if (!url || url.length < 10) return;
+
+    // Preload silencioso via <link rel="prefetch"> — não bloqueia a thread e funciona no iOS
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = url;
+    link.as = 'image';
+    document.head.appendChild(link);
+    return () => {
+      if (document.head.contains(link)) document.head.removeChild(link);
+    };
+  }, [activeIndex, albums]);
 
   // ─── Pointer events (swipe) & Clique ─────────────────────────────────────
   const SWIPE_THRESHOLD = 30; // px
@@ -473,6 +517,7 @@ export function AlbumCarousel() {
 
   // Constrói o array de álbuns com fotos para o modal (memoizado ANTES de early returns)
   // Garante que se photoCacheRef tiver as fotos, elas são passadas imediatamente
+  // coverUrl: URL da capa pequena (300px) já carregada no carrossel — usada como placeholder borrado
   const albumsForModal = useMemo(
     () =>
       albums.map((a) => ({
@@ -480,6 +525,7 @@ export function AlbumCarousel() {
         title: a.title,
         description: a.description,
         date: a.date,
+        coverUrl: a.cover || a.coverThumb || (a.coverPublicId ? cloudinaryUrl(a.coverPublicId, { w: 300 }) : undefined),
         photos: a.photos ?? photoCacheRef.current[a.id] ?? [],
       })),
     [albums]

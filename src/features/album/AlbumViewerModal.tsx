@@ -24,6 +24,8 @@ interface Album {
   description?: string;
   date?: string;
   photos: Photo[];
+  /** URL da capa pequena (300px) do carrossel — usada como placeholder borrado na primeira foto */
+  coverUrl?: string;
 }
 
 interface AlbumViewerModalProps {
@@ -45,25 +47,26 @@ function isMobileDevice(): boolean {
   return window.innerWidth <= 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 }
 
-function getPhotoUrl(photo: Photo, isMobile = isMobileDevice()): string {
+function getPhotoUrl(photo: Photo, _isMobile = isMobileDevice()): string {
   // Prioriza publicId limpo → URL Cloudinary otimizada
-  // No mobile/iPhone, 900px é perfeito para tela Retina (2.3x supersampling em 390px)
-  // enquanto consome mais de 60% menos memória uncompressed de GPU, prevenindo crashes no WebKit/Safari.
+  // Força f_webp (não f_auto) para evitar que o Cloudinary gere AVIF sob demanda,
+  // que é muito mais lento na primeira requisição e causa tela preta prolongada no iPhone.
+  // WebP é suportado por todos os browsers modernos e é gerado 3-5x mais rápido que AVIF.
   if (photo.publicId && !photo.publicId.startsWith('http')) {
-    return cloudinaryUrl(photo.publicId, { w: isMobile ? 900 : 1200 });
+    return cloudinaryUrl(photo.publicId, { w: 1200, f: 'webp' });
   }
-  // Fotos legadas do site antigo:
-  // No mobile, prefere src (800px) ao invés de srcLarge (1600px) para não estourar limite Jetsam de RAM
-  if (isMobile) {
-    return photo.src || photo.srcLarge || photo.url || (photo.publicId ?? '') || '';
-  }
-  return photo.srcLarge || photo.src || photo.url || (photo.publicId ?? '') || '';
+  // Fotos legadas do site antigo: usa srcWebP se disponível, senão src (800px)
+  // Preferência para versão menor para poupar memória no WebKit/Safari
+  return (photo as unknown as Record<string, string>).srcWebP || photo.src || photo.srcLarge || photo.url || (photo.publicId ?? '') || '';
 }
 
-// ─── Foto com Pinch to Zoom e Pan ─────────────────────────────────────────────
-function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+// ─── Foto com Pinch to Zoom, Pan e Placeholder de Carregamento ───────────────
+// placeholderSrc: URL da capa pequena (300px) já em memória do carrossel.
+// Exibida borrada enquanto a foto full carrega, evitando tela preta no iPhone.
+function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string; placeholderSrc?: string }) {
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [loaded, setLoaded] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -80,10 +83,11 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => Math.hypot(p2.x - p1.x, p2.y - p1.y);
   const getCenter = (p1: { x: number; y: number }, p2: { x: number; y: number }) => ({ x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 });
 
-  // Ao trocar de foto, reseta zoom e pan instantaneamente
+  // Ao trocar de foto, reseta zoom, pan e estado de carregamento instantaneamente
   useEffect(() => {
     setScale(1);
     setPan({ x: 0, y: 0 });
+    setLoaded(false);
     pointers.current.clear();
     initialGesto.current = null;
   }, [src]);
@@ -224,17 +228,39 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       onPointerCancel={onPointerUp}
       onPointerLeave={onPointerUp}
     >
+      {/* Placeholder borrado (capa 300px já em cache no carrossel) — aparece instantaneamente
+          e desaparece com fade quando a foto full termina de carregar.
+          Elimina a tela preta "a frio" no iPhone sem nenhum custo de rede adicional. */}
+      {!loaded && placeholderSrc && (
+        <img
+          src={placeholderSrc}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ filter: 'blur(12px)', transform: 'scale(1.08)', WebkitBackfaceVisibility: 'hidden' }}
+        />
+      )}
+      {/* Spinner discreto por cima do placeholder enquanto foto full carrega */}
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="w-8 h-8 rounded-full border-2 border-white/30 border-t-white/80 animate-spin" />
+        </div>
+      )}
       {/* Imagem com troca direta e instantânea, sem piscar e sem animação */}
       <img
         src={src}
         alt={alt}
         draggable={false}
         decoding="async"
+        onLoad={() => setLoaded(true)}
         className="max-w-full max-h-full object-contain pointer-events-none"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
           willChange: isZoomedOrPanning ? 'transform' : undefined,
           WebkitBackfaceVisibility: 'hidden',
+          opacity: loaded ? 1 : 0,
+          transition: loaded ? 'opacity 0.2s ease' : 'none',
         }}
       />
     </div>
@@ -247,11 +273,14 @@ function AlbumPanel({
   photoIndex,
   onClose,
   isLoading,
+  coverUrl,
 }: {
   album: Album | undefined;
   photoIndex: number;
   onClose?: () => void;
   isLoading?: boolean;
+  /** URL da capa pequena (300px) do carrossel, usada como placeholder borrado */
+  coverUrl?: string;
 }) {
   // Enquanto as fotos estão sendo carregadas, exibe um skeleton discreto
   if (isLoading) {
@@ -335,7 +364,7 @@ function AlbumPanel({
       </div>
 
       {/* Foto customizada com Zoom & Pan isolados */}
-      {url && <ZoomableImage src={url} alt={caption || `Foto ${photoIndex + 1}`} />}
+      {url && <ZoomableImage src={url} alt={caption || `Foto ${photoIndex + 1}`} placeholderSrc={photoIndex === 0 ? coverUrl : undefined} />}
 
       {/* Legenda (respeita barra de navegação/Home indicator do iOS) */}
       {caption && (
@@ -536,7 +565,7 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
       if (!a || a.photos.length === 0) return; // Pula álbuns sem fotos ainda
       const p = a.photos[pIdx];
       if (!p) return;
-      const url = getPhotoUrl(p, isMobile);
+      const url = getPhotoUrl(p);
       if (url && !urls.includes(url)) urls.push(url);
     };
 
@@ -544,8 +573,11 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
     const curP = photoIndexes[albums[curA]?.id] ?? 0;
 
     if (isMobile) {
-      // No iPhone/Mobile: carrega apenas a PRÓXIMA foto imediata.
-      // Isso evita saturar conexões 4G/5G e poupa memória de GPU no WebKit/Safari.
+      // No iPhone/Mobile: carrega a foto ATUAL (index 0 ao abrir) e a PRÓXIMA.
+      // Adicionar foto 0 garante que ela esteja em cache no ServiceWorker ao abrir o álbum.
+      if (curP === 0) {
+        addUrl(curA, 0); // foto inicial — prioridade máxima no pré-carregamento
+      }
       addUrl(curA, curP + 1);
     } else {
       // No Desktop: prefetch mais agressivo
@@ -866,6 +898,7 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
                     album={item.album}
                     photoIndex={photoIndexes[item.album?.id ?? ''] ?? 0}
                     onClose={onClose}
+                    coverUrl={item.album?.coverUrl}
                     isLoading={
                       loadingAlbums.has(item.album?.id ?? '') ||
                       (isCurrent && (!item.album || item.album.photos.length === 0))
