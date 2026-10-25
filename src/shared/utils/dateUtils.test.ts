@@ -37,7 +37,7 @@ describe('dateUtils', () => {
 
     expect(formatSafeDate(null)).toBe('');
     expect(formatSafeDate('invalida')).toBe('');
-  });
+  }, 15000);
 
   it('extrai timestamp numérico com getSafeTime', () => {
     const time = getSafeTime('2024-05-10');

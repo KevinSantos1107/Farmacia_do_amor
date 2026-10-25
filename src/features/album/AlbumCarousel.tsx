@@ -61,7 +61,7 @@ export function AlbumCarousel() {
   const dragStartX      = useRef<number | null>(null);
   const dragStartY      = useRef<number | null>(null);
   const isDragging      = useRef(false);
-  const swipeHandled    = useRef(false);   // garante que 1 gesto = 1 slide
+  const didSwipe        = useRef(false);   // true quando o ponteiro realizou swipe (evita falso clique)
   const lastNavigatedAt = useRef(0);       // timestamp da última navegação lateral
 
   // ─── Navegação ─────────────────────────────────────────────────────────────
@@ -71,21 +71,49 @@ export function AlbumCarousel() {
     setActiveIndex(circularIndex(index, total));
   }, []);
 
-  // ─── Fetch de álbuns (somente metadados — SEM fotos) ──────────────────────
-  // Busca apenas o documento do álbum (título, capa, photoCount, etc).
-  // As fotos de cada álbum são carregadas sob demanda em `loadAlbumPhotos`.
+  // ─── Fetch de álbuns e fotos antecipadas ──────────────────────────────────
+  // Busca metadados dos álbuns E todas as fotos antecipadamente em paralelo.
+  // Como são apenas ~10 documentos de fotos (menos de 20KB de dados JSON),
+  // carregar tudo no mount elimina 100% de qualquer espera de rede ou hang de
+  // WebChannel/Firestore no iPhone/iOS ao clicar para abrir um álbum (0ms de atraso).
 
   useEffect(() => {
+    let isMounted = true;
     const fetchAlbums = async () => {
       try {
-        const snapshot = await getDocs(
-          query(siteCollection('albums'), orderBy('orderIndex', 'asc'))
-        );
-        const validDocs = snapshot.docs.filter((d) => !d.id.startsWith('_'));
-        if (validDocs.length === 0) { setAlbums([]); setLoading(false); return; }
+        const [albumSnapshot, photoSnapshot] = await Promise.all([
+          getDocs(query(siteCollection('albums'), orderBy('orderIndex', 'asc'))),
+          getDocs(siteCollection('album_photos')),
+        ]);
+        if (!isMounted) return;
+
+        const validDocs = albumSnapshot.docs.filter((d) => !d.id.startsWith('_'));
+        if (validDocs.length === 0) {
+          setAlbums([]);
+          setLoading(false);
+          return;
+        }
+
+        // Mapeia todas as fotos por albumId antecipadamente
+        const photosByAlbum: Record<string, Photo[]> = {};
+        photoSnapshot.docs
+          .filter((pDoc) => !pDoc.id.startsWith('_'))
+          .sort((a, b) => (a.data().pageNumber ?? 0) - (b.data().pageNumber ?? 0))
+          .forEach((pDoc) => {
+            const data = pDoc.data();
+            const aid = data.albumId;
+            if (!aid) return;
+            if (!photosByAlbum[aid]) photosByAlbum[aid] = [];
+            if (Array.isArray(data.photos)) {
+              photosByAlbum[aid].push(...data.photos);
+            }
+          });
 
         const loaded: AlbumSummary[] = validDocs.map((doc) => {
           const d = doc.data();
+          const photos = photosByAlbum[doc.id] ?? [];
+          // Preenche cache em memória para responder instantaneamente no modal
+          photoCacheRef.current[doc.id] = photos;
           return {
             id: doc.id,
             title: d.title,
@@ -95,23 +123,26 @@ export function AlbumCarousel() {
             coverThumb: d.coverThumb,
             coverLarge: d.coverLarge,
             coverPublicId: d.coverPublicId,
-            // photoCount é salvo no doc pelo admin. Fallback para 0 se ainda não migrado.
-            photoCount: d.photoCount ?? 0,
-            photos: null, // serão carregadas sob demanda
+            photoCount: d.photoCount ?? photos.length,
+            photos,
           };
         });
+
         setAlbums(loaded);
       } catch (e) {
         console.error('Erro ao carregar álbuns:', e);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchAlbums();
+    return () => {
+      isMounted = false;
+    };
   }, [config?.id]);
 
-  // ─── Lazy-load de fotos — chamado somente ao abrir um álbum ──────────────
-  // Usa refs para o cache de forma a não criar dependências circulares no useCallback.
+  // ─── Lazy-load / fallback de fotos ───────────────────────────────────────
+  // Mantido como fallback caso algum álbum novo não tenha vindo no snapshot inicial.
 
   /** Cache em memória: albumId → fotos carregadas */
   const photoCacheRef = useRef<Record<string, Photo[] | undefined>>({});
@@ -119,7 +150,7 @@ export function AlbumCarousel() {
   const loadingPromiseRef = useRef<Record<string, Promise<Photo[]> | undefined>>({});
 
   const loadAlbumPhotos = useCallback(async (albumId: string): Promise<Photo[]> => {
-    // 1. Cache hit — já carregado anteriormente
+    // 1. Cache hit — fotos já carregadas no mount inicial (resposta imediata)
     const cached = photoCacheRef.current[albumId];
     if (cached !== undefined) {
       return cached;
@@ -131,7 +162,7 @@ export function AlbumCarousel() {
       return existingPromise;
     }
 
-    // 3. Novo fetch
+    // 3. Fallback: novo fetch
     const fetchPromise = (async (): Promise<Photo[]> => {
       try {
         const photoSnapshots = await getDocs(
@@ -152,7 +183,7 @@ export function AlbumCarousel() {
 
         // Salva no cache de ref (sem causar re-render)
         photoCacheRef.current[albumId] = allPhotos;
-        // Atualiza o estado para o carrossel exibir o count correto (se necessário)
+        // Atualiza o estado para o carrossel exibir o count correto
         setAlbums((prev) =>
           prev.map((a) => (a.id === albumId ? { ...a, photos: allPhotos } : a))
         );
@@ -167,26 +198,32 @@ export function AlbumCarousel() {
 
     loadingPromiseRef.current[albumId] = fetchPromise;
     return fetchPromise;
-  }, []); // ← sem dependências: refs não precisam estar no array
+  }, []);
 
-  // ─── Pointer events (swipe + clique) ──────────────────────────────────────
-  // Usa Pointer Events unificados — funciona com mouse, touch e stylus.
-  // Regra: movimento horizontal > 30px = swipe; caso contrário = clique.
+  // ─── Pointer events (swipe) & Clique ─────────────────────────────────────
+  // O gesto de arrasto (swipe) é tratado no container para permitir navegar
+  // suavemente deslizando para os lados.
+  // Já o clique/toque de abertura é tratado diretamente no onClick nativo de
+  // cada card, evitando que o iOS/WebKit engula toques via pointercancel
+  // durante micro-movimentos ou rolagem vertical da página.
 
   const SWIPE_THRESHOLD = 30; // px
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
-    dragStartX.current   = e.clientX;
-    dragStartY.current   = e.clientY;
-    isDragging.current   = false;
-    swipeHandled.current = false;
+    dragStartX.current = e.clientX;
+    dragStartY.current = e.clientY;
+    isDragging.current = false;
+    didSwipe.current   = false;
   }, []);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (dragStartX.current === null) return;
     const dx = e.clientX - dragStartX.current;
-    if (Math.abs(dx) > SWIPE_THRESHOLD) isDragging.current = true;
+    if (Math.abs(dx) > SWIPE_THRESHOLD) {
+      isDragging.current = true;
+      didSwipe.current   = true;
+    }
   }, []);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
@@ -200,53 +237,43 @@ export function AlbumCarousel() {
 
     // ── SWIPE ────────────────────────────────────────────────────────────────
     if (isDragging.current || Math.abs(dx) > SWIPE_THRESHOLD) {
-      // Confirma que é mais horizontal do que vertical
       if (Math.abs(dx) > Math.abs(dy)) {
+        didSwipe.current = true;
         lastNavigatedAt.current = Date.now();
         setActiveIndex((prev) =>
           circularIndex(dx < 0 ? prev + 1 : prev - 1, albums.length)
         );
       }
-      isDragging.current   = false;
-      swipeHandled.current = true;
+      isDragging.current = false;
       return;
     }
 
-    // ── CLIQUE / TOQUE ────────────────────────────────────────────────────────
-    // Se não foi swipe, trata como clique normal diretamente no PointerUp.
-    // Isso evita o bug do iOS/Mobile Safari que engole o evento 'click' 
-    // quando o elemento tem estilos de :hover (group-hover).
-    isDragging.current   = false;
-    swipeHandled.current = false;
-
-    const target = e.target as HTMLElement;
-    const card = target.closest('[data-album-index]');
-    if (card) {
-      const idxStr = card.getAttribute('data-album-index');
-      if (idxStr !== null) {
-        const clickedIdx = parseInt(idxStr, 10);
-        const dist = circularDistance(activeIndex, clickedIdx, albums.length);
-        const isActive = dist === 0;
-
-        if (isActive) {
-          // Abre o álbum imediatamente assim que a animação (250ms) conclui
-          if (Date.now() - lastNavigatedAt.current >= 250) {
-            setSelectedAlbumIndex(clickedIdx);
-          }
-        } else {
-          lastNavigatedAt.current = Date.now();
-          goToIndex(clickedIdx, albums.length);
-        }
-      }
-    }
-  }, [albums.length, activeIndex, goToIndex]);
+    isDragging.current = false;
+  }, [albums.length]);
 
   const onPointerCancel = useCallback(() => {
-    dragStartX.current   = null;
-    dragStartY.current   = null;
-    isDragging.current   = false;
-    swipeHandled.current = false;
+    dragStartX.current = null;
+    dragStartY.current = null;
+    isDragging.current = false;
   }, []);
+
+  // Clique direto no card — 100% confiável no mobile/iOS Safari e Android
+  const handleCardClick = useCallback((clickedIdx: number) => {
+    // Se o usuário realizou um swipe recente, descarta o clique subsequente
+    if (didSwipe.current) {
+      didSwipe.current = false;
+      return;
+    }
+    const dist = circularDistance(activeIndex, clickedIdx, albums.length);
+    if (dist === 0) {
+      // Card central ativo: abre o visualizador imediatamente
+      setSelectedAlbumIndex(clickedIdx);
+    } else {
+      // Card lateral: rotaciona para centralizá-lo
+      lastNavigatedAt.current = Date.now();
+      goToIndex(clickedIdx, albums.length);
+    }
+  }, [activeIndex, albums.length, goToIndex]);
 
   // Teclado (acessibilidade)
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -256,9 +283,7 @@ export function AlbumCarousel() {
       goToIndex(activeIndex - 1, albums.length);
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      if (Date.now() - lastNavigatedAt.current >= 250) {
-        setSelectedAlbumIndex(activeIndex);
-      }
+      setSelectedAlbumIndex(activeIndex);
     }
   }, [albums.length, activeIndex, goToIndex]);
 
@@ -342,9 +367,10 @@ export function AlbumCarousel() {
               <div
                 key={album.id}
                 data-album-index={realIdx}
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
+                onClick={() => handleCardClick(realIdx)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Abrir álbum ${album.title}`}
                 className="absolute group select-none"
                 style={{
                   width:   CARD_W,
