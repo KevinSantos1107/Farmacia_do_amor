@@ -6,6 +6,7 @@ import { AlbumViewerModal } from './AlbumViewerModal';
 import { Images } from 'lucide-react';
 import { cloudinaryUrl, cloudinaryResponsiveSrcSet } from '../../services/cloudinary/upload';
 import { AnimatePresence } from 'framer-motion';
+import { circularIndex, circularDistance, getCardStyle } from './albumCarouselMath';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,8 +22,7 @@ interface Photo {
 
 /**
  * AlbumSummary — dados mínimos necessários para renderizar o carrossel.
- * NÃO inclui o array de fotos (que é grande e lento de carregar).
- * Inclui apenas photoCount para exibir "N fotos" no card.
+ * Contém o array de fotos (pré-carregado ou cacheado) para abertura instantânea (0ms).
  */
 interface AlbumSummary {
   id: string;
@@ -33,22 +33,92 @@ interface AlbumSummary {
   coverThumb?: string;
   coverLarge?: string;
   coverPublicId?: string;
-  /** Contagem de fotos, salva no documento do álbum — evita buscar album_photos. */
   photoCount: number;
-  /** Fotos carregadas sob demanda ao abrir o álbum. Null = ainda não carregado. */
   photos: Photo[] | null;
 }
 
-import { circularIndex, circularDistance, getCardStyle } from './albumCarouselMath';
+// ─── Cache & REST API Helpers para iOS / WebKit ─────────────────────────────
+// No iOS (Safari e Chrome no iPhone), o WebChannel de streaming do Firestore sofre
+// com buffering de HTTP/2 e timeouts de 120s da Google.
+// 1. O cache local (localStorage/sessionStorage) permite exibir os cards e abrir o álbum em 0ms.
+// 2. A API REST direta (fetch HTTPS simples) responde em ~500ms sem sockets WebChannel.
+// 3. O Firestore SDK serve como fallback seguro e universal.
+
+const ALBUMS_CACHE_KEY = 're_albums_cache_v2';
+
+function loadCachedAlbums(): AlbumSummary[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(ALBUMS_CACHE_KEY) || localStorage.getItem(ALBUMS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.albums) && parsed.albums.length > 0) {
+      return parsed.albums as AlbumSummary[];
+    }
+  } catch {
+    // ignora erros de parse ou storage restrito
+  }
+  return null;
+}
+
+function saveCachedAlbums(albums: AlbumSummary[]) {
+  if (typeof window === 'undefined' || albums.length === 0) return;
+  try {
+    const payload = JSON.stringify({ timestamp: Date.now(), albums });
+    sessionStorage.setItem(ALBUMS_CACHE_KEY, payload);
+    localStorage.setItem(ALBUMS_CACHE_KEY, payload);
+  } catch {
+    // ignora erros de quota excedida
+  }
+}
+
+function decodeFirestoreValue(val: unknown): unknown {
+  if (!val || typeof val !== 'object') return val;
+  const obj = val as Record<string, unknown>;
+  if ('stringValue' in obj) return obj.stringValue;
+  if ('integerValue' in obj) return parseInt(obj.integerValue as string, 10);
+  if ('doubleValue' in obj) return parseFloat(obj.doubleValue as string);
+  if ('booleanValue' in obj) return obj.booleanValue;
+  if ('timestampValue' in obj) return obj.timestampValue;
+  if ('nullValue' in obj) return null;
+  if ('arrayValue' in obj) {
+    const arr = (obj.arrayValue as { values?: unknown[] })?.values || [];
+    return arr.map(decodeFirestoreValue);
+  }
+  if ('mapValue' in obj) {
+    const res: Record<string, unknown> = {};
+    const fields = ((obj.mapValue as { fields?: Record<string, unknown> })?.fields) || {};
+    for (const k in fields) {
+      res[k] = decodeFirestoreValue(fields[k]);
+    }
+    return res;
+  }
+  return val;
+}
+
+function decodeFirestoreDoc(doc: unknown): { id: string; data: Record<string, unknown> } {
+  const d = doc as { name?: string; fields?: Record<string, unknown> };
+  const parts = (d.name || '').split('/');
+  const id = parts[parts.length - 1];
+  const data: Record<string, unknown> = {};
+  const fields = d.fields || {};
+  for (const k in fields) {
+    data[k] = decodeFirestoreValue(fields[k]);
+  }
+  return { id, data };
+}
 
 // ─── Carousel component ───────────────────────────────────────────────────────
 
 export function AlbumCarousel() {
   const { config } = useSiteConfigStore();
 
+  // Inicialização Cache-First: se já temos dados no storage, o carrossel nasce pronto em 0ms
+  const initialCached = useMemo(() => loadCachedAlbums(), []);
+
   // Dados
-  const [albums, setAlbums]   = useState<AlbumSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [albums, setAlbums]   = useState<AlbumSummary[]>(() => initialCached || []);
+  const [loading, setLoading] = useState<boolean>(() => !initialCached || initialCached.length === 0);
 
   // ── Única fonte de verdade do carrossel ──
   const [activeIndex, setActiveIndex] = useState(0);
@@ -56,12 +126,25 @@ export function AlbumCarousel() {
   // Modal
   const [selectedAlbumIndex, setSelectedAlbumIndex] = useState<number | null>(null);
 
-  // Swipe
+  // Cache em memória de fotos indexadas por albumId
+  const photoCacheRef = useRef<Record<string, Photo[] | undefined>>({});
+  const loadingPromiseRef = useRef<Record<string, Promise<Photo[]> | undefined>>({});
+
+  // Alimenta o cache de fotos em memória com dados pré-carregados do storage local
+  if (initialCached && Object.keys(photoCacheRef.current).length === 0) {
+    initialCached.forEach((a) => {
+      if (a.photos && a.photos.length > 0) {
+        photoCacheRef.current[a.id] = a.photos;
+      }
+    });
+  }
+
+  // Swipe & Toque
   const containerRef    = useRef<HTMLDivElement>(null);
   const dragStartX      = useRef<number | null>(null);
   const dragStartY      = useRef<number | null>(null);
   const isDragging      = useRef(false);
-  const didSwipe        = useRef(false);   // true quando o ponteiro realizou swipe (evita falso clique)
+  const lastSwipedAt    = useRef(0);       // timestamp do último swipe concluído (evita falso clique sem travar)
   const lastNavigatedAt = useRef(0);       // timestamp da última navegação lateral
 
   // ─── Navegação ─────────────────────────────────────────────────────────────
@@ -71,15 +154,94 @@ export function AlbumCarousel() {
     setActiveIndex(circularIndex(index, total));
   }, []);
 
-  // ─── Fetch de álbuns e fotos antecipadas ──────────────────────────────────
-  // Busca metadados dos álbuns E todas as fotos antecipadamente em paralelo.
-  // Como são apenas ~10 documentos de fotos (menos de 20KB de dados JSON),
-  // carregar tudo no mount elimina 100% de qualquer espera de rede ou hang de
-  // WebChannel/Firestore no iPhone/iOS ao clicar para abrir um álbum (0ms de atraso).
+  // ─── REST Fetcher direto (Bypassa WebChannel no iOS/Safari) ─────────────────
+  const fetchViaRest = useCallback(async (): Promise<AlbumSummary[] | null> => {
+    const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCgt_eD3M_n9bhuhSzOxpf5f_ck43ZZZ-o';
+    const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
+    const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    try {
+      const [albumRes, photoRes] = await Promise.all([
+        fetch(`${baseUrl}/albums?key=${apiKey}&pageSize=50`, { signal: controller.signal }),
+        fetch(`${baseUrl}/album_photos?key=${apiKey}&pageSize=100`, { signal: controller.signal }),
+      ]);
+      clearTimeout(timeoutId);
+
+      if (!albumRes.ok || !photoRes.ok) return null;
+
+      const [albumJson, photoJson] = await Promise.all([albumRes.json(), photoRes.json()]);
+
+      const rawAlbumDocs: Array<{ name?: string; fields?: Record<string, unknown> }> = albumJson.documents || [];
+      const rawPhotoDocs: Array<{ name?: string; fields?: Record<string, unknown> }> = photoJson.documents || [];
+
+      const decodedAlbums = rawAlbumDocs.map(decodeFirestoreDoc).filter((d) => !d.id.startsWith('_'));
+      const decodedPhotos = rawPhotoDocs.map(decodeFirestoreDoc).filter((d) => !d.id.startsWith('_'));
+
+      if (decodedAlbums.length === 0) return [];
+
+      // Mapeia todas as fotos por albumId antecipadamente
+      const photosByAlbum: Record<string, Photo[]> = {};
+      decodedPhotos
+        .sort((a, b) => ((a.data.pageNumber as number) ?? 0) - ((b.data.pageNumber as number) ?? 0))
+        .forEach((pDoc) => {
+          const aid = pDoc.data.albumId as string | undefined;
+          if (!aid) return;
+          if (!photosByAlbum[aid]) photosByAlbum[aid] = [];
+          if (Array.isArray(pDoc.data.photos)) {
+            photosByAlbum[aid].push(...(pDoc.data.photos as Photo[]));
+          }
+        });
+
+      // Ordena álbuns por orderIndex
+      decodedAlbums.sort((a, b) => ((a.data.orderIndex as number) ?? 0) - ((b.data.orderIndex as number) ?? 0));
+
+      const loaded: AlbumSummary[] = decodedAlbums.map((doc) => {
+        const d = doc.data;
+        const photos = photosByAlbum[doc.id] ?? [];
+        photoCacheRef.current[doc.id] = photos;
+        return {
+          id: doc.id,
+          title: (d.title as string) || '',
+          description: d.description as string | undefined,
+          date: d.date as string | undefined,
+          cover: d.cover as string | undefined,
+          coverThumb: d.coverThumb as string | undefined,
+          coverLarge: d.coverLarge as string | undefined,
+          coverPublicId: d.coverPublicId as string | undefined,
+          photoCount: (d.photoCount as number) ?? photos.length,
+          photos,
+        };
+      });
+
+      return loaded;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }, []);
+
+  // ─── Fetch de álbuns e fotos antecipadas ──────────────────────────────────
   useEffect(() => {
     let isMounted = true;
     const fetchAlbums = async () => {
+      // 1. Tenta REST API direta primeiro (resposta em ~500ms sem travar em WebChannel no iPhone)
+      try {
+        const restResult = await fetchViaRest();
+        if (restResult && isMounted) {
+          setAlbums(restResult);
+          saveCachedAlbums(restResult);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('REST API fallback to SDK:', err);
+      }
+
+      // 2. Fallback: Firestore SDK getDocs
       try {
         const [albumSnapshot, photoSnapshot] = await Promise.all([
           getDocs(query(siteCollection('albums'), orderBy('orderIndex', 'asc'))),
@@ -112,7 +274,6 @@ export function AlbumCarousel() {
         const loaded: AlbumSummary[] = validDocs.map((doc) => {
           const d = doc.data();
           const photos = photosByAlbum[doc.id] ?? [];
-          // Preenche cache em memória para responder instantaneamente no modal
           photoCacheRef.current[doc.id] = photos;
           return {
             id: doc.id,
@@ -129,30 +290,25 @@ export function AlbumCarousel() {
         });
 
         setAlbums(loaded);
+        saveCachedAlbums(loaded);
       } catch (e) {
         console.error('Erro ao carregar álbuns:', e);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
+
     fetchAlbums();
     return () => {
       isMounted = false;
     };
-  }, [config?.id]);
+  }, [config?.id, fetchViaRest]);
 
   // ─── Lazy-load / fallback de fotos ───────────────────────────────────────
-  // Mantido como fallback caso algum álbum novo não tenha vindo no snapshot inicial.
-
-  /** Cache em memória: albumId → fotos carregadas */
-  const photoCacheRef = useRef<Record<string, Photo[] | undefined>>({});
-  /** Promessas em voo — evita fetch duplicado para o mesmo álbum */
-  const loadingPromiseRef = useRef<Record<string, Promise<Photo[]> | undefined>>({});
-
   const loadAlbumPhotos = useCallback(async (albumId: string): Promise<Photo[]> => {
-    // 1. Cache hit — fotos já carregadas no mount inicial (resposta imediata)
+    // 1. Cache hit em memória — fotos já carregadas (resposta imediata em 0ms)
     const cached = photoCacheRef.current[albumId];
-    if (cached !== undefined) {
+    if (cached !== undefined && cached.length > 0) {
       return cached;
     }
 
@@ -162,9 +318,48 @@ export function AlbumCarousel() {
       return existingPromise;
     }
 
-    // 3. Fallback: novo fetch
+    // 3. Fallback: busca via REST primeiro, com fallback para SDK
     const fetchPromise = (async (): Promise<Photo[]> => {
       try {
+        const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCgt_eD3M_n9bhuhSzOxpf5f_ck43ZZZ-o';
+        const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
+        const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/album_photos?key=${apiKey}&pageSize=100`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        try {
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const json = await res.json();
+            const rawDocs: Array<{ name?: string; fields?: Record<string, unknown> }> = json.documents || [];
+            const matchingDocs = rawDocs
+              .map(decodeFirestoreDoc)
+              .filter((d) => !d.id.startsWith('_') && d.data.albumId === albumId)
+              .sort((a, b) => ((a.data.pageNumber as number) ?? 0) - ((b.data.pageNumber as number) ?? 0));
+
+            const photos: Photo[] = [];
+            matchingDocs.forEach((d) => {
+              if (Array.isArray(d.data.photos)) {
+                photos.push(...(d.data.photos as Photo[]));
+              }
+            });
+
+            if (photos.length > 0) {
+              photoCacheRef.current[albumId] = photos;
+              setAlbums((prev) =>
+                prev.map((a) => (a.id === albumId ? { ...a, photos } : a))
+              );
+              return photos;
+            }
+          }
+        } catch {
+          // prossegue para o fallback do SDK se REST falhar
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
+        // Fallback SDK getDocs
         const photoSnapshots = await getDocs(
           query(
             siteCollection('album_photos'),
@@ -181,9 +376,7 @@ export function AlbumCarousel() {
           if (Array.isArray(pd.photos)) allPhotos.push(...pd.photos);
         });
 
-        // Salva no cache de ref (sem causar re-render)
         photoCacheRef.current[albumId] = allPhotos;
-        // Atualiza o estado para o carrossel exibir o count correto
         setAlbums((prev) =>
           prev.map((a) => (a.id === albumId ? { ...a, photos: allPhotos } : a))
         );
@@ -201,12 +394,6 @@ export function AlbumCarousel() {
   }, []);
 
   // ─── Pointer events (swipe) & Clique ─────────────────────────────────────
-  // O gesto de arrasto (swipe) é tratado no container para permitir navegar
-  // suavemente deslizando para os lados.
-  // Já o clique/toque de abertura é tratado diretamente no onClick nativo de
-  // cada card, evitando que o iOS/WebKit engula toques via pointercancel
-  // durante micro-movimentos ou rolagem vertical da página.
-
   const SWIPE_THRESHOLD = 30; // px
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
@@ -214,7 +401,6 @@ export function AlbumCarousel() {
     dragStartX.current = e.clientX;
     dragStartY.current = e.clientY;
     isDragging.current = false;
-    didSwipe.current   = false;
   }, []);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
@@ -222,7 +408,6 @@ export function AlbumCarousel() {
     const dx = e.clientX - dragStartX.current;
     if (Math.abs(dx) > SWIPE_THRESHOLD) {
       isDragging.current = true;
-      didSwipe.current   = true;
     }
   }, []);
 
@@ -238,7 +423,7 @@ export function AlbumCarousel() {
     // ── SWIPE ────────────────────────────────────────────────────────────────
     if (isDragging.current || Math.abs(dx) > SWIPE_THRESHOLD) {
       if (Math.abs(dx) > Math.abs(dy)) {
-        didSwipe.current = true;
+        lastSwipedAt.current = Date.now();
         lastNavigatedAt.current = Date.now();
         setActiveIndex((prev) =>
           circularIndex(dx < 0 ? prev + 1 : prev - 1, albums.length)
@@ -259,9 +444,8 @@ export function AlbumCarousel() {
 
   // Clique direto no card — 100% confiável no mobile/iOS Safari e Android
   const handleCardClick = useCallback((clickedIdx: number) => {
-    // Se o usuário realizou um swipe recente, descarta o clique subsequente
-    if (didSwipe.current) {
-      didSwipe.current = false;
+    // Se o usuário realizou um swipe nos últimos 250ms, descarta o clique
+    if (Date.now() - lastSwipedAt.current < 250) {
       return;
     }
     const dist = circularDistance(activeIndex, clickedIdx, albums.length);
@@ -288,6 +472,7 @@ export function AlbumCarousel() {
   }, [albums.length, activeIndex, goToIndex]);
 
   // Constrói o array de álbuns com fotos para o modal (memoizado ANTES de early returns)
+  // Garante que se photoCacheRef tiver as fotos, elas são passadas imediatamente
   const albumsForModal = useMemo(
     () =>
       albums.map((a) => ({
@@ -295,7 +480,7 @@ export function AlbumCarousel() {
         title: a.title,
         description: a.description,
         date: a.date,
-        photos: a.photos ?? [],
+        photos: a.photos ?? photoCacheRef.current[a.id] ?? [],
       })),
     [albums]
   );
@@ -337,7 +522,6 @@ export function AlbumCarousel() {
         ref={containerRef}
         className="w-full relative py-10 select-none outline-none"
         style={{ height: CARD_H + 80, touchAction: 'pan-y' }}
-        // Pointer events unificados (mouse + touch + stylus)
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -351,6 +535,7 @@ export function AlbumCarousel() {
           className="absolute inset-0 flex items-center justify-center"
           style={{
             perspective: 1000,
+            WebkitPerspective: 1000,
             // Libera memória de GPU no iPhone ocultando a perspectiva 3D enquanto o modal estiver aberto
             visibility: selectedAlbumIndex !== null ? 'hidden' : 'visible',
           }}
@@ -360,7 +545,6 @@ export function AlbumCarousel() {
             const style = getCardStyle(dist, CARD_W, GAP);
             const isActive = dist === 0;
             const coverSrc = getCover(album);
-
             const coverSrcSet = getCoverSrcSet(album);
 
             return (
@@ -381,6 +565,17 @@ export function AlbumCarousel() {
                     rotateY(${style.rotateY}deg)
                     scale(${style.scale})
                   `,
+                  WebkitTransform: `
+                    translateX(${style.translateX}px)
+                    translateZ(${style.translateZ}px)
+                    rotateY(${style.rotateY}deg)
+                    scale(${style.scale})
+                  `,
+                  transformStyle: 'preserve-3d',
+                  WebkitTransformStyle: 'preserve-3d',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  WebkitTapHighlightColor: 'transparent',
                   opacity:    style.opacity,
                   zIndex:     style.zIndex,
                   visibility: style.hidden ? 'hidden' : 'visible',
@@ -431,6 +626,7 @@ export function AlbumCarousel() {
       <AnimatePresence>
         {selectedAlbumIndex !== null && (
           <AlbumViewerModal
+            key="album-viewer-modal"
             albums={albumsForModal}
             initialAlbumIndex={selectedAlbumIndex}
             onLoadPhotos={loadAlbumPhotos}
