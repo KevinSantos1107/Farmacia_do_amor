@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { query, orderBy, getDocs, where } from 'firebase/firestore';
 import { siteCollection } from '../../services/firestore/paths';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
@@ -262,6 +262,19 @@ export function AlbumCarousel() {
     }
   }, [albums.length, activeIndex, goToIndex]);
 
+  // Constrói o array de álbuns com fotos para o modal (memoizado ANTES de early returns)
+  const albumsForModal = useMemo(
+    () =>
+      albums.map((a) => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        date: a.date,
+        photos: a.photos ?? [],
+      })),
+    [albums]
+  );
+
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -290,15 +303,6 @@ export function AlbumCarousel() {
   const GAP    = 24;
   const CARD_H = 340;
 
-  // Constrói o array de álbuns com fotos para o modal (usa cache ou array vazio temporário)
-  const albumsForModal = albums.map((a) => ({
-    id: a.id,
-    title: a.title,
-    description: a.description,
-    date: a.date,
-    photos: a.photos ?? [],
-  }));
-
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -320,7 +324,11 @@ export function AlbumCarousel() {
         {/* Stage: perspectiva 3D centralizada */}
         <div
           className="absolute inset-0 flex items-center justify-center"
-          style={{ perspective: 1000 }}
+          style={{
+            perspective: 1000,
+            // Libera memória de GPU no iPhone ocultando a perspectiva 3D enquanto o modal estiver aberto
+            visibility: selectedAlbumIndex !== null ? 'hidden' : 'visible',
+          }}
         >
           {albums.map((album, realIdx) => {
             const dist  = circularDistance(activeIndex, realIdx, albums.length);

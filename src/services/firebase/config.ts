@@ -14,13 +14,31 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+function isAppleOrSafari(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  // Detecta iPhone, iPad, iPod ou navegador Safari (mobile ou desktop)
+  const isApple = /iPhone|iPad|iPod/i.test(ua);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  return isApple || isSafari;
+}
+
 // Initialize Firebase services
-// Safari/iOS (principalmente em PWA, com bloqueadores de conteúdo ou algumas redes)
-// às vezes trava o canal de streaming padrão do Firestore por vários segundos.
-// A detecção automática troca para long-polling quando isso acontece, sem
-// custo em navegadores que funcionam normalmente.
+// No iOS/Safari (WebKit), o streaming contínuo padrão do WebChannel do Firestore sofre com
+// retenção de buffer e travamentos de socket, fazendo as consultas travarem por até 2 MINUTOS
+// (timeout de streaming do backend) antes de cair no fallback.
+// Forçar long-polling direto (experimentalForceLongPolling) no iOS/Safari elimina essa espera
+// de 2 minutos e faz as consultas (como as fotos dos álbuns) responderem de imediato (~100ms).
 function createFirestore() {
   try {
+    if (isAppleOrSafari()) {
+      return initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+        experimentalLongPollingOptions: {
+          timeoutSeconds: 15,
+        },
+      });
+    }
     return initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
   } catch {
     // Já inicializado (ex.: hot reload em dev) → reutiliza a instância existente

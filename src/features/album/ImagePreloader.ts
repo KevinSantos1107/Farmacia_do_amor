@@ -47,20 +47,46 @@ class ImagePreloaderQueue {
   private loadImage(url: string): Promise<void> {
     return new Promise((resolve) => {
       const img = new Image();
+      let resolved = false;
+
+      // Timeout de segurança: no iOS/Safari com 4G/5G oscilando, evita que uma
+      // imagem pendente trave a fila inteira indefinidamente.
+      const timer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          img.onload = null;
+          img.onerror = null;
+          img.src = '';
+          resolve();
+        }
+      }, 8000);
+
       // Decodificação assíncrona evita travar a main thread e picos de GPU no iOS/Safari
       if ('decoding' in img) {
         img.decoding = 'async';
       }
+
       img.onload = () => {
-        img.onload = null;
-        img.onerror = null;
-        resolve();
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          img.onload = null;
+          img.onerror = null;
+          resolve();
+        }
       };
+
       img.onerror = () => {
-        img.onload = null;
-        img.onerror = null;
-        resolve(); // Resolve mesmo com erro para não travar a fila
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          img.onload = null;
+          img.onerror = null;
+          img.src = '';
+          resolve(); // Resolve mesmo com erro para não travar a fila
+        }
       };
+
       img.src = url;
     });
   }
