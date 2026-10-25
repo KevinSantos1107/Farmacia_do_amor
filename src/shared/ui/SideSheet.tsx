@@ -60,7 +60,7 @@ export function SideSheet({
 
   return createPortal(
     <div
-      className={cn('fixed inset-0 z-[9999] flex justify-end', !isOpen && 'pointer-events-none')}
+      className={cn('fixed inset-0 z-[9999] flex justify-end overscroll-contain', !isOpen && 'pointer-events-none')}
       onAnimationEnd={handleAnimationEnd}
     >
       {/* Backdrop */}
@@ -95,7 +95,7 @@ export function SideSheet({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 no-scrollbar">{children}</div>
+        <div className="flex-1 overflow-y-auto p-6 no-scrollbar overscroll-contain">{children}</div>
       </div>
     </div>,
     document.body

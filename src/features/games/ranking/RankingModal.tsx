@@ -17,7 +17,7 @@ export type RankingGame = 'snake' | 'word' | 'quiz' | 'memory';
 
 function renderAvatar(avatarStr: string) {
   if (avatarStr.includes('.')) {
-    return <img src={avatarStr} alt="avatar" className="w-full h-full object-cover rounded-full" />;
+    return <img src={avatarStr} alt="avatar" loading="lazy" decoding="async" className="w-full h-full object-cover rounded-full" />;
   }
   return avatarStr;
 }

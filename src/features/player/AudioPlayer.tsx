@@ -121,6 +121,8 @@ export function AudioPlayer() {
             <img
               src={currentTrack.coverUrl}
               alt="Capa"
+              loading="lazy"
+              decoding="async"
               className="w-10 h-10 rounded-md object-cover flex-shrink-0 bg-theme-card-bg border border-theme-card-border"
             />
           ) : (

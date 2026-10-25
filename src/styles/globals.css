@@ -92,6 +92,12 @@ a,
   -webkit-overflow-scrolling: touch;
 }
 
+/* Previne bounce elástico e encadeamento de scroll indesejado no iOS Safari */
+.overscroll-contain,
+[role="dialog"] {
+  overscroll-behavior: contain;
+}
+
 /* Custom scrollbar discreta para áreas do painel admin */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

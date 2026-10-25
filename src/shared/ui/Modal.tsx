@@ -37,14 +37,14 @@ export const Modal = ({ isOpen, onClose, title, children, className }: ModalProp
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 overscroll-contain">
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         onClick={handleDismiss}
       />
       <div
         className={cn(
-          'relative z-50 w-full max-w-sm rounded-xl bg-slate-900 p-4 shadow-2xl ring-1 ring-slate-700/80 animate-in fade-in zoom-in-95 duration-200',
+          'relative z-50 w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-xl bg-slate-900 p-4 shadow-2xl ring-1 ring-slate-700/80 animate-in fade-in zoom-in-95 duration-200 overscroll-contain',
           className
         )}
       >

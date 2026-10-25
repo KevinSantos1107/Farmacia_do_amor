@@ -325,6 +325,8 @@ export function PlaylistTabs() {
               <img
                 src={resolveMediaCoverUrl(displayTrack?.coverUrl || activeTabPlaylist.coverUrl)!}
                 alt={displayTrack?.title || activeTabPlaylist.name}
+                loading="lazy"
+                decoding="async"
                 className={cn(
                   'w-full h-full object-cover transition-transform duration-1000',
                   isCurrentTabLoaded && isPlaying ? 'scale-105' : 'hover:scale-105'
@@ -529,6 +531,8 @@ export function PlaylistTabs() {
                   <img
                     src={resolveMediaCoverUrl(track.coverUrl || activeTabPlaylist.coverUrl)!}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="w-8 h-8 rounded-md object-cover flex-shrink-0 bg-slate-800"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display = 'none';

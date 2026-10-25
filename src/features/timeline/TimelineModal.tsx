@@ -59,12 +59,14 @@ export function TimelineModalContent({
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
+        height: '100dvh',
         zIndex: 99999,
         backgroundColor: 'rgba(0,0,0,0.88)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
         display: 'flex',
         flexDirection: 'column',
+        overscrollBehavior: 'contain',
       }}
     >
       {/* Header */}
@@ -72,7 +74,10 @@ export function TimelineModalContent({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '16px 20px',
+        paddingTop: 'max(16px, env(safe-area-inset-top, 0px))',
+        paddingBottom: '16px',
+        paddingLeft: 'max(20px, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(20px, env(safe-area-inset-right, 0px))',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         backgroundColor: 'rgba(0,0,0,0.4)',
         flexShrink: 0,
@@ -108,7 +113,13 @@ export function TimelineModalContent({
       <div
         ref={scrollRef}
         className="no-scrollbar"
-        style={{ flex: 1, overflowY: 'auto' }}
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
+          paddingBottom: 'max(16px, env(safe-area-inset-bottom, 0px))',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {loading ? (

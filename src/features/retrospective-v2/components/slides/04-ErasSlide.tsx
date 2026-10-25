@@ -111,6 +111,7 @@ export function ErasSlide() {
                 key={i}
                 src={p.url}
                 alt=""
+                decoding="async"
                 className="absolute inset-0 w-full h-full object-cover"
                 style={{
                   opacity: i === currentIndex ? 1 : 0,
