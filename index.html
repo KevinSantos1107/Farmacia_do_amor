@@ -26,18 +26,6 @@
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&amp;family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=Poppins:wght@300;400;500;600;700&amp;family=Raleway:wght@300;400;500;600&amp;display=swap" /></noscript>
   </head>
   <body>
-    <!-- Eruda Console para debug no iPhone/Mobile -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>
-      eruda.init();
-      console.log('📱 [Eruda Debugger Ativo]');
-      window.addEventListener('error', function(e) {
-        console.error('🔥 [Window Error]:', e.message, e.filename, e.lineno, e.error);
-      });
-      window.addEventListener('unhandledrejection', function(e) {
-        console.error('🔥 [Unhandled Promise]:', e.reason);
-      });
-    </script>
     <div id="root"></div>
     <!-- Portal isolado para modais: não sofre com overflow:hidden do body durante o lockBodyScroll no iOS -->
     <div id="modal-root"></div>
