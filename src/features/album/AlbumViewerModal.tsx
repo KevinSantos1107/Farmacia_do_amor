@@ -375,7 +375,7 @@ function AlbumPanel({
       </div>
 
       {/* Foto customizada com Zoom & Pan isolados */}
-      {url && <ZoomableImage src={url} alt={caption || `Foto ${photoIndex + 1}`} placeholderSrc={coverUrl} />}
+      {url && <ZoomableImage src={url} alt={caption || `Foto ${photoIndex + 1}`} placeholderSrc={photoIndex === 0 ? coverUrl : undefined} />}
 
       {/* Legenda (respeita barra de navegação/Home indicator do iOS) */}
       {caption && (

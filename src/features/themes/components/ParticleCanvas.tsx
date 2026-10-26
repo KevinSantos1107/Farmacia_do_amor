@@ -14,6 +14,7 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
     let lastWidth = -1;
     let lastHeight = -1;
     let isPaused = false;
+    let resumeLoop: (() => void) | null = null;
 
     // Pausa a animação quando a aba está oculta OU quando um overlay (modal de álbum)
     // está aberto. No iPhone, o canvas de partículas compete com o modal pela GPU
@@ -30,8 +31,8 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       } else if (!shouldPause && isPaused) {
         isPaused = false;
-        // Retoma o loop de animação
-        draw();
+        // Retoma o loop de animação específico do tema ativo
+        resumeLoop?.();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -163,9 +164,11 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
       
       window.addEventListener('resize', resize);
       resize();
+      resumeLoop = draw;
       draw();
       
       return () => {
+        resumeLoop = null;
         window.removeEventListener('resize', resize);
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('touchmove', onTouchMove);
@@ -232,8 +235,10 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
       };
       window.addEventListener('resize', resize);
       resize();
+      resumeLoop = draw;
       draw();
       return () => {
+        resumeLoop = null;
         window.removeEventListener('resize', resize);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         cancelAnimationFrame(animId);
@@ -296,9 +301,11 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
       
       window.addEventListener('resize', resize);
       resize();
+      resumeLoop = draw;
       draw();
       
       return () => {
+        resumeLoop = null;
         window.removeEventListener('resize', resize);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         cancelAnimationFrame(animId);
@@ -365,8 +372,10 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
     };
     window.addEventListener('resize', resize);
     resize();
+    resumeLoop = draw;
     draw();
     return () => {
+      resumeLoop = null;
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animId);
