@@ -67,6 +67,7 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -83,13 +84,23 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
   const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => Math.hypot(p2.x - p1.x, p2.y - p1.y);
   const getCenter = (p1: { x: number; y: number }, p2: { x: number; y: number }) => ({ x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 });
 
-  // Ao trocar de foto, reseta zoom, pan e estado de carregamento instantaneamente
+  // Ao trocar de foto, reseta zoom, pan e estado de carregamento.
+  // ATENÇÃO: se a imagem já está no cache do browser, o onLoad dispara ANTES
+  // deste efeito. Por isso, após resetar, verificamos img.complete imediatamente
+  // para não travar o spinner indefinidamente em fotos que já estavam em cache.
   useEffect(() => {
     setScale(1);
     setPan({ x: 0, y: 0 });
-    setLoaded(false);
     pointers.current.clear();
     initialGesto.current = null;
+
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      // Já carregada do cache — marca como loaded imediatamente
+      setLoaded(true);
+    } else {
+      setLoaded(false);
+    }
   }, [src]);
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -249,11 +260,13 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
       )}
       {/* Imagem com troca direta e instantânea, sem piscar e sem animação */}
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
         draggable={false}
         decoding="async"
         onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
         className="max-w-full max-h-full object-contain pointer-events-none"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
