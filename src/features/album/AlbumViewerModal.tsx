@@ -375,7 +375,7 @@ function AlbumPanel({
       </div>
 
       {/* Foto customizada com Zoom & Pan isolados */}
-      {url && <ZoomableImage src={url} alt={caption || `Foto ${photoIndex + 1}`} placeholderSrc={photoIndex === 0 ? coverUrl : undefined} />}
+      {url && <ZoomableImage src={url} alt={caption || `Foto ${photoIndex + 1}`} placeholderSrc={coverUrl} />}
 
       {/* Legenda (respeita barra de navegação/Home indicator do iOS) */}
       {caption && (
@@ -887,14 +887,25 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
     return { v, slotKey, album };
   });
 
+  // Renderiza no #modal-root (fora do #root do React) para evitar conflito com
+  // position:fixed e overflow:hidden que o lockBodyScroll aplica ao body no iOS.
+  // O #modal-root fica irmão do body e não é afetado pelo travamento de scroll.
+  const portalTarget =
+    (typeof document !== 'undefined' && document.getElementById('modal-root')) ||
+    (typeof document !== 'undefined' ? document.body : null);
+
+  if (!portalTarget) return null;
+
   return createPortal(
     <motion.div
       ref={containerRef}
-      initial={{ opacity: 0 }}
+      // Sem initial={{ opacity:0 }} para não criar camada de compositor GPU extra no iOS.
+      // No iPhone isso causava tela preta por 1-2s ao abrir, pois competia com as camadas
+      // do canvas de partículas. A animação de entrada fica a cargo do bgColor (motion value).
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-      style={{ backgroundColor: bgColor }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      style={{ backgroundColor: bgColor, opacity: 1 }}
       className="fixed inset-0 z-[99999] touch-none select-none"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -938,6 +949,6 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
         </motion.div>
       </motion.div>
     </motion.div>,
-    document.body
+    portalTarget
   );
 }

@@ -43,7 +43,7 @@ export async function listCollectionDocs(
     let url = `${baseUrl}/${collectionId}?key=${apiKey}&pageSize=${PAGE_SIZE}`;
     if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
 
-    const res = await fetch(url, { signal });
+    const res = await fetch(url, { signal, keepalive: true });
     if (!res.ok) return null;
 
     const json = (await res.json()) as { documents?: RawFirestoreDoc[]; nextPageToken?: string };
@@ -70,6 +70,7 @@ export async function queryAlbumPhotoPages(
   const res = await fetch(`${baseUrl}:runQuery?key=${apiKey}`, {
     method: 'POST',
     signal,
+    keepalive: true,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       structuredQuery: {

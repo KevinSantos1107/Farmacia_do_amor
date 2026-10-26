@@ -5,16 +5,41 @@ class ImagePreloaderQueue {
 
   /**
    * Define a nova lista de prioridade de preloading.
-   * As URLs passadas serão as próximas a serem carregadas, na ordem fornecida.
+   * A PRIMEIRA URL da lista é a mais urgente (geralmente a foto que o usuário já vê).
+   * Substituímos toda a fila para garantir que a mais prioritária não fique atrás de
+   * outras que estavam enfileiradas antes.
+   * Se já há um download em andamento, iniciamos um carregamento paralelo imediato
+   * para a URL mais importante (download direto no cache do browser).
    */
   setPriority(urls: string[]) {
     // Filtra apenas as que não estão no cache ainda
     const toLoad = urls.filter(u => !this.cache.has(u));
+    if (toLoad.length === 0) return;
     
     // Substitui a fila atual pela nova prioridade
     this.queue = toLoad;
     
+    // Se já estamos carregando outra URL, dispara a mais prioritária em paralelo
+    // (o browser vai baixar as duas ao mesmo tempo; a prioritária chega ao cache primeiro).
+    if (this.loading && toLoad[0]) {
+      this._warmImmediately(toLoad[0]);
+    }
+
     this.process();
+  }
+
+  /**
+   * Dispara um `new Image()` imediatamente para a URL mais prioritária, em paralelo
+   * com qualquer download já em andamento. O resultado vai direto para o cache do browser.
+   * Quando o preloader sequencial chegar a essa URL, o `img.complete` já será `true`.
+   */
+  private _warmImmediately(url: string) {
+    if (this.cache.has(url)) return;
+    const img = new Image();
+    if ('decoding' in img) img.decoding = 'async';
+    img.onload = () => { this.cache.add(url); };
+    img.onerror = () => {};
+    img.src = url;
   }
 
   /**

@@ -412,10 +412,19 @@ export function AlbumCarousel() {
 
     const img = new Image();
     img.decoding = 'async';
+    // Só remove do array após o download terminar, evitando que o GC do Safari/iOS
+    // descarte a Image antes do download completar (sem referência → GC coleta).
+    const onDone = () => {
+      const idx = warmedImagesRef.current.indexOf(img);
+      if (idx !== -1) warmedImagesRef.current.splice(idx, 1);
+    };
+    img.onload = onDone;
+    img.onerror = onDone;
     img.src = url;
-    // Mantém referência para o navegador não descartar o download em andamento
+    // Mantém referência forte enquanto o download não terminar
     warmedImagesRef.current.push(img);
-    if (warmedImagesRef.current.length > 8) warmedImagesRef.current.shift();
+    // Limita o array a 12 entradas (apenas as mais recentes) para evitar vazamento de memória
+    if (warmedImagesRef.current.length > 12) warmedImagesRef.current.shift();
   }, [activeIndex, albums]);
 
   // ─── Pointer events (swipe) & Clique ─────────────────────────────────────
@@ -608,7 +617,9 @@ export function AlbumCarousel() {
                   visibility: style.hidden ? 'hidden' : 'visible',
                   transition: 'transform 0.25s cubic-bezier(0.25,1,0.5,1), opacity 0.25s ease',
                   cursor:     'pointer',
-                  willChange: style.hidden ? undefined : 'transform, opacity',
+                  // `willChange` só no card ativo: nos laterais cria camadas GPU desnecessárias
+                  // que esgotam a memória de compositor do iPhone, causando tela preta.
+                  willChange: isActive ? 'transform, opacity' : undefined,
                   touchAction: 'manipulation',
                 }}
               >

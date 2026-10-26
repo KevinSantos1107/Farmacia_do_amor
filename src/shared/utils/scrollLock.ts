@@ -2,6 +2,11 @@
  * Gerenciador centralizado de bloqueio de rolagem do body/html com contagem de referências.
  * Permite que múltiplos modais/menus empilhem bloqueios sem sofrerem de race conditions
  * ao abrir ou fechar em sequência.
+ *
+ * Estratégia para iOS/Safari:
+ * O Safari tem um bug histórico onde `overflow: hidden` no body não impede o rubber-band
+ * scrolling. A solução é usar `position: fixed` + `top: -scrollY` no body enquanto o
+ * lock está ativo, restaurando o scroll exato ao fechar.
  */
 
 let lockCount = 0;
@@ -10,6 +15,16 @@ let previousBodyOverflow = '';
 let previousHtmlOverflow = '';
 let previousBodyOverscroll = '';
 let previousHtmlOverscroll = '';
+let previousBodyPosition = '';
+let previousBodyTop = '';
+let previousBodyWidth = '';
+
+/** Detecta iOS (iPhone/iPad) para aplicar o fix de position:fixed */
+function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
 
 /**
  * Trava o scroll da página (body e html) e previne bounce elástico no iOS/Mobile,
@@ -38,6 +53,18 @@ export function lockBodyScroll(): () => void {
         previousBodyOverscroll = document.body.style.overscrollBehavior;
         document.body.style.overscrollBehavior = 'none';
       }
+
+      // Fix para iOS/Safari: position:fixed impede o rubber-band scrolling que
+      // `overflow:hidden` sozinho não bloqueia. Sem isso, o fundo do site continua
+      // respondendo a swipes e compete com os gestos do modal.
+      if (isIOS()) {
+        previousBodyPosition = document.body.style.position;
+        previousBodyTop = document.body.style.top;
+        previousBodyWidth = document.body.style.width;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${savedScrollY}px`;
+        document.body.style.width = '100%';
+      }
     }
     if (document.documentElement?.style) {
       previousHtmlOverflow = document.documentElement.style.overflow;
@@ -60,6 +87,13 @@ export function lockBodyScroll(): () => void {
         document.body.style.overflow = previousBodyOverflow;
         if ('overscrollBehavior' in document.body.style) {
           document.body.style.overscrollBehavior = previousBodyOverscroll;
+        }
+
+        // Restaura position e scroll no iOS
+        if (isIOS()) {
+          document.body.style.position = previousBodyPosition;
+          document.body.style.top = previousBodyTop;
+          document.body.style.width = previousBodyWidth;
         }
       }
       if (document.documentElement?.style) {
@@ -103,9 +137,15 @@ export function _resetScrollLockForTesting(): void {
   previousHtmlOverflow = '';
   previousBodyOverscroll = '';
   previousHtmlOverscroll = '';
+  previousBodyPosition = '';
+  previousBodyTop = '';
+  previousBodyWidth = '';
   if (typeof document !== 'undefined') {
     if (document.body?.style) {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
       if ('overscrollBehavior' in document.body.style) {
         document.body.style.overscrollBehavior = '';
       }
@@ -118,3 +158,4 @@ export function _resetScrollLockForTesting(): void {
     }
   }
 }
+

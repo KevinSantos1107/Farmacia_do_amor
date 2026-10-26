@@ -15,9 +15,24 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
     let lastHeight = -1;
     let isPaused = false;
 
-    // Optimization: Pause animation when tab is not visible
+    // Pausa a animação quando a aba está oculta OU quando um overlay (modal de álbum)
+    // está aberto. No iPhone, o canvas de partículas compete com o modal pela GPU
+    // e causa tela preta/travamento. Para garantir que a pausa seja IMEDIATA (sem esperar
+    // o próximo frame do requestAnimationFrame), cancelamos o animId existente e só
+    // retomamos quando o overlay fechar.
     const handleVisibilityChange = () => {
-      isPaused = document.hidden || document.documentElement.hasAttribute('data-overlay-open');
+      const shouldPause = document.hidden || document.documentElement.hasAttribute('data-overlay-open');
+      if (shouldPause && !isPaused) {
+        isPaused = true;
+        // Cancela o frame atual para liberar GPU imediatamente
+        cancelAnimationFrame(animId);
+        // Garante que o canvas fique limpo enquanto pausado
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      } else if (!shouldPause && isPaused) {
+        isPaused = false;
+        // Retoma o loop de animação
+        draw();
+      }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -110,38 +125,39 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
       };
 
       const draw = () => {
-        if (!isPaused) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Quando pausado, o handleVisibilityChange já cancelou o animId.
+        // O draw() só é chamado de novo quando o overlay fechar (isPaused = false → draw()).
+        if (isPaused) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        snowFlakes.forEach((f) => {
+          f.phase += 0.01;
           
-          snowFlakes.forEach((f) => {
-            f.phase += 0.01;
-            
-            let targetSpeedX = Math.sin(f.phase) * f.sway;
-            
-            const dx = mouseX - f.x;
-            const dy = mouseY - f.y;
-            const distSq = dx * dx + dy * dy;
-            const repelRadius = 150;
-            
-            if (distSq < repelRadius * repelRadius) {
-              const dist = Math.sqrt(distSq);
-              const force = (repelRadius - dist) / repelRadius;
-              targetSpeedX += (dx / dist) * force * 4; 
-              f.y += (dy / dist) * force * 1.5; 
-            }
+          let targetSpeedX = Math.sin(f.phase) * f.sway;
+          
+          const dx = mouseX - f.x;
+          const dy = mouseY - f.y;
+          const distSq = dx * dx + dy * dy;
+          const repelRadius = 150;
+          
+          if (distSq < repelRadius * repelRadius) {
+            const dist = Math.sqrt(distSq);
+            const force = (repelRadius - dist) / repelRadius;
+            targetSpeedX += (dx / dist) * force * 4; 
+            f.y += (dy / dist) * force * 1.5; 
+          }
 
-            f.speedX += (targetSpeedX - f.speedX) * 0.05;
-            f.x += f.speedX;
-            f.y += f.speedY;
+          f.speedX += (targetSpeedX - f.speedX) * 0.05;
+          f.x += f.speedX;
+          f.y += f.speedY;
 
-            if (f.y > canvas.height + f.r) { f.y = -f.r; f.x = Math.random() * canvas.width; }
-            if (f.x > canvas.width + f.r) f.x = -f.r;
-            if (f.x < -f.r) f.x = canvas.width + f.r;
+          if (f.y > canvas.height + f.r) { f.y = -f.r; f.x = Math.random() * canvas.width; }
+          if (f.x > canvas.width + f.r) f.x = -f.r;
+          if (f.x < -f.r) f.x = canvas.width + f.r;
 
-            const sprite = sprites[f.type];
-            ctx.drawImage(sprite, f.x - f.r, f.y - f.r, f.r * 2, f.r * 2);
-          });
-        }
+          const sprite = sprites[f.type];
+          ctx.drawImage(sprite, f.x - f.r, f.y - f.r, f.r * 2, f.r * 2);
+        });
         animId = requestAnimationFrame(draw);
       };
       
@@ -204,15 +220,14 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
       };
 
       const draw = () => {
-        if (!isPaused) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          time += 0.016;
-          stars.forEach((s) => {
-            const alpha = s.baseAlpha * (0.4 + 0.6 * Math.abs(Math.sin(time * s.speed + s.phase)));
-            ctx.fillStyle = `${s.color}${alpha})`;
-            ctx.fillRect(s.x, s.y, s.r * 2, s.r * 2);
-          });
-        }
+        if (isPaused) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        time += 0.016;
+        stars.forEach((s) => {
+          const alpha = s.baseAlpha * (0.4 + 0.6 * Math.abs(Math.sin(time * s.speed + s.phase)));
+          ctx.fillStyle = `${s.color}${alpha})`;
+          ctx.fillRect(s.x, s.y, s.r * 2, s.r * 2);
+        });
         animId = requestAnimationFrame(draw);
       };
       window.addEventListener('resize', resize);
@@ -259,24 +274,23 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
       };
 
       const draw = () => {
-        if (!isPaused) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          time += 0.016;
-          
-          ctx.fillStyle = '#ffffff'; 
-          
-          stars.forEach((s) => {
-            let alpha = s.baseAlpha;
-            if (s.isBlinker) {
-              alpha *= (0.3 + 0.7 * Math.abs(Math.sin(time * s.speed + s.phase)));
-            }
-            ctx.globalAlpha = alpha;
-            ctx.beginPath();
-            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-            ctx.fill();
-          });
-          ctx.globalAlpha = 1;
-        }
+        if (isPaused) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        time += 0.016;
+        
+        ctx.fillStyle = '#ffffff'; 
+        
+        stars.forEach((s) => {
+          let alpha = s.baseAlpha;
+          if (s.isBlinker) {
+            alpha *= (0.3 + 0.7 * Math.abs(Math.sin(time * s.speed + s.phase)));
+          }
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
         animId = requestAnimationFrame(draw);
       };
       
@@ -331,23 +345,22 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
     };
 
     const draw = () => {
-      if (!isPaused) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach((p) => {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-          ctx.fillStyle = `${p.color}${p.alpha})`;
-          ctx.fill();
-          p.x += p.vx;
-          p.y += p.vy;
-          if (p.y < -10) {
-            p.y = canvas.height + 10;
-            p.x = Math.random() * canvas.width;
-          }
-          if (p.x < -10) p.x = canvas.width + 10;
-          if (p.x > canvas.width + 10) p.x = -10;
-        });
-      }
+      if (isPaused) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `${p.color}${p.alpha})`;
+        ctx.fill();
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.y < -10) {
+          p.y = canvas.height + 10;
+          p.x = Math.random() * canvas.width;
+        }
+        if (p.x < -10) p.x = canvas.width + 10;
+        if (p.x > canvas.width + 10) p.x = -10;
+      });
       animId = requestAnimationFrame(draw);
     };
     window.addEventListener('resize', resize);

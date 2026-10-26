@@ -27,6 +27,8 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Portal isolado para modais: não sofre com overflow:hidden do body durante o lockBodyScroll no iOS -->
+    <div id="modal-root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
