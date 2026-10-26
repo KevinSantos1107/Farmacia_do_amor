@@ -79,6 +79,7 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
   // deste efeito. Por isso, após resetar, verificamos img.complete imediatamente
   // para não travar o spinner indefinidamente em fotos que já estavam em cache.
   useEffect(() => {
+    console.log(`🖼️ [ZoomableImage] Mudando para src:`, src);
     setScale(1);
     setPan({ x: 0, y: 0 });
     pointers.current.clear();
@@ -88,8 +89,10 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
     const img = imgRef.current;
     if (img && img.complete && img.naturalWidth > 0) {
       // Já carregada do cache — marca como loaded imediatamente
+      console.log(`⚡ [ZoomableImage] Imagem já em cache completo (${img.naturalWidth}x${img.naturalHeight})`);
       setLoaded(true);
     } else {
+      console.log(`⏳ [ZoomableImage] Aguardando download da imagem...`);
       setLoaded(false);
     }
   }, [src]);
