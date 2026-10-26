@@ -7,7 +7,7 @@ import { Images } from 'lucide-react';
 import { cloudinaryUrl, cloudinaryResponsiveSrcSet } from '../../services/cloudinary/upload';
 import { AnimatePresence } from 'framer-motion';
 import { circularIndex, circularDistance, getCardStyle } from './albumCarouselMath';
-import { getPhotoUrl } from './photoUrl';
+import { getPhotoUrl, normalizeCloudinaryUrl } from './photoUrl';
 import { listCollectionDocs, queryAlbumPhotoPages } from './firestoreRest';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -515,7 +515,7 @@ export function AlbumCarousel() {
         title: a.title,
         description: a.description,
         date: a.date,
-        coverUrl: a.cover || a.coverThumb || (a.coverPublicId ? cloudinaryUrl(a.coverPublicId, { w: 300 }) : undefined),
+        coverUrl: normalizeCloudinaryUrl(a.cover || a.coverThumb || (a.coverPublicId ? cloudinaryUrl(a.coverPublicId, { w: 300, f: 'webp' }) : '')),
         photos: a.photos ?? photoCacheRef.current[a.id] ?? [],
       })),
     [albums]

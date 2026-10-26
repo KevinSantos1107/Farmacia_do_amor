@@ -260,7 +260,6 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
         src={src}
         alt={alt}
         draggable={false}
-        decoding="async"
         onLoad={() => { setFailed(false); setLoaded(true); }}
         onError={() => { setFailed(true); setLoaded(true); }}
         className="max-w-full max-h-full object-contain pointer-events-none relative z-20"
