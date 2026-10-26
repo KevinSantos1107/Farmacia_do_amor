@@ -13,6 +13,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "seed": "node scripts/seed.mjs",
     "cleanup": "node scripts/cleanup-cloudinary.mjs",
+    "warm": "node scripts/warm-cloudinary.mjs",
     "preview": "vite preview",
     "test": "vitest run"
   },

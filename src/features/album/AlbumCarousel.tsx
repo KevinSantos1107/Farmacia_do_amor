@@ -1,12 +1,14 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { query, orderBy, getDocs, where } from 'firebase/firestore';
-import { siteCollection } from '../../services/firestore/paths';
+import { siteCollection, getDataLayout } from '../../services/firestore/paths';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { AlbumViewerModal } from './AlbumViewerModal';
 import { Images } from 'lucide-react';
 import { cloudinaryUrl, cloudinaryResponsiveSrcSet } from '../../services/cloudinary/upload';
 import { AnimatePresence } from 'framer-motion';
 import { circularIndex, circularDistance, getCardStyle } from './albumCarouselMath';
+import { getPhotoUrl } from './photoUrl';
+import { listCollectionDocs, queryAlbumPhotoPages } from './firestoreRest';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -156,26 +158,23 @@ export function AlbumCarousel() {
 
   // ─── REST Fetcher direto (Bypassa WebChannel no iOS/Safari) ─────────────────
   const fetchViaRest = useCallback(async (): Promise<AlbumSummary[] | null> => {
-    const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCgt_eD3M_n9bhuhSzOxpf5f_ck43ZZZ-o';
-    const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
-    const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+    // O REST direto lê as coleções da raiz (layout 'legacy'). No layout 'site' deixa o SDK cuidar.
+    if (getDataLayout() === 'site') return null;
 
+    // Timeout geral de 10s: no celular é melhor esperar um pouco o REST do que cair no SDK lento.
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const [albumRes, photoRes] = await Promise.all([
-        fetch(`${baseUrl}/albums?key=${apiKey}&pageSize=50`, { signal: controller.signal }),
-        fetch(`${baseUrl}/album_photos?key=${apiKey}&pageSize=100`, { signal: controller.signal }),
+      // Busca paginada: antes só vinha a 1ª página (100 docs) e álbuns ficavam sem fotos.
+      const [rawAlbumDocs, rawPhotoDocs] = await Promise.all([
+        listCollectionDocs('albums', controller.signal),
+        listCollectionDocs('album_photos', controller.signal),
       ]);
       clearTimeout(timeoutId);
 
-      if (!albumRes.ok || !photoRes.ok) return null;
-
-      const [albumJson, photoJson] = await Promise.all([albumRes.json(), photoRes.json()]);
-
-      const rawAlbumDocs: Array<{ name?: string; fields?: Record<string, unknown> }> = albumJson.documents || [];
-      const rawPhotoDocs: Array<{ name?: string; fields?: Record<string, unknown> }> = photoJson.documents || [];
+      // Qualquer falha → null → o fallback (SDK) assume, como antes.
+      if (!rawAlbumDocs || !rawPhotoDocs) return null;
 
       const decodedAlbums = rawAlbumDocs.map(decodeFirestoreDoc).filter((d) => !d.id.startsWith('_'));
       const decodedPhotos = rawPhotoDocs.map(decodeFirestoreDoc).filter((d) => !d.id.startsWith('_'));
@@ -225,6 +224,9 @@ export function AlbumCarousel() {
   }, []);
 
   // ─── Fetch de álbuns e fotos antecipadas ──────────────────────────────────
+  // No layout 'legacy' os dados não dependem do siteId, então a busca roda UMA vez só.
+  // (Antes, `config?.id` na dependência disparava a busca completa duas vezes ao carregar a config.)
+  const dataScopeKey = getDataLayout() === 'site' ? (config?.id ?? '') : 'legacy';
   useEffect(() => {
     let isMounted = true;
     const fetchAlbums = async () => {
@@ -302,7 +304,7 @@ export function AlbumCarousel() {
     return () => {
       isMounted = false;
     };
-  }, [config?.id, fetchViaRest]);
+  }, [dataScopeKey, fetchViaRest]);
 
   // ─── Lazy-load / fallback de fotos ───────────────────────────────────────
   const loadAlbumPhotos = useCallback(async (albumId: string): Promise<Photo[]> => {
@@ -318,61 +320,42 @@ export function AlbumCarousel() {
       return existingPromise;
     }
 
-    // 3. Fallback: busca via REST runQuery filtrado por albumId (sem limitação de paginação)
+    // 3. Busca só as fotos deste álbum via REST runQuery (sem limite de paginação e sem exigir
+    //    índice composto). Se falhar, cai no SDK do Firestore como antes.
     const fetchPromise = (async (): Promise<Photo[]> => {
       try {
-        const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCgt_eD3M_n9bhuhSzOxpf5f_ck43ZZZ-o';
-        const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
-        const url = 'https://firestore.googleapis.com/v1/projects/' + projectId + '/databases/(default)/documents:runQuery?key=' + apiKey;
+        if (getDataLayout() !== 'site') {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          try {
+            const rawDocs = await queryAlbumPhotoPages(albumId, controller.signal);
+            if (rawDocs) {
+              const photos: Photo[] = [];
+              rawDocs
+                .map(decodeFirestoreDoc)
+                .filter((d) => !d.id.startsWith('_'))
+                .sort((a, b) => ((a.data.pageNumber as number) ?? 0) - ((b.data.pageNumber as number) ?? 0))
+                .forEach((d) => {
+                  if (Array.isArray(d.data.photos)) {
+                    photos.push(...(d.data.photos as Photo[]));
+                  }
+                });
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        try {
-          const res = await fetch(url, {
-            method: 'POST',
-            signal: controller.signal,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              structuredQuery: {
-                from: [{ collectionId: 'album_photos' }],
-                where: {
-                  fieldFilter: {
-                    field: { fieldPath: 'albumId' },
-                    op: 'EQUAL',
-                    value: { stringValue: albumId },
-                  },
-                },
-                orderBy: [{ field: { fieldPath: 'pageNumber' }, direction: 'ASCENDING' }],
-              },
-            }),
-          });
-          clearTimeout(timeoutId);
-          if (res.ok) {
-            const jsonArr: Array<{ document?: { name?: string; fields?: Record<string, unknown> } }> = await res.json();
-            const matchingDocs = jsonArr
-              .filter((r) => r.document)
-              .map((r) => decodeFirestoreDoc(r.document!))
-              .filter((d) => !d.id.startsWith('_'));
-
-            const photos: Photo[] = [];
-            matchingDocs.forEach((d) => {
-              if (Array.isArray(d.data.photos)) {
-                photos.push(...(d.data.photos as Photo[]));
-              }
-            });
-
-            if (photos.length > 0) {
+              // Consulta bem-sucedida: o resultado é definitivo (inclusive álbum realmente vazio),
+              // então não gasta tempo com o SDK lento.
               photoCacheRef.current[albumId] = photos;
-              setAlbums((prev) =>
-                prev.map((a) => (a.id === albumId ? { ...a, photos } : a))
-              );
+              if (photos.length > 0) {
+                setAlbums((prev) =>
+                  prev.map((a) => (a.id === albumId ? { ...a, photos } : a))
+                );
+              }
               return photos;
             }
+          } catch {
+            // prossegue para o fallback do SDK se o REST falhar
+          } finally {
+            clearTimeout(timeoutId);
           }
-        } catch {
-          // prossegue para o fallback do SDK se REST runQuery falhar
-        } finally {
-          clearTimeout(timeoutId);
         }
 
         // Fallback SDK getDocs
@@ -409,32 +392,30 @@ export function AlbumCarousel() {
     return fetchPromise;
   }, []);
 
-  // ─── Pré-aquece a primeira foto do álbum ativo quando ele fica centralizado ──
-  // Dispara quando o activeIndex muda (swipe entre cards) ou quando os álbuns carregam.
-  // Como as fotos legadas já têm URL pronta (src/srcWebP), o preload é imediato.
-  // Isso garante que a foto 0 já está no cache do browser quando o modal abre.
+  // ─── Pré-carrega a primeira foto do álbum que está centralizado ────────────
+  // Usa `new Image()` (funciona em TODOS os navegadores, inclusive Safari/iPhone) e a MESMA
+  // função getPhotoUrl do modal, então a imagem baixada aqui é exatamente a que o modal vai
+  // exibir. Substitui o antigo <link rel="prefetch">, que o Safari do iPhone ignora.
+  const warmedUrlsRef = useRef<Set<string>>(new Set());
+  const warmedImagesRef = useRef<HTMLImageElement[]>([]);
   useEffect(() => {
     if (albums.length === 0) return;
     const album = albums[activeIndex];
     if (!album) return;
 
-    // Obtém a URL da primeira foto do álbum (se já estiver carregada)
     const photos = album.photos ?? photoCacheRef.current[album.id];
     if (!photos || photos.length === 0) return;
 
-    const firstPhoto = photos[0];
-    const url = firstPhoto.src || (firstPhoto as unknown as Record<string, string>).srcWebP || firstPhoto.url || '';
-    if (!url || url.length < 10) return;
+    const url = getPhotoUrl(photos[0]);
+    if (!url || url.length < 10 || warmedUrlsRef.current.has(url)) return;
+    warmedUrlsRef.current.add(url);
 
-    // Preload silencioso via <link rel="prefetch"> — não bloqueia a thread e funciona no iOS
-    const link = document.createElement('link');
-    link.rel = 'prefetch';
-    link.href = url;
-    link.as = 'image';
-    document.head.appendChild(link);
-    return () => {
-      if (document.head.contains(link)) document.head.removeChild(link);
-    };
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+    // Mantém referência para o navegador não descartar o download em andamento
+    warmedImagesRef.current.push(img);
+    if (warmedImagesRef.current.length > 8) warmedImagesRef.current.shift();
   }, [activeIndex, albums]);
 
   // ─── Pointer events (swipe) & Clique ─────────────────────────────────────

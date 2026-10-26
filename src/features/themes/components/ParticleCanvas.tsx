@@ -17,7 +17,7 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
 
     // Optimization: Pause animation when tab is not visible
     const handleVisibilityChange = () => {
-      isPaused = document.hidden;
+      isPaused = document.hidden || document.documentElement.hasAttribute('data-overlay-open');
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 

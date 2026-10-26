@@ -4,7 +4,7 @@ import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { cn } from '../../shared/utils/cn';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
 import { imagePreloader } from './ImagePreloader';
-import { cloudinaryUrl } from '../../services/cloudinary/upload';
+import { getPhotoUrl } from './photoUrl';
 import { useOverlayHistory } from '../../shared/hooks/useOverlayHistory';
 
 interface Photo {
@@ -47,18 +47,7 @@ function isMobileDevice(): boolean {
   return window.innerWidth <= 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 }
 
-function getPhotoUrl(photo: Photo, _isMobile = isMobileDevice()): string {
-  // Prioriza publicId limpo → URL Cloudinary otimizada
-  // Força f_webp (não f_auto) para evitar que o Cloudinary gere AVIF sob demanda,
-  // que é muito mais lento na primeira requisição e causa tela preta prolongada no iPhone.
-  // WebP é suportado por todos os browsers modernos e é gerado 3-5x mais rápido que AVIF.
-  if (photo.publicId && !photo.publicId.startsWith('http')) {
-    return cloudinaryUrl(photo.publicId, { w: 1200, f: 'webp' });
-  }
-  // Fotos legadas do site antigo: usa srcWebP se disponível, senão src (800px)
-  // Preferência para versão menor para poupar memória no WebKit/Safari
-  return (photo as unknown as Record<string, string>).srcWebP || photo.src || photo.srcLarge || photo.url || (photo.publicId ?? '') || '';
-}
+// getPhotoUrl agora vive em ./photoUrl (fonte única da URL da foto, compartilhada com o carrossel)
 
 // ─── Foto com Pinch to Zoom, Pan e Placeholder de Carregamento ───────────────
 // placeholderSrc: URL da capa pequena (300px) já em memória do carrossel.
@@ -67,6 +56,7 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -93,6 +83,7 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
     setPan({ x: 0, y: 0 });
     pointers.current.clear();
     initialGesto.current = null;
+    setFailed(false);
 
     const img = imgRef.current;
     if (img && img.complete && img.naturalWidth > 0) {
@@ -242,7 +233,7 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
       {/* Placeholder borrado (capa 300px já em cache no carrossel) — aparece instantaneamente
           e desaparece com fade quando a foto full termina de carregar.
           Elimina a tela preta "a frio" no iPhone sem nenhum custo de rede adicional. */}
-      {!loaded && placeholderSrc && (
+      {!loaded && !failed && placeholderSrc && (
         <img
           src={placeholderSrc}
           alt=""
@@ -253,9 +244,16 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
         />
       )}
       {/* Spinner discreto por cima do placeholder enquanto foto full carrega */}
-      {!loaded && (
+      {!loaded && !failed && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
           <div className="w-8 h-8 rounded-full border-2 border-white/30 border-t-white/80 animate-spin" />
+        </div>
+      )}
+      {/* Foto que não existe mais (404) ou falhou ao baixar: mostra aviso em vez de tela preta */}
+      {failed && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center pointer-events-none z-10">
+          <p className="text-white/80 text-base font-medium">Foto indisponível</p>
+          <p className="text-white/40 text-xs">Toque na lateral para ir para a próxima.</p>
         </div>
       )}
       {/* Imagem com troca direta e instantânea, sem piscar e sem animação */}
@@ -265,14 +263,14 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
         alt={alt}
         draggable={false}
         decoding="async"
-        onLoad={() => setLoaded(true)}
-        onError={() => setLoaded(true)}
+        onLoad={() => { setFailed(false); setLoaded(true); }}
+        onError={() => { setFailed(true); setLoaded(true); }}
         className="max-w-full max-h-full object-contain pointer-events-none"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
           willChange: isZoomedOrPanning ? 'transform' : undefined,
           WebkitBackfaceVisibility: 'hidden',
-          opacity: loaded ? 1 : 0,
+          opacity: loaded && !failed ? 1 : 0,
           transition: loaded ? 'opacity 0.2s ease' : 'none',
         }}
       />
@@ -408,6 +406,10 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
   const [loadingAlbums, setLoadingAlbums] = useState<Set<string>>(new Set());
   // Ref espelho de loadingAlbums — permite verificar sem criar dependência no useEffect
   const loadingAlbumsRef = useRef<Set<string>>(new Set());
+  // Álbuns cuja busca já terminou (mesmo que voltem vazios). Evita refazer a busca em loop
+  // quando um álbum realmente não tem fotos.
+  const attemptedAlbumsRef = useRef<Set<string>>(new Set());
+  const [attemptedAlbums, setAttemptedAlbums] = useState<Set<string>>(new Set());
 
   useOverlayHistory({
     id: 'album-viewer-modal',
@@ -440,6 +442,7 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
     // Marca como loading na ref ANTES de setar o state, para evitar
     // que o useEffect de lazy-load re-dispare antes do state propagar.
     loadingAlbumsRef.current = new Set(loadingAlbumsRef.current).add(albumId);
+    attemptedAlbumsRef.current.add(albumId);
     setLoadingAlbums(new Set(loadingAlbumsRef.current));
     try {
       const photos = await onLoadPhotos(albumId);
@@ -451,6 +454,7 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
       next.delete(albumId);
       loadingAlbumsRef.current = next;
       setLoadingAlbums(new Set(next));
+      setAttemptedAlbums(new Set(attemptedAlbumsRef.current));
     }
   }, [onLoadPhotos]);
 
@@ -520,9 +524,15 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
   // ── Bloquear scroll do fundo e limpar preloader no desmonte ───────────────
   useEffect(() => {
     const unlock = lockBodyScroll();
+    // Pausa os canvas de fundo (neve/partículas) enquanto o visualizador está aberto:
+    // no iPhone eles competem por GPU/memória com as fotos e causam tela preta/travamento.
+    document.documentElement.setAttribute('data-overlay-open', 'album');
+    document.dispatchEvent(new Event('visibilitychange'));
     return () => {
       unlock();
       imagePreloader.clear();
+      document.documentElement.removeAttribute('data-overlay-open');
+      document.dispatchEvent(new Event('visibilitychange'));
     };
   }, []);
 
@@ -541,9 +551,13 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
     const curAIdx = ((virtualIndex % albums.length) + albums.length) % albums.length;
     const curAlbum = albums[curAIdx];
 
+    const isBusy = (id: string) => loadingAlbumsRef.current.has(id);
+    const wasTried = (id: string) => attemptedAlbumsRef.current.has(id);
+
     // 1. Prioridade máxima: carrega APENAS o álbum atual se ainda estiver sem fotos
-    if (curAlbum && curAlbum.photos.length === 0) {
-      if (!loadingAlbumsRef.current.has(curAlbum.id)) {
+    //    (e ainda não tentamos — álbum vazio não deve ser buscado de novo em loop).
+    if (curAlbum && curAlbum.photos.length === 0 && (isBusy(curAlbum.id) || !wasTried(curAlbum.id))) {
+      if (!isBusy(curAlbum.id)) {
         loadPhotosForAlbum(curAlbum.id);
       }
       return;
@@ -553,13 +567,13 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
     if (albums.length > 1) {
       const nextAIdx = (((virtualIndex + 1) % albums.length) + albums.length) % albums.length;
       const nextAlbum = albums[nextAIdx];
-      if (nextAlbum && nextAlbum.photos.length === 0 && !loadingAlbumsRef.current.has(nextAlbum.id)) {
+      if (nextAlbum && nextAlbum.photos.length === 0 && !isBusy(nextAlbum.id) && !wasTried(nextAlbum.id)) {
         loadPhotosForAlbum(nextAlbum.id);
       } else if (!isMobile) {
         // No desktop, também antecipa o anterior
         const prevAIdx = (((virtualIndex - 1) % albums.length) + albums.length) % albums.length;
         const prevAlbum = albums[prevAIdx];
-        if (prevAlbum && prevAlbum.photos.length === 0 && !loadingAlbumsRef.current.has(prevAlbum.id)) {
+        if (prevAlbum && prevAlbum.photos.length === 0 && !isBusy(prevAlbum.id) && !wasTried(prevAlbum.id)) {
           loadPhotosForAlbum(prevAlbum.id);
         }
       }
@@ -587,7 +601,7 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
 
     if (isMobile) {
       // No iPhone/Mobile: carrega a foto ATUAL (index 0 ao abrir) e a PRÓXIMA.
-      // Adicionar foto 0 garante que ela esteja em cache no ServiceWorker ao abrir o álbum.
+      // Garante que a foto inicial do álbum já esteja sendo baixada (cache do navegador).
       if (curP === 0) {
         addUrl(curA, 0); // foto inicial — prioridade máxima no pré-carregamento
       }
@@ -914,7 +928,7 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
                     coverUrl={item.album?.coverUrl}
                     isLoading={
                       loadingAlbums.has(item.album?.id ?? '') ||
-                      (isCurrent && (!item.album || item.album.photos.length === 0))
+                      (isCurrent && !!item.album && item.album.photos.length === 0 && !attemptedAlbums.has(item.album.id))
                     }
                   />
                 ) : null}
