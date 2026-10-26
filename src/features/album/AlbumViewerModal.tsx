@@ -230,17 +230,15 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
       onPointerCancel={onPointerUp}
       onPointerLeave={onPointerUp}
     >
-      {/* Placeholder borrado (capa 300px já em cache no carrossel) — aparece instantaneamente
-          e desaparece com fade quando a foto full termina de carregar.
-          Elimina a tela preta "a frio" no iPhone sem nenhum custo de rede adicional. */}
+      {/* Placeholder leve da capa (300px já em cache no carrossel) — aparece instantaneamente
+          sem consumir memória de GPU no iPhone (evita o crash/hang de filter:blur no WebKit). */}
       {!loaded && !failed && placeholderSrc && (
         <img
           src={placeholderSrc}
           alt=""
           aria-hidden="true"
           draggable={false}
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ filter: 'blur(12px)', transform: 'scale(1.08)', WebkitBackfaceVisibility: 'hidden' }}
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-40"
         />
       )}
       {/* Spinner discreto por cima do placeholder enquanto foto full carrega */}
@@ -265,12 +263,14 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
         decoding="async"
         onLoad={() => { setFailed(false); setLoaded(true); }}
         onError={() => { setFailed(true); setLoaded(true); }}
-        className="max-w-full max-h-full object-contain pointer-events-none"
+        className="max-w-full max-h-full object-contain pointer-events-none relative z-20"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
           willChange: isZoomedOrPanning ? 'transform' : undefined,
           WebkitBackfaceVisibility: 'hidden',
-          opacity: loaded && !failed ? 1 : 0,
+          // Se não há placeholder (foto 1, 2, ...), a foto começa com opacity: 1 para pintar direto.
+          // Se há placeholder (foto 0), transiciona suavemente da capa para a foto full.
+          opacity: failed ? 0 : (!placeholderSrc || loaded ? 1 : 0),
           transition: loaded ? 'opacity 0.2s ease' : 'none',
         }}
       />
@@ -527,12 +527,12 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
     // Pausa os canvas de fundo (neve/partículas) enquanto o visualizador está aberto:
     // no iPhone eles competem por GPU/memória com as fotos e causam tela preta/travamento.
     document.documentElement.setAttribute('data-overlay-open', 'album');
-    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new CustomEvent('app:overlay-change'));
     return () => {
       unlock();
       imagePreloader.clear();
       document.documentElement.removeAttribute('data-overlay-open');
-      document.dispatchEvent(new Event('visibilitychange'));
+      window.dispatchEvent(new CustomEvent('app:overlay-change'));
     };
   }, []);
 

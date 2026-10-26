@@ -21,7 +21,7 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
     // e causa tela preta/travamento. Para garantir que a pausa seja IMEDIATA (sem esperar
     // o próximo frame do requestAnimationFrame), cancelamos o animId existente e só
     // retomamos quando o overlay fechar.
-    const handleVisibilityChange = () => {
+    const handlePause = () => {
       const shouldPause = document.hidden || document.documentElement.hasAttribute('data-overlay-open');
       if (shouldPause && !isPaused) {
         isPaused = true;
@@ -35,7 +35,8 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
         resumeLoop?.();
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handlePause);
+    window.addEventListener('app:overlay-change', handlePause);
 
     if (theme === 'snow') {
       const snowFlakes: {
@@ -172,7 +173,8 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
         window.removeEventListener('resize', resize);
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('touchmove', onTouchMove);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        document.removeEventListener('visibilitychange', handlePause);
+        window.removeEventListener('app:overlay-change', handlePause);
         cancelAnimationFrame(animId);
       };
     }
@@ -240,7 +242,8 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
       return () => {
         resumeLoop = null;
         window.removeEventListener('resize', resize);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        document.removeEventListener('visibilitychange', handlePause);
+        window.removeEventListener('app:overlay-change', handlePause);
         cancelAnimationFrame(animId);
       };
     }
@@ -307,7 +310,8 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
       return () => {
         resumeLoop = null;
         window.removeEventListener('resize', resize);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        document.removeEventListener('visibilitychange', handlePause);
+        window.removeEventListener('app:overlay-change', handlePause);
         cancelAnimationFrame(animId);
       };
     }
@@ -377,7 +381,8 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
     return () => {
       resumeLoop = null;
       window.removeEventListener('resize', resize);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handlePause);
+      window.removeEventListener('app:overlay-change', handlePause);
       cancelAnimationFrame(animId);
     };
   }, [theme]);
