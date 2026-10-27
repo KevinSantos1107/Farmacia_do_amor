@@ -174,8 +174,8 @@ export function RetroShell() {
       animate(y, 0, { type: 'spring', stiffness: 300, damping: 30 });
     }
 
-    // Slide 0 (Intro) não navega por clique — só pelo botão "Começar"
-    if (currentSlide === 0) return;
+    // Slide 0 (Intro) e último slide (Outro/Carta) não navegam por clique na tela
+    if (currentSlide === 0 || currentSlide === TOTAL_SLIDES - 1) return;
 
     // Tap simples (sem arrastar): navegar por metade da tela
     if (!moved) {
