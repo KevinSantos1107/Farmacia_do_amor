@@ -113,6 +113,9 @@ export function RetroShell() {
 
   // ── Navegação por Pointer Events (igual ao álbum) ─────────────────────────
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    // No slide final da carta, desativa completamente qualquer captura de gesto ou navegação por toque
+    if (currentSlide === TOTAL_SLIDES - 1) return;
+
     if (gesture.current.pointerId !== null) return;
 
     // Se o clique foi em um elemento interativo (botão, input, link…),
@@ -136,7 +139,7 @@ export function RetroShell() {
     } catch {
       // Ignora erro se WebKit recusar pointer capture
     }
-  }, []);
+  }, [currentSlide, TOTAL_SLIDES]);
 
   const y = useMotionValue(0);
   const scale = useTransform(y, [-300, 0, 300], [0.85, 1, 0.85]);

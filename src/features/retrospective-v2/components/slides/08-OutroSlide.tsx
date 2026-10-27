@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, X } from 'lucide-react';
 import { useRetroV2Store } from '../../store/useRetroV2Store';
@@ -249,7 +250,7 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
             e.stopPropagation();
             setIsOpen(true);
           }}
-          className="mt-8 flex flex-col items-center gap-1.5 cursor-pointer group"
+          className="mt-8 flex flex-col items-center gap-2 cursor-pointer group"
         >
           {/* Linha com UMA CARTA PARA VOCÊ */}
           <div className="flex items-center gap-3">
@@ -260,109 +261,108 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
             <span className="w-8 sm:w-12 h-[1px] bg-pink-300/30" />
           </div>
 
-          <span className="text-xs sm:text-sm text-pink-300/60 font-serif italic group-hover:text-pink-200 transition-colors">
-            Clique para abrir
-          </span>
-
-          <Heart className="w-3.5 h-3.5 text-pink-400/50 mt-0.5 group-hover:text-pink-300 transition-colors" />
+          <Heart className="w-3.5 h-3.5 text-pink-400/50 group-hover:text-pink-300 transition-colors" />
         </div>
       </div>
 
-      {/* CARTA ABERTA: RENDERIZADA EM FOLHA DE PAPEL REALISTA COM TEXTURA, LINHAS E CALIGRAFIA */}
-      <AnimatePresence>
-        {isOpen && (
-          <div
-            data-interactive="true"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(false);
-            }}
-            className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
-          >
-            <motion.div
-              initial={{ scale: 0.6, opacity: 0, y: 50, rotateX: 25 }}
-              animate={{ scale: 1, opacity: 1, y: 0, rotateX: 0 }}
-              exit={{ scale: 0.6, opacity: 0, y: 50, rotateX: 25 }}
-              transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-              onClick={(e) => e.stopPropagation()}
+      {/* CARTA ABERTA: PORTAL NO BODY PARA GARANTIR TOPO ABSOLUTO E CLICKS IMEDIATOS */}
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <div
               data-interactive="true"
-              className="relative w-full max-w-lg max-h-[85vh] rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.9),0_0_50px_rgba(244,63,94,0.2)] flex flex-col overflow-hidden"
-              style={{
-                backgroundColor: '#fbf7ee',
-                backgroundImage: `
-                  radial-gradient(#d6c7af 0.75px, transparent 0.75px),
-                  linear-gradient(180deg, rgba(230,215,190,0.3) 0%, rgba(255,255,255,0.8) 10%, rgba(250,242,228,0.9) 100%)
-                `,
-                backgroundSize: '16px 16px, 100% 100%',
-                border: '1px solid #d4c2a3',
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
               }}
+              className="fixed inset-0 z-[9999999] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
             >
-              {/* Detalhe vintage no topo do papel */}
-              <div className="h-2 w-full bg-gradient-to-r from-amber-700/30 via-rose-700/30 to-amber-700/30" />
-
-              {/* Botão de Fechar */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsOpen(false);
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0, y: 50, rotateX: 25 }}
+                animate={{ scale: 1, opacity: 1, y: 0, rotateX: 0 }}
+                exit={{ scale: 0.6, opacity: 0, y: 50, rotateX: 25 }}
+                transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+                onClick={(e) => e.stopPropagation()}
+                data-interactive="true"
+                className="relative w-full max-w-lg max-h-[85vh] rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.9),0_0_50px_rgba(244,63,94,0.2)] flex flex-col overflow-hidden"
+                style={{
+                  backgroundColor: '#fbf7ee',
+                  backgroundImage: `
+                    radial-gradient(#d6c7af 0.75px, transparent 0.75px),
+                    linear-gradient(180deg, rgba(230,215,190,0.3) 0%, rgba(255,255,255,0.8) 10%, rgba(250,242,228,0.9) 100%)
+                  `,
+                  backgroundSize: '16px 16px, 100% 100%',
+                  border: '1px solid #d4c2a3',
                 }}
-                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-amber-900/10 hover:bg-amber-900/20 text-amber-900/70 hover:text-amber-900 flex items-center justify-center transition-all cursor-pointer z-30"
-                aria-label="Fechar carta"
               >
-                <X className="w-5 h-5" />
-              </button>
+                {/* Detalhe vintage no topo do papel */}
+                <div className="h-2 w-full bg-gradient-to-r from-amber-700/30 via-rose-700/30 to-amber-700/30" />
 
-              {/* Cabeçalho da Carta Escrita à Mão */}
-              <div className="px-6 sm:px-8 pt-6 pb-3 flex items-center justify-between border-b border-amber-900/15">
-                <div className="flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-rose-700 fill-rose-700/30" />
-                  <span
-                    className="text-rose-900 font-bold text-2xl tracking-wide"
-                    style={{ fontFamily: "'Dancing Script', cursive" }}
-                  >
-                    Meu Amor...
+                {/* Botão de Fechar */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(false);
+                  }}
+                  className="absolute top-4 right-4 w-9 h-9 rounded-full bg-amber-900/10 hover:bg-amber-900/20 text-amber-900/70 hover:text-amber-900 flex items-center justify-center transition-all cursor-pointer z-30"
+                  aria-label="Fechar carta"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {/* Cabeçalho da Carta Escrita à Mão */}
+                <div className="px-6 sm:px-8 pt-6 pb-3 flex items-center justify-between border-b border-amber-900/15">
+                  <div className="flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-rose-700 fill-rose-700/30" />
+                    <span
+                      className="text-rose-900 font-bold text-2xl tracking-wide"
+                      style={{ fontFamily: "'Dancing Script', cursive" }}
+                    >
+                      Meu Amor...
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-amber-900/50 uppercase tracking-widest font-serif mr-8">
+                    Nossa História
                   </span>
                 </div>
-                <span className="text-[11px] text-amber-900/50 uppercase tracking-widest font-serif mr-8">
-                  Nossa História
-                </span>
-              </div>
 
-              {/* Conteúdo com Pautas Sutis de Caderno/Carta e Tipografia Caligráfica Escrita na Hora */}
-              <div
-                className="flex-1 overflow-y-auto px-6 sm:px-8 py-5 custom-retro-scrollbar space-y-4"
-                style={{
-                  backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, rgba(180, 150, 110, 0.15) 31px, rgba(180, 150, 110, 0.15) 32px)',
-                  lineHeight: '32px',
-                }}
-              >
-                <div className="text-[#2b170c] text-lg sm:text-xl font-normal leading-[32px] whitespace-pre-wrap selection:bg-rose-200"
+                {/* Conteúdo com Pautas Sutis de Caderno/Carta e Tipografia Caligráfica Escrita na Hora */}
+                <div
+                  className="flex-1 overflow-y-auto px-6 sm:px-8 py-5 custom-retro-scrollbar space-y-4"
                   style={{
-                    fontFamily: "'Playfair Display', Georgia, serif",
-                    fontStyle: 'italic',
+                    backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, rgba(180, 150, 110, 0.15) 31px, rgba(180, 150, 110, 0.15) 32px)',
+                    lineHeight: '32px',
                   }}
                 >
-                  {displayedText}
-                  {!isTypingDone && (
-                    <motion.span
-                      animate={{ opacity: [1, 0] }}
-                      transition={{ repeat: Infinity, duration: 0.6 }}
-                      className="inline-block w-1.5 h-5 ml-1 bg-rose-700 align-middle"
-                    />
-                  )}
+                  <div className="text-[#2b170c] text-lg sm:text-xl font-normal leading-[32px] whitespace-pre-wrap selection:bg-rose-200"
+                    style={{
+                      fontFamily: "'Playfair Display', Georgia, serif",
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {displayedText}
+                    {!isTypingDone && (
+                      <motion.span
+                        animate={{ opacity: [1, 0] }}
+                        transition={{ repeat: Infinity, duration: 0.6 }}
+                        className="inline-block w-1.5 h-5 ml-1 bg-rose-700 align-middle"
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Assinatura / Rodapé da Carta */}
-              <div className="px-6 sm:px-8 py-3.5 bg-[#f4ece0] border-t border-amber-900/15 flex items-center justify-between text-xs text-amber-950/70 font-serif">
-                <span className="italic">Para sempre seu, para sempre nós</span>
-                <span className="text-rose-700 font-serif font-bold text-base">♥</span>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                {/* Assinatura / Rodapé da Carta */}
+                <div className="px-6 sm:px-8 py-3.5 bg-[#f4ece0] border-t border-amber-900/15 flex items-center justify-between text-xs text-amber-950/70 font-serif">
+                  <span className="italic">Para sempre seu, para sempre nós</span>
+                  <span className="text-rose-700 font-serif font-bold text-base">♥</span>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
