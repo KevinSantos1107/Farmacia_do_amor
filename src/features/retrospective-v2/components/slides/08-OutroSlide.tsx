@@ -28,9 +28,9 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
     setDisplayedText('');
     setIsTypingDone(false);
 
-    // Digita suavemente revelando as palavras
+    // Digita suavemente e com dinamismo revelando as palavras
     const timer = setInterval(() => {
-      i += 2;
+      i += 3;
       if (i >= message.length) {
         setDisplayedText(message);
         setIsTypingDone(true);
@@ -38,7 +38,7 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
       } else {
         setDisplayedText(message.slice(0, i));
       }
-    }, 28);
+    }, 18);
 
     return () => clearInterval(timer);
   }, [isOpen, message]);
@@ -59,7 +59,6 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
       style={{
         background: 'radial-gradient(ellipse at center, #26072b 0%, #110314 60%, #07010a 100%)',
       }}
-      data-interactive="true"
     >
       {/* Luz ambiente central suave no fundo */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50">

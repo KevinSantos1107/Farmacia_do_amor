@@ -113,13 +113,10 @@ export function RetroShell() {
 
   // ── Navegação por Pointer Events (igual ao álbum) ─────────────────────────
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    // No slide final da carta, desativa completamente qualquer captura de gesto ou navegação por toque
-    if (currentSlide === TOTAL_SLIDES - 1) return;
-
     if (gesture.current.pointerId !== null) return;
 
-    // Se o clique foi em um elemento interativo (botão, input, link…),
-    // NÃO captamos o pointer — deixamos o evento chegar normalmente ao elemento.
+    // Se o clique foi em um elemento interativo (botão, input, link, carta…),
+    // NÃO captamos o pointer — deixamos o evento de clique/toque chegar normalmente ao elemento.
     const target = e.target as HTMLElement;
     const isInteractiveElement = !!target.closest(
       'button, input, select, textarea, a, [role="button"], [data-interactive]'
@@ -139,7 +136,7 @@ export function RetroShell() {
     } catch {
       // Ignora erro se WebKit recusar pointer capture
     }
-  }, [currentSlide, TOTAL_SLIDES]);
+  }, []);
 
   const y = useMotionValue(0);
   const scale = useTransform(y, [-300, 0, 300], [0.85, 1, 0.85]);
@@ -177,22 +174,28 @@ export function RetroShell() {
       animate(y, 0, { type: 'spring', stiffness: 300, damping: 30 });
     }
 
-    // Slide 0 (Intro) e último slide (Outro/Carta) não navegam por clique na tela
-    if (currentSlide === 0 || currentSlide === TOTAL_SLIDES - 1) return;
+    // Slide 0 (Intro) não navega por clique — só pelo botão "Começar"
+    if (currentSlide === 0) return;
 
-    // Tap simples (sem arrastar): navegar por metade da tela
+    // Tap simples (sem arrastar): navegar por metade da tela (lado esquerdo volta, lado direito avança se não for o último slide)
     if (!moved) {
       const isRightSide = e.clientX > window.innerWidth / 2;
-      if (isRightSide) nextSlide();
-      else prevSlide();
+      if (isRightSide) {
+        if (currentSlide < TOTAL_SLIDES - 1) nextSlide();
+      } else {
+        prevSlide();
+      }
       return;
     }
 
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-      if (dx < 0) nextSlide();
-      else prevSlide();
+      if (dx < 0) {
+        if (currentSlide < TOTAL_SLIDES - 1) nextSlide();
+      } else {
+        prevSlide();
+      }
     }
-  }, [currentSlide, nextSlide, prevSlide, closeRetro, y]);
+  }, [currentSlide, nextSlide, prevSlide, closeRetro, y, TOTAL_SLIDES]);
 
   const onPointerCancel = useCallback(() => {
     gesture.current.pointerId = null;
