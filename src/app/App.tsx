@@ -13,6 +13,17 @@ export default function App() {
     loadConfig(siteId);
   }, [loadConfig]);
 
+  // Previne ativação acidental do modo Caret Browsing (Navegação com cursor de texto) via tecla F7
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F7') {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Inject dynamic <title> and <meta description> from siteConfig once loaded
   useEffect(() => {
     if (!config) return;

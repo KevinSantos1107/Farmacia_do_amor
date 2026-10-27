@@ -47,9 +47,32 @@ body {
   scrollbar-width: none;
   -ms-overflow-style: none;
   overscroll-behavior-y: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 body::-webkit-scrollbar {
   display: none;
+}
+
+/* Previne o aparecimento de barra piscante de cursor de texto (caret) em textos estáticos do app */
+* {
+  caret-color: transparent;
+}
+
+/* Mantém o cursor piscante e a digitação normais em inputs e áreas de texto */
+input,
+textarea,
+[contenteditable="true"],
+[contenteditable=""] {
+  caret-color: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Classes utilitárias para permitir seleção de texto onde for desejado */
+.select-text {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* Otimizações Globais para iOS / Safari / WebKit */
