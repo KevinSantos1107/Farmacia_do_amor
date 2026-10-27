@@ -43,6 +43,18 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
     return () => clearInterval(timer);
   }, [isOpen, message]);
 
+  // Permite fechar a carta suavemente com a tecla Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   // Partículas delicadas flutuando suavemente pelo espaço escuro
   const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
     size: (i % 3) + 3,
@@ -268,23 +280,38 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
       {createPortal(
         <AnimatePresence>
           {isOpen && (
-            <div
+            <motion.div
+              key="retro-letter-backdrop"
               data-interactive="true"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
               onClick={(e) => {
                 e.stopPropagation();
                 setIsOpen(false);
               }}
-              className="fixed inset-0 z-[9999999] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+              className="fixed inset-0 z-[9999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+              style={{ perspective: 1200 }}
             >
               <motion.div
-                initial={{ scale: 0.6, opacity: 0, y: 50, rotateX: 25 }}
+                key="retro-letter-card"
+                initial={{ scale: 0.15, opacity: 0, y: 30, rotateX: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0, rotateX: 0 }}
-                exit={{ scale: 0.6, opacity: 0, y: 50, rotateX: 25 }}
-                transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-                onClick={(e) => e.stopPropagation()}
-                data-interactive="true"
-                className="relative w-full max-w-lg max-h-[85vh] rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.9),0_0_50px_rgba(244,63,94,0.2)] flex flex-col overflow-hidden"
+                exit={{
+                  scale: 0,
+                  rotateX: 42,
+                  rotateZ: -4,
+                  borderRadius: ['16px', '32px', '50%'],
+                  opacity: [1, 1, 0.85, 0],
+                  transition: {
+                    duration: 0.45,
+                    ease: [0.32, 0, 0.24, 1],
+                  },
+                }}
+                transition={{ type: 'spring', damping: 25, stiffness: 260 }}
                 style={{
+                  transformOrigin: 'center center',
                   backgroundColor: '#fbf7ee',
                   backgroundImage: `
                     radial-gradient(#d6c7af 0.75px, transparent 0.75px),
@@ -293,7 +320,69 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
                   backgroundSize: '16px 16px, 100% 100%',
                   border: '1px solid #d4c2a3',
                 }}
+                onClick={(e) => e.stopPropagation()}
+                data-interactive="true"
+                className="relative w-full max-w-lg max-h-[85vh] rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.9),0_0_50px_rgba(244,63,94,0.2)] flex flex-col overflow-hidden"
               >
+                {/* Efeito de Dobras convergindo para o ponto central no momento de fechar a carta */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0 }}
+                  exit={{ opacity: 1 }}
+                  transition={{ duration: 0.14 }}
+                  className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
+                  style={{
+                    backgroundColor: '#fbf7ee',
+                    backgroundImage: `
+                      radial-gradient(#d6c7af 0.75px, transparent 0.75px),
+                      linear-gradient(180deg, rgba(230,215,190,0.5) 0%, rgba(250,242,228,0.95) 100%)
+                    `,
+                    backgroundSize: '16px 16px, 100% 100%',
+                  }}
+                >
+                  {/* Sombreamento realista dos 4 triângulos de dobra origami */}
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      clipPath: 'polygon(0% 0%, 100% 0%, 50% 50%)',
+                      background: 'linear-gradient(180deg, rgba(180, 130, 90, 0.22) 0%, rgba(120, 80, 50, 0.38) 100%)',
+                    }}
+                  />
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      clipPath: 'polygon(0% 100%, 100% 100%, 50% 50%)',
+                      background: 'linear-gradient(0deg, rgba(180, 130, 90, 0.28) 0%, rgba(120, 80, 50, 0.45) 100%)',
+                    }}
+                  />
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      clipPath: 'polygon(0% 0%, 0% 100%, 50% 50%)',
+                      background: 'linear-gradient(90deg, rgba(180, 130, 90, 0.18) 0%, rgba(120, 80, 50, 0.35) 100%)',
+                    }}
+                  />
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      clipPath: 'polygon(100% 0%, 100% 100%, 50% 50%)',
+                      background: 'linear-gradient(-90deg, rgba(180, 130, 90, 0.18) 0%, rgba(120, 80, 50, 0.35) 100%)',
+                    }}
+                  />
+
+                  {/* Linhas diagonais de vinco douradas unindo os cantos ao ponto central */}
+                  <svg
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                  >
+                    <line x1="0" y1="0" x2="50" y2="50" stroke="rgba(146, 64, 14, 0.5)" strokeWidth="0.8" />
+                    <line x1="100" y1="0" x2="50" y2="50" stroke="rgba(146, 64, 14, 0.5)" strokeWidth="0.8" />
+                    <line x1="0" y1="100" x2="50" y2="50" stroke="rgba(146, 64, 14, 0.5)" strokeWidth="0.8" />
+                    <line x1="100" y1="100" x2="50" y2="50" stroke="rgba(146, 64, 14, 0.5)" strokeWidth="0.8" />
+                  </svg>
+                </motion.div>
+
                 {/* Detalhe vintage no topo do papel */}
                 <div className="h-2 w-full bg-gradient-to-r from-amber-700/30 via-rose-700/30 to-amber-700/30" />
 
@@ -357,7 +446,32 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
                   <span className="text-rose-700 font-serif font-bold text-base">♥</span>
                 </div>
               </motion.div>
-            </div>
+
+              {/* Ponto central / Selo com coração brilhante no qual a carta se fecha e se recolhe */}
+              <motion.div
+                key="retro-letter-seal"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 0, opacity: 0 }}
+                exit={{
+                  scale: [0, 1.25, 1, 0],
+                  opacity: [0, 1, 1, 0],
+                }}
+                transition={{
+                  duration: 0.45,
+                  times: [0, 0.3, 0.7, 1],
+                  ease: 'easeInOut',
+                }}
+                className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex items-center justify-center"
+              >
+                {/* Halo de luz dourada e rosada no ponto de encontro */}
+                <div className="absolute w-28 h-28 rounded-full bg-gradient-to-r from-pink-500/60 via-amber-400/50 to-rose-600/60 blur-xl" />
+
+                {/* Selo de cera lacrando a carta */}
+                <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-[#c81e51] via-[#9f1239] to-[#6b0924] shadow-[0_0_35px_rgba(244,63,94,0.9),inset_0_2px_4px_rgba(255,255,255,0.5)] border-2 border-pink-300/70 flex items-center justify-center">
+                  <Heart className="w-8 h-8 text-pink-100 fill-pink-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] animate-pulse" />
+                </div>
+              </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>,
         document.body
