@@ -8,6 +8,7 @@ import { WordInput } from './components/WordInput';
 import { Reveal } from './components/Reveal';
 import { SessionResult } from './components/SessionResult';
 import { getSyncRecord, saveSyncRecordIfBetter } from '../../../services/gameRecords';
+import { calculateTotalScore, getRoundPoints } from './syncLogic';
 
 export function SyncGame({ onClose, registerLeaveGame }: { onClose: () => void; registerLeaveGame?: (fn: (() => void) | null) => void }) {
   const {
@@ -101,8 +102,8 @@ export function SyncGame({ onClose, registerLeaveGame }: { onClose: () => void; 
   useEffect(() => {
     if (!room || room.status !== 'sessionDone' || room.recordSaved) return;
 
-    const total = room.results.reduce((sum, r) => sum + r.rounds, 0);
-    const bestPart = Math.min(...room.results.map((r) => r.rounds));
+    const total = calculateTotalScore(room.results);
+    const bestPart = Math.max(...room.results.map((r) => getRoundPoints(r.rounds)));
 
     let maxStreak = 0;
     let currentStreak = 0;
@@ -119,7 +120,7 @@ export function SyncGame({ onClose, registerLeaveGame }: { onClose: () => void; 
       if (shouldSave) {
         saveSyncRecordIfBetter(total, bestPart, maxStreak).then(() => {
           setPreviousBest((prev) =>
-            prev === null ? total : Math.min(prev, total),
+            prev === null ? total : Math.max(prev, total),
           );
         });
       }

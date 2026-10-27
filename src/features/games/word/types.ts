@@ -19,6 +19,7 @@ export interface LetterCell {
 export interface GameStats {
   gamesPlayed: number;
   wins: number;
+  losses?: number;
   currentStreak: number;
   bestStreak: number;
   winsByAttempt: number[]; // índice 0 = 1ª tentativa, 5 = 6ª tentativa

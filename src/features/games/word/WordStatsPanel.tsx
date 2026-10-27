@@ -36,7 +36,9 @@ export function WordStatsPanel({ isOpen, onClose, stats }: WordStatsPanelProps) 
   if (!isOpen) return null;
 
   const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
-  const maxAttemptCount = Math.max(...(stats.winsByAttempt || [0, 0, 0, 0, 0, 0]), 1);
+  const failureCount = stats.losses ?? Math.max(0, stats.gamesPlayed - stats.wins);
+  const maxAttemptCount = Math.max(...(stats.winsByAttempt || [0, 0, 0, 0, 0, 0]), failureCount, 1);
+  const failureWidthPercent = Math.max(8, Math.round((failureCount / maxAttemptCount) * 100));
 
   return createPortal(
     <AnimatePresence>
@@ -116,7 +118,7 @@ export function WordStatsPanel({ isOpen, onClose, stats }: WordStatsPanelProps) 
           {/* Distribuição de Vitórias por Tentativa */}
           <div className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 sm:p-5 mb-6">
             <h4 className="text-white/80 font-bold mb-3.5 text-xs sm:text-sm uppercase tracking-wider text-center sm:text-left">
-              Distribuição de Vitórias por Tentativa
+              Distribuição por Tentativas e Falhas
             </h4>
             <div className="flex flex-col gap-2 w-full">
               {(stats.winsByAttempt || [0, 0, 0, 0, 0, 0]).map((count, i) => {
@@ -140,6 +142,24 @@ export function WordStatsPanel({ isOpen, onClose, stats }: WordStatsPanelProps) 
                   </div>
                 );
               })}
+
+              {/* Linha de Falhas (Derrotas / Esgotou tentativas) */}
+              <div className="flex items-center gap-2.5 sm:gap-3 text-xs sm:text-sm text-white/70 font-bold mt-1 pt-2 border-t border-white/10">
+                <span className="w-4 text-right text-red-400 font-extrabold shrink-0" title="Falhas / Derrotas">✗</span>
+                <div className="flex-1 h-6 sm:h-7 bg-white/5 border border-red-500/20 rounded-lg overflow-hidden p-0.5">
+                  <div
+                    className="h-full rounded-md flex items-center justify-end px-2.5 text-white text-xs font-black transition-all duration-500 shadow-sm"
+                    style={{
+                      width: `${failureWidthPercent}%`,
+                      background: failureCount > 0
+                        ? 'linear-gradient(90deg, #ef4444 0%, #f87171 100%)'
+                        : 'rgba(255,255,255,0.08)',
+                    }}
+                  >
+                    {failureCount}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

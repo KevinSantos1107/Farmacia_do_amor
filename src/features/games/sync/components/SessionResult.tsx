@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Trophy, Star, Sparkles, Repeat, X } from 'lucide-react';
 import { WaitingFor } from './WaitingFor';
 import type { SyncRoomResult } from '../useSyncRoom';
+import { calculateTotalScore, getRoundPoints } from '../syncLogic';
 
 interface SessionResultProps {
   results: SyncRoomResult[];
@@ -20,8 +21,8 @@ export function SessionResult({
   onClose,
   isReady = false,
 }: SessionResultProps) {
-  const total = results.reduce((sum, r) => sum + r.rounds, 0);
-  const isNewRecord = previousBest === null || total < previousBest;
+  const total = calculateTotalScore(results);
+  const isNewRecord = previousBest === null || total > previousBest;
 
   return (
     <motion.div
@@ -122,16 +123,19 @@ export function SessionResult({
               {/* Score Badge */}
               <div className="shrink-0 flex flex-col items-end">
                 <div
-                  className="flex items-center justify-center w-12 h-12 rounded-xl text-lg font-bold shadow-inner"
+                  className="flex items-center justify-center px-3 py-1.5 rounded-xl text-sm font-bold shadow-inner"
                   style={{
                     color: r.rounds <= 2 ? '#4ade80' : r.rounds <= 4 ? '#fbbf24' : '#f87171',
                     background: r.rounds <= 2 ? 'rgba(74,222,128,0.15)' : r.rounds <= 4 ? 'rgba(251,191,36,0.15)' : 'rgba(248,113,113,0.15)',
                     border: `1px solid ${r.rounds <= 2 ? 'rgba(74,222,128,0.3)' : r.rounds <= 4 ? 'rgba(251,191,36,0.3)' : 'rgba(248,113,113,0.3)'}`
                   }}
-                  aria-label={`${r.rounds} tentativas`}
+                  aria-label={`${getRoundPoints(r.rounds)} pontos`}
                 >
-                  {r.rounds === 7 ? '✗' : r.rounds}
+                  +{getRoundPoints(r.rounds)} pts
                 </div>
+                <span className="text-[11px] text-white/40 mt-1">
+                  {r.rounds === 7 ? 'Não sincronizou' : `${r.rounds}ª tentativa`}
+                </span>
               </div>
             </motion.div>
           ))}

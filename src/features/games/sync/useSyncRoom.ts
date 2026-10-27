@@ -145,8 +145,8 @@ export function useSyncRoom() {
         const pId = player === p1Id ? p2Id : p1Id;
         const status = data.presence?.[pId] || 'offline';
         const lastSeen = data.lastSeen?.[pId] || 0;
-        // Se faz mais de 45s, considera offline (mesmo que a tab esteja aberta)
-        if (Date.now() - lastSeen > 45000) {
+        // Se o status explicitamente for offline ou se faz mais de 20s sem heartbeat, considera offline
+        if (status === 'offline' || Date.now() - lastSeen > 20000) {
           setPartnerPresence('offline');
         } else {
           setPartnerPresence(status);

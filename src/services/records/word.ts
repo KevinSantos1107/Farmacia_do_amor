@@ -13,6 +13,7 @@ export interface WordRecord {
   score: number;      // pontuação total acumulada
   gamesPlayed: number;// total de jogos jogados
   wins: number;       // total de vitórias
+  losses: number;     // total de derrotas/falhas
   streak: number;     // sequência atual de vitórias
   bestStreak: number; // melhor sequência de todos os tempos
   winsByAttempt: number[]; // vitórias por tentativa (índice 0 a 5)
@@ -31,10 +32,14 @@ export async function getWordRecord(
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const d = snap.data();
+      const games = d.gamesPlayed ?? d.wins ?? 0;
+      const wins = d.wins ?? 0;
+      const losses = d.losses ?? Math.max(0, games - wins);
       return {
         score: d.score ?? 0,
-        gamesPlayed: d.gamesPlayed ?? d.wins ?? 0,
-        wins: d.wins ?? 0,
+        gamesPlayed: games,
+        wins,
+        losses,
         streak: d.streak ?? 0,
         bestStreak: d.bestStreak ?? 0,
         winsByAttempt: d.winsByAttempt ?? [0,0,0,0,0,0],
@@ -66,12 +71,17 @@ export async function saveWordGameResult(
 
     if (snap.exists()) {
       const data = snap.data();
+      const prevGames = data.gamesPlayed ?? data.wins ?? 0;
+      const prevWins = data.wins ?? 0;
+      const prevLosses = data.losses ?? Math.max(0, prevGames - prevWins);
+
       await setDoc(ref, {
         game: 'word',
         player,
         score: (data.score ?? 0) + roundScore,
-        gamesPlayed: (data.gamesPlayed ?? data.wins ?? 0) + 1,
-        wins: (data.wins ?? 0) + (isWin ? 1 : 0),
+        gamesPlayed: prevGames + 1,
+        wins: prevWins + (isWin ? 1 : 0),
+        losses: prevLosses + (isWin ? 0 : 1),
         streak: currentStreak,
         bestStreak: Math.max(data.bestStreak ?? 0, bestStreak),
         winsByAttempt,
@@ -84,6 +94,7 @@ export async function saveWordGameResult(
         score: roundScore,
         gamesPlayed: 1,
         wins: isWin ? 1 : 0,
+        losses: isWin ? 0 : 1,
         streak: currentStreak,
         bestStreak: bestStreak,
         winsByAttempt,

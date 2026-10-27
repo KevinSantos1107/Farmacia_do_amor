@@ -9,6 +9,7 @@ import { MAX_ATTEMPTS } from './wordConstants';
 const INITIAL_STATS: GameStats = {
   gamesPlayed: 0,
   wins: 0,
+  losses: 0,
   currentStreak: 0,
   bestStreak: 0,
   winsByAttempt: [0, 0, 0, 0, 0, 0],
@@ -38,6 +39,7 @@ export function useWordStats() {
           setStats({
             gamesPlayed: record.gamesPlayed,
             wins: record.wins,
+            losses: record.losses ?? Math.max(0, record.gamesPlayed - record.wins),
             currentStreak: record.streak,
             bestStreak: record.bestStreak,
             winsByAttempt: record.winsByAttempt,
@@ -69,6 +71,7 @@ export function useWordStats() {
         const newStats: GameStats = {
           gamesPlayed: latestStats.gamesPlayed + 1,
           wins: latestStats.wins + 1,
+          losses: latestStats.losses ?? Math.max(0, latestStats.gamesPlayed - latestStats.wins),
           currentStreak: newStreak,
           bestStreak: Math.max(latestStats.bestStreak, newStreak),
           winsByAttempt: newWinsByAttempt,
@@ -91,6 +94,7 @@ export function useWordStats() {
         const newStats: GameStats = {
           ...latestStats,
           gamesPlayed: latestStats.gamesPlayed + 1,
+          losses: (latestStats.losses ?? Math.max(0, latestStats.gamesPlayed - latestStats.wins)) + 1,
           currentStreak: 0,
         };
         setStats(newStats);

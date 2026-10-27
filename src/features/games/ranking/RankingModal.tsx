@@ -257,10 +257,10 @@ function WordTab() {
         </PlayerColumn>
       </div>
 
-      {/* Distribuição de tentativas */}
-      {(p1?.winsByAttempt || p2?.winsByAttempt) && (
+      {/* Distribuição de tentativas e falhas */}
+      {(p1?.winsByAttempt || p2?.winsByAttempt || (p1?.losses ?? 0) > 0 || (p2?.losses ?? 0) > 0) && (
         <div className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-4">
-          <p className="text-white/40 text-[9px] sm:text-[10px] uppercase tracking-widest text-center mb-2 sm:mb-3">Distribuição de Vitórias</p>
+          <p className="text-white/40 text-[9px] sm:text-[10px] uppercase tracking-widest text-center mb-2 sm:mb-3">Distribuição de Vitórias e Falhas</p>
           <div className="flex flex-col gap-1 sm:gap-1.5">
             {[1, 2, 3, 4, 5, 6].map((n, idx) => {
               const p1v = p1?.winsByAttempt?.[idx] ?? 0;
@@ -291,6 +291,37 @@ function WordTab() {
                 </div>
               );
             })}
+
+            {/* Linha de Falhas */}
+            {(() => {
+              const p1Loss = p1?.losses ?? Math.max(0, (p1?.gamesPlayed ?? 0) - (p1?.wins ?? 0));
+              const p2Loss = p2?.losses ?? Math.max(0, (p2?.gamesPlayed ?? 0) - (p2?.wins ?? 0));
+              const maxVal = Math.max(p1Loss, p2Loss, 1);
+              return (
+                <div className="flex items-center gap-1.5 sm:gap-2 text-xs pt-1 border-t border-white/10 mt-0.5">
+                  <span className="text-red-400 font-bold w-3 sm:w-4 text-right shrink-0" title="Falhas">✗</span>
+                  {/* P1 bar (left) */}
+                  <div className="flex-1 flex justify-end">
+                    <div
+                      className="h-3.5 sm:h-4 rounded bg-red-500/60 transition-all duration-500 flex items-center justify-end pr-1"
+                      style={{ width: `${(p1Loss / maxVal) * 100}%`, minWidth: p1Loss > 0 ? '1.25rem' : '0' }}
+                    >
+                      {p1Loss > 0 && <span className="text-white text-[9px] font-bold">{p1Loss}</span>}
+                    </div>
+                  </div>
+                  <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-red-400/30 flex-shrink-0" />
+                  {/* P2 bar (right) */}
+                  <div className="flex-1">
+                    <div
+                      className="h-3.5 sm:h-4 rounded bg-red-500/60 transition-all duration-500 flex items-center pl-1"
+                      style={{ width: `${(p2Loss / maxVal) * 100}%`, minWidth: p2Loss > 0 ? '1.25rem' : '0' }}
+                    >
+                      {p2Loss > 0 && <span className="text-white text-[9px] font-bold">{p2Loss}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           <div className="flex justify-between mt-2 text-[9px] sm:text-[10px]">
             <span className="max-w-[48%] truncate text-purple-400">■ {partner1Name}</span>

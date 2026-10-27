@@ -52,6 +52,20 @@ export function validateWord(word: string, history: Array<{ round: number; words
   return { valid: true };
 }
 
+export function getRoundPoints(rounds: number): number {
+  if (rounds === 1) return 100;
+  if (rounds === 2) return 80;
+  if (rounds === 3) return 60;
+  if (rounds === 4) return 40;
+  if (rounds === 5) return 20;
+  if (rounds === 6) return 10;
+  return 0; // 7 ou não sincronizou
+}
+
+export function calculateTotalScore(results: Array<{ rounds: number }>): number {
+  return results.reduce((sum, r) => sum + getRoundPoints(r.rounds), 0);
+}
+
 export function getRoundTitle(round: number, isSynced: boolean): string {
   if (!isSynced) return '🌀 Cada um no seu mundo';
   if (round === 1) return '🔮 Telepatia';

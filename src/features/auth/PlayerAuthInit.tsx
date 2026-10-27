@@ -11,7 +11,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 
 export function PlayerAuthInit() {
-  const { setPlayer, setUid } = usePlayerIdentityStore();
+  const { setPlayer, setUid, setTokenStatus } = usePlayerIdentityStore();
   const { config, isLoading } = useSiteConfigStore();
   const [welcomeMsg, setWelcomeMsg] = useState<string | null>(null);
   const [isCelebration, setIsCelebration] = useState(false);
@@ -68,17 +68,29 @@ export function PlayerAuthInit() {
               }
 
               setPlayer(currentPlayerId);
+              setTokenStatus('authorized');
 
               // Show sync message immediately
               const syncMsg = getWelcomeMessage(currentPlayerId, config);
               showGreeting(syncMsg);
+            } else {
+              setPlayer('visitante');
+              setTokenStatus('unauthorized');
             }
           } else {
             console.warn('Token inválido ou expirado.');
             setPlayer('visitante');
+            setTokenStatus('unauthorized');
           }
         } catch (error) {
           console.error('Erro ao verificar o token:', error);
+          // Se houve erro de rede, mas já tem player conhecido no store, não bloqueia
+          const currentP = usePlayerIdentityStore.getState().player;
+          if (currentP === p1Id || currentP === p2Id) {
+            setTokenStatus('authorized');
+          } else {
+            setTokenStatus('unauthorized');
+          }
         } finally {
           // Remove token from URL securely sem refresh
           const newUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
@@ -89,17 +101,21 @@ export function PlayerAuthInit() {
         }
       } else {
         // Se não tem token na URL, verifica se já é um jogador conhecido (salvo no Zustand/localStorage)
-        // e se ainda não foi saudado nesta sessão (aba do navegador)
         const currentPlayer = usePlayerIdentityStore.getState().player;
-        if (currentPlayer !== 'visitante' && !sessionStorage.getItem('greeted')) {
-          const syncMsg = getWelcomeMessage(currentPlayer, config);
-          showGreeting(syncMsg);
+        if (currentPlayer === p1Id || currentPlayer === p2Id) {
+          setTokenStatus('authorized');
+          if (!sessionStorage.getItem('greeted')) {
+            const syncMsg = getWelcomeMessage(currentPlayer, config);
+            showGreeting(syncMsg);
+          }
+        } else {
+          setTokenStatus('unauthorized');
         }
       }
     };
 
     initAuth();
-  }, [setPlayer, setUid, config, isLoading]);
+  }, [setPlayer, setUid, setTokenStatus, config, isLoading]);
 
   return (
     <AnimatePresence>

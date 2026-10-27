@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSameWord, validateWord, getRoundTitle } from './syncLogic';
+import { isSameWord, validateWord, getRoundTitle, getRoundPoints, calculateTotalScore } from './syncLogic';
 
 describe('syncLogic', () => {
   describe('isSameWord (strict rules)', () => {
@@ -97,6 +97,27 @@ describe('syncLogic', () => {
       expect(getRoundTitle(6, false)).toBe('🌀 Cada um no seu mundo');
       expect(getRoundTitle(7, false)).toBe('🌀 Cada um no seu mundo');
       expect(getRoundTitle(1, false)).toBe('🌀 Cada um no seu mundo');
+    });
+  });
+
+  describe('pontuação positiva', () => {
+    it('atribui mais pontos para menos rodadas', () => {
+      expect(getRoundPoints(1)).toBe(100);
+      expect(getRoundPoints(2)).toBe(80);
+      expect(getRoundPoints(3)).toBe(60);
+      expect(getRoundPoints(4)).toBe(40);
+      expect(getRoundPoints(5)).toBe(20);
+      expect(getRoundPoints(6)).toBe(10);
+      expect(getRoundPoints(7)).toBe(0);
+    });
+
+    it('calcula o score total somando os pontos', () => {
+      const results = [
+        { rounds: 1 }, // 100
+        { rounds: 2 }, // 80
+        { rounds: 7 }, // 0
+      ];
+      expect(calculateTotalScore(results)).toBe(180);
     });
   });
 });

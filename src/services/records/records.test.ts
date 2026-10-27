@@ -365,18 +365,18 @@ describe('sync — protege o formato fixo "sync_couple" e os critérios de melho
     expect(mockDoc).toHaveBeenCalledWith(mockDb, 'game_records', 'sync_couple');
   });
 
-  it('grava quando qualquer métrica melhora (menor session, menor part ou maior streak)', async () => {
+  it('grava quando qualquer métrica melhora (maior session, maior part ou maior streak)', async () => {
     mockGetDoc.mockResolvedValueOnce({
       exists: () => true,
-      data: () => ({ bestSession: 10, bestPart: 3, maxStreak: 4 }),
+      data: () => ({ bestSession: 200, bestPart: 60, maxStreak: 2 }),
     });
 
-    // Melhora session (menor é melhor)
-    const updated = await saveSyncRecordIfBetter(8, 4, 3);
+    // Melhora session (maior é melhor)
+    const updated = await saveSyncRecordIfBetter(350, 40, 1);
     expect(updated).toBe(true);
     expect(mockSetDoc).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'sync_couple' }),
-      expect.objectContaining({ bestSession: 8 }),
+      expect.objectContaining({ bestSession: 350 }),
       { merge: true }
     );
   });
@@ -384,10 +384,10 @@ describe('sync — protege o formato fixo "sync_couple" e os critérios de melho
   it('não grava quando nenhuma métrica melhora', async () => {
     mockGetDoc.mockResolvedValueOnce({
       exists: () => true,
-      data: () => ({ bestSession: 5, bestPart: 2, maxStreak: 10 }),
+      data: () => ({ bestSession: 400, bestPart: 100, maxStreak: 5 }),
     });
 
-    const updated = await saveSyncRecordIfBetter(6, 3, 8);
+    const updated = await saveSyncRecordIfBetter(300, 80, 2);
     expect(updated).toBe(false);
     expect(mockSetDoc).not.toHaveBeenCalled();
   });

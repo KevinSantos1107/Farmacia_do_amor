@@ -8,6 +8,8 @@ import { lazy, Suspense } from 'react';
 import Home from '../../pages/Home';
 import { GlobalModals } from '../../features/modals/GlobalModals';
 import { PlayerAuthInit } from '../../features/auth/PlayerAuthInit';
+import { AccessDeniedPanel } from '../../features/auth/AccessDeniedPanel';
+import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
 
 const RetroShell = lazy(() => import('../../features/retrospective-v2/components/RetroShell').then(m => ({ default: m.RetroShell })));
@@ -19,6 +21,7 @@ const SyncInviteToast = lazy(() => import('../../features/games/sync/components/
 export function Shell() {
   const [showSplash, setShowSplash] = useState(true);
   const { config, isLoading } = useSiteConfigStore();
+  const tokenStatus = usePlayerIdentityStore((s) => s.tokenStatus);
   const location = useLocation();
 
   // The site is ready when config is loaded. We can also add other ready checks here later.
@@ -60,45 +63,52 @@ export function Shell() {
   return (
     <div className="min-h-screen bg-theme-bg text-theme-text transition-colors duration-700 font-sans relative">
       <PlayerAuthInit />
-      
-      {/* Splash Screen fica sobreposto até terminar sua animação de saída */}
-      {showSplash && (
-        <SplashScreen
-          isReady={isReady}
-          onComplete={() => setShowSplash(false)}
-          title={title}
-        />
-      )}
 
-      {/* Renderiza o site por baixo apenas quando as configurações estiverem prontas. */}
-      {isReady && (
-        <div 
-          className={cn(
-            "flex flex-col min-h-screen",
-            showSplash ? "pointer-events-none h-screen overflow-hidden" : ""
+      {/* Se o token não foi validado/autorizado e a verificação terminou */}
+      {tokenStatus === 'unauthorized' ? (
+        <AccessDeniedPanel />
+      ) : (
+        <>
+          {/* Splash Screen fica sobreposto até terminar sua animação de saída */}
+          {showSplash && (
+            <SplashScreen
+              isReady={isReady && tokenStatus === 'authorized'}
+              onComplete={() => setShowSplash(false)}
+              title={title}
+            />
           )}
-        >
-          <Suspense fallback={null}>
-            <RetroShell />
-          </Suspense>
-          
-          <HamburgerMenu />
 
-          <main className="flex-1">
-            <Home />
-            <Outlet />
-          </main>
+          {/* Renderiza o site por baixo apenas quando as configurações e autorização estiverem prontas. */}
+          {isReady && tokenStatus === 'authorized' && (
+            <div 
+              className={cn(
+                "flex flex-col min-h-screen",
+                showSplash ? "pointer-events-none h-screen overflow-hidden" : ""
+              )}
+            >
+              <Suspense fallback={null}>
+                <RetroShell />
+              </Suspense>
+              
+              <HamburgerMenu />
 
-          <Suspense fallback={null}>
-            <AudioEngine />
-          </Suspense>
-          <GlobalModals />
-          <Suspense fallback={null}>
-            <ReturnToGameToast />
-            <SyncPresenceBeacon />
-            <SyncInviteToast />
-          </Suspense>
-        </div>
+              <main className="flex-1">
+                <Home />
+                <Outlet />
+              </main>
+
+              <Suspense fallback={null}>
+                <AudioEngine />
+              </Suspense>
+              <GlobalModals />
+              <Suspense fallback={null}>
+                <ReturnToGameToast />
+                <SyncPresenceBeacon />
+                <SyncInviteToast />
+              </Suspense>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

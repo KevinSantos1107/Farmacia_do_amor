@@ -66,7 +66,7 @@ export function Lobby({
             Sincronia
           </h2>
           <p className="text-white/60 text-sm md:text-base max-w-md mx-auto">
-            Escrevam a mesma palavra, sem combinar. Quanto menos rodadas, melhor!
+            Escrevam a mesma palavra sem combinar. Quanto mais rápido sincronizarem, maior a pontuação!
           </p>
         </div>
 

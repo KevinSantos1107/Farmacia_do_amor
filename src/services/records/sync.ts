@@ -30,7 +30,7 @@ export async function getSyncRecord(): Promise<SyncRecord | null> {
 }
 
 export async function saveSyncRecordIfBetter(
-  total: number,
+  totalScore: number,
   bestPart: number,
   maxStreak: number
 ): Promise<boolean> {
@@ -44,11 +44,13 @@ export async function saveSyncRecordIfBetter(
 
     if (snap.exists()) {
       const current = snap.data();
-      if (!current.bestSession || total < current.bestSession) {
-        dataToSave.bestSession = total;
+      // Quanto maior a pontuação total (totalScore), melhor!
+      if (!current.bestSession || totalScore > current.bestSession) {
+        dataToSave.bestSession = totalScore;
         updated = true;
       }
-      if (!current.bestPart || bestPart < current.bestPart) {
+      // Quanto maior a pontuação individual do round (bestPart), melhor!
+      if (!current.bestPart || bestPart > current.bestPart) {
         dataToSave.bestPart = bestPart;
         updated = true;
       }
@@ -57,7 +59,7 @@ export async function saveSyncRecordIfBetter(
         updated = true;
       }
     } else {
-      dataToSave.bestSession = total;
+      dataToSave.bestSession = totalScore;
       dataToSave.bestPart = bestPart;
       dataToSave.maxStreak = maxStreak;
       updated = true;

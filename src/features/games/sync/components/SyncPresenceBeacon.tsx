@@ -58,7 +58,7 @@ export function SyncPresenceBeacon() {
     const ticker = setInterval(() => {
       if (document.hidden || !navigator.onLine) return;
       updatePresence(getStatus());
-    }, 15000);
+    }, 8000);
 
     const handleHide = () => updatePresence('offline');
     const handleVisibility = () => {
@@ -67,14 +67,16 @@ export function SyncPresenceBeacon() {
       }
     };
 
+    // Se o usuário fecha ou recarrega a aba, desmarca imediatamente
+    window.addEventListener('beforeunload', handleHide);
     window.addEventListener('pagehide', handleHide);
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       clearInterval(ticker);
+      window.removeEventListener('beforeunload', handleHide);
       window.removeEventListener('pagehide', handleHide);
       document.removeEventListener('visibilitychange', handleVisibility);
-      updatePresence('offline');
     };
   }, [player, config, activeModal, location.pathname]);
 

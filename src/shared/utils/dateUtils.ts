@@ -34,7 +34,7 @@ export function parseSafeDate(value: string | number | Date | null | undefined):
       const year = parseInt(match[1], 10);
       const month = parseInt(match[2], 10) - 1;
       const day = parseInt(match[3], 10);
-      const hour = match[4] ? parseInt(match[4], 10) : 12; // 12h previne salto de fuso UTC em comparações locais
+      const hour = match[4] ? parseInt(match[4], 10) : 0;
       const minute = match[5] ? parseInt(match[5], 10) : 0;
       const second = match[6] ? parseInt(match[6], 10) : 0;
       const d = new Date(year, month, day, hour, minute, second);
