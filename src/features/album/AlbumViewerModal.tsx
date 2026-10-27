@@ -214,6 +214,7 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
     }
 
     if (pointers.current.size === 0) {
+      pointers.current.clear();
       initialGesto.current = null;
       // Usuário soltou todos os dedos: reseta suavemente o zoom e o pan para o estado original
       setScale(1);
@@ -709,10 +710,31 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
     return () => window.removeEventListener('keydown', onKey);
   }, [navigatePhoto, onClose]);
 
+  // Limpeza global de ponteiros para garantir que gestos interrompidos (ex: zoom) nunca travem o modal
+  useEffect(() => {
+    const handleGlobalPointerUp = () => {
+      if (gesture.current.pointerId !== null) {
+        gesture.current.pointerId = null;
+        gesture.current.direction = 'idle';
+        setIsInteracting(false);
+      }
+    };
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('pointercancel', handleGlobalPointerUp);
+    return () => {
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointercancel', handleGlobalPointerUp);
+    };
+  }, []);
+
   // ── Pointer events ────────────────────────────────────────────────────────
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (gesture.current.pointerId !== null) return;
     if ((e.target as HTMLElement).closest?.('[data-no-gesture]')) return;
+
+    // Se havia um ponteiro anterior órfão (ex: interceptado pelo zoom da foto),
+    // reseta o estado do ponteiro imediatamente para que o álbum NUNCA trave
+    gesture.current.pointerId = null;
+    gesture.current.direction = 'idle';
 
     if (animControls.current) {
       animControls.current.stop();
@@ -731,6 +753,14 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
       (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
     } catch {
       // Ignora erro se WebKit/Safari recusar pointer capture
+    }
+  };
+
+  const onLostPointerCapture = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (gesture.current.pointerId === e.pointerId) {
+      gesture.current.pointerId = null;
+      gesture.current.direction = 'idle';
+      setIsInteracting(false);
     }
   };
 
@@ -913,6 +943,7 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onLostPointerCapture={onLostPointerCapture}
     >
       <motion.div style={{ y, scale: contentScale }} className="w-full h-full overflow-hidden relative">
         <motion.div

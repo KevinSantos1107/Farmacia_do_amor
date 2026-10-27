@@ -3,6 +3,7 @@ import { Trophy, RotateCcw, Heart, Clock, Zap, Leaf, Star, Flame } from 'lucide-
 import { cn } from '../../../shared/utils/cn';
 import { shuffle } from '../../../shared/utils/shuffle';
 import { cloudinaryUrl } from '../../../services/cloudinary/upload';
+import { normalizeCloudinaryUrl } from '../../album/photoUrl';
 import { selectPhotosForGame } from './selectPhotosForGame';
 import type { AlbumForGame } from './selectPhotosForGame';
 import { saveMemoryRecordIfBetter } from '../../../services/gameRecords';
@@ -203,14 +204,13 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
   const player = usePlayerIdentityStore((s) => s.player);
   const { config } = useSiteConfigStore();
 
-  const getCardSrc = (card: Card) => {
-    if (card.src) return card.src;
-    if (card.publicId) {
-      if (card.publicId.startsWith('http')) return card.publicId;
-      return cloudinaryUrl(card.publicId, { w: 350, h: 350, c: 'fill', q: 'auto', f: 'auto' });
+  const getCardSrc = useCallback((cardOrPhoto: { src?: string; publicId?: string; url?: string }) => {
+    if (cardOrPhoto.publicId && !cardOrPhoto.publicId.startsWith('http')) {
+      return cloudinaryUrl(cardOrPhoto.publicId, { w: 350, h: 350, c: 'fill', q: 'auto', f: 'auto' });
     }
-    return '';
-  };
+    const raw = cardOrPhoto.src || cardOrPhoto.url || cardOrPhoto.publicId || '';
+    return normalizeCloudinaryUrl(raw);
+  }, []);
 
   const startGame = useCallback(async (diff: DifficultyConfig) => {
     const photos = selectPhotosForGame(albums, diff.pairs);
@@ -223,8 +223,6 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
     setScorePopups([]); didSaveRef.current = false;
 
     // ── Build ordered preview deck (pairs together: A,A,B,B,C,C…) ──
-    // User sees WHICH photos were chosen, in a clear ordered layout.
-    // We only shuffle AFTER the preview — the real game deck is different.
     const orderedDeck: Card[] = [];
     photos.forEach((photo, idx) => {
       const photoId = `photo-${idx}`;
@@ -234,26 +232,38 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
       );
     });
 
-    // ── Phase 0: pre-load ALL images before starting animation ──
-    // Show a loading overlay on the game screen while images download.
-    setCards(orderedDeck); // put cards in DOM early so preload can start
+    // ── Phase 0: Pré-carregamento 100% silencioso antes de exibir qualquer carta ──
+    // Mantém as cartas desmontadas/vazias para que o usuário não as veja carregando
+    setCards([]);
     setPhase('preview');
     setScreen('playing');
     setIsLoading(true);
     setLoadProgress(0);
 
-    const srcs = photos.map((p) =>
-      p.src ? p.src : p.publicId ? cloudinaryUrl(p.publicId, { w: 350, h: 350, c: 'fill', q: 'auto', f: 'auto' }) : ''
-    ).filter(Boolean);
+    const srcs = photos.map(getCardSrc).filter(Boolean);
 
     let loaded = 0;
+    const total = srcs.length;
+
     await Promise.all(
       srcs.map((src) =>
         new Promise<void>((resolve) => {
           const img = new Image();
-          img.onload = img.onerror = () => {
+          img.onload = async () => {
+            try {
+              if ('decode' in img) {
+                await img.decode();
+              }
+            } catch {
+              // Se falhar o decode, onload já baixou o arquivo
+            }
             loaded++;
-            setLoadProgress(Math.round((loaded / srcs.length) * 100));
+            setLoadProgress(Math.round((loaded / total) * 100));
+            resolve();
+          };
+          img.onerror = () => {
+            loaded++;
+            setLoadProgress(Math.round((loaded / total) * 100));
             resolve();
           };
           img.src = src;
@@ -261,32 +271,31 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
       )
     );
 
-    // All images ready — remove loader and show preview
+    // Todas as imagens estão 100% baixadas e decodificadas na memória!
+    // Liberamos o deck já com as fotos prontas para a memorização sem flash de carregamento
+    setCards(orderedDeck);
     setIsLoading(false);
 
-    // ── Phase 1: show ordered pairs face-up for 2s ──
-    // (deck already in state as 'revealed', ordered)
-
-    // ── Phase 2: after 2s, flip all face-down ──
+    // ── Phase 1: show ordered pairs face-up for 2.5s ──
     setTimeout(() => {
       setCards((prev) => prev.map((c) => ({ ...c, state: 'hidden' })));
       setPhase('gather');
 
-      // ── Phase 3: gather anim (CSS scale-out, 450ms) ──
+      // ── Phase 2: gather anim (CSS scale-out, 450ms) ──
       setTimeout(() => {
         // NOW shuffle the deck for the real game
         const shuffledDeck = shuffle(orderedDeck.map((c) => ({ ...c, state: 'hidden' as const })));
         setCards(shuffledDeck);
         setPhase('deal');
 
-        // ── Phase 4: deal anim (~700ms) then unlock ──
+        // ── Phase 3: deal anim (~700ms) then unlock ──
         setTimeout(() => {
           setPhase('playing');
           setIsLocked(false);
         }, 700);
       }, 500);
-    }, 2000);
-  }, [albums]);
+    }, 2500);
+  }, [albums, getCardSrc]);
 
   useEffect(() => {
     if (screen !== 'playing' || phase !== 'playing') return;
@@ -624,57 +633,57 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
 
       {/* ── Card Grid with gather/deal animation ─────────────────────── */}
       <div className="flex-1 min-h-0 w-full relative">
-        {/* Loading overlay — covers grid while images preload */}
-        {isLoading && (
+        {/* Loading overlay — exibido de forma limpa enquanto as fotos são 100% carregadas e decodificadas */}
+        {isLoading ? (
           <div
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-lg"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)' }}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-xl animate-in fade-in duration-300"
+            style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)' }}
           >
             <div className="relative">
               <Heart
-                className="w-12 h-12 animate-pulse"
-                style={{ color: 'var(--theme-primary)', fill: 'var(--theme-primary)', filter: 'drop-shadow(0 0 16px var(--theme-primary))' }}
+                className="w-14 h-14 animate-pulse"
+                style={{ color: 'var(--theme-primary)', fill: 'var(--theme-primary)', filter: 'drop-shadow(0 0 20px var(--theme-primary))' }}
               />
             </div>
-            <p className="text-white/60 text-xs">Carregando fotos…</p>
+            <p className="text-white/80 text-sm font-medium">Carregando fotos dos nossos momentos…</p>
             {/* Progress bar */}
-            <div className="w-32 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <div className="w-48 h-2 rounded-full overflow-hidden bg-white/10 shadow-inner">
               <div
                 className="h-full rounded-full transition-all duration-200"
-                style={{ width: `${loadProgress}%`, background: 'var(--theme-primary)', boxShadow: '0 0 8px var(--theme-primary)' }}
+                style={{ width: `${loadProgress}%`, background: 'var(--theme-primary)', boxShadow: '0 0 10px var(--theme-primary)' }}
               />
             </div>
-            <p className="text-white/30 text-[10px] tabular-nums">{loadProgress}%</p>
+            <p className="text-white/50 text-xs tabular-nums font-mono">{loadProgress}%</p>
+          </div>
+        ) : (
+          <div
+            className={cn('grid w-full h-full animate-in fade-in duration-300', activeDiff.gridClasses)}
+            style={{
+              gap: '3px',
+              // gather phase: grid contracts to center
+              transform: phase === 'gather' ? 'scale(0.05)' : 'scale(1)',
+              opacity: phase === 'gather' ? 0 : 1,
+              transition: phase === 'gather'
+                ? 'transform 0.45s cubic-bezier(0.4, 0, 0.6, 1), opacity 0.35s ease'
+                : 'opacity 0.3s ease',
+            }}
+          >
+            {cards.map((card, i) => (
+              <MemoryCard
+                key={card.id}
+                card={card}
+                imgSrc={getCardSrc(card)}
+                onClick={() => handleCardClick(card)}
+                dealDelay={phase === 'deal' ? i * 28 : 0}
+                isDeal={phase === 'deal'}
+                registerRef={(el) => {
+                  if (el) cardRefs.current.set(card.id, el);
+                  else cardRefs.current.delete(card.id);
+                }}
+              />
+            ))}
           </div>
         )}
-
-        <div
-          className={cn('grid w-full h-full', activeDiff.gridClasses)}
-          style={{
-            gap: '3px',
-            // gather phase: grid contracts to center
-            transform: phase === 'gather' ? 'scale(0.05)' : 'scale(1)',
-            opacity: isLoading ? 0 : phase === 'gather' ? 0 : 1,
-            transition: phase === 'gather'
-              ? 'transform 0.45s cubic-bezier(0.4, 0, 0.6, 1), opacity 0.35s ease'
-              : 'opacity 0.3s ease',
-          }}
-        >
-          {cards.map((card, i) => (
-            <MemoryCard
-              key={card.id}
-              card={card}
-              imgSrc={getCardSrc(card)}
-              onClick={() => handleCardClick(card)}
-              dealDelay={phase === 'deal' ? i * 28 : 0}
-              isDeal={phase === 'deal'}
-              registerRef={(el) => {
-                if (el) cardRefs.current.set(card.id, el);
-                else cardRefs.current.delete(card.id);
-              }}
-            />
-          ))}
-        </div>
       </div>
 
       {/* ── Particle Layer ────────────────────────────────────────────── */}
