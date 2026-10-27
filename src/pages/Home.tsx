@@ -348,10 +348,10 @@ export default function Home() {
 
               <div className="space-y-6 text-base md:text-lg leading-relaxed text-slate-200/90 font-light">
                 <p>
-                  Posso dizer com toda certeza que encontrar alguém como você não é algo fácil. Uma garota linda por dentro e por fora, que chegou na minha vida e transformou completamente o meu 2025.
+                  Entre tantas pessoas no mundo, foi você quem fez meu coração encontrar um lugar para chamar de lar. Você chegou inesperadamente e transformou meus dias em lembranças mais bonitas, meus sonhos em planos a dois e o meu futuro em algo que mal posso esperar para viver.
                 </p>
                 <p>
-                  Você é quem me inspira todos os dias, quem me traz força, paz e alegria mesmo nos momentos difíceis. Com você, a vida ficou mais leve, mais bonita e mais verdadeira. A distância só me deu mais certeza de que é você quem eu quero ao meu lado.
+                  Com você, aprendi que o amor está nos pequenos detalhes, na saudade que antecede um abraço e na paz de saber que temos um ao outro. Mesmo quando a distância nos separa, existe algo que nunca muda: é com você que quero compartilhar meus dias, realizar meus sonhos e construir uma vida inteira.
                 </p>
               </div>
 
