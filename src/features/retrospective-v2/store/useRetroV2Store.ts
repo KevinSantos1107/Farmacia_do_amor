@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { collection, getDocs, query, orderBy, doc, getDoc, where } from 'firebase/firestore';
 import { siteCollection } from '../../../services/firestore/paths';
 import { db } from '../../../services/firebase/config';
+import { cloudinaryUrl } from '../../../services/cloudinary/upload';
+import { normalizeCloudinaryUrl, ALBUM_PHOTO_WIDTH } from '../../album/photoUrl';
 
 interface RawAlbumPhoto {
   publicId?: string;
@@ -137,12 +139,22 @@ export const useRetroV2Store = create<RetroState>((set, get) => ({
           });
 
           albumPhotos.forEach((p, idx) => {
-            // Suporta fotos legadas (src/url) e novas (publicId)
-            const photoRef = p.publicId || p.src || p.url;
-            if (photoRef) {
+            // Resolve a URL final da foto — mesma lógica de getPhotoUrl() do álbum:
+            // fotos novas têm publicId (não é URL); fotos legadas têm src/url diretamente.
+            let resolvedUrl: string;
+            if (p.publicId && !p.publicId.startsWith('http')) {
+              // Foto nova gerenciada pelo Cloudinary → converte publicId para URL otimizada
+              resolvedUrl = cloudinaryUrl(p.publicId, { w: ALBUM_PHOTO_WIDTH, f: 'webp' });
+            } else {
+              // Foto legada: substitui f_auto por f_webp se necessário
+              const raw = p.src || p.url || p.publicId || '';
+              resolvedUrl = normalizeCloudinaryUrl(raw);
+            }
+
+            if (resolvedUrl) {
               const photoDate = toDate(p.date || d.createdAt);
               allPhotosRaw.push({
-                url: photoRef,
+                url: resolvedUrl,
                 caption: p.caption || d.title || '',
                 date: photoDate,
               });
@@ -151,7 +163,7 @@ export const useRetroV2Store = create<RetroState>((set, get) => ({
                 mapPins.push({
                   lat: p.lat || d.lat,
                   lng: p.lng || d.lng,
-                  photoUrl: photoRef,
+                  photoUrl: resolvedUrl,
                   title: d.title || 'Nosso Lugar',
                   date: photoDate,
                 });

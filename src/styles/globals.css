@@ -129,3 +129,45 @@ a,
   border-radius: 3px;
 }
 
+/* =========================================================
+   Memory Game — Animações personalizadas
+   ========================================================= */
+@keyframes memory-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-5px) rotate(-1.5deg);
+  }
+  40%, 80% {
+    transform: translateX(5px) rotate(1.5deg);
+  }
+}
+
+.animate-memory-shake {
+  animation: memory-shake 0.4s ease-in-out;
+}
+
+@keyframes memory-preview-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.animate-preview-drain {
+  animation: memory-preview-drain 2.2s linear forwards;
+  transform-origin: left;
+}
+
+@keyframes memory-shimmer {
+  0% {
+    transform: translateX(-150%) rotate(25deg);
+  }
+  100% {
+    transform: translateX(150%) rotate(25deg);
+  }
+}
+

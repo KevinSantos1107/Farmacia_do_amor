@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo, useEffectEvent } from 'react';
-import { Trophy, RotateCcw, Heart, Clock, Zap, Leaf, Star, Flame } from 'lucide-react';
+import { Trophy, RotateCcw, Heart, Clock, Zap, Leaf, Star, Flame, Eye } from 'lucide-react';
 import { cn } from '../../../shared/utils/cn';
 import { shuffle } from '../../../shared/utils/shuffle';
 import { cloudinaryUrl } from '../../../services/cloudinary/upload';
@@ -68,28 +68,39 @@ function DiffIcon({ name, className }: { name: string; className?: string }) {
 
 // ─── Score & Time Helpers ─────────────────────────────────────────────────────
 
-function getComboMultiplier(combo: number): number {
+export function getComboMultiplier(combo: number): number {
   if (combo >= 4) return 2.0;
   if (combo === 3) return 1.5;
   if (combo === 2) return 1.2;
   return 1.0;
 }
 
-function getTimeMultiplier(elapsed: number, diff: DifficultyConfig): number {
+export function getTimeMultiplier(elapsed: number, diff: DifficultyConfig): number {
   for (const [threshold, mult] of diff.timeMultipliers) {
     if (elapsed <= threshold) return mult;
   }
   return 1.0;
 }
 
-function calcPairScore(diff: DifficultyConfig, combo: number): number {
+export function calcPairScore(diff: DifficultyConfig, combo: number): number {
   return Math.round(diff.basePointsPerPair * getComboMultiplier(combo));
 }
 
-function formatTime(s: number): string {
+export function formatTime(s: number): string {
   const m = Math.floor(s / 60);
   const sec = s % 60;
   return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+export function getDealAnimationTiming(pairs: number, totalCards: number) {
+  const staggerMs = pairs >= 12 ? 22 : pairs >= 8 ? 26 : 32;
+  const animDurationMs = 280;
+  const totalDealDuration = Math.max(0, totalCards - 1) * staggerMs + animDurationMs + 80;
+  return { staggerMs, animDurationMs, totalDealDuration };
+}
+
+export function canTriggerGameWin(moves: number, pairs: number, phase: string): boolean {
+  return phase === 'playing' && moves >= pairs * 2 && pairs > 0;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -99,7 +110,7 @@ interface Card {
   photoId: string;
   src: string;
   publicId?: string;
-  state: 'hidden' | 'revealed' | 'matched';
+  state: 'preview' | 'hidden' | 'revealed' | 'matched';
 }
 
 interface Particle {
@@ -194,8 +205,38 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
   const popupId = useRef(0);
   const [showRanking, setShowRanking] = useState(false);
   const didSaveRef = useRef(false);
+  const [mismatchedIds, setMismatchedIds] = useState<string[]>([]);
 
   const seenPhotoIds = useRef<Set<string>>(new Set());
+
+  // Concurrency & timeout control
+  const sessionRef = useRef(0);
+  const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const isStartingRef = useRef(false);
+
+  const clearAllGameTimeouts = useCallback(() => {
+    timeoutsRef.current.forEach((t) => clearTimeout(t));
+    timeoutsRef.current.clear();
+  }, []);
+
+  const scheduleTimeout = useCallback((fn: () => void, delayMs: number) => {
+    const currentSession = sessionRef.current;
+    const timeoutId = setTimeout(() => {
+      timeoutsRef.current.delete(timeoutId);
+      if (sessionRef.current === currentSession) {
+        fn();
+      }
+    }, delayMs);
+    timeoutsRef.current.add(timeoutId);
+    return timeoutId;
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearAllGameTimeouts();
+    };
+  }, [clearAllGameTimeouts]);
 
   const { particles, burst } = useParticles();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -203,6 +244,8 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
 
   const player = usePlayerIdentityStore((s) => s.player);
   const { config } = useSiteConfigStore();
+
+  const isGameActive = screen === 'playing' && phase === 'playing' && !isLoading;
 
   const getCardSrc = useCallback((cardOrPhoto: { src?: string; publicId?: string; url?: string }) => {
     if (cardOrPhoto.publicId && !cardOrPhoto.publicId.startsWith('http')) {
@@ -212,90 +255,142 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
     return normalizeCloudinaryUrl(raw);
   }, []);
 
-  const startGame = useCallback(async (diff: DifficultyConfig) => {
-    const photos = selectPhotosForGame(albums, diff.pairs);
-    if (photos.length === 0) return;
+  const startGame = useCallback(
+    async (diff: DifficultyConfig) => {
+      const photos = selectPhotosForGame(albums, diff.pairs);
+      if (photos.length === 0) {
+        isStartingRef.current = false;
+        return;
+      }
 
-    // Reset all game state up front
-    setScore(0); setMoves(0); setElapsed(0); setCombo(0); setMaxCombo(0);
-    setIsLocked(true); setActiveDiff(diff);
-    seenPhotoIds.current = new Set();
-    setScorePopups([]); didSaveRef.current = false;
+      // Previne início concorrente
+      if (isStartingRef.current) return;
+      isStartingRef.current = true;
 
-    // ── Build ordered preview deck (pairs together: A,A,B,B,C,C…) ──
-    const orderedDeck: Card[] = [];
-    photos.forEach((photo, idx) => {
-      const photoId = `photo-${idx}`;
-      orderedDeck.push(
-        { id: `${photoId}-a`, photoId, src: photo.src, publicId: photo.publicId, state: 'revealed' },
-        { id: `${photoId}-b`, photoId, src: photo.src, publicId: photo.publicId, state: 'revealed' },
+      // Invalida sessões anteriores e cancela todos os timeouts ativos imediatamente
+      clearAllGameTimeouts();
+      const currentSession = ++sessionRef.current;
+
+      // Reseta todo o estado do jogo
+      setScore(0);
+      setMoves(0);
+      setElapsed(0);
+      setCombo(0);
+      setMaxCombo(0);
+      setIsLocked(true);
+      setActiveDiff(diff);
+      seenPhotoIds.current.clear();
+      cardRefs.current.clear();
+      setScorePopups([]);
+      setMismatchedIds([]);
+      didSaveRef.current = false;
+
+      // ── Build ordered preview deck (pares juntos: A,A,B,B,C,C…) ──
+      // Importante: estado 'preview' mantém as fotos abertas para memorização sem contar como 'revealed'
+      const orderedDeck: Card[] = [];
+      photos.forEach((photo, idx) => {
+        const photoId = `photo-${idx}`;
+        orderedDeck.push(
+          { id: `${photoId}-a`, photoId, src: photo.src, publicId: photo.publicId, state: 'preview' },
+          { id: `${photoId}-b`, photoId, src: photo.src, publicId: photo.publicId, state: 'preview' },
+        );
+      });
+
+      // ── Phase 0: Pré-carregamento 100% silencioso antes de exibir qualquer carta ──
+      setCards([]);
+      setPhase('preview');
+      setScreen('playing');
+      setIsLoading(true);
+      setLoadProgress(0);
+
+      const srcs = photos.map(getCardSrc).filter(Boolean);
+      let loaded = 0;
+      const total = srcs.length;
+
+      await Promise.all(
+        srcs.map(
+          (src) =>
+            new Promise<void>((resolve) => {
+              const img = new Image();
+              img.onload = async () => {
+                try {
+                  if ('decode' in img) {
+                    await img.decode();
+                  }
+                } catch {
+                  // Se falhar o decode, onload já baixou o arquivo
+                }
+                loaded++;
+                if (sessionRef.current === currentSession) {
+                  setLoadProgress(Math.round((loaded / total) * 100));
+                }
+                resolve();
+              };
+              img.onerror = () => {
+                loaded++;
+                if (sessionRef.current === currentSession) {
+                  setLoadProgress(Math.round((loaded / total) * 100));
+                }
+                resolve();
+              };
+              img.src = src;
+            }),
+        ),
       );
-    });
 
-    // ── Phase 0: Pré-carregamento 100% silencioso antes de exibir qualquer carta ──
-    // Mantém as cartas desmontadas/vazias para que o usuário não as veja carregando
+      // Se uma nova rodada foi iniciada enquanto baixava, aborta
+      if (sessionRef.current !== currentSession) return;
+
+      // Imagens baixadas e decodificadas na memória
+      setCards(orderedDeck);
+      setIsLoading(false);
+
+      const { totalDealDuration } = getDealAnimationTiming(diff.pairs, orderedDeck.length);
+
+      // ── Phase 1: Exibe os pares para memorização (2.2s) ──
+      scheduleTimeout(() => {
+        // Vira suavemente as cartas para baixo
+        setCards((prev) => prev.map((c) => ({ ...c, state: 'hidden' })));
+
+        // ── Phase 2: Aguarda 320ms para o flip completar e inicia o recolhimento (gather, 420ms) ──
+        scheduleTimeout(() => {
+          setPhase('gather');
+
+          scheduleTimeout(() => {
+            // ── Phase 3: Embaralha e distribui com animação escalonada ──
+            const shuffledDeck = shuffle(orderedDeck.map((c) => ({ ...c, state: 'hidden' as const })));
+            setCards(shuffledDeck);
+            setPhase('deal');
+
+            // ── Phase 4: Aguarda todas as cartas terminarem a animação de distribuição ──
+            scheduleTimeout(() => {
+              setPhase('playing');
+              setIsLocked(false);
+              isStartingRef.current = false;
+            }, totalDealDuration);
+          }, 420);
+        }, 320);
+      }, 2200);
+    },
+    [albums, getCardSrc, clearAllGameTimeouts, scheduleTimeout],
+  );
+
+  const handleRestart = useCallback(() => {
+    if (!isGameActive) return;
+    void startGame(activeDiff);
+  }, [isGameActive, startGame, activeDiff]);
+
+  const goToDifficulty = useCallback(() => {
+    clearAllGameTimeouts();
+    sessionRef.current++;
+    isStartingRef.current = false;
     setCards([]);
+    setMismatchedIds([]);
     setPhase('preview');
-    setScreen('playing');
-    setIsLoading(true);
-    setLoadProgress(0);
-
-    const srcs = photos.map(getCardSrc).filter(Boolean);
-
-    let loaded = 0;
-    const total = srcs.length;
-
-    await Promise.all(
-      srcs.map((src) =>
-        new Promise<void>((resolve) => {
-          const img = new Image();
-          img.onload = async () => {
-            try {
-              if ('decode' in img) {
-                await img.decode();
-              }
-            } catch {
-              // Se falhar o decode, onload já baixou o arquivo
-            }
-            loaded++;
-            setLoadProgress(Math.round((loaded / total) * 100));
-            resolve();
-          };
-          img.onerror = () => {
-            loaded++;
-            setLoadProgress(Math.round((loaded / total) * 100));
-            resolve();
-          };
-          img.src = src;
-        })
-      )
-    );
-
-    // Todas as imagens estão 100% baixadas e decodificadas na memória!
-    // Liberamos o deck já com as fotos prontas para a memorização sem flash de carregamento
-    setCards(orderedDeck);
     setIsLoading(false);
-
-    // ── Phase 1: show ordered pairs face-up for 2.5s ──
-    setTimeout(() => {
-      setCards((prev) => prev.map((c) => ({ ...c, state: 'hidden' })));
-      setPhase('gather');
-
-      // ── Phase 2: gather anim (CSS scale-out, 450ms) ──
-      setTimeout(() => {
-        // NOW shuffle the deck for the real game
-        const shuffledDeck = shuffle(orderedDeck.map((c) => ({ ...c, state: 'hidden' as const })));
-        setCards(shuffledDeck);
-        setPhase('deal');
-
-        // ── Phase 3: deal anim (~700ms) then unlock ──
-        setTimeout(() => {
-          setPhase('playing');
-          setIsLocked(false);
-        }, 700);
-      }, 500);
-    }, 2500);
-  }, [albums, getCardSrc]);
+    setIsLocked(false);
+    setScreen('difficulty');
+  }, [clearAllGameTimeouts]);
 
   useEffect(() => {
     if (screen !== 'playing' || phase !== 'playing') return;
@@ -306,6 +401,16 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
   const revealed = useMemo(() => cards.filter((c) => c.state === 'revealed'), [cards]);
 
   const onGameWon = useEffectEvent(() => {
+    // Validação de segurança: nunca disparar vitória sem jogadas suficientes ou fora da fase 'playing'
+    if (!canTriggerGameWin(moves, activeDiff.pairs, phase)) {
+      console.warn('[MemoryGame] Tentativa de vitória ignorada por validação de segurança:', {
+        moves,
+        pairs: activeDiff.pairs,
+        phase,
+      });
+      return;
+    }
+
     const timeMult = getTimeMultiplier(elapsed, activeDiff);
     const final = Math.round(score * timeMult);
     setFinalScore(final);
@@ -321,11 +426,11 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
   const allMatched = cards.length > 0 && cards.every((c) => c.state === 'matched');
 
   useEffect(() => {
-    if (screen !== 'playing' || phase !== 'playing') return;
+    if (screen !== 'playing' || phase !== 'playing' || isLoading) return;
     if (allMatched) {
       onGameWon();
     }
-  }, [allMatched, screen, phase]);
+  }, [allMatched, screen, phase, isLoading]);
 
   const onPairRevealed = useEffectEvent((a: Card, b: Card) => {
     setIsLocked(true);
@@ -339,10 +444,10 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
       setMaxCombo(newMax);
       setScore((s) => s + pts);
       setCards((prev) =>
-        prev.map((c) => c.photoId === a.photoId ? { ...c, state: 'matched' } : c),
+        prev.map((c) => (c.photoId === a.photoId ? { ...c, state: 'matched' } : c)),
       );
 
-      setTimeout(() => {
+      scheduleTimeout(() => {
         [a.id, b.id].slice(0, 1).forEach((id) => {
           const el = cardRefs.current.get(id);
           const container = containerRef.current;
@@ -361,18 +466,22 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
       const aWasSeen = seenPhotoIds.current.has(a.photoId);
       const bWasSeen = seenPhotoIds.current.has(b.photoId);
       const shouldPenalize = aWasSeen && bWasSeen;
-      
+
       if (shouldPenalize) {
         setScore((s) => Math.max(0, s - 5));
       }
-      setCombo(0); 
+      setCombo(0);
 
-      setTimeout(() => {
+      // Efeito de sacudida (shake) e destaque sutil nos dois cartões incorretos
+      setMismatchedIds([a.id, b.id]);
+
+      scheduleTimeout(() => {
+        setMismatchedIds([]);
         setCards((prev) =>
-          prev.map((c) => c.state === 'revealed' ? { ...c, state: 'hidden' } : c),
+          prev.map((c) => (c.state === 'revealed' ? { ...c, state: 'hidden' } : c)),
         );
         setIsLocked(false);
-      }, 1000);
+      }, 950);
     }
   });
 
@@ -380,7 +489,7 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
     // Only process matches during actual gameplay — never during preview/gather/deal
     if (phase !== 'playing' || revealed.length < 2) return;
     onPairRevealed(revealed[0], revealed[1]);
-  }, [revealed, phase]); 
+  }, [revealed, phase]);
 
   useEffect(() => {
     if (scorePopups.length === 0) return;
@@ -388,14 +497,17 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
     return () => clearTimeout(id);
   }, [scorePopups.length]);
 
-  const handleCardClick = useCallback((card: Card) => {
-    if (phase !== 'playing' || isLocked || card.state !== 'hidden' || revealed.length >= 2) return;
-    seenPhotoIds.current.add(card.photoId);
-    setCards((prev) =>
-      prev.map((c) => c.id === card.id ? { ...c, state: 'revealed' } : c),
-    );
-    setMoves((m) => m + 1);
-  }, [phase, isLocked, revealed.length]);
+  const handleCardClick = useCallback(
+    (card: Card) => {
+      if (phase !== 'playing' || isLocked || card.state !== 'hidden' || revealed.length >= 2) return;
+      seenPhotoIds.current.add(card.photoId);
+      setCards((prev) =>
+        prev.map((c) => (c.id === card.id ? { ...c, state: 'revealed' } : c)),
+      );
+      setMoves((m) => m + 1);
+    },
+    [phase, isLocked, revealed.length],
+  );
 
   // ─── Screens ────────────────────────────────────────────────────────────
 
@@ -426,7 +538,10 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
             {DIFFICULTIES.map((diff) => (
               <button
                 key={diff.id}
-                onClick={() => startGame(diff)}
+                onClick={() => {
+                  if (isStartingRef.current) return;
+                  void startGame(diff);
+                }}
                 className="group relative flex flex-col p-4 sm:p-5 rounded-[1.25rem] border transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
                 style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.06)' }}
               >
@@ -554,7 +669,10 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
           {/* Action Buttons */}
           <div className="flex flex-col w-full gap-3">
             <button
-              onClick={() => startGame(activeDiff)}
+              onClick={() => {
+                if (isStartingRef.current) return;
+                void startGame(activeDiff);
+              }}
               className="w-full py-3.5 rounded-xl text-sm font-bold tracking-wide transition-all active:scale-[0.98] hover:scale-[1.02] shadow-lg"
               style={{
                 background: 'linear-gradient(135deg, var(--theme-primary), var(--theme-secondary, var(--theme-primary)))',
@@ -566,7 +684,7 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
             </button>
             <div className="flex gap-2">
               <button
-                onClick={() => setScreen('difficulty')}
+                onClick={goToDifficulty}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-all active:scale-[0.98]"
               >
                 Trocar Nível
@@ -588,47 +706,84 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
     );
   }
 
+  const { staggerMs, animDurationMs } = getDealAnimationTiming(activeDiff.pairs, cards.length);
+
   return (
     <div className="flex flex-col h-full max-h-full w-full gap-1 p-1 sm:p-1.5 select-none relative" ref={containerRef}>
       
       {/* ── Ultra-compact HUD ────────────────────────────────────────── */}
       <div
-        className="flex items-center justify-between px-2 py-1 shrink-0 rounded-lg"
+        className="flex flex-col shrink-0 rounded-lg overflow-hidden relative"
         style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)' }}
       >
-        {/* Score + combo */}
-        <div className="flex items-center gap-2">
-          <Zap className="w-3 h-3" style={{ color: 'var(--theme-primary)' }} />
-          <span className="font-bold text-xs text-white leading-none tabular-nums">{score}</span>
-          {combo >= 2 && (
-            <span
-              className="rounded-full px-1.5 py-px text-[9px] font-bold leading-none"
-              style={{ background: 'rgba(var(--theme-primary-rgb),0.25)', color: 'var(--theme-primary)' }}
-            >
-              ×{getComboMultiplier(combo).toFixed(1)}
+        <div className="flex items-center justify-between px-2 py-1 w-full">
+          {/* Score + combo */}
+          <div className="flex items-center gap-2">
+            <Zap className="w-3 h-3" style={{ color: 'var(--theme-primary)' }} />
+            <span className="font-bold text-xs text-white leading-none tabular-nums">{score}</span>
+            {combo >= 2 && (
+              <span
+                className="rounded-full px-1.5 py-px text-[9px] font-bold leading-none"
+                style={{ background: 'rgba(var(--theme-primary-rgb),0.25)', color: 'var(--theme-primary)' }}
+              >
+                ×{getComboMultiplier(combo).toFixed(1)}
+              </span>
+            )}
+          </div>
+
+          {/* Phase label during animation */}
+          {phase !== 'playing' && (
+            <span className="text-[10px] text-white/50 italic flex items-center gap-1">
+              {phase === 'preview' ? (
+                <>
+                  <Eye className="w-3 h-3 text-[var(--theme-primary)] animate-pulse" />
+                  <span>Memorize as fotos…</span>
+                </>
+              ) : phase === 'gather' ? (
+                'Embaralhando…'
+              ) : (
+                'Distribuindo…'
+              )}
             </span>
           )}
+
+          {/* Time + controls */}
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3 text-white/50" />
+            <span className="font-mono text-xs text-white/70 leading-none tabular-nums">{formatTime(elapsed)}</span>
+            <div className="w-px h-3 mx-1" style={{ background: 'rgba(255,255,255,0.1)' }} />
+            <button onClick={() => setShowRanking(true)} className="p-1 rounded hover:bg-white/10 transition-colors" title="Ranking">
+              <Trophy className="w-3 h-3 text-white/40 hover:text-white/80" />
+            </button>
+            <button
+              onClick={handleRestart}
+              disabled={!isGameActive}
+              className={cn(
+                'p-1 rounded transition-all',
+                isGameActive
+                  ? 'hover:bg-white/10 text-white/40 hover:text-white/80 cursor-pointer'
+                  : 'opacity-25 cursor-not-allowed text-white/20 hover:bg-transparent',
+              )}
+              title={isGameActive ? 'Reiniciar partida' : 'Aguarde o início da partida...'}
+              aria-label={isGameActive ? 'Reiniciar partida' : 'Aguarde o início da partida'}
+            >
+              <RotateCcw className="w-3 h-3" />
+            </button>
+          </div>
         </div>
 
-        {/* Phase label during animation */}
-        {phase !== 'playing' && (
-          <span className="text-[10px] text-white/40 italic">
-            {phase === 'preview' ? 'Memorize as fotos…' : phase === 'gather' ? '…' : 'Distribuindo…'}
-          </span>
+        {/* Barra de contagem regressiva suave durante a fase de memorização */}
+        {phase === 'preview' && !isLoading && (
+          <div className="w-full h-[2.5px] bg-white/10 overflow-hidden relative">
+            <div
+              className="h-full animate-preview-drain"
+              style={{
+                background: 'linear-gradient(90deg, var(--theme-secondary, var(--theme-primary)), var(--theme-primary))',
+                boxShadow: '0 0 10px var(--theme-primary)',
+              }}
+            />
+          </div>
         )}
-
-        {/* Time + controls */}
-        <div className="flex items-center gap-1">
-          <Clock className="w-3 h-3 text-white/50" />
-          <span className="font-mono text-xs text-white/70 leading-none tabular-nums">{formatTime(elapsed)}</span>
-          <div className="w-px h-3 mx-1" style={{ background: 'rgba(255,255,255,0.1)' }} />
-          <button onClick={() => setShowRanking(true)} className="p-1 rounded hover:bg-white/10 transition-colors" title="Ranking">
-            <Trophy className="w-3 h-3 text-white/40 hover:text-white/80" />
-          </button>
-          <button onClick={() => startGame(activeDiff)} className="p-1 rounded hover:bg-white/10 transition-colors" title="Reiniciar">
-            <RotateCcw className="w-3 h-3 text-white/40 hover:text-white/80" />
-          </button>
-        </div>
       </div>
 
       {/* ── Card Grid with gather/deal animation ─────────────────────── */}
@@ -674,8 +829,11 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
                 card={card}
                 imgSrc={getCardSrc(card)}
                 onClick={() => handleCardClick(card)}
-                dealDelay={phase === 'deal' ? i * 28 : 0}
+                dealDelay={phase === 'deal' ? i * staggerMs : 0}
                 isDeal={phase === 'deal'}
+                animDurationMs={animDurationMs}
+                isPlayable={phase === 'playing' && !isLocked}
+                isMismatched={mismatchedIds.includes(card.id)}
                 registerRef={(el) => {
                   if (el) cardRefs.current.set(card.id, el);
                   else cardRefs.current.delete(card.id);
@@ -747,9 +905,22 @@ interface MemoryCardProps {
   registerRef: (el: HTMLDivElement | null) => void;
   dealDelay?: number; // ms — staggered entry during deal phase
   isDeal?: boolean;
+  animDurationMs?: number;
+  isPlayable?: boolean;
+  isMismatched?: boolean; // true durante a animação de erro (par errado)
 }
 
-const MemoryCard = memo(function MemoryCard({ card, imgSrc, onClick, registerRef, dealDelay = 0, isDeal = false }: MemoryCardProps) {
+const MemoryCard = memo(function MemoryCard({
+  card,
+  imgSrc,
+  onClick,
+  registerRef,
+  dealDelay = 0,
+  isDeal = false,
+  animDurationMs = 280,
+  isPlayable = false,
+  isMismatched = false,
+}: MemoryCardProps) {
   const isFlipped = card.state !== 'hidden';
   const isMatched = card.state === 'matched';
 
@@ -758,18 +929,21 @@ const MemoryCard = memo(function MemoryCard({ card, imgSrc, onClick, registerRef
       ref={registerRef}
       onClick={onClick}
       className={cn(
-        'relative w-full h-full cursor-pointer transition-transform duration-150 active:scale-95',
-        card.state === 'hidden' && 'hover:scale-105',
+        'group relative w-full h-full select-none',
+        card.state === 'hidden' && isPlayable && 'cursor-pointer hover:scale-[1.03] active:scale-95 transition-transform duration-150',
+        card.state === 'hidden' && !isPlayable && 'cursor-default',
         isFlipped && 'cursor-default',
         // During deal phase: animate in from scale 0
-        isDeal && 'animate-in zoom-in-50 fade-in'
+        isDeal && 'animate-in zoom-in-50 fade-in',
+        // Feedback ao errar o par: sacudida suave
+        isMismatched && 'animate-memory-shake',
       )}
       style={{
         perspective: '800px',
         userSelect: 'none',
         WebkitUserSelect: 'none' as React.CSSProperties['WebkitUserSelect'],
         animationDelay: isDeal ? `${dealDelay}ms` : undefined,
-        animationDuration: isDeal ? '300ms' : undefined,
+        animationDuration: isDeal ? `${animDurationMs}ms` : undefined,
         animationFillMode: isDeal ? 'both' : undefined,
       }}
     >
@@ -781,20 +955,45 @@ const MemoryCard = memo(function MemoryCard({ card, imgSrc, onClick, registerRef
           transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
         }}
       >
-        {/* Back */}
+        {/* Back (Verso estilizado da carta — aspecto colecionável com micro-gradiente e brilho) */}
         <div
-          className="absolute inset-0 rounded-xl flex items-center justify-center border overflow-hidden"
+          className="absolute inset-0 rounded-xl flex items-center justify-center border overflow-hidden transition-all duration-300"
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
-            background: 'var(--theme-card-bg)',
-            borderColor: 'rgba(var(--theme-primary-rgb), 0.25)',
+            background: 'linear-gradient(145deg, rgba(var(--theme-primary-rgb), 0.16) 0%, var(--theme-card-bg) 55%, rgba(0,0,0,0.65) 100%)',
+            borderColor: 'rgba(var(--theme-primary-rgb), 0.3)',
             boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           }}
         >
-          <div className="relative">
+          {/* Moldura interna decorativa fina */}
+          <div
+            className="absolute inset-1.5 rounded-lg border pointer-events-none transition-colors duration-300"
+            style={{
+              borderColor: 'rgba(var(--theme-primary-rgb), 0.18)',
+              background: 'radial-gradient(circle at 50% 50%, rgba(var(--theme-primary-rgb), 0.08) 0%, transparent 80%)',
+            }}
+          />
+
+          {/* Shimmer luminoso que desliza no hover quando jogável */}
+          {isPlayable && (
+            <div
+              className="absolute -inset-[100%] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              style={{
+                background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)',
+                animation: 'memory-shimmer 1.3s ease-in-out infinite',
+              }}
+            />
+          )}
+
+          {/* Coração central com micro-brilho difuso */}
+          <div className="relative flex items-center justify-center pointer-events-none">
+            <div
+              className="absolute w-8 h-8 rounded-full blur-md opacity-25 group-hover:opacity-50 transition-all duration-300 pointer-events-none"
+              style={{ background: 'var(--theme-primary)' }}
+            />
             <Heart
-              className="w-8 h-8 opacity-20"
+              className="w-7 h-7 transition-all duration-300 opacity-25 group-hover:opacity-65 group-hover:scale-110"
               style={{
                 color: 'var(--theme-primary)',
                 fill: 'var(--theme-primary)',
@@ -803,17 +1002,23 @@ const MemoryCard = memo(function MemoryCard({ card, imgSrc, onClick, registerRef
           </div>
         </div>
 
-        {/* Front */}
+        {/* Front (Frente da foto com feedback de match e mismatch) */}
         <div
-          className="absolute inset-0 rounded-xl overflow-hidden border bg-black/40"
+          className="absolute inset-0 rounded-xl overflow-hidden border bg-black/40 transition-all duration-200"
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
-            borderColor: isMatched ? 'var(--theme-primary)' : 'rgba(var(--theme-primary-rgb), 0.4)',
+            borderColor: isMatched
+              ? 'var(--theme-primary)'
+              : isMismatched
+                ? 'rgba(244, 63, 94, 0.9)'
+                : 'rgba(var(--theme-primary-rgb), 0.4)',
             boxShadow: isMatched
               ? '0 0 16px rgba(var(--theme-primary-rgb), 0.6)'
-              : '0 2px 8px rgba(0,0,0,0.4)',
+              : isMismatched
+                ? '0 0 18px rgba(244, 63, 94, 0.5)'
+                : '0 2px 8px rgba(0,0,0,0.4)',
           }}
         >
           <img

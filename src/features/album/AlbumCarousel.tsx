@@ -163,7 +163,7 @@ export function AlbumCarousel() {
 
     // Timeout geral de 10s: no celular é melhor esperar um pouco o REST do que cair no SDK lento.
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(new DOMException('REST timeout 10s', 'AbortError')), 10000);
 
     try {
       // Busca paginada: antes só vinha a 1ª página (100 docs) e álbuns ficavam sem fotos.
@@ -333,7 +333,7 @@ export function AlbumCarousel() {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => {
             console.warn(`⏰ [AlbumCarousel] Timeout de 8s estourou no REST para ${albumId}`);
-            controller.abort();
+            controller.abort(new DOMException('REST timeout 8s', 'AbortError'));
           }, 8000);
           try {
             const rawDocs = await queryAlbumPhotoPages(albumId, controller.signal);

@@ -39,7 +39,7 @@ function createFirestore() {
         },
       });
     }
-    return initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+    return initializeFirestore(app, {});
   } catch {
     // Já inicializado (ex.: hot reload em dev) → reutiliza a instância existente
     return getFirestore(app);

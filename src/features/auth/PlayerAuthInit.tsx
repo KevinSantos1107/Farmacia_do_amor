@@ -33,14 +33,18 @@ export function PlayerAuthInit() {
     const { p1Id, p2Id } = getPlayerIds(config);
 
     const initAuth = async () => {
-      let uid = '';
-      // 1. Perform anonymous auth immediately so we have a UID for rules
-      try {
-        const userCredential = await signInAnonymously(auth);
-        uid = userCredential.user.uid;
+      let uid = auth.currentUser?.uid || '';
+      // 1. Só autentica anonimamente se não houver usuário logado ainda
+      if (!uid) {
+        try {
+          const userCredential = await signInAnonymously(auth);
+          uid = userCredential.user.uid;
+        } catch (error) {
+          console.error('Erro ao autenticar anonimamente:', error);
+        }
+      }
+      if (uid) {
         setUid(uid);
-      } catch (error) {
-        console.error('Erro ao autenticar anonimamente:', error);
       }
 
       // 2. Check for token in URL
