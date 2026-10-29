@@ -23,7 +23,15 @@ import { useToast } from '../../shared/ui/ToastProvider';
 import { AdminPageHeader } from './AdminPageHeader';
 import { useOverlayHistory } from '../../shared/hooks/useOverlayHistory';
 import { cn } from '../../shared/utils/cn';
-import { DndContext } from '@dnd-kit/core';
+import {
+  DndContext,
+  closestCenter,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortableList } from '../../shared/hooks/useSortableList';
 import { SortableItem } from '../../shared/ui/SortableItem';
@@ -36,6 +44,7 @@ import {
   Image as ImageIcon,
   Pencil,
   Save,
+  Check,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -119,7 +128,10 @@ function DropZone({
         className="hidden"
         accept={accept}
         multiple={multiple}
-        onChange={(e) => e.target.files && onFiles(Array.from(e.target.files))}
+        onChange={(e) => {
+          if (e.target.files) onFiles(Array.from(e.target.files));
+          e.target.value = '';
+        }}
       />
     </div>
   );
@@ -146,7 +158,6 @@ export default function AlbumEditor() {
   const [loading, setLoading] = useState(true);
   const [activeAlbum, setActiveAlbum] = useState<Album | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [activePhotoId, setActivePhotoId] = useState<string | null>(null);
 
   // new album form
   const [creating, setCreating] = useState(false);
@@ -162,11 +173,23 @@ export default function AlbumEditor() {
   const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
-  // photo upload
+  // selection mode (Samsung Gallery long-press style)
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
+  const [activeDragPhotoId, setActiveDragPhotoId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
+  const didLongPressRef = useRef(false);
+  const isDraggingRef = useRef(false);
+
+  // photo upload tracking
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadPreviews, setUploadPreviews] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
+  const [isSavingUpload, setIsSavingUpload] = useState(false);
+  const addMoreInputRef = useRef<HTMLInputElement>(null);
   
   // confirmation dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -255,6 +278,8 @@ export default function AlbumEditor() {
       setPhotos(latest?.photos || []);
     } else {
       setPhotos([]);
+      setIsSelectionMode(false);
+      setSelectedPhotoIds(new Set());
     }
   }, [activeAlbum, albums]);
 
@@ -429,32 +454,157 @@ export default function AlbumEditor() {
   };
   const albumSortable = useSortableList(albums, handleAlbumReorder);
 
-  // ─ Reorder photos (using dnd-kit hook defined later in render) ─
-  const handlePhotoReorder = async (reordered: Photo[]) => {
-    setPhotos(reordered);
-    const reorderedPhotos = reordered.map((p) => ({ ...p }));
-    const pSnap = await getDocs(
-      query(siteCollection('album_photos', siteId), where('albumId', '==', activeAlbum!.id), orderBy('pageNumber', 'asc'))
-    );
-    if (!pSnap.empty) {
-      const batch = writeBatch(db);
-      batch.update(pSnap.docs[0].ref, { photos: reorderedPhotos, pageNumber: 0 });
-      for (let i = 1; i < pSnap.docs.length; i++) {
-        batch.delete(pSnap.docs[i].ref);
+  // ─ Reorder photos (dnd-kit) ─
+  // ─ Reorder photos (Samsung style: reordena no drag durante a seleção e persiste automaticamente) ─
+  const handlePhotoReorder = async (reordered: (Photo & { id: string })[]) => {
+    const newPhotos = reordered.map((item) => {
+      return photos.find((p) => (p.publicId || p.url || p.src) === item.id) || (item as unknown as Photo);
+    });
+    setPhotos(newPhotos);
+    if (!activeAlbum) return;
+    try {
+      const pSnap = await getDocs(
+        query(siteCollection('album_photos', siteId), where('albumId', '==', activeAlbum.id), orderBy('pageNumber', 'asc'))
+      );
+      if (!pSnap.empty) {
+        const batch = writeBatch(db);
+        batch.update(pSnap.docs[0].ref, { photos: newPhotos, pageNumber: 0 });
+        for (let i = 1; i < pSnap.docs.length; i++) {
+          batch.delete(pSnap.docs[i].ref);
+        }
+        batch.update(siteDoc('albums', activeAlbum.id, siteId), { photoCount: newPhotos.length });
+        await batch.commit();
+      } else {
+        await addDoc(siteCollection('album_photos', siteId), {
+          albumId: activeAlbum.id,
+          pageNumber: 0,
+          photos: newPhotos,
+        });
+        await updateDoc(siteDoc('albums', activeAlbum.id, siteId), { photoCount: newPhotos.length });
       }
-      batch.update(siteDoc('albums', activeAlbum!.id, siteId), { photoCount: reorderedPhotos.length });
-      await batch.commit();
-    } else {
-      await addDoc(siteCollection('album_photos', siteId), {
-        albumId: activeAlbum!.id,
-        pageNumber: 0,
-        photos: reorderedPhotos,
-      });
-      await updateDoc(siteDoc('albums', activeAlbum!.id, siteId), { photoCount: reorderedPhotos.length });
+      setAlbums((prev) =>
+        prev.map((a) =>
+          a.id === activeAlbum.id ? { ...a, photos: newPhotos, photoCount: newPhotos.length } : a
+        )
+      );
+      show('Ordem das fotos salva!');
+    } catch {
+      show('Erro ao salvar nova ordem', 'err');
     }
-    loadAlbums(); // refresh state
   };
-  const photoSortable = useSortableList(photos.map(p => ({ ...p, id: p.publicId || p.url || p.src || Math.random().toString() })), handlePhotoReorder);
+
+  const photoItemsWithId = photos.map((p, idx) => ({
+    ...p,
+    id: p.publicId || p.url || p.src || String(idx),
+  }));
+
+  const photoSortable = useSortableList(photoItemsWithId, handlePhotoReorder);
+
+  const photoSensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 6,
+      },
+    })
+  );
+
+  const activeDragPhoto = activeDragPhotoId
+    ? photos.find((p, idx) => (p.publicId || p.url || p.src || String(idx)) === activeDragPhotoId) || null
+    : null;
+
+  // ─ Selection mode & Gestures (Samsung Gallery style long-press) ─
+  const handlePointerDown = (e: React.PointerEvent, photoId: string) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+    didLongPressRef.current = false;
+    startPosRef.current = { x: e.clientX, y: e.clientY };
+
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+
+    longPressTimerRef.current = setTimeout(() => {
+      didLongPressRef.current = true;
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+          navigator.vibrate(35);
+        } catch {}
+      }
+      setIsSelectionMode(true);
+      setSelectedPhotoIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(photoId)) {
+          next.delete(photoId);
+        } else {
+          next.add(photoId);
+        }
+        return next;
+      });
+    }, 350);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!startPosRef.current || !longPressTimerRef.current) return;
+    const dx = Math.abs(e.clientX - startPosRef.current.x);
+    const dy = Math.abs(e.clientY - startPosRef.current.y);
+    if (dx > 8 || dy > 8) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+      startPosRef.current = null;
+    }
+  };
+
+  const handlePointerUpOrLeave = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    startPosRef.current = null;
+  };
+
+  const handleCardClick = (photoId: string) => {
+    if (isDraggingRef.current) return;
+    if (didLongPressRef.current) {
+      didLongPressRef.current = false;
+      return;
+    }
+
+    if (isSelectionMode) {
+      setSelectedPhotoIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(photoId)) {
+          next.delete(photoId);
+        } else {
+          next.add(photoId);
+        }
+        if (next.size === 0) {
+          setIsSelectionMode(false);
+        }
+        return next;
+      });
+      return;
+    }
+
+    // Regra fundamental: Tocar rapidamente em uma foto no modo normal NÃO abre a imagem
+  };
+
+  const handleSelectAllToggle = () => {
+    if (selectedPhotoIds.size === photos.length) {
+      setSelectedPhotoIds(new Set());
+      setIsSelectionMode(false);
+    } else {
+      const allIds = new Set<string>();
+      photos.forEach((p, idx) => {
+        const id = p.publicId || p.url || p.src || String(idx);
+        allIds.add(id);
+      });
+      setSelectedPhotoIds(allIds);
+    }
+  };
 
   // ─ Photo upload files selected ─
   const handlePhotoFiles = (files: File[]) => {
@@ -473,9 +623,11 @@ export default function AlbumEditor() {
   const handleConfirmUpload = async () => {
     if (!activeAlbum || uploadFiles.length === 0) return;
     setUploading(true);
+    setIsSavingUpload(false);
     try {
       const newPhotos: Photo[] = [];
       for (let i = 0; i < uploadFiles.length; i++) {
+        setCurrentUploadIndex(i);
         const res = await uploadImage(
           uploadFiles[i],
           `${siteId}/albums/${activeAlbum.id}`,
@@ -495,9 +647,8 @@ export default function AlbumEditor() {
         });
       }
 
+      setIsSavingUpload(true);
       // ── Re-lê TODAS as páginas do álbum ordenadas por pageNumber ──────────
-      // CRÍTICO: álbuns legados têm múltiplos docs (pageNumber:0, pageNumber:1…).
-      // Usar activeAlbum.photos poderia estar incompleto se carregado sem ordem.
       const pSnap = await getDocs(
         query(siteCollection('album_photos', siteId), where('albumId', '==', activeAlbum.id), orderBy('pageNumber', 'asc'))
       );
@@ -536,61 +687,74 @@ export default function AlbumEditor() {
       setUploadFiles([]);
       setUploadPreviews([]);
       setUploadProgress([]);
+      setCurrentUploadIndex(0);
+      setIsSavingUpload(false);
       loadAlbums();
     } catch (e: unknown) {
       show('Erro no upload: ' + (e instanceof Error ? e.message : String(e)), 'err');
     }
     setUploading(false);
+    setIsSavingUpload(false);
   };
 
-  // ─ Delete photo ─
-  const handleDeletePhoto = (photo: Photo) => {
-    if (!activeAlbum) return;
+  // ─ Batch delete photos ─
+  const handleBatchDelete = () => {
+    if (selectedPhotoIds.size === 0 || !activeAlbum) return;
+    const count = selectedPhotoIds.size;
     setConfirmDialog({
       isOpen: true,
-      title: 'Deletar Foto',
-      message: 'Tem certeza que deseja deletar esta foto? Esta ação não pode ser desfeita.',
-      confirmText: 'Deletar',
+      title: `Excluir ${count} foto${count > 1 ? 's' : ''}`,
+      message: `Tem certeza que deseja deletar ${count === 1 ? 'a foto selecionada' : `as ${count} fotos selecionadas`}? Esta ação não pode ser desfeita.`,
+      confirmText: `Excluir ${count} foto${count > 1 ? 's' : ''}`,
       cancelText: 'Cancelar',
       isDestructive: true,
-      onConfirm: () => executeDeletePhoto(photo),
+      onConfirm: () => executeBatchDelete(),
     });
   };
 
-  const executeDeletePhoto = async (photo: Photo) => {
-    if (!activeAlbum) return;
-    setConfirmDialog({ ...confirmDialog, isOpen: false });
+  const executeBatchDelete = async () => {
+    if (!activeAlbum || selectedPhotoIds.size === 0) return;
+    setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
     try {
-      if (photo.publicId) {
-        await addDoc(siteCollection('cloudinary_deletions_queue', siteId), {
-          publicId: photo.publicId,
-          createdAt: serverTimestamp(),
-        });
+      const photosToDelete = photos.filter((p, idx) => {
+        const pId = p.publicId || p.url || p.src || String(idx);
+        return selectedPhotoIds.has(pId);
+      });
+
+      if (photosToDelete.length > 0) {
+        const deletionsQueue = photosToDelete
+          .filter((p) => p.publicId)
+          .map((p) => ({ publicId: p.publicId, createdAt: serverTimestamp() }));
+
+        if (deletionsQueue.length > 0) {
+          const delBatch = writeBatch(db);
+          deletionsQueue.forEach((item) => {
+            delBatch.set(siteDoc('cloudinary_deletions_queue', undefined, siteId), item);
+          });
+          await delBatch.commit();
+        }
       }
 
-      // ── Re-lê TODAS as páginas para garantir que nenhuma foto seja perdida ─
       const pSnap = await getDocs(
         query(siteCollection('album_photos', siteId), where('albumId', '==', activeAlbum.id), orderBy('pageNumber', 'asc'))
       );
 
-      // Coleta todas as fotos de todas as páginas
       const allExistingPhotos: Photo[] = [];
       pSnap.forEach((pDoc) => {
+        if (pDoc.id.startsWith('_')) return;
         const pData = pDoc.data();
         if (pData.photos && Array.isArray(pData.photos)) {
           allExistingPhotos.push(...pData.photos);
         }
       });
 
-      // Filtra removendo apenas a foto deletada
-      const photoKey = photo.publicId || photo.url || photo.src;
-      const updatedPhotos = allExistingPhotos.filter(
-        (p) => (p.publicId || p.url || p.src) !== photoKey
-      );
+      const updatedPhotos = allExistingPhotos.filter((p, idx) => {
+        const pId = p.publicId || p.url || p.src || String(idx);
+        return !selectedPhotoIds.has(pId);
+      });
 
       if (!pSnap.empty) {
         const batch = writeBatch(db);
-        // Consolida tudo no primeiro doc e deleta as outras páginas
         batch.update(pSnap.docs[0].ref, { photos: updatedPhotos, pageNumber: 0 });
         for (let i = 1; i < pSnap.docs.length; i++) {
           batch.delete(pSnap.docs[i].ref);
@@ -599,12 +763,13 @@ export default function AlbumEditor() {
       }
 
       setPhotos(updatedPhotos);
-      show('Foto deletada!');
-      // Atualiza o photoCount no documento do álbum
+      show(`${photosToDelete.length} foto(s) deletada(s) com sucesso!`);
       await updateDoc(siteDoc('albums', activeAlbum.id, siteId), { photoCount: updatedPhotos.length });
+      setSelectedPhotoIds(new Set());
+      setIsSelectionMode(false);
       loadAlbums();
     } catch (e: unknown) {
-      show('Erro ao deletar: ' + (e instanceof Error ? e.message : String(e)), 'err');
+      show('Erro ao deletar fotos: ' + (e instanceof Error ? e.message : String(e)), 'err');
     }
   };
 
@@ -612,19 +777,23 @@ export default function AlbumEditor() {
   // RENDER: Photo editor (inside an album)
   // ─────────────────────────────────────────────────────────────────────────────
   if (activeAlbum) {
-    const uploadedCount = uploadProgress.filter(p => p === 100).length;
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
-        <div className="flex items-center gap-3">
+        {/* Header da sessão do álbum - minimalista sem botão */}
+        <div className="flex items-center gap-2 sm:gap-3 pb-3 border-b border-slate-800">
           <button
-            onClick={() => setActiveAlbum(null)}
-            className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm"
+            onClick={() => {
+              setIsSelectionMode(false);
+              setSelectedPhotoIds(new Set());
+              setActiveAlbum(null);
+            }}
+            className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm shrink-0"
           >
             ← Álbuns
           </button>
-          <span className="text-slate-600">/</span>
-          <h1 className="text-2xl font-bold text-white">{activeAlbum.title}</h1>
-          <span className="text-slate-500 text-sm font-mono">{photos.length} fotos</span>
+          <span className="text-slate-600 shrink-0">/</span>
+          <h1 className="text-lg sm:text-xl font-bold text-white truncate">{activeAlbum.title}</h1>
+          <span className="text-slate-500 text-xs sm:text-sm font-mono shrink-0">({photos.length} fotos)</span>
         </div>
 
         {/* Upload zone */}
@@ -634,11 +803,17 @@ export default function AlbumEditor() {
             label="Solte as fotos aqui ou clique para selecionar. Você pode selecionar várias de uma vez."
           />
         ) : (
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-white flex items-center gap-2">
+              <p className="font-semibold text-white flex items-center gap-2 text-sm sm:text-base">
                 {uploadFiles.length} foto(s) na fila
-                {uploading && <span className="text-sm font-normal text-rose-400 ml-2">Enviando {uploadedCount + 1} de {uploadFiles.length}...</span>}
+                {uploading && (
+                  <span className="text-xs sm:text-sm font-normal text-rose-400 ml-2">
+                    {isSavingUpload
+                      ? 'Salvando no banco de dados...'
+                      : `Enviando foto ${Math.min(currentUploadIndex + 1, uploadFiles.length)} de ${uploadFiles.length}...`}
+                  </span>
+                )}
               </p>
               {!uploading && (
                 <button
@@ -647,13 +822,15 @@ export default function AlbumEditor() {
                     setUploadPreviews([]);
                     setUploadProgress([]);
                   }}
-                  className="text-slate-400 hover:text-white"
+                  className="text-slate-400 hover:text-white p-1"
+                  aria-label="Limpar fila"
                 >
                   <X className="w-5 h-5" />
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2">
+
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
               {uploadPreviews.map((src, i) => (
                 <div
                   key={i}
@@ -662,7 +839,8 @@ export default function AlbumEditor() {
                   <img
                     src={src}
                     alt=""
-                    className="w-full h-full object-cover relative z-10"
+                    draggable={false}
+                    className="w-full h-full object-cover relative z-10 pointer-events-none select-none"
                     onError={(e) => {
                       (e.currentTarget as HTMLElement).style.display = 'none';
                     }}
@@ -675,28 +853,57 @@ export default function AlbumEditor() {
                   </div>
                   {!uploading && (
                     <button
+                      type="button"
                       onClick={() => handleRemoveFromQueue(i)}
-                      className="absolute top-1 right-1 p-1 bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black"
+                      className="absolute top-1 right-1 p-1 bg-black/80 rounded-full text-white hover:bg-red-600 transition-colors z-20"
+                      aria-label="Remover foto da fila"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   )}
                   {uploading && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-xs text-white font-mono">
+                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-xs text-white font-mono z-20">
                       {uploadProgress[i] || 0}%
                     </div>
                   )}
                 </div>
               ))}
             </div>
+
             {uploading && (
               <ProgressBar
-                pct={Math.round(uploadProgress.reduce((a, b) => a + (b || 0), 0) / uploadProgress.length)}
+                pct={Math.round(uploadProgress.reduce((a, b) => a + (b || 0), 0) / (uploadProgress.length || 1))}
               />
             )}
-            <div className="flex gap-3 mt-4 border-t border-slate-700/50 pt-4">
-              <Button onClick={handleConfirmUpload} isLoading={uploading} className="gap-2 flex-1 md:flex-none">
-                <Upload className="w-4 h-4" /> Fazer Upload
+
+            {/* Input oculto para "Adicionar Mais" sem romper a responsividade */}
+            <input
+              ref={addMoreInputRef}
+              type="file"
+              className="hidden"
+              accept={IMAGE_ACCEPT}
+              multiple
+              onChange={(e) => {
+                if (e.target.files) handlePhotoFiles(Array.from(e.target.files));
+                e.target.value = '';
+              }}
+            />
+
+            <div className="flex flex-col sm:flex-row gap-2.5 mt-4 border-t border-slate-700/50 pt-4 w-full">
+              <Button
+                onClick={handleConfirmUpload}
+                isLoading={uploading}
+                className="gap-2 w-full sm:w-auto"
+              >
+                <Upload className="w-4 h-4" /> Fazer Upload ({uploadFiles.length})
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => addMoreInputRef.current?.click()}
+                disabled={uploading}
+                className="bg-slate-700 hover:bg-slate-600 text-white gap-2 w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4" /> Adicionar Mais
               </Button>
               <Button
                 variant="secondary"
@@ -705,17 +912,11 @@ export default function AlbumEditor() {
                   setUploadPreviews([]);
                   setUploadProgress([]);
                 }}
-                className="bg-slate-700 text-white flex-1 md:flex-none"
+                className="bg-slate-800 text-slate-300 hover:text-white w-full sm:w-auto sm:ml-auto"
                 disabled={uploading}
               >
                 Limpar Fila
               </Button>
-              <DropZone
-                onFiles={handlePhotoFiles}
-                label="Adicionar mais"
-                accept={IMAGE_ACCEPT}
-                multiple
-              />
             </div>
           </div>
         )}
@@ -727,61 +928,110 @@ export default function AlbumEditor() {
             title="Álbum vazio"
             description="Nenhuma foto ainda. Use a área acima para fazer upload das suas fotos."
           />
-        ) : (
-          <DndContext sensors={photoSortable.sensors} onDragEnd={photoSortable.handleDragEnd}>
+        ) : isSelectionMode ? (
+          /* Grid no Modo Seleção: arrasto ativado para reordenar (Samsung Gallery) */
+          <DndContext
+            sensors={photoSensors}
+            collisionDetection={closestCenter}
+            onDragStart={(event) => {
+              isDraggingRef.current = true;
+              setActiveDragPhotoId(String(event.active.id));
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try {
+                  navigator.vibrate(25);
+                } catch {}
+              }
+            }}
+            onDragEnd={(event) => {
+              setActiveDragPhotoId(null);
+              setTimeout(() => {
+                isDraggingRef.current = false;
+              }, 100);
+              photoSortable.handleDragEnd(event);
+            }}
+            onDragCancel={() => {
+              setActiveDragPhotoId(null);
+              isDraggingRef.current = false;
+            }}
+          >
             <SortableContext items={photoSortable.ids} strategy={rectSortingStrategy}>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              <div
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 select-none pb-24"
+              >
                 {photos.map((photo, idx) => {
                   const pId = photo.publicId || photo.url || photo.src || String(idx);
+                  const isSelected = selectedPhotoIds.has(pId);
                   return (
                     <SortableItem key={pId} id={pId}>
-                      {({ isDragging, setNodeRef, style, handleProps }) => (
+                      {({ isDragging, setNodeRef, style, handleProps, handleStyle }) => (
                         <div
                           ref={setNodeRef}
-                          style={{ ...style, touchAction: 'pan-y' }}
+                          style={{
+                            ...style,
+                            ...handleStyle,
+                            touchAction: 'manipulation',
+                            WebkitTouchCallout: 'none',
+                            userSelect: 'none',
+                          }}
                           {...handleProps}
-                          onClick={() => setActivePhotoId(activePhotoId === pId ? null : pId)}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onClick={() => handleCardClick(pId)}
                           className={cn(
-                            "group relative aspect-square rounded-xl overflow-hidden bg-slate-800 border border-slate-700 cursor-grab active:cursor-grabbing",
-                            isDragging ? "shadow-2xl shadow-rose-500/20 ring-2 ring-rose-500 z-10" : ""
+                            "group relative aspect-square rounded-xl overflow-hidden bg-slate-800 border select-none cursor-pointer",
+                            // Animação de bordas e opacidade apenas — sem animar transform para o drag ser a 60fps sem oscilação
+                            "transition-[border-color,box-shadow,opacity] duration-150",
+                            isSelected
+                              ? "ring-2 ring-indigo-500 border-indigo-500 scale-[0.98]"
+                              : "border-slate-700 hover:border-slate-500",
+                            isDragging
+                              ? "opacity-25 border-dashed border-indigo-400/60 ring-2 ring-indigo-400/40"
+                              : ""
                           )}
                         >
                           {photo.publicId ? (
                             <img
                               src={cloudinaryUrl(photo.publicId, { w: 400, q: 70 })}
                               alt=""
-                              className="w-full h-full object-cover transition-transform lg:group-hover:scale-105 duration-300 pointer-events-none"
+                              draggable={false}
+                              onContextMenu={(e) => e.preventDefault()}
+                              style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+                              className="w-full h-full object-cover pointer-events-none select-none"
                             />
                           ) : photo.url || photo.src ? (
                             <img
                               src={photo.url || photo.src}
                               alt=""
-                              className="w-full h-full object-cover transition-transform lg:group-hover:scale-105 duration-300 pointer-events-none"
+                              draggable={false}
+                              onContextMenu={(e) => e.preventDefault()}
+                              style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+                              className="w-full h-full object-cover pointer-events-none select-none"
                             />
                           ) : (
-                            <div className="w-full h-full bg-slate-700 flex items-center justify-center pointer-events-none">
+                            <div className="w-full h-full bg-slate-700 flex items-center justify-center pointer-events-none select-none">
                               <ImageIcon className="w-8 h-8 text-slate-500" />
                             </div>
                           )}
-                          <div className={cn(
-                            "absolute inset-0 transition-all duration-200 flex items-center justify-center z-10",
-                            activePhotoId === pId ? "bg-black/40 opacity-100" : "bg-black/0 opacity-0 lg:group-hover:bg-black/40 lg:group-hover:opacity-100"
-                          )}>
-                            <button
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeletePhoto(photo); }}
-                              className="p-3 bg-red-500/90 rounded-full text-white hover:bg-red-600 transition-transform hover:scale-105 shadow-lg"
+
+                          {/* Indicador de Seleção discreto no topo-esquerdo */}
+                          <div className="absolute top-2 left-2 z-20 pointer-events-none">
+                            <div
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-all",
+                                isSelected
+                                  ? "bg-indigo-600 text-white shadow-md ring-2 ring-white/50"
+                                  : "bg-black/50 border-2 border-white/70"
+                              )}
                             >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </div>
-                          <div 
-                            className={cn(
-                              "absolute top-2 left-2 transition-opacity p-1.5 bg-black/50 rounded text-white z-20 pointer-events-none",
-                              activePhotoId === pId ? "opacity-100" : "opacity-0 lg:group-hover:opacity-100"
-                            )}
-                          >
-                            <GripVertical className="w-4 h-4 drop-shadow" />
+                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -790,7 +1040,133 @@ export default function AlbumEditor() {
                 })}
               </div>
             </SortableContext>
+
+            {/* DragOverlay com renderização suave e desacoplada da grade */}
+            <DragOverlay adjustScale={false} zIndex={100}>
+              {activeDragPhoto ? (
+                <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-800 border-2 border-indigo-500 shadow-2xl shadow-indigo-500/50 ring-4 ring-indigo-500/30 scale-105 cursor-grabbing pointer-events-none select-none">
+                  {activeDragPhoto.publicId ? (
+                    <img
+                      src={cloudinaryUrl(activeDragPhoto.publicId, { w: 400, q: 70 })}
+                      alt=""
+                      draggable={false}
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                  ) : activeDragPhoto.url || activeDragPhoto.src ? (
+                    <img
+                      src={activeDragPhoto.url || activeDragPhoto.src}
+                      alt=""
+                      draggable={false}
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-slate-700 flex items-center justify-center">
+                      <ImageIcon className="w-8 h-8 text-slate-500" />
+                    </div>
+                  )}
+                  <div className="absolute top-2 left-2 z-20">
+                    <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-md ring-2 ring-white/50">
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </DragOverlay>
           </DndContext>
+        ) : (
+          /* Grid Normal (toque longo entra na seleção, toque rápido não abre nada, zero poluição visual) */
+          <div
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 select-none"
+          >
+            {photos.map((photo, idx) => {
+              const pId = photo.publicId || photo.url || photo.src || String(idx);
+
+              return (
+                <div
+                  key={pId}
+                  onPointerDown={(e) => handlePointerDown(e, pId)}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUpOrLeave}
+                  onPointerCancel={handlePointerUpOrLeave}
+                  onClick={() => handleCardClick(pId)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+                  className="group relative aspect-square rounded-xl overflow-hidden bg-slate-800 border border-slate-700 hover:border-slate-600 transition-all select-none cursor-pointer"
+                >
+                  {photo.publicId ? (
+                    <img
+                      src={cloudinaryUrl(photo.publicId, { w: 400, q: 70 })}
+                      alt=""
+                      draggable={false}
+                      onContextMenu={(e) => e.preventDefault()}
+                      style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+                      className="w-full h-full object-cover pointer-events-none select-none"
+                    />
+                  ) : photo.url || photo.src ? (
+                    <img
+                      src={photo.url || photo.src}
+                      alt=""
+                      draggable={false}
+                      onContextMenu={(e) => e.preventDefault()}
+                      style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+                      className="w-full h-full object-cover pointer-events-none select-none"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-slate-700 flex items-center justify-center pointer-events-none select-none">
+                      <ImageIcon className="w-8 h-8 text-slate-500" />
+                    </div>
+                  )}
+                  {/* ZERO botões na foto em modo normal! */}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Barra contextual inferior minimalista flutuante (Samsung Gallery style) */}
+        {isSelectionMode && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[92vw] bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-full px-5 py-2.5 shadow-2xl flex items-center gap-3 sm:gap-4 text-white animate-in fade-in slide-in-from-bottom-4 duration-200">
+            <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">
+              {selectedPhotoIds.size} selecionada{selectedPhotoIds.size > 1 ? 's' : ''}
+            </span>
+            <span className="w-px h-4 bg-slate-700 shrink-0" />
+            <button
+              type="button"
+              onClick={handleSelectAllToggle}
+              className="text-xs text-slate-300 hover:text-white transition-colors whitespace-nowrap"
+            >
+              {selectedPhotoIds.size === photos.length ? 'Desmarcar' : 'Todas'}
+            </button>
+            <span className="w-px h-4 bg-slate-700 shrink-0" />
+            <button
+              type="button"
+              onClick={handleBatchDelete}
+              disabled={selectedPhotoIds.size === 0}
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-full transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>Excluir</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPhotoIds(new Set());
+                setIsSelectionMode(false);
+              }}
+              className="p-1 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors ml-1"
+              aria-label="Cancelar seleção"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         )}
 
         {/* Confirmation Dialog for Photo View */}

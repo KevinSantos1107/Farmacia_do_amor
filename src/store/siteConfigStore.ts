@@ -3,6 +3,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase/config';
 import type { SiteConfig } from '../config/siteConfig.schema';
 import { meuSiteConfig } from '../config/sites/meu-site';
+import { applySiteMetadata, getCoupleDisplayName } from '../shared/utils/siteMetadata';
 
 export type ConfigSource = 'server' | 'cache' | 'mock' | null;
 
@@ -120,10 +121,15 @@ export function applyConfigUpdates(
   return result;
 }
 
-// Restaura apenas as vars estruturais do cache — as cores do tema vêm do useThemeStore
+// Restaura vars estruturais e metadados do cache imediatamente para evitar flash
 try {
-  const cached = localStorage.getItem(THEME_CACHE_KEY);
-  if (cached) applyThemeVars(JSON.parse(cached) as SiteConfig['theme']['colors']);
+  const cachedTheme = localStorage.getItem(THEME_CACHE_KEY);
+  if (cachedTheme) applyThemeVars(JSON.parse(cachedTheme) as SiteConfig['theme']['colors']);
+
+  const cachedConfig = loadConfigCache();
+  if (cachedConfig?.couple) {
+    applySiteMetadata(getCoupleDisplayName(cachedConfig.couple), cachedConfig.id);
+  }
 } catch {}
 
 let currentLoadId = 0;
@@ -142,6 +148,7 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
     // Modo mock explícito: ativado APENAS por VITE_USE_MOCK_DATA === 'true'
     if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
       applyThemeVars(meuSiteConfig.theme.colors);
+      if (meuSiteConfig.couple) applySiteMetadata(getCoupleDisplayName(meuSiteConfig.couple), meuSiteConfig.id);
       saveConfigCache(meuSiteConfig);
       set({ config: meuSiteConfig, configSource: 'mock', isLoading: false, error: null });
       return;
@@ -151,6 +158,7 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
     const cached = loadConfigCache();
     if (cached) {
       if (cached.theme?.colors) applyThemeVars(cached.theme.colors);
+      if (cached.couple) applySiteMetadata(getCoupleDisplayName(cached.couple), cached.id);
       // Mantém isLoading=true: o Firestore ainda vai confirmar/atualizar
       set({ config: cached, configSource: 'cache' });
     }
@@ -184,6 +192,7 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
       if (docSnap.exists()) {
         const data = docSnap.data() as SiteConfig;
         if (data.theme?.colors) applyThemeVars(data.theme.colors);
+        if (data.couple) applySiteMetadata(getCoupleDisplayName(data.couple), data.id);
         saveConfigCache(data);
         set({ config: data, configSource: 'server', isLoading: false, error: null });
       } else {
@@ -242,6 +251,7 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
 
     const newConfig = applyConfigUpdates(config, updates);
     if (newConfig.theme?.colors) applyThemeVars(newConfig.theme.colors);
+    if (newConfig.couple) applySiteMetadata(getCoupleDisplayName(newConfig.couple), newConfig.id);
     saveConfigCache(newConfig);
     set({ config: newConfig });
   },

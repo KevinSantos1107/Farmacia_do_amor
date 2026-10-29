@@ -25,6 +25,9 @@
     },
     "api/generate-devotional.ts": {
       "maxDuration": 60
+    },
+    "api/manifest.ts": {
+      "maxDuration": 10
     }
   },
   "rewrites": [

@@ -9,7 +9,45 @@ function apiDevPlugin(): Plugin {
     name: 'api-dev-server',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        const url = req.url?.split('?')[0];
+        const fullUrl = req.url || '';
+        const url = fullUrl.split('?')[0];
+
+        if (url === '/api/manifest') {
+          try {
+            const query: Record<string, string> = {};
+            if (fullUrl.includes('?')) {
+              const qs = fullUrl.split('?')[1];
+              const params = new URLSearchParams(qs);
+              params.forEach((val, key) => {
+                query[key] = val;
+              });
+            }
+
+            const mod = await server.ssrLoadModule('/api/manifest.ts');
+            const handler = mod.default;
+
+            const vercelReq = Object.assign(req, { query, body: {} });
+            const vercelRes = Object.assign(res, {
+              status(code: number) {
+                res.statusCode = code;
+                return this;
+              },
+              json(data: unknown) {
+                res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+                res.end(JSON.stringify(data));
+                return this;
+              },
+            });
+
+            await handler(vercelReq, vercelRes);
+          } catch (err: unknown) {
+            console.error(`Erro no endpoint ${url}:`, err);
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Erro no servidor ao gerar manifesto.' }));
+          }
+          return;
+        }
 
         if (url === '/api/generate-devotional' || url === '/api/generate-quiz') {
           if (req.method !== 'POST') {
@@ -91,11 +129,13 @@ function htmlMetaPlugin(env: Record<string, string>): Plugin {
       if (siteName) {
         tags.push({ tag: 'title', children: siteName });
         tags.push({ tag: 'meta', attrs: { name: 'apple-mobile-web-app-title', content: siteName } });
+        tags.push({ tag: 'meta', attrs: { name: 'application-name', content: siteName } });
         tags.push({ tag: 'meta', attrs: { property: 'og:title', content: `${siteName} 💕` } });
         tags.push({ tag: 'meta', attrs: { name: 'twitter:title', content: `${siteName} 💕` } });
       } else {
         tags.push({ tag: 'title', children: 'Kevin & Iara' });
         tags.push({ tag: 'meta', attrs: { name: 'apple-mobile-web-app-title', content: 'Kevin & Iara' } });
+        tags.push({ tag: 'meta', attrs: { name: 'application-name', content: 'Kevin & Iara' } });
       }
 
       if (siteDescription) {
@@ -130,7 +170,7 @@ function htmlMetaPlugin(env: Record<string, string>): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const siteName = env.VITE_SITE_NAME || 'Kevin & Iara';
-  const siteDescription = env.VITE_SITE_DESCRIPTION || 'Um espaço especial para nós — nossa história, memórias e momentos únicos.';
+  const siteDescription = env.VITE_SITE_DESCRIPTION || 'Um espaço especial para nós — memórias e momentos únicos.';
 
   // Popula process.env para que as Serverless Functions locais (/api/...) consigam ler as chaves
   process.env.GEMINI_API_KEY = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;

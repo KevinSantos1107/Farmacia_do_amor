@@ -33,9 +33,9 @@ export function SortableItem({ id, children }: SortableItemProps) {
   } = useSortable({ id });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
     zIndex: isDragging ? 10 : undefined,
   };
 

@@ -4,6 +4,7 @@ import { useSiteConfigStore } from '../store/siteConfigStore';
 import { DEFAULT_SITE_ID } from '../config/defaults';
 import { router } from './router';
 import { Spinner } from '../shared/ui/Spinner';
+import { applySiteMetadata, getCoupleDisplayName } from '../shared/utils/siteMetadata';
 
 export default function App() {
   const { config, isLoading, error, loadConfig } = useSiteConfigStore();
@@ -24,54 +25,15 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Inject dynamic <title> and <meta description> from siteConfig once loaded
+  // Inject dynamic <title>, PWA manifest, and <meta description> from siteConfig once loaded
   useEffect(() => {
     if (!config) return;
-    const couple = config.couple;
-    if (couple) {
-      const title = `${couple.partner1.name} & ${couple.partner2.name}`;
-      document.title = title;
+    const coupleName = getCoupleDisplayName(config.couple);
+    const desc =
+      (config as { seo?: { description?: string } }).seo?.description ||
+      `O nosso espaço especial — ${coupleName}`;
 
-      // Nome do aplicativo no iOS (Add to Home Screen) e navegadores móveis
-      const updateMetaName = (name: string, content: string) => {
-        let tag = document.querySelector(`meta[name="${name}"]`);
-        if (!tag) {
-          tag = document.createElement('meta');
-          tag.setAttribute('name', name);
-          document.head.appendChild(tag);
-        }
-        tag.setAttribute('content', content);
-      };
-
-      updateMetaName('apple-mobile-web-app-title', title);
-      updateMetaName('application-name', title);
-
-      const desc = (config as { seo?: { description?: string } }).seo?.description || `O nosso espaço especial — ${title}`;
-
-      // Update or create Description
-      let metaDesc = document.querySelector('meta[name="description"]');
-      if (!metaDesc) {
-        metaDesc = document.createElement('meta');
-        metaDesc.setAttribute('name', 'description');
-        document.head.appendChild(metaDesc);
-      }
-      metaDesc.setAttribute('content', desc);
-
-      // OpenGraph Tags
-      const updateOgTag = (property: string, content: string) => {
-        let tag = document.querySelector(`meta[property="${property}"]`);
-        if (!tag) {
-          tag = document.createElement('meta');
-          tag.setAttribute('property', property);
-          document.head.appendChild(tag);
-        }
-        tag.setAttribute('content', content);
-      };
-
-      updateOgTag('og:title', title);
-      updateOgTag('og:description', desc);
-      updateOgTag('og:type', 'website');
-    }
+    applySiteMetadata(coupleName, config.id, desc);
   }, [config]);
 
   const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
