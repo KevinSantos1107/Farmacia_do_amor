@@ -8,6 +8,7 @@ import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { getWelcomeMessage } from './welcomeMessage';
 import { getPlayerIds } from './playerIds';
 import { AnimatePresence, motion } from 'framer-motion';
+import { getTopToastOffset } from '../../shared/utils/safeArea';
 
 
 export function PlayerAuthInit() {
@@ -121,6 +122,18 @@ export function PlayerAuthInit() {
     initAuth();
   }, [setPlayer, setUid, setTokenStatus, config, isLoading]);
 
+  const [topOffset, setTopOffset] = useState(() => getTopToastOffset());
+
+  useEffect(() => {
+    const updateOffset = () => setTopOffset(getTopToastOffset());
+    window.addEventListener('resize', updateOffset);
+    window.addEventListener('orientationchange', updateOffset);
+    return () => {
+      window.removeEventListener('resize', updateOffset);
+      window.removeEventListener('orientationchange', updateOffset);
+    };
+  }, []);
+
   return (
     <AnimatePresence>
       {welcomeMsg && (
@@ -130,7 +143,8 @@ export function PlayerAuthInit() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
           transition={{ type: 'spring', damping: 22, stiffness: 320 }}
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none w-max max-w-[90vw]"
+          style={{ top: topOffset }}
+          className="fixed left-1/2 -translate-x-1/2 z-[9999] pointer-events-none w-max max-w-[90vw]"
         >
           <div
             className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border ${

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useSyncRoom } from '../useSyncRoom';
@@ -5,6 +6,7 @@ import { X, Check } from 'lucide-react';
 import { runTransaction } from 'firebase/firestore';
 import { siteDoc } from '../../../../services/firestore/paths';
 import { db } from '../../../../services/firebase/config';
+import { getTopToastOffset } from '../../../../shared/utils/safeArea';
 
 export function SyncInviteToast() {
   const navigate = useNavigate();
@@ -35,6 +37,18 @@ export function SyncInviteToast() {
     });
   };
 
+  const [topOffset, setTopOffset] = useState(() => getTopToastOffset());
+
+  useEffect(() => {
+    const updateOffset = () => setTopOffset(getTopToastOffset());
+    window.addEventListener('resize', updateOffset);
+    window.addEventListener('orientationchange', updateOffset);
+    return () => {
+      window.removeEventListener('resize', updateOffset);
+      window.removeEventListener('orientationchange', updateOffset);
+    };
+  }, []);
+
   if (!isInvited) return null;
 
   return (
@@ -43,7 +57,8 @@ export function SyncInviteToast() {
         initial={{ opacity: 0, y: -50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -50, scale: 0.9 }}
-        className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 p-4 bg-gray-900 border border-[var(--theme-primary)]/50 rounded-2xl shadow-2xl w-80"
+        style={{ top: topOffset }}
+        className="fixed left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 p-4 bg-gray-900 border border-[var(--theme-primary)]/50 rounded-2xl shadow-2xl w-80"
       >
         <div className="flex items-start justify-between">
           <div>
