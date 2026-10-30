@@ -137,27 +137,40 @@ describe('useQuizStore - Seleção e Rotação de Perguntas', () => {
       expect(pool.map((q) => q.id)).toEqual(['m1', 'm3', 'ai1', 'ai2']);
     });
 
-    it('se o jogador for identificado e houver perguntas de parceiro, prioriza as do parceiro', () => {
+    it('as perguntas criadas por Kevin NÃO aparecem para Kevin, apenas para Iara', () => {
       const manual = [
-        makeQuestion('m1', { createdBy: 'playerA' }),
-        makeQuestion('m2', { createdBy: 'playerB' }),
+        makeQuestion('q-kevin-1', { createdBy: 'kevin' }),
+        makeQuestion('q-kevin-2', { createdBy: 'kevin' }),
+        makeQuestion('q-iara-1', { createdBy: 'iara' }),
       ];
-      const ai = [makeQuestion('ai1')];
+      const ai = [makeQuestion('q-ai-1')];
 
-      // PlayerA jogando: não deve ver m1 se m2 (do parceiro) estiver disponível
-      const pool = buildEligiblePool(manual, ai, 'playerA');
-      expect(pool.map((q) => q.id)).toEqual(['m2', 'ai1']);
+      // Quando Kevin joga: NUNCA deve ver as perguntas de Kevin, apenas as de Iara + IA
+      const poolKevin = buildEligiblePool(manual, ai, 'kevin');
+      expect(poolKevin.map((q) => q.id)).toEqual(['q-iara-1', 'q-ai-1']);
+      expect(poolKevin.some((q) => q.createdBy === 'kevin')).toBe(false);
+
+      // Quando Iara joga: NUNCA deve ver as perguntas de Iara, apenas as de Kevin + IA
+      const poolIara = buildEligiblePool(manual, ai, 'iara');
+      expect(poolIara.map((q) => q.id)).toEqual(['q-kevin-1', 'q-kevin-2', 'q-ai-1']);
+      expect(poolIara.some((q) => q.createdBy === 'iara')).toBe(false);
     });
 
-    it('se o jogador for identificado mas não houver perguntas do parceiro (ex: criador testando), não apaga as manuais', () => {
+    it('se Iara não criou perguntas manuais ainda, Kevin joga estritamente com perguntas da IA', () => {
       const manual = [
-        makeQuestion('m1', { createdBy: 'playerA' }),
-        makeQuestion('m2', { createdBy: 'playerA' }),
+        makeQuestion('q-kevin-1', { createdBy: 'kevin' }),
+        makeQuestion('q-kevin-2', { createdBy: 'kevin' }),
       ];
-      const ai = [makeQuestion('ai1')];
+      const ai = [makeQuestion('q-ai-1'), makeQuestion('q-ai-2')];
 
-      const pool = buildEligiblePool(manual, ai, 'playerA');
-      expect(pool.map((q) => q.id)).toEqual(['m1', 'm2', 'ai1']);
+      // Kevin jogando: NUNCA vê suas próprias perguntas, mesmo que Iara não tenha criado nenhuma
+      const poolKevin = buildEligiblePool(manual, ai, 'kevin');
+      expect(poolKevin.map((q) => q.id)).toEqual(['q-ai-1', 'q-ai-2']);
+      expect(poolKevin.some((q) => q.createdBy === 'kevin')).toBe(false);
+
+      // Iara jogando: vê todas as 2 perguntas de Kevin + 2 de IA = 4 perguntas
+      const poolIara = buildEligiblePool(manual, ai, 'iara');
+      expect(poolIara.map((q) => q.id)).toEqual(['q-kevin-1', 'q-kevin-2', 'q-ai-1', 'q-ai-2']);
     });
   });
 

@@ -3,6 +3,7 @@ import { FullScreenOverlay } from '../../../shared/ui/FullScreenOverlay';
 import { MessageCircleHeart } from 'lucide-react';
 import { useSiteId } from '../../../services/firestore/paths';
 import { useQuizStore } from '../store/useQuizStore';
+import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { useOverlayHistory } from '../../../shared/hooks/useOverlayHistory';
 import { removeNavigationLayer } from '../../../shared/utils/navigationStack';
 import { QuizIntro } from './QuizIntro';
@@ -11,8 +12,9 @@ import { QuizResult } from './QuizResult';
 
 export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const siteId = useSiteId();
+  const currentPlayer = usePlayerIdentityStore((s) => s.player);
   
-  const { isReady, isLoading, availableQuestions, error, loadQuizData, gameState, config, syncQuizStats, resetGame } = useQuizStore();
+  const { isReady, isLoading, loadedForPlayer, availableQuestions, error, loadQuizData, gameState, config, syncQuizStats, resetGame } = useQuizStore();
 
   // Permite que o botão Voltar do navegador/notebook retorne da partida/resultado para a introdução
   useOverlayHistory({
@@ -42,10 +44,10 @@ export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose:
   }, [isOpen, syncQuizStats]);
 
   useEffect(() => {
-    if (isOpen && (!isReady || availableQuestions.length === 0) && !isLoading) {
+    if (isOpen && (!isReady || loadedForPlayer !== currentPlayer || availableQuestions.length === 0) && !isLoading) {
       loadQuizData(siteId);
     }
-  }, [isOpen, isReady, availableQuestions.length, isLoading, loadQuizData, siteId]);
+  }, [isOpen, isReady, loadedForPlayer, currentPlayer, availableQuestions.length, isLoading, loadQuizData, siteId]);
 
   return (
     <FullScreenOverlay

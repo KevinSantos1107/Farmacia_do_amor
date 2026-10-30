@@ -25,9 +25,10 @@ export const TARGET_QUESTIONS = 15;
 
 /**
  * Monta o pool total de perguntas elegíveis (manuais ativas + IA).
- * - Se o jogador for identificado, tenta filtrar perguntas feitas pelo próprio jogador.
- * - Caso não haja perguntas do parceiro (ex: criador testando suas próprias perguntas),
- *   mantém todas as manuais ativas para que as 15 perguntas manuais não sumam.
+ * REGRA ESTRITA:
+ * - Perguntas que Kevin fizer NÃO aparecem para Kevin, apenas para Iara.
+ * - Perguntas que Iara criar NÃO aparecem para Iara, apenas para Kevin.
+ * - Perguntas geradas por IA (ou sem criador fixo) aparecem para ambos.
  */
 export function buildEligiblePool(
   manualQuestions: QuizQuestion[],
@@ -38,13 +39,12 @@ export function buildEligiblePool(
 
   let eligibleManual = activeManual;
   if (currentPlayerId) {
-    const partnerOnly = activeManual.filter(
-      (q) => !q.createdBy || q.createdBy !== currentPlayerId
-    );
-    // Se existem perguntas criadas pelo parceiro, prioriza apenas elas
-    if (partnerOnly.length > 0) {
-      eligibleManual = partnerOnly;
-    }
+    const normalizedCurrent = currentPlayerId.trim().toLowerCase();
+    // Exclui ESTRITAMENTE perguntas criadas pelo jogador atual
+    eligibleManual = activeManual.filter((q) => {
+      if (!q.createdBy) return true;
+      return q.createdBy.trim().toLowerCase() !== normalizedCurrent;
+    });
   }
 
   return [...eligibleManual, ...aiQuestions];
@@ -123,6 +123,7 @@ interface QuizState {
   availableQuestions: QuizQuestion[];
   playedQuestionIds: string[];
   questions: QuizQuestion[];
+  loadedForPlayer: string | null;
   isLoading: boolean;
   isReady: boolean;
   error: string | null;
@@ -171,6 +172,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   availableQuestions: [],
   playedQuestionIds: [],
   questions: [],
+  loadedForPlayer: null,
   isLoading: false,
   isReady: false,
   error: null,
@@ -188,8 +190,15 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   gamesPlayed: initialStats.gamesPlayed,
 
   loadQuizData: async (siteId: string, force = false) => {
-    // Se já temos perguntas disponíveis carregadas e não foi forçado reload, reaproveita
-    if (!force && get().isReady && get().availableQuestions.length > 0) {
+    const currentPlayer = usePlayerIdentityStore.getState().player;
+
+    // Se já temos perguntas disponíveis carregadas para ESTE jogador e não foi forçado reload, reaproveita
+    if (
+      !force &&
+      get().isReady &&
+      get().loadedForPlayer === currentPlayer &&
+      get().availableQuestions.length > 0
+    ) {
       return;
     }
 
@@ -270,7 +279,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       const currentPlayer = usePlayerIdentityStore.getState().player;
       const siteConfig = useSiteConfigStore.getState().config;
       const { p1Id, p2Id } = getPlayerIds(siteConfig);
-      const isKnownPlayer = currentPlayer === p1Id || currentPlayer === p2Id;
+      const isKnownPlayer =
+        Boolean(currentPlayer) &&
+        (currentPlayer.toLowerCase() === p1Id.toLowerCase() ||
+          currentPlayer.toLowerCase() === p2Id.toLowerCase());
 
       // ── Processa perguntas manuais ────────────────────────────────────
       const manualQuestions = qSnap
@@ -290,6 +302,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       }));
 
       // ── Monta o pool completo de perguntas disponíveis (64+) ─────────
+      // REGRA: Perguntas que Kevin fizer NÃO aparecem para Kevin (apenas Iara)
+      // e perguntas que Iara fizer NÃO aparecem para Iara (apenas Kevin).
       const availableQuestions = buildEligiblePool(
         manualQuestions,
         aiQuestions,
@@ -309,6 +323,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         availableQuestions,
         playedQuestionIds: newPlayedIds,
         questions: selected,
+        loadedForPlayer: currentPlayer,
         isLoading: false,
         isReady: true,
       });
