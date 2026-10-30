@@ -17,38 +17,101 @@ import { shuffle } from '../../../shared/utils/shuffle';
  * Tamanho alvo de uma partida.
  * O motor tenta chegar nesse número, mas adapta se faltar perguntas.
  */
-const TARGET_QUESTIONS = 15;
+export const TARGET_QUESTIONS = 15;
 
 // ─────────────────────────────────────────────
-// Helpers
+// Helpers de montagem e rotação de perguntas
 // ─────────────────────────────────────────────
 
-function buildQuizPool(
+/**
+ * Monta o pool total de perguntas elegíveis (manuais ativas + IA).
+ * - Se o jogador for identificado, tenta filtrar perguntas feitas pelo próprio jogador.
+ * - Caso não haja perguntas do parceiro (ex: criador testando suas próprias perguntas),
+ *   mantém todas as manuais ativas para que as 15 perguntas manuais não sumam.
+ */
+export function buildEligiblePool(
   manualQuestions: QuizQuestion[],
   aiQuestions: QuizQuestion[],
-  currentPlayerId: string,
-  config: QuizConfig
+  currentPlayerId: string
 ): QuizQuestion[] {
-  // 1. Filtra manuais elegíveis (ativas + não criadas pelo player atual)
-  const eligibleManual = manualQuestions.filter(
-    (q) => q.active && (!q.createdBy || q.createdBy !== currentPlayerId)
-  );
+  const activeManual = manualQuestions.filter((q) => q.active);
 
-  // 2. Junta TODAS as perguntas disponíveis (manuais elegíveis + IA)
-  const allEligible = [...eligibleManual, ...aiQuestions];
-
-  // 3. Embaralha tudo junto para garantir aleatoriedade máxima
-  let combined = shuffle(allEligible);
-
-  // 4. Pega exatamente TARGET_QUESTIONS (ex: 15), ou todas se tiver menos
-  combined = combined.slice(0, TARGET_QUESTIONS);
-
-  // 5. Aplica embaralhar alternativas se configurado
-  if (config.shuffleOptions) {
-    combined = combined.map((q) => ({ ...q, options: shuffle(q.options) }));
+  let eligibleManual = activeManual;
+  if (currentPlayerId) {
+    const partnerOnly = activeManual.filter(
+      (q) => !q.createdBy || q.createdBy !== currentPlayerId
+    );
+    // Se existem perguntas criadas pelo parceiro, prioriza apenas elas
+    if (partnerOnly.length > 0) {
+      eligibleManual = partnerOnly;
+    }
   }
 
-  return combined;
+  return [...eligibleManual, ...aiQuestions];
+}
+
+/**
+ * Seleciona perguntas para uma partida a partir do pool disponível.
+ * - Prioriza perguntas que ainda NÃO foram jogadas nesta sessão (evita repetições).
+ * - Quando as perguntas não jogadas se esgotam, inicia um novo ciclo.
+ * - Se o pool total for menor ou igual à meta, usa todas as disponíveis.
+ */
+export function selectGameQuestions(
+  pool: QuizQuestion[],
+  playedIds: string[] = [],
+  targetCount: number = TARGET_QUESTIONS,
+  shuffleOptions: boolean = false
+): { selected: QuizQuestion[]; newPlayedIds: string[] } {
+  if (pool.length === 0) {
+    return { selected: [], newPlayedIds: [] };
+  }
+
+  // Se o total de perguntas for menor ou igual à meta, usa todas
+  if (pool.length <= targetCount) {
+    let result = shuffle([...pool]);
+    if (shuffleOptions) {
+      result = result.map((q) => ({ ...q, options: shuffle(q.options) }));
+    }
+    return { selected: result, newPlayedIds: result.map((q) => q.id) };
+  }
+
+  // Remove do histórico de jogadas os IDs que não existem mais no pool
+  const validPlayedIds = playedIds.filter((id) => pool.some((q) => q.id === id));
+  // Filtra as perguntas que ainda NÃO foram jogadas no ciclo atual
+  const unplayed = pool.filter((q) => !validPlayedIds.includes(q.id));
+
+  let chosen: QuizQuestion[];
+  let nextPlayedIds: string[];
+
+  if (unplayed.length >= targetCount) {
+    // Sorteia targetCount perguntas entre as não jogadas
+    const shuffledUnplayed = shuffle([...unplayed]);
+    chosen = shuffledUnplayed.slice(0, targetCount);
+    nextPlayedIds = [...validPlayedIds, ...chosen.map((q) => q.id)];
+    // Se completou todas as perguntas do pool, reinicia o histórico mantendo a partida atual
+    if (nextPlayedIds.length >= pool.length) {
+      nextPlayedIds = chosen.map((q) => q.id);
+    }
+  } else {
+    // Restam menos perguntas não jogadas do que a meta: inclui todas as restantes
+    const remainingUnplayed = [...unplayed];
+    const needed = targetCount - remainingUnplayed.length;
+
+    // Completa com perguntas já jogadas anteriormente, sorteadas
+    const alreadyPlayedPool = pool.filter((q) => validPlayedIds.includes(q.id));
+    const shuffledAlreadyPlayed = shuffle([...alreadyPlayedPool]);
+    const filler = shuffledAlreadyPlayed.slice(0, needed);
+
+    chosen = shuffle([...remainingUnplayed, ...filler]);
+    // Reinicia o ciclo marcando as que foram usadas nesta partida
+    nextPlayedIds = chosen.map((q) => q.id);
+  }
+
+  if (shuffleOptions) {
+    chosen = chosen.map((q) => ({ ...q, options: shuffle(q.options) }));
+  }
+
+  return { selected: chosen, newPlayedIds: nextPlayedIds };
 }
 
 // ─────────────────────────────────────────────
@@ -57,6 +120,8 @@ function buildQuizPool(
 
 interface QuizState {
   config: QuizConfig;
+  availableQuestions: QuizQuestion[];
+  playedQuestionIds: string[];
   questions: QuizQuestion[];
   isLoading: boolean;
   isReady: boolean;
@@ -95,17 +160,16 @@ function loadLocalStats() {
   return { personalBest: 0, highestCombo: 0, gamesPlayed: 0 };
 }
 
-function saveLocalStats(stats: { personalBest: number, highestCombo: number, gamesPlayed: number }) {
+function saveLocalStats(stats: { personalBest: number; highestCombo: number; gamesPlayed: number }) {
   localStorage.setItem(LOCAL_STATS_KEY, JSON.stringify(stats));
 }
 
 const initialStats = loadLocalStats();
 
-// Identifica a carga mais recente (evita que uma busca de IA antiga sobrescreva uma nova)
-let loadToken = 0;
-
 export const useQuizStore = create<QuizState>((set, get) => ({
   config: DEFAULT_QUIZ_CONFIG,
+  availableQuestions: [],
+  playedQuestionIds: [],
   questions: [],
   isLoading: false,
   isReady: false,
@@ -118,14 +182,14 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   wrongAnswers: 0,
   currentCombo: 0,
   maxCombo: 0,
-  
+
   personalBest: initialStats.personalBest,
   highestCombo: initialStats.highestCombo,
   gamesPlayed: initialStats.gamesPlayed,
 
   loadQuizData: async (siteId: string, force = false) => {
-    // Se já temos perguntas carregadas e não foi forçado reload, exibe instantaneamente
-    if (!force && get().isReady && get().questions.length > 0) {
+    // Se já temos perguntas disponíveis carregadas e não foi forçado reload, reaproveita
+    if (!force && get().isReady && get().availableQuestions.length > 0) {
       return;
     }
 
@@ -133,20 +197,43 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     try {
       if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
         setTimeout(() => {
+          const mockQuestions: QuizQuestion[] = [
+            {
+              id: 'q1',
+              siteId,
+              question: 'Onde nos conhecemos?',
+              options: [
+                { id: 'o1', text: 'Praia' },
+                { id: 'o2', text: 'Festa' },
+                { id: 'o3', text: 'Escola' },
+                { id: 'o4', text: 'Internet' },
+              ],
+              correctOptionId: 'o4',
+              points: 100,
+              active: true,
+              order: 1,
+            },
+            {
+              id: 'q2',
+              siteId,
+              question: 'Quem mandou a primeira mensagem?',
+              options: [
+                { id: 'o1', text: 'Eu' },
+                { id: 'o2', text: 'Você' },
+                { id: 'o3', text: 'Os dois ao mesmo tempo' },
+                { id: 'o4', text: 'Um amigo em comum' },
+              ],
+              correctOptionId: 'o2',
+              points: 100,
+              active: true,
+              order: 2,
+            },
+          ];
           set({
             config: { ...DEFAULT_QUIZ_CONFIG, active: true },
-            questions: [
-              {
-                id: 'q1', siteId, question: 'Onde nos conhecemos?',
-                options: [{ id: 'o1', text: 'Praia' }, { id: 'o2', text: 'Festa' }, { id: 'o3', text: 'Escola' }, { id: 'o4', text: 'Internet' }],
-                correctOptionId: 'o4', points: 100, active: true, order: 1,
-              },
-              {
-                id: 'q2', siteId, question: 'Quem mandou a primeira mensagem?',
-                options: [{ id: 'o1', text: 'Eu' }, { id: 'o2', text: 'Você' }, { id: 'o3', text: 'Os dois ao mesmo tempo' }, { id: 'o4', text: 'Um amigo em comum' }],
-                correctOptionId: 'o2', points: 100, active: true, order: 2,
-              },
-            ],
+            availableQuestions: mockQuestions,
+            playedQuestionIds: mockQuestions.map((q) => q.id),
+            questions: mockQuestions,
             isLoading: false,
             isReady: true,
           });
@@ -154,14 +241,12 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         return;
       }
 
-      // ── Busca config e perguntas manuais em PARALELO ─────────────────────────
-      // As perguntas de IA NÃO bloqueiam mais a abertura do quiz: são buscadas em
-      // segundo plano (abaixo) e entram no pool assim que chegarem.
+      // ── Busca config, perguntas manuais e perguntas de IA TODAS EM PARALELO ──
       const configRef = doc(db, 'sites', siteId, 'quiz_config', 'main');
       const qRef = collection(db, 'sites', siteId, 'quiz_questions');
       const qQuery = query(qRef, orderBy('order', 'asc'));
 
-      const [configSnap, qSnap] = await Promise.all([
+      const [configSnap, qSnap, rawAi] = await Promise.all([
         getDoc(configRef).catch((e) => {
           console.warn('Erro ao carregar quiz_config:', e);
           return null;
@@ -169,6 +254,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         getDocs(qQuery).catch((e) => {
           console.warn('Erro ao carregar quiz_questions:', e);
           return null;
+        }),
+        fetchAiQuestions(siteId).catch((aiErr) => {
+          console.warn('Não foi possível carregar perguntas de IA:', aiErr);
+          return [];
         }),
       ]);
 
@@ -188,44 +277,41 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         ? qSnap.docs.map((d) => ({ id: d.id, ...d.data() } as QuizQuestion))
         : [];
 
-      // ── Monta o pool final (reutilizável quando a IA chegar) ──────────
-      const assemblePool = (aiQuestions: QuizQuestion[]): QuizQuestion[] => {
-        let pool: QuizQuestion[];
-        if (isKnownPlayer) {
-          pool = buildQuizPool(manualQuestions, aiQuestions, currentPlayer, loadedConfig);
-        } else {
-          const allEligible = manualQuestions.filter((q) => q.active);
-          pool = buildQuizPool(allEligible, aiQuestions, '', loadedConfig);
-        }
-        if (loadedConfig.shuffleQuestions) pool = shuffle(pool);
-        return pool;
-      };
+      // ── Processa perguntas de IA ──────────────────────────────────────
+      const aiQuestions: QuizQuestion[] = (rawAi || []).map((q) => ({
+        id: q.id,
+        siteId: q.siteId,
+        question: q.question,
+        options: q.options,
+        correctOptionId: q.correctOptionId,
+        points: q.points ?? loadedConfig.pointsCorrect ?? 100,
+        active: true,
+        order: 0,
+      }));
 
-      set({ config: loadedConfig, questions: assemblePool([]), isLoading: false, isReady: true });
+      // ── Monta o pool completo de perguntas disponíveis (64+) ─────────
+      const availableQuestions = buildEligiblePool(
+        manualQuestions,
+        aiQuestions,
+        isKnownPlayer ? currentPlayer : ''
+      );
 
-      // ── IA em segundo plano ───────────────────────────────────────────
-      // Só aplica se esta ainda é a carga mais recente e o jogador não começou
-      // a jogar (não mexe nas perguntas no meio de uma partida).
-      const myToken = ++loadToken;
-      fetchAiQuestions(siteId)
-        .then((rawAi) => {
-          if (myToken !== loadToken || rawAi.length === 0) return;
-          if (get().gameState !== 'intro') return;
-          const aiQuestions: QuizQuestion[] = rawAi.map((q) => ({
-            id: q.id,
-            siteId: q.siteId,
-            question: q.question,
-            options: q.options,
-            correctOptionId: q.correctOptionId,
-            points: q.points,
-            active: true,
-            order: 0,
-          } as QuizQuestion));
-          set({ questions: assemblePool(aiQuestions) });
-        })
-        .catch((aiErr) => {
-          console.warn('Não foi possível carregar perguntas de IA:', aiErr);
-        });
+      // Sorteia a primeira partida variando entre todas as perguntas
+      const { selected, newPlayedIds } = selectGameQuestions(
+        availableQuestions,
+        get().playedQuestionIds,
+        TARGET_QUESTIONS,
+        loadedConfig.shuffleOptions
+      );
+
+      set({
+        config: loadedConfig,
+        availableQuestions,
+        playedQuestionIds: newPlayedIds,
+        questions: selected,
+        isLoading: false,
+        isReady: true,
+      });
     } catch (err: unknown) {
       console.error('Error loading quiz:', err);
       const msg = err instanceof Error ? err.message : String(err);
@@ -234,8 +320,26 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   },
 
   startGame: () => {
+    const state = get();
+    let questionsToPlay = state.questions;
+    let nextPlayedIds = state.playedQuestionIds;
+
+    // Se ainda não temos perguntas selecionadas, sorteia do pool completo
+    if (questionsToPlay.length === 0 && state.availableQuestions.length > 0) {
+      const result = selectGameQuestions(
+        state.availableQuestions,
+        state.playedQuestionIds,
+        TARGET_QUESTIONS,
+        state.config.shuffleOptions
+      );
+      questionsToPlay = result.selected;
+      nextPlayedIds = result.newPlayedIds;
+    }
+
     set({
       gameState: 'playing',
+      questions: questionsToPlay,
+      playedQuestionIds: nextPlayedIds,
       currentIndex: 0,
       score: 0,
       correctAnswers: 0,
@@ -285,11 +389,11 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       const newGamesPlayed = state.gamesPlayed + 1;
       const newPersonalBest = Math.max(state.personalBest, state.score);
       const newHighestCombo = Math.max(state.highestCombo, state.maxCombo);
-      
+
       saveLocalStats({
         personalBest: newPersonalBest,
         highestCombo: newHighestCombo,
-        gamesPlayed: newGamesPlayed
+        gamesPlayed: newGamesPlayed,
       });
 
       // Persiste no Firestore só para jogadores identificados
@@ -302,11 +406,11 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         });
       }
 
-      set({ 
+      set({
         gameState: 'result',
         personalBest: newPersonalBest,
         highestCombo: newHighestCombo,
-        gamesPlayed: newGamesPlayed
+        gamesPlayed: newGamesPlayed,
       });
     } else {
       set({ currentIndex: nextIndex });
@@ -315,19 +419,19 @@ export const useQuizStore = create<QuizState>((set, get) => ({
 
   resetGame: () => {
     const state = get();
-    let resetQuestions = [...state.questions];
-    if (state.config.shuffleQuestions) {
-      resetQuestions = shuffle(resetQuestions);
-    }
-    if (state.config.shuffleOptions) {
-      resetQuestions = resetQuestions.map((q) => ({
-        ...q,
-        options: shuffle(q.options),
-      }));
-    }
+    // Pega o pool completo de perguntas para sortear UMA NOVA LEVA de 15 perguntas sem repetição
+    const pool = state.availableQuestions.length > 0 ? state.availableQuestions : state.questions;
+    const { selected, newPlayedIds } = selectGameQuestions(
+      pool,
+      state.playedQuestionIds,
+      TARGET_QUESTIONS,
+      state.config.shuffleOptions
+    );
+
     set({
       gameState: 'intro',
-      questions: resetQuestions,
+      questions: selected.length > 0 ? selected : state.questions,
+      playedQuestionIds: newPlayedIds,
       currentIndex: 0,
       score: 0,
       correctAnswers: 0,

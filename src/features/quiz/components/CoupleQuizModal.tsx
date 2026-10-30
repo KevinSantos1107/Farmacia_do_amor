@@ -12,7 +12,7 @@ import { QuizResult } from './QuizResult';
 export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const siteId = useSiteId();
   
-  const { isReady, isLoading, error, loadQuizData, gameState, config, syncQuizStats, resetGame } = useQuizStore();
+  const { isReady, isLoading, availableQuestions, error, loadQuizData, gameState, config, syncQuizStats, resetGame } = useQuizStore();
 
   // Permite que o botão Voltar do navegador/notebook retorne da partida/resultado para a introdução
   useOverlayHistory({
@@ -42,10 +42,10 @@ export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose:
   }, [isOpen, syncQuizStats]);
 
   useEffect(() => {
-    if (isOpen && !isReady && !isLoading) {
+    if (isOpen && (!isReady || availableQuestions.length === 0) && !isLoading) {
       loadQuizData(siteId);
     }
-  }, [isOpen, isReady, isLoading, loadQuizData, siteId]);
+  }, [isOpen, isReady, availableQuestions.length, isLoading, loadQuizData, siteId]);
 
   return (
     <FullScreenOverlay

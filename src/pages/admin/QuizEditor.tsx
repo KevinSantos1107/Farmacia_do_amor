@@ -17,6 +17,7 @@ import {
   getAiQuestionCount,
   type CoupleStoryData,
 } from '../../features/quiz/services/aiQuizService';
+import { useQuizStore } from '../../features/quiz/store/useQuizStore';
 import { AdminPageHeader } from './AdminPageHeader';
 
 const EMPTY_FORM: CoupleStoryData = {
@@ -154,6 +155,9 @@ export default function QuizEditor() {
         }
       }
       setSecretFile(null);
+      if (siteId) {
+        useQuizStore.getState().loadQuizData(siteId, true).catch(() => {});
+      }
       alert('Salvo com sucesso!');
     } catch (e) {
       console.error(e);
@@ -239,6 +243,9 @@ export default function QuizEditor() {
       setExistingAiCount(newCount);
 
       setAiStatus('done');
+      if (siteId) {
+        useQuizStore.getState().loadQuizData(siteId, true).catch(() => {});
+      }
       setAiStatusMsg(`✅ ${result.generated} perguntas de IA salvas com sucesso! O quiz já vai usá-las automaticamente.`);
     } catch (err: unknown) {
       setAiStatus('error');
@@ -254,6 +261,9 @@ export default function QuizEditor() {
       setAiStatusMsg('Deletando...');
       await deleteAllAiQuestions(siteId);
       setExistingAiCount(0);
+      if (siteId) {
+        useQuizStore.getState().loadQuizData(siteId, true).catch(() => {});
+      }
       setAiStatus('idle');
       setAiStatusMsg('');
     } catch (err: unknown) {
