@@ -34,6 +34,13 @@ export function evaluateGuess(guess: string, answer: string): LetterState[] {
   return result;
 }
 
+const STATE_PRIORITY: Record<string, number> = {
+  correct: 3,
+  present: 2,
+  absent: 1,
+  empty: 0,
+};
+
 export function getKeyboardStates(
   guesses: LetterCell[][],
   revealingRow: number,
@@ -46,8 +53,11 @@ export function getKeyboardStates(
       if (ri === revealingRow && ci >= revealProgress) return;
 
       const prev = keyStates[cell.letter];
-      if (prev === 'correct') return;
-      if (cell.state === 'correct' || prev !== 'correct') {
+      const prevPriority = STATE_PRIORITY[prev] ?? 0;
+      const newPriority = STATE_PRIORITY[cell.state] ?? 0;
+
+      // Só atualiza se o novo estado tiver prioridade maior (correct > present > absent)
+      if (newPriority > prevPriority) {
         keyStates[cell.letter] = cell.state;
       }
     })
