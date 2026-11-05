@@ -32,6 +32,9 @@ export function VerseCard({
   const [copied, setCopied] = useState(false);
   const [amenClicked, setAmenClicked] = useState(false);
   const [amenParticles, setAmenParticles] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [floatingAmenList, setFloatingAmenList] = useState<
+    { id: number; x: number; wobble: number; scale: number }[]
+  >([]);
 
   const handleAmenClick = () => {
     setAmenClicked(true);
@@ -46,7 +49,17 @@ export function VerseCard({
       onAmenClick();
     }
 
-    showToast('Amém! Que a oração guarde o seu coração hoje. ✨🙏', 'success');
+    // Emojis de Amém flutuantes que sobem pela tela (estilo Live do Instagram)
+    const newFloating = {
+      id: Date.now() + Math.random(),
+      x: 35 + Math.random() * 45,
+      wobble: (Math.random() - 0.5) * 60,
+      scale: 1.0 + Math.random() * 0.35,
+    };
+    setFloatingAmenList((prev) => [...prev, newFloating]);
+    setTimeout(() => {
+      setFloatingAmenList((prev) => prev.filter((item) => item.id !== newFloating.id));
+    }, 2700);
 
     // Partículas luminosas que sobem ao redor do botão ao clicar em Amém
     const newParticles = Array.from({ length: 6 }).map((_, i) => ({
@@ -306,6 +319,41 @@ export function VerseCard({
           </motion.div>
         )}
       </motion.div>
+
+      {/* Emojis flutuantes de Amém subindo pela tela (estilo Live do Instagram) */}
+      <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+        <AnimatePresence>
+          {floatingAmenList.map((item) => (
+            <motion.div
+              key={item.id}
+              initial={{
+                opacity: 0,
+                y: 0,
+                scale: 0.5,
+              }}
+              animate={{
+                opacity: [0, 1, 1, 0.8, 0],
+                y: -520,
+                x: [0, item.wobble, -item.wobble * 0.7, item.wobble * 0.4],
+                scale: [0.5, item.scale, item.scale * 1.15, item.scale * 0.9],
+                rotate: [0, item.wobble > 0 ? 15 : -15, item.wobble > 0 ? -10 : 10, 0],
+              }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 2.5,
+                ease: [0.25, 0.1, 0.25, 1],
+              }}
+              className="absolute text-3xl sm:text-4xl filter drop-shadow-[0_0_12px_rgba(212,175,55,0.7)] select-none"
+              style={{
+                left: `${item.x}%`,
+                bottom: '70px',
+              }}
+            >
+              🙏
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

@@ -99,40 +99,30 @@ export function DevotionalSync({
       const diff = reactions.count - prevAmenCountRef.current;
       prevAmenCountRef.current = reactions.count;
 
-      // Spawna os emojis flutuantes (1 por clique registrado)
-      const toSpawn = Math.min(diff, 6);
-      const newItems = Array.from({ length: toSpawn }).map((_, i) => ({
-        id: Date.now() + i + Math.random(),
-        x: 25 + Math.random() * 55, // posição horizontal na tela
-        wobble: (Math.random() - 0.5) * 60,
-        scale: 0.9 + Math.random() * 0.4,
-      }));
+      // Se o clique veio do parceiro, faz subir os emojis flutuantes na nossa tela!
+      // (Se o clique foi nosso, o VerseCard já fez subir instantaneamente na nossa tela)
+      if (reactions.lastSender !== playerSlot) {
+        const toSpawn = Math.min(diff, 6);
+        const newItems = Array.from({ length: toSpawn }).map((_, i) => ({
+          id: Date.now() + i + Math.random(),
+          x: 25 + Math.random() * 55, // posição horizontal na tela
+          wobble: (Math.random() - 0.5) * 60,
+          scale: 0.9 + Math.random() * 0.4,
+        }));
 
-      setFloatingAmenList((prev) => [...prev, ...newItems]);
+        setFloatingAmenList((prev) => [...prev, ...newItems]);
 
-      setTimeout(() => {
-        setFloatingAmenList((prev) =>
-          prev.filter((item) => !newItems.some((n) => n.id === item.id))
-        );
-      }, 2700);
+        setTimeout(() => {
+          setFloatingAmenList((prev) =>
+            prev.filter((item) => !newItems.some((n) => n.id === item.id))
+          );
+        }, 2700);
+      }
     }
-  }, [session?.amenReactions]);
+  }, [session?.amenReactions, playerSlot]);
 
   const handleAmenSync = () => {
-    // 1. Spawna feedback visual instantâneo na tela local (0ms de latência)
-    const localId = Date.now() + Math.random();
-    const localItem = {
-      id: localId,
-      x: 35 + Math.random() * 45,
-      wobble: (Math.random() - 0.5) * 50,
-      scale: 1.1,
-    };
-    setFloatingAmenList((prev) => [...prev, localItem]);
-    setTimeout(() => {
-      setFloatingAmenList((prev) => prev.filter((i) => i.id !== localId));
-    }, 2700);
-
-    // 2. Incrementa no Firestore para subir os emojis na tela do parceiro em tempo real
+    // Incrementa no Firestore para disparar o emoji no celular do parceiro em tempo real
     sendAmenReaction(siteId, activeDate, playerSlot);
   };
 
