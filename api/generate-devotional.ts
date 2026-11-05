@@ -522,16 +522,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
 
+    // Extração robusta do JSON: o modelo pode retornar thinking tokens, texto extra,
+    // blocos de código markdown, ou conteúdo antes/depois do JSON.
+    // Estratégia: tenta parse direto, depois tenta extrair o maior bloco {...} da resposta.
+    let parsedDevotional: unknown;
+    let parseOk = false;
+
+    // 1ª tentativa: limpa marcadores markdown e tenta parse direto
     const cleaned = rawText
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/, '')
+      .replace(/^[\s\S]*?```(?:json)?\s*/i, '')  // remove tudo antes de ```json
+      .replace(/\s*```[\s\S]*$/, '')              // remove ``` e tudo depois
       .trim();
 
-    let parsedDevotional: unknown;
-    try {
-      parsedDevotional = JSON.parse(cleaned);
-    } catch {
-      res.status(502).json({ error: 'A IA retornou um formato JSON inválido. Tente novamente.' });
+    if (cleaned) {
+      try {
+        parsedDevotional = JSON.parse(cleaned);
+        parseOk = true;
+      } catch {
+        // segue para a próxima tentativa
+      }
+    }
+
+    // 2ª tentativa: extrai o primeiro objeto JSON {...} completo do texto bruto
+    if (!parseOk) {
+      const jsonObjectMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonObjectMatch) {
+        try {
+          parsedDevotional = JSON.parse(jsonObjectMatch[0]);
+          parseOk = true;
+        } catch {
+          // segue para erro
+        }
+      }
+    }
+
+    if (!parseOk) {
+      console.error('Falha ao parsear JSON da IA. rawText length:', rawText.length, 'preview:', rawText.slice(0, 200));
+      res.status(502).json({ error: 'A IA retornou um formato inesperado. Tente novamente.' });
       return;
     }
 
