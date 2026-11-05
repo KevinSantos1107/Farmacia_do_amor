@@ -20,7 +20,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 // Constantes e Configurações
 // ─────────────────────────────────────────────
 
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 export const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -469,6 +469,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           generationConfig: {
             temperature: 0.7,
             maxOutputTokens: 2048,
+            responseMimeType: 'application/json',
           },
         }),
       });
@@ -516,50 +517,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }>;
     };
 
-    const rawText = geminiJson?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawText || typeof rawText !== 'string') {
+    const parts = geminiJson?.candidates?.[0]?.content?.parts ?? [];
+    const rawText = parts.map((p) => p.text || '').join('').trim();
+
+    if (!rawText) {
       res.status(502).json({ error: 'Resposta vazia ou inesperada da IA.' });
       return;
     }
 
-    // Extração robusta do JSON: o modelo pode retornar thinking tokens, texto extra,
-    // blocos de código markdown, ou conteúdo antes/depois do JSON.
-    // Estratégia: tenta parse direto, depois tenta extrair o maior bloco {...} da resposta.
-    let parsedDevotional: unknown;
-    let parseOk = false;
-
-    // 1ª tentativa: limpa marcadores markdown e tenta parse direto
     const cleaned = rawText
-      .replace(/^[\s\S]*?```(?:json)?\s*/i, '')  // remove tudo antes de ```json
-      .replace(/\s*```[\s\S]*$/, '')              // remove ``` e tudo depois
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/, '')
       .trim();
 
-    if (cleaned) {
-      try {
-        parsedDevotional = JSON.parse(cleaned);
-        parseOk = true;
-      } catch {
-        // segue para a próxima tentativa
-      }
-    }
-
-    // 2ª tentativa: extrai o primeiro objeto JSON {...} completo do texto bruto
-    if (!parseOk) {
-      const jsonObjectMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonObjectMatch) {
+    let parsedDevotional: unknown;
+    try {
+      parsedDevotional = JSON.parse(cleaned);
+    } catch {
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) {
         try {
-          parsedDevotional = JSON.parse(jsonObjectMatch[0]);
-          parseOk = true;
+          parsedDevotional = JSON.parse(match[0]);
         } catch {
-          // segue para erro
+          res.status(502).json({ error: 'A IA retornou um formato JSON inválido. Tente novamente.' });
+          return;
         }
+      } else {
+        res.status(502).json({ error: 'A IA retornou um formato JSON inválido. Tente novamente.' });
+        return;
       }
-    }
-
-    if (!parseOk) {
-      console.error('Falha ao parsear JSON da IA. rawText length:', rawText.length, 'preview:', rawText.slice(0, 200));
-      res.status(502).json({ error: 'A IA retornou um formato inesperado. Tente novamente.' });
-      return;
     }
 
     if (validation.data.mode === 'solo') {
