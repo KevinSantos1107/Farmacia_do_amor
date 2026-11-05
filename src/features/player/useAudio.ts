@@ -56,6 +56,11 @@ if (_audio) {
     _emitStatus(false);
     if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
       navigator.mediaSession.playbackState = 'playing';
+      const state = useAudioStore.getState();
+      const currentTrack = state.playlist[state.currentTrackIndex];
+      if (currentTrack) {
+        updateMediaSession(currentTrack, true);
+      }
     }
   });
   _audio.addEventListener('pause', () => {
@@ -120,6 +125,68 @@ if (_audio) {
   }
 }
 
+export function toAbsoluteUrl(pathOrUrl: string): string {
+  if (!pathOrUrl) return '';
+  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) return pathOrUrl;
+  if (typeof window !== 'undefined' && window.location) {
+    try {
+      return new URL(pathOrUrl, window.location.origin).href;
+    } catch {
+      return pathOrUrl;
+    }
+  }
+  return pathOrUrl;
+}
+
+export function updateMediaSession(
+  track?: { title?: string; artist?: string; coverUrl?: string } | null,
+  isPlaying?: boolean
+) {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+
+  if (!track) {
+    try {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = 'none';
+    } catch {}
+    return;
+  }
+
+  try {
+    const artwork: MediaImage[] = [];
+    if (track.coverUrl) {
+      const absCover = toAbsoluteUrl(track.coverUrl);
+      artwork.push(
+        { src: absCover, sizes: '96x96' },
+        { src: absCover, sizes: '128x128' },
+        { src: absCover, sizes: '256x256' },
+        { src: absCover, sizes: '512x512' }
+      );
+    } else {
+      // iOS Safari (NowPlayingInfoCenter) exige PNG ou JPEG para a capa na tela de bloqueio
+      const icon192 = toAbsoluteUrl('/icon-192.png');
+      const icon512 = toAbsoluteUrl('/icon-512.png');
+      artwork.push(
+        { src: icon192, sizes: '192x192', type: 'image/png' },
+        { src: icon512, sizes: '512x512', type: 'image/png' }
+      );
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title?.trim() || 'Música',
+      artist: track.artist?.trim() || 'Kevin & Iara',
+      album: 'Farmácia do Amor',
+      artwork,
+    });
+
+    if (isPlaying !== undefined) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    }
+  } catch (err) {
+    console.warn('Erro ao atualizar MediaSession:', err);
+  }
+}
+
 export function getAudioElement(): HTMLAudioElement | null {
   return _audio;
 }
@@ -168,38 +235,8 @@ export function useAudio() {
 
   // ── Sincroniza com a MediaSession API (Lock screen / Dynamic Island / Bluetooth) ──
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
-
     const track = playlist[currentTrackIndex];
-    if (!track) {
-      navigator.mediaSession.metadata = null;
-      navigator.mediaSession.playbackState = 'none';
-      return;
-    }
-
-    try {
-      const artwork: MediaImage[] = [];
-      if (track.coverUrl) {
-        artwork.push(
-          { src: track.coverUrl, sizes: '96x96' },
-          { src: track.coverUrl, sizes: '128x128' },
-          { src: track.coverUrl, sizes: '256x256' },
-          { src: track.coverUrl, sizes: '512x512' }
-        );
-      } else {
-        artwork.push({ src: '/capa_principal.webp', sizes: '512x512', type: 'image/webp' });
-      }
-
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: track.title || 'Música',
-        artist: track.artist || 'Kevin & Iara',
-        album: 'Nossa Trilha Sonora',
-        artwork,
-      });
-      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-    } catch {
-      // Ignora falhas em navegadores com suporte parcial
-    }
+    updateMediaSession(track, isPlaying);
   }, [playlist, currentTrackIndex, isPlaying]);
 
   // ── Carregar track quando index/playlist mudar ────────────────────────────

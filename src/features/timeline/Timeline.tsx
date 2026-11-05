@@ -45,11 +45,12 @@ function TimelineItem({ event, index }: { event: TimelineEvent; index: number })
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "100px" }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      viewport={{ once: true, margin: "60px" }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
       className="relative flex flex-row items-start w-full group py-4 md:py-8"
+      style={{ willChange: 'transform, opacity' }}
     >
       {/* Ponto na timeline (Coração Pulsante que Mascara a Linha) */}
       <div className="absolute left-1/2 top-[32px] md:top-[48px] transform -translate-x-1/2 z-10 flex items-center justify-center pointer-events-none">

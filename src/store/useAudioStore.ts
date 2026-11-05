@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { replayCurrentAudio, getAudioElement } from '../features/player/useAudio';
+import { replayCurrentAudio, getAudioElement, updateMediaSession } from '../features/player/useAudio';
 import { isSameAudioUrl } from '../features/player/playerLogic';
 
 export interface Track {
@@ -48,9 +48,10 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
     if (tracks.length === 0) return;
     const safeIdx = Math.min(Math.max(0, index), tracks.length - 1);
     set({ playlist: tracks, currentTrackIndex: safeIdx, isPlaying: true });
+    const target = tracks[safeIdx];
+    updateMediaSession(target, true);
     const audio = getAudioElement();
     if (audio) {
-      const target = tracks[safeIdx];
       if (target?.url && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
         if (!isSameAudioUrl(audio.src, target.url)) {
           audio.src = target.url;
@@ -63,6 +64,8 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
   playTrack: (index) => {
     const { playlist, currentTrackIndex } = get();
     if (index >= 0 && index < playlist.length) {
+      const target = playlist[index];
+      updateMediaSession(target, true);
       if (index === currentTrackIndex) {
         set({ isPlaying: true });
         replayCurrentAudio();
@@ -70,7 +73,6 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
         set({ currentTrackIndex: index, isPlaying: true });
         const audio = getAudioElement();
         if (audio) {
-          const target = playlist[index];
           if (target?.url && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
             if (!isSameAudioUrl(audio.src, target.url)) {
               audio.src = target.url;

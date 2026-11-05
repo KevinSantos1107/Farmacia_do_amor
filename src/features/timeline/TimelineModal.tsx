@@ -58,10 +58,10 @@ export function TimelineModalContent({
 
   const modal = (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
       onClick={(e) => { if (e.target === e.currentTarget) handleDismiss(); }}
       style={{
         position: 'fixed',
@@ -74,6 +74,7 @@ export function TimelineModalContent({
         display: 'flex',
         flexDirection: 'column',
         overscrollBehavior: 'contain',
+        willChange: 'opacity',
       }}
     >
       {/* Header */}
@@ -143,14 +144,21 @@ export function TimelineModalContent({
   return createPortal(modal, document.body);
 }
 
+// Cache em memória para abertura instantânea (0ms de latência)
+let _cachedTimelineEvents: TimelineEvent[] | null = null;
+
 // ─── Main Component ─────────────────────────────────────────────────────────────
 export function TimelineModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [events, setEvents] = useState<TimelineEvent[]>([]);
-  const [loading, setLoading] = useState(false);
-  
+  const [events, setEvents] = useState<TimelineEvent[]>(() => _cachedTimelineEvents || []);
+  const [loading, setLoading] = useState(() => !_cachedTimelineEvents);
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (force = false) => {
+    if (_cachedTimelineEvents && !force) {
+      setEvents(_cachedTimelineEvents);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const snap = await getDocs(query(siteCollection('timeline')));
@@ -171,8 +179,8 @@ export function TimelineModal() {
         });
       });
       loaded.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+      _cachedTimelineEvents = loaded;
       setEvents(loaded);
-      
     } catch (e) {
       console.error('Erro ao carregar timeline:', e);
     } finally {

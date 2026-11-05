@@ -450,33 +450,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       ? buildSoloPrompt(validation.data)
       : buildSyncPrompt(validation.data);
 
-  // 9. Chamada segura ao Gemini
+  // 9. Chamada segura ao Gemini com retry resiliente
   try {
-    const geminiResponse = await fetch(GEMINI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': geminiApiKey,
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        },
-      }),
-    });
+    let geminiResponse: Response | null = null;
 
-    if (!geminiResponse.ok) {
-      console.error('Falha na chamada ao serviço Gemini. Status HTTP:', geminiResponse.status);
-      if (geminiResponse.status === 401 || geminiResponse.status === 403) {
-        res.status(502).json({
-          error:
-            'Chave do Gemini inválida ou não configurada (HTTP 401/403). Gere uma chave de API gratuita no Google AI Studio (aistudio.google.com/app/apikey) e configure GEMINI_API_KEY no arquivo .env.',
-        });
-        return;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, 1200));
       }
-      res.status(502).json({ error: 'Erro de comunicação com o serviço de IA. Tente novamente mais tarde.' });
+      geminiResponse = await fetch(GEMINI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': geminiApiKey,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          },
+        }),
+      });
+
+      if (geminiResponse.ok) {
+        break;
+      }
+
+      // Se for erro definitivo de chave ou payload, não adianta tentar novamente
+      if (geminiResponse.status === 400 || geminiResponse.status === 401 || geminiResponse.status === 403) {
+        break;
+      }
+    }
+
+    if (!geminiResponse || !geminiResponse.ok) {
+      const status = geminiResponse?.status || 502;
+      let userError = 'Erro de comunicação com o serviço de IA. Tente novamente mais tarde.';
+
+      try {
+        const errorJson = (await geminiResponse?.json()) as { error?: { message?: string } } | undefined;
+        const apiMsg = errorJson?.error?.message || '';
+        if (typeof apiMsg === 'string' && apiMsg.toLowerCase().includes('api key')) {
+          userError = 'Chave do Gemini inválida ou não configurada na Vercel (HTTP 400). Atualize GEMINI_API_KEY no painel da Vercel.';
+        } else if (status === 401 || status === 403) {
+          userError = 'Chave do Gemini inválida ou não autorizada (HTTP 401/403). Verifique GEMINI_API_KEY no painel da Vercel.';
+        } else if (status === 429) {
+          userError = 'Limite temporário da API Gemini atingido (Google AI Studio). Aguarde cerca de 1 minuto e tente novamente.';
+        } else if (status === 503) {
+          userError = 'O modelo Gemini está temporariamente sobrecarregado pelo Google. Tente novamente em alguns segundos.';
+        }
+      } catch {
+        // Fallback para mensagem genérica
+      }
+
+      console.error('Falha na chamada ao serviço Gemini. Status HTTP:', status);
+      res.status(502).json({ error: userError });
       return;
     }
 
