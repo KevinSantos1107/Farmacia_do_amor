@@ -13,7 +13,7 @@ import { getTopToastOffset } from '../../shared/utils/safeArea';
 
 export function PlayerAuthInit() {
   const { setPlayer, setUid, setTokenStatus } = usePlayerIdentityStore();
-  const { config, isLoading } = useSiteConfigStore();
+  const { config } = useSiteConfigStore();
   const [welcomeMsg, setWelcomeMsg] = useState<string | null>(null);
   const [isCelebration, setIsCelebration] = useState(false);
 
@@ -28,14 +28,32 @@ export function PlayerAuthInit() {
   };
 
   useEffect(() => {
-    // Só prossegue quando o config estiver carregado!
-    if (isLoading || !config) return;
+    // Prossegue assim que o config estiver disponível (seja do cache local ou do servidor)
+    if (!config) return;
 
     const { p1Id, p2Id } = getPlayerIds(config);
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    // Otimização de carregamento instantâneo:
+    // Se não há token na URL e o usuário já é um jogador conhecido (salvo no localStorage),
+    // autoriza de imediato para liberar a renderização da tela sem aguardar o round-trip de rede.
+    if (!token) {
+      const currentPlayer = usePlayerIdentityStore.getState().player;
+      if (currentPlayer === p1Id || currentPlayer === p2Id) {
+        setTokenStatus('authorized');
+        if (!sessionStorage.getItem('greeted')) {
+          const syncMsg = getWelcomeMessage(currentPlayer, config);
+          showGreeting(syncMsg);
+        }
+      } else {
+        setTokenStatus('unauthorized');
+      }
+    }
 
     const initAuth = async () => {
       let uid = auth.currentUser?.uid || '';
-      // 1. Só autentica anonimamente se não houver usuário logado ainda
+      // 1. Garante autenticação anônima em background (necessária para regras do Firestore)
       if (!uid) {
         try {
           const userCredential = await signInAnonymously(auth);
@@ -48,10 +66,7 @@ export function PlayerAuthInit() {
         setUid(uid);
       }
 
-      // 2. Check for token in URL
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get('token');
-
+      // 2. Se há token na URL, valida no Firestore
       if (token) {
         try {
           // Verify token in Firestore
@@ -104,23 +119,11 @@ export function PlayerAuthInit() {
             : {};
           window.history.replaceState({ ...currentState, path: newUrl }, '', newUrl);
         }
-      } else {
-        // Se não tem token na URL, verifica se já é um jogador conhecido (salvo no Zustand/localStorage)
-        const currentPlayer = usePlayerIdentityStore.getState().player;
-        if (currentPlayer === p1Id || currentPlayer === p2Id) {
-          setTokenStatus('authorized');
-          if (!sessionStorage.getItem('greeted')) {
-            const syncMsg = getWelcomeMessage(currentPlayer, config);
-            showGreeting(syncMsg);
-          }
-        } else {
-          setTokenStatus('unauthorized');
-        }
       }
     };
 
     initAuth();
-  }, [setPlayer, setUid, setTokenStatus, config, isLoading]);
+  }, [setPlayer, setUid, setTokenStatus, config]);
 
   const [topOffset, setTopOffset] = useState(() => getTopToastOffset());
 

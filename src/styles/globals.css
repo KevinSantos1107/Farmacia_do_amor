@@ -1,9 +1,5 @@
 @import 'tailwindcss';
 @import './no-scrollbar.css';
-@import './falling-hearts.css';
-@import './meteors.css';
-@import './aurora.css';
-@import './snow.css';
 
 /* =========================================================
    Romantic Engine — Design Tokens (Tailwind v4 @theme)
@@ -24,7 +20,7 @@
   --font-family-sans: 'Poppins', sans-serif;
   --font-family-serif: 'Playfair Display', serif;
   --font-family-script: 'Dancing Script', cursive;
-  --font-family-display: 'Raleway', sans-serif;
+  --font-family-display: 'Poppins', sans-serif;
 }
 
 /* Base styles */

@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo, memo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Heart, ChevronDown, RefreshCw, Sparkles, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSiteConfigStore } from '../store/siteConfigStore';
@@ -85,8 +85,10 @@ function SectionLabel({ emoji, text }: { emoji: string; text: string }) {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function Home() {
+function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isOverlayOpen = location.pathname !== '/' && !location.pathname.startsWith('/admin');
   const { config } = useSiteConfigStore();
   const { activeTheme } = useThemeStore();
   const [msgIndex, setMsgIndex] = useState(0);
@@ -137,7 +139,7 @@ export default function Home() {
     const link = document.createElement('link');
     link.rel = 'preload';
     link.as = 'image';
-    link.href = '/capa_principal.jpg';
+    link.href = '/capa_principal.webp';
     document.head.appendChild(link);
     return () => {
       if (document.head.contains(link)) {
@@ -205,18 +207,20 @@ export default function Home() {
         )}
       </div>
 
-      {/* ══════════════════════════ PARTICLES (SITE-WIDE) ══════════════════════════ */}
-      <ParticleCanvas theme={activeTheme} />
-
-      {/* ══════════════════════════ DYNAMIC EFFECTS ══════════════════════════ */}
-      {activeTheme === 'meteors' ? (
-        <MeteorShower />
-      ) : activeTheme === 'hearts' ? (
-        <FallingHearts />
-      ) : activeTheme === 'aurora' ? (
-        <AuroraBorealis />
-      ) : (
-        <FrostVignette />
+      {/* ══════════════════════════ PARTICLES & EFFECTS (SUSPENDIDOS QUANDO OVERLAY ABERTO) ══════════════════════════ */}
+      {!isOverlayOpen && (
+        <>
+          <ParticleCanvas theme={activeTheme} />
+          {activeTheme === 'meteors' ? (
+            <MeteorShower />
+          ) : activeTheme === 'hearts' ? (
+            <FallingHearts />
+          ) : activeTheme === 'aurora' ? (
+            <AuroraBorealis />
+          ) : (
+            <FrostVignette />
+          )}
+        </>
       )}
 
       {/* ══════════════════════════ HERO ══════════════════════════ */}
@@ -312,7 +316,7 @@ export default function Home() {
             {/* ── Imagem de Capa (LCP) ── */}
             <div className="relative w-full aspect-[16/10] overflow-hidden">
               <img
-                src="/capa_principal.jpg"
+                src="/capa_principal.webp"
                 alt={config.couple
                   ? `${config.couple.partner1.name} & ${config.couple.partner2.name}`
                   : 'Capa do site'
@@ -723,3 +727,5 @@ export default function Home() {
     </div>
   );
 }
+
+export default memo(Home);

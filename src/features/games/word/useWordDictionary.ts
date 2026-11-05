@@ -10,9 +10,12 @@ export function useWordDictionary() {
       setDictLoaded(true);
       return;
     }
-    import('../pt-5-letters.json')
-      .then((m) => {
-        cachedValidWords = new Set(m.default);
+    // Carrega o dicionário via fetch do /public (fora do bundle principal)
+    // Assim os 149 KB não entram no chunk do jogo de palavras
+    fetch('/pt-5-letters.json')
+      .then((r) => r.json())
+      .then((data: string[]) => {
+        cachedValidWords = new Set(data);
         setDictLoaded(true);
       })
       .catch(() => {

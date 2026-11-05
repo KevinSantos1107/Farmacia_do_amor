@@ -121,7 +121,7 @@ function htmlMetaPlugin(env: Record<string, string>): Plugin {
       const siteUrl = env.VITE_SITE_URL ? env.VITE_SITE_URL.replace(/\/+$/, '') : '';
       const siteName = env.VITE_SITE_NAME || '';
       const siteDescription = env.VITE_SITE_DESCRIPTION || '';
-      const siteOgImage = env.VITE_SITE_OG_IMAGE || (siteUrl ? `${siteUrl}/capa_principal.jpg` : '');
+      const siteOgImage = env.VITE_SITE_OG_IMAGE || (siteUrl ? `${siteUrl}/capa_principal.webp` : '');
 
       const tags: HtmlTagDescriptor[] = [];
 
@@ -185,7 +185,12 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png'],
+        workbox: {
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true,
+        },
+        includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png', 'capa_principal.webp'],
         manifest: {
           name: siteName,
           short_name: siteName,
@@ -205,13 +210,14 @@ export default defineConfig(({ mode }) => {
             {
               src: '/icon-512.png',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any'
             },
             {
-              src: '/icon-512.png',
+              src: '/icon-512-maskable.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'maskable'
             }
           ]
         }
@@ -235,9 +241,11 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('firebase')) return 'firebase';
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) return 'vendor';
+              if (id.includes('@firebase/auth') || id.includes('firebase/auth')) return 'firebase-auth';
+              if (id.includes('@firebase/firestore') || id.includes('firebase/firestore')) return 'firebase-firestore';
+              if (id.includes('firebase')) return 'firebase-core';
               if (id.includes('swiper') || id.includes('lucide')) return 'ui';
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) return 'vendor';
             }
           }
         }

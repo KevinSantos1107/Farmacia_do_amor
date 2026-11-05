@@ -232,6 +232,10 @@ export function AlbumCarousel() {
     const fetchAlbums = async () => {
       // 1. Tenta REST API direta primeiro (resposta em ~500ms sem travar em WebChannel no iPhone)
       try {
+        // No iOS Safari, o fetch REST pode ser disparado antes do Firebase Auth completar
+        // o signInAnonymously, resultando em 403 silencioso que parece "álbum não abre".
+        // Um microtask delay (0ms) cede o event loop para o Auth terminar antes do fetch.
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
         const restResult = await fetchViaRest();
         if (restResult && isMounted) {
           setAlbums(restResult);

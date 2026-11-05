@@ -20,12 +20,12 @@ const SyncInviteToast = lazy(() => import('../../features/games/sync/components/
 
 export function Shell() {
   const [showSplash, setShowSplash] = useState(true);
-  const { config, isLoading } = useSiteConfigStore();
+  const { config } = useSiteConfigStore();
   const tokenStatus = usePlayerIdentityStore((s) => s.tokenStatus);
   const location = useLocation();
 
-  // The site is ready when config is loaded. We can also add other ready checks here later.
-  const isReady = !isLoading && !!config;
+  // O site está pronto para renderizar assim que a configuração estiver disponível (do cache ou Firestore)
+  const isReady = !!config;
 
   const title = config?.couple
     ? `${config.couple.partner1.name} & ${config.couple.partner2.name}`

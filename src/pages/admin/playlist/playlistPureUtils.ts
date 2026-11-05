@@ -53,8 +53,8 @@ export function resolveMediaCoverUrl(raw?: string | null, cloudName?: string): s
     return trimmed;
   }
 
-  // Se for referência a arquivo estático da raiz (ex: capa_principal.jpg)
-  if (trimmed === 'capa_principal.jpg') {
+  // Se for referência a arquivo estático da raiz (ex: capa_principal.webp ou capa_principal.jpg)
+  if (trimmed === 'capa_principal.webp' || trimmed === 'capa_principal.jpg') {
     return `/${trimmed}`;
   }
 

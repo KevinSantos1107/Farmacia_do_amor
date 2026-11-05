@@ -11,15 +11,15 @@ import { stripUndefined, parseFilename, formatAudioTime, resolveMediaCoverUrl } 
 
 export { stripUndefined, parseFilename, formatAudioTime, resolveMediaCoverUrl };
 
-// @ts-ignore
-import * as jsmediatags from 'jsmediatags/dist/jsmediatags.min.js';
-
 export function readMp3Tags(
   file: File
 ): Promise<{ title?: string; artist?: string; coverUrl?: string }> {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     try {
-      if (!jsmediatags) {
+      // @ts-ignore
+      const jsmediatagsModule = await import('jsmediatags/dist/jsmediatags.min.js');
+      const jsmediatags = jsmediatagsModule.default || jsmediatagsModule;
+      if (!jsmediatags || typeof jsmediatags.read !== 'function') {
         console.error('jsmediatags module not found!');
         resolve({});
         return;

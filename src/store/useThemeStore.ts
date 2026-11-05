@@ -44,6 +44,29 @@ const THEMES = {
 const THEME_ORDER: Array<keyof typeof THEMES> = ['meteors', 'hearts', 'aurora', 'snow'];
 const ACTIVE_THEME_KEY = 're_active_theme';
 
+// ─── Importação dinâmica de CSS de animação por tema ─────────────────────────
+// Os CSS de animação (meteors, hearts, aurora, snow) saem do bundle principal
+// e são baixados apenas quando o tema correspondente está ativo.
+// O Vite processa cada import() como chunk separado em produção.
+const THEME_CSS_IMPORTS: Record<keyof typeof THEMES, () => Promise<unknown>> = {
+  meteors: () => import('../styles/meteors.css'),
+  hearts:  () => import('../styles/falling-hearts.css'),
+  aurora:  () => import('../styles/aurora.css'),
+  snow:    () => import('../styles/snow.css'),
+};
+
+// Cache para não reimportar o mesmo CSS duas vezes
+const loadedThemeCSS = new Set<string>();
+
+function loadThemeCSS(name: keyof typeof THEMES) {
+  if (loadedThemeCSS.has(name)) return;
+  loadedThemeCSS.add(name);
+  THEME_CSS_IMPORTS[name]?.().catch(() => {
+    // Se falhar (ex: rede offline), remove do cache para tentar de novo depois
+    loadedThemeCSS.delete(name);
+  });
+}
+
 function applyTheme(name: keyof typeof THEMES) {
   const t = THEMES[name];
   const root = document.documentElement;
@@ -53,6 +76,8 @@ function applyTheme(name: keyof typeof THEMES) {
   root.style.setProperty('--theme-secondary-rgb', t.secondaryRgb);
   root.style.setProperty('--theme-accent',        t.accent);
   root.style.setProperty('--theme-accent-rgb',    t.accentRgb);
+  // Carrega o CSS de animação do tema sob demanda
+  loadThemeCSS(name);
   // Persiste para restaurar no próximo carregamento
   try { localStorage.setItem(ACTIVE_THEME_KEY, name); } catch {}
 }
