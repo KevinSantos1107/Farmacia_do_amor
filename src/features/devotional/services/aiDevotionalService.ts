@@ -22,6 +22,7 @@ import {
   serverTimestamp,
   updateDoc,
   deleteField,
+  increment,
 } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
 import { auth } from '../../../services/firebase/auth';
@@ -482,4 +483,26 @@ export async function saveReaction(
   await updateDoc(sessionRef, {
     [`${playerSlot}.reaction`]: reaction,
   });
+}
+
+/**
+ * Registra o clique em "Amém" na sessão compartilhada.
+ * Incrementa o contador em tempo real para disparar emojis flutuantes (estilo live do Instagram)
+ * na tela do parceiro.
+ */
+export async function sendAmenReaction(
+  siteId: string,
+  date: string,
+  playerSlot: 'p1' | 'p2'
+): Promise<void> {
+  try {
+    const sessionRef = doc(db, 'sites', siteId, 'devotional_sessions', date);
+    await updateDoc(sessionRef, {
+      'amenReactions.count': increment(1),
+      'amenReactions.lastSender': playerSlot,
+      'amenReactions.timestamp': Date.now(),
+    });
+  } catch (err) {
+    console.warn('Erro ao sincronizar reação de Amém:', err);
+  }
 }

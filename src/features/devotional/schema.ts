@@ -103,6 +103,12 @@ export interface PlayerSubmission {
   reaction?: ReactionEmoji;
 }
 
+export interface AmenReactionEvent {
+  count: number;
+  lastSender: 'p1' | 'p2';
+  timestamp: number;
+}
+
 export interface DevotionalSession {
   date: string;
   p1?: PlayerSubmission;
@@ -110,6 +116,7 @@ export interface DevotionalSession {
   status: SessionStatus;
   result?: SyncDevotionalResult;
   generatedAt?: unknown;
+  amenReactions?: AmenReactionEvent;
 }
 
 // ─── API Payloads ────────────────────────────────────────────────────────────

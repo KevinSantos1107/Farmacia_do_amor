@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { SoloDevotionalResult, SyncDevotionalResult } from '../schema';
 import { Heart, Sparkles, HelpCircle, Target, MessageSquareHeart, Check } from 'lucide-react';
 import { useDevotionalStore } from '../store/useDevotionalStore';
@@ -17,6 +17,7 @@ interface VerseCardProps {
   mode: 'solo' | 'sync';
   isFavorited: boolean;
   onToggleFavorite: () => void;
+  onAmenClick?: () => void;
 }
 
 export function VerseCard({
@@ -24,10 +25,45 @@ export function VerseCard({
   mode,
   isFavorited,
   onToggleFavorite,
+  onAmenClick,
 }: VerseCardProps) {
   const [displayedVerse, setDisplayedVerse] = useState('');
   const [isTypewriterDone, setIsTypewriterDone] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [amenClicked, setAmenClicked] = useState(false);
+  const [amenParticles, setAmenParticles] = useState<{ id: number; x: number; y: number }[]>([]);
+
+  const handleAmenClick = () => {
+    setAmenClicked(true);
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate([20, 35, 20]);
+      }
+    } catch {}
+
+    // Dispara callback (para sincronização em modo dupla ou efeitos)
+    if (onAmenClick) {
+      onAmenClick();
+    }
+
+    showToast('Amém! Que a oração guarde o seu coração hoje. ✨🙏', 'success');
+
+    // Partículas luminosas que sobem ao redor do botão ao clicar em Amém
+    const newParticles = Array.from({ length: 6 }).map((_, i) => ({
+      id: Date.now() + i + Math.random(),
+      x: (Math.random() - 0.5) * 80,
+      y: -25 - Math.random() * 35,
+    }));
+    setAmenParticles((prev) => [...prev, ...newParticles]);
+
+    setTimeout(() => {
+      setAmenClicked(false);
+    }, 600);
+
+    setTimeout(() => {
+      setAmenParticles((prev) => prev.filter((p) => !newParticles.some((np) => np.id === p.id)));
+    }, 1200);
+  };
 
   // Efeito Typewriter letra por letra
   useEffect(() => {
@@ -210,10 +246,62 @@ export function VerseCard({
             <p className="text-sm sm:text-base font-serif italic text-[#F5E6CC] leading-relaxed">
               "{result.prayer}"
             </p>
-            <div className="flex justify-end pt-1">
-              <span className="text-[11px] uppercase tracking-widest text-[#D4AF37] font-semibold px-3 py-1 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30">
-                Amém 🙏
-              </span>
+            <div className="relative flex justify-end pt-1">
+              {/* Partículas douradas que sobem ao redor do botão */}
+              <AnimatePresence>
+                {amenParticles.map((particle) => (
+                  <motion.span
+                    key={particle.id}
+                    initial={{ opacity: 1, scale: 0.5, x: 0, y: 0 }}
+                    animate={{
+                      opacity: 0,
+                      scale: 1.3,
+                      x: particle.x,
+                      y: particle.y,
+                    }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.9, ease: 'easeOut' }}
+                    className="absolute right-6 top-1 text-xs pointer-events-none select-none text-[#FFD700]"
+                  >
+                    ✨
+                  </motion.span>
+                ))}
+              </AnimatePresence>
+
+              <motion.button
+                type="button"
+                onClick={handleAmenClick}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                animate={
+                  amenClicked
+                    ? {
+                        scale: [1, 1.18, 1],
+                        boxShadow: [
+                          '0 0 0 rgba(212,175,55,0)',
+                          '0 0 25px rgba(212,175,55,0.7)',
+                          '0 0 10px rgba(212,175,55,0.3)',
+                        ],
+                      }
+                    : {}
+                }
+                transition={{ duration: 0.45 }}
+                className={cn(
+                  'relative text-[11px] uppercase tracking-widest font-semibold px-4 py-1.5 rounded-full cursor-pointer select-none transition-all duration-300 flex items-center gap-1.5 min-h-[36px]',
+                  amenClicked
+                    ? 'bg-gradient-to-r from-[#D4AF37] to-[#F5E6CC] text-[#160E24] shadow-[0_0_20px_rgba(212,175,55,0.6)] font-bold'
+                    : 'bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/40 hover:bg-[#D4AF37]/25 hover:border-[#D4AF37]/70 shadow-[0_0_10px_rgba(212,175,55,0.15)]'
+                )}
+                title="Dizer Amém"
+              >
+                <span>Amém</span>
+                <motion.span
+                  animate={amenClicked ? { rotate: [0, -20, 20, 0], scale: [1, 1.3, 1] } : {}}
+                  transition={{ duration: 0.4 }}
+                >
+                  🙏
+                </motion.span>
+              </motion.button>
             </div>
           </motion.div>
         )}

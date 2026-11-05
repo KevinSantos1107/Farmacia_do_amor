@@ -9,7 +9,7 @@
  *  - Tratamento resiliente de estado para garantir que o casal nunca fique travado
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDevotionalStore } from '../store/useDevotionalStore';
 import { MoodSelector } from './MoodSelector';
@@ -19,6 +19,7 @@ import {
   subscribeToSession,
   getTodayDateString,
   saveReaction,
+  sendAmenReaction,
 } from '../services/aiDevotionalService';
 import { REACTION_EMOJIS, type ReactionEmoji } from '../schema';
 import { cn } from '../../../shared/utils/cn';
@@ -76,6 +77,64 @@ export function DevotionalSync({
   const [activeDate, setActiveDate] = useState(() => getTodayDateString());
   const [isNextDayAvailable, setIsNextDayAvailable] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+
+  // Emojis de Amém flutuantes em tempo real (estilo Live do Instagram)
+  const [floatingAmenList, setFloatingAmenList] = useState<
+    { id: number; x: number; wobble: number; scale: number }[]
+  >([]);
+  const prevAmenCountRef = useRef<number | null>(null);
+
+  // Ouve reações de Amém disparadas pelo parceiro no Firestore
+  useEffect(() => {
+    const reactions = session?.amenReactions;
+    if (!reactions || typeof reactions.count !== 'number') return;
+
+    if (prevAmenCountRef.current === null) {
+      // Primeira leitura: guarda o valor inicial sem disparar animação retroativa
+      prevAmenCountRef.current = reactions.count;
+      return;
+    }
+
+    if (reactions.count > prevAmenCountRef.current) {
+      const diff = reactions.count - prevAmenCountRef.current;
+      prevAmenCountRef.current = reactions.count;
+
+      // Spawna os emojis flutuantes (1 por clique registrado)
+      const toSpawn = Math.min(diff, 6);
+      const newItems = Array.from({ length: toSpawn }).map((_, i) => ({
+        id: Date.now() + i + Math.random(),
+        x: 25 + Math.random() * 55, // posição horizontal na tela
+        wobble: (Math.random() - 0.5) * 60,
+        scale: 0.9 + Math.random() * 0.4,
+      }));
+
+      setFloatingAmenList((prev) => [...prev, ...newItems]);
+
+      setTimeout(() => {
+        setFloatingAmenList((prev) =>
+          prev.filter((item) => !newItems.some((n) => n.id === item.id))
+        );
+      }, 2700);
+    }
+  }, [session?.amenReactions]);
+
+  const handleAmenSync = () => {
+    // 1. Spawna feedback visual instantâneo na tela local (0ms de latência)
+    const localId = Date.now() + Math.random();
+    const localItem = {
+      id: localId,
+      x: 35 + Math.random() * 45,
+      wobble: (Math.random() - 0.5) * 50,
+      scale: 1.1,
+    };
+    setFloatingAmenList((prev) => [...prev, localItem]);
+    setTimeout(() => {
+      setFloatingAmenList((prev) => prev.filter((i) => i.id !== localId));
+    }, 2700);
+
+    // 2. Incrementa no Firestore para subir os emojis na tela do parceiro em tempo real
+    sendAmenReaction(siteId, activeDate, playerSlot);
+  };
 
   // Inscreve no Firestore para ouvir mudanças na sessão da data ativa em tempo real
   useEffect(() => {
@@ -190,6 +249,7 @@ export function DevotionalSync({
           mode="sync"
           isFavorited={isFavorited}
           onToggleFavorite={() => toggleFavorite(siteId, playerSlot)}
+          onAmenClick={handleAmenSync}
         />
 
         {/* Reações dos dois parceiros */}
@@ -256,6 +316,41 @@ export function DevotionalSync({
           onCancel={() => setShowConfirmReset(false)}
           onConfirm={handleConfirmReset}
         />
+
+        {/* Emojis flutuantes de Amém em tempo real (estilo Live do Instagram) */}
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+          <AnimatePresence>
+            {floatingAmenList.map((item) => (
+              <motion.div
+                key={item.id}
+                initial={{
+                  opacity: 0,
+                  y: 0,
+                  scale: 0.5,
+                }}
+                animate={{
+                  opacity: [0, 1, 1, 0.8, 0],
+                  y: -500,
+                  x: [0, item.wobble, -item.wobble * 0.7, item.wobble * 0.4],
+                  scale: [0.5, item.scale, item.scale * 1.15, item.scale * 0.9],
+                  rotate: [0, item.wobble > 0 ? 15 : -15, item.wobble > 0 ? -10 : 10, 0],
+                }}
+                exit={{ opacity: 0 }}
+                transition={{
+                  duration: 2.5,
+                  ease: [0.25, 0.1, 0.25, 1],
+                }}
+                className="absolute text-3xl sm:text-4xl filter drop-shadow-[0_0_12px_rgba(212,175,55,0.7)] select-none"
+                style={{
+                  left: `${item.x}%`,
+                  bottom: '70px',
+                }}
+              >
+                🙏
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
     );
   }
