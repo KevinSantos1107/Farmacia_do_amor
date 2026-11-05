@@ -52,7 +52,17 @@ if (_audio) {
   _audio.addEventListener('waiting', () => _emitStatus(true));
   _audio.addEventListener('stalled', () => { if (!_audio!.paused) _emitStatus(true); });
   _audio.addEventListener('canplay', () => _emitStatus(false));
-  _audio.addEventListener('playing', () => _emitStatus(false));
+  _audio.addEventListener('playing', () => {
+    _emitStatus(false);
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'playing';
+    }
+  });
+  _audio.addEventListener('pause', () => {
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'paused';
+    }
+  });
   _audio.addEventListener('error', () => {
     // src vazio (ao limpar a faixa) também dispara 'error' — ignorar
     if (!_audio!.src) return;
@@ -83,6 +93,30 @@ if (_audio) {
     };
     window.addEventListener('touchstart', unlockAudio, { passive: true, capture: true });
     window.addEventListener('click', unlockAudio, { passive: true, capture: true });
+  }
+
+  // Registra os handlers de controle na tela de bloqueio e central de mídia (MediaSession API)
+  if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+    try {
+      const handleToggle = () => {
+        useAudioStore.getState().togglePlayPause();
+      };
+      navigator.mediaSession.setActionHandler('play', handleToggle);
+      navigator.mediaSession.setActionHandler('pause', handleToggle);
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        useAudioStore.getState().previousTrack();
+      });
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        useAudioStore.getState().nextTrack();
+      });
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (details.seekTime != null && _audio) {
+          _audio.currentTime = details.seekTime;
+        }
+      });
+    } catch {
+      // Ignora caso algum handler específico não seja suportado pelo sistema
+    }
   }
 }
 
@@ -131,6 +165,42 @@ export function useAudio() {
     _statusListeners.add(onStatus);
     return () => { _statusListeners.delete(onStatus); };
   }, []);
+
+  // ── Sincroniza com a MediaSession API (Lock screen / Dynamic Island / Bluetooth) ──
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+
+    const track = playlist[currentTrackIndex];
+    if (!track) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = 'none';
+      return;
+    }
+
+    try {
+      const artwork: MediaImage[] = [];
+      if (track.coverUrl) {
+        artwork.push(
+          { src: track.coverUrl, sizes: '96x96' },
+          { src: track.coverUrl, sizes: '128x128' },
+          { src: track.coverUrl, sizes: '256x256' },
+          { src: track.coverUrl, sizes: '512x512' }
+        );
+      } else {
+        artwork.push({ src: '/capa_principal.webp', sizes: '512x512', type: 'image/webp' });
+      }
+
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.title || 'Música',
+        artist: track.artist || 'Kevin & Iara',
+        album: 'Nossa Trilha Sonora',
+        artwork,
+      });
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    } catch {
+      // Ignora falhas em navegadores com suporte parcial
+    }
+  }, [playlist, currentTrackIndex, isPlaying]);
 
   // ── Carregar track quando index/playlist mudar ────────────────────────────
   useEffect(() => {

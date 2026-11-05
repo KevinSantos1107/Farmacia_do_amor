@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { query, getDocs } from 'firebase/firestore';
 import { siteCollection } from '../../services/firestore/paths';
@@ -31,23 +31,30 @@ export function TimelineModalContent({
     onClose,
   });
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     if (isDedicatedRoute) {
       onClose();
     } else {
       overlayDismiss();
     }
-  };
+  }, [isDedicatedRoute, onClose, overlayDismiss]);
+
+  const handleDismissRef = useRef(handleDismiss);
+  useEffect(() => {
+    handleDismissRef.current = handleDismiss;
+  }, [handleDismiss]);
 
   useEffect(() => {
     const unlock = lockBodyScroll();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleDismiss(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleDismissRef.current();
+    };
     window.addEventListener('keydown', onKey);
     return () => {
       unlock();
       window.removeEventListener('keydown', onKey);
     };
-  }, [handleDismiss]);
+  }, []);
 
   const modal = (
     <motion.div

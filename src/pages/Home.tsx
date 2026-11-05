@@ -98,42 +98,6 @@ function Home() {
     return getSafeTime(config?.relationship?.startDate);
   }, [config?.relationship?.startDate]);
 
-  useEffect(() => {
-    const THEMES = {
-      meteors: {
-        primary: '#9d4edd',
-        primaryRgb: '157, 78, 221',
-        secondary: '#e0aaff',
-        accent: '#c77dff',
-      },
-      hearts: {
-        primary: '#ff0055',
-        primaryRgb: '255, 0, 85',
-        secondary: '#ff4d94',
-        accent: '#ff2a7a',
-      },
-      aurora: {
-        primary: '#00ffc8',
-        primaryRgb: '0, 255, 200',
-        secondary: '#a855f7',
-        accent: '#22d3ee',
-      },
-      snow: {
-        primary: '#00f0ff',
-        primaryRgb: '0, 240, 255',
-        secondary: '#ffffff',
-        accent: '#4a90e2',
-      },
-    };
-
-    const t = THEMES[activeTheme];
-    const root = document.documentElement;
-    root.style.setProperty('--theme-primary', t.primary);
-    root.style.setProperty('--theme-primary-rgb', t.primaryRgb);
-    root.style.setProperty('--theme-secondary', t.secondary);
-    root.style.setProperty('--theme-accent', t.accent);
-  }, [activeTheme]);
-
   // Preload dinâmico da imagem de capa apenas quando a rota Home estiver montada
   useEffect(() => {
     const link = document.createElement('link');

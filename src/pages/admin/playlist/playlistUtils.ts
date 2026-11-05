@@ -11,19 +11,19 @@ import { stripUndefined, parseFilename, formatAudioTime, resolveMediaCoverUrl } 
 
 export { stripUndefined, parseFilename, formatAudioTime, resolveMediaCoverUrl };
 
-export function readMp3Tags(
+export async function readMp3Tags(
   file: File
 ): Promise<{ title?: string; artist?: string; coverUrl?: string }> {
-  return new Promise(async (resolve) => {
-    try {
-      // @ts-ignore
-      const jsmediatagsModule = await import('jsmediatags/dist/jsmediatags.min.js');
-      const jsmediatags = jsmediatagsModule.default || jsmediatagsModule;
-      if (!jsmediatags || typeof jsmediatags.read !== 'function') {
-        console.error('jsmediatags module not found!');
-        resolve({});
-        return;
-      }
+  try {
+    // @ts-ignore
+    const jsmediatagsModule = await import('jsmediatags/dist/jsmediatags.min.js');
+    const jsmediatags = jsmediatagsModule.default || jsmediatagsModule;
+    if (!jsmediatags || typeof jsmediatags.read !== 'function') {
+      console.error('jsmediatags module not found!');
+      return {};
+    }
+
+    return new Promise((resolve) => {
       jsmediatags.read(file, {
         onSuccess: (tag: JsMediaTagsResult) => {
           console.log('ID3 tags lidas com sucesso:', tag.tags);
@@ -47,11 +47,11 @@ export function readMp3Tags(
           resolve({});
         },
       });
-    } catch (e) {
-      console.error('Exceção geral ao tentar ler ID3:', e);
-      resolve({});
-    }
-  });
+    });
+  } catch (e) {
+    console.error('Exceção geral ao tentar ler ID3:', e);
+    return {};
+  }
 }
 
 export async function fetchAndRepairPlaylistTracks(playlistId: string, siteId?: string): Promise<Track[]> {
