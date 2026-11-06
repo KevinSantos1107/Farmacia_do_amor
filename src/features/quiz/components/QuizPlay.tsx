@@ -33,6 +33,10 @@ export function QuizPlay() {
   // Track exact start time for precise elapsed calculation
   const startTimeRef = useRef<number>(Date.now());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Guard against double-advance: cleared every time currentIndex changes
+  const advanceScheduledRef = useRef(false);
+  // Guard against double setTimeout call surviving across renders
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Framer Motion animation controls for smooth continuous bar
   const barControls = useAnimation();
@@ -44,6 +48,14 @@ export function QuizPlay() {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
+  /** Agenda advanceQuestion() garantindo que só dispara UMA vez por pergunta. */
+  const scheduleAdvance = () => {
+    if (advanceScheduledRef.current) return; // já agendado
+    advanceScheduledRef.current = true;
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    advanceTimeoutRef.current = setTimeout(() => advanceQuestion(), 1800);
+  };
+
   const handleTimeUp = () => {
     if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
@@ -52,7 +64,7 @@ export function QuizPlay() {
     setSelectedOptionId('__timeout__');
     setEarnedPoints(-50);
     answerQuestion(false, -50);
-    setTimeout(() => advanceQuestion(), 1800);
+    scheduleAdvance();
   };
 
   // Reset and start everything when question changes
@@ -60,6 +72,11 @@ export function QuizPlay() {
     setSelectedOptionId(null);
     setIsAnimating(false);
     isAnimatingRef.current = false;
+    advanceScheduledRef.current = false;  // libera o guard para a nova pergunta
+    if (advanceTimeoutRef.current) {
+      clearTimeout(advanceTimeoutRef.current);  // cancela avanço pendente da pergunta anterior
+      advanceTimeoutRef.current = null;
+    }
     setDisplayTime(TIMER_SECONDS);
     setEarnedPoints(null);
     startTimeRef.current = Date.now();
@@ -103,7 +120,7 @@ export function QuizPlay() {
     setEarnedPoints(isCorrect ? pts : null);
     answerQuestion(isCorrect, pts);
 
-    setTimeout(() => advanceQuestion(), 1800);
+    scheduleAdvance();
   };
 
   const isCorrectOption = (id: string) => id === question.correctOptionId;
