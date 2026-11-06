@@ -9,6 +9,7 @@ import {
   checkRateLimit,
   buildPrompt,
   MAX_FIELD_LENGTH,
+  MAX_NAMES_LENGTH,
   MAX_TOTAL_BODY_LENGTH,
   RATE_LIMIT_MINUTE_MAX,
   RATE_LIMIT_DAY_MAX,
@@ -158,22 +159,28 @@ describe('Validação de Dados e Limites de Tamanho (validateStoryData)', () => 
     expect(resultSpaces.valid).toBe(false);
   });
 
-  it('deve rejeitar se o campo "names" exceder o limite de 2000 caracteres', () => {
-    const longNames = 'A'.repeat(MAX_FIELD_LENGTH + 1);
+  it('deve rejeitar se o campo "names" exceder o limite de caracteres', () => {
+    const longNames = 'A'.repeat(MAX_NAMES_LENGTH + 1);
     const result = validateStoryData({ ...baseValidData, names: longNames });
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.error).toContain('excede o limite de 2000 caracteres');
+      expect(result.error).toContain(`excede o limite de ${MAX_NAMES_LENGTH} caracteres`);
     }
   });
 
-  it('deve rejeitar se qualquer campo opcional exceder o limite de 2000 caracteres', () => {
+  it('deve aceitar campos de história longos sem travar no limite antigo de 2000 caracteres', () => {
+    const longStory = 'Era uma vez um momento muito especial e longo '.repeat(100); // ~4600 chars
+    const result = validateStoryData({ ...baseValidData, memories: longStory });
+    expect(result.valid).toBe(true);
+  });
+
+  it('deve rejeitar se qualquer campo opcional exceder o limite máximo configurado', () => {
     const longPlaces = 'L'.repeat(MAX_FIELD_LENGTH + 1);
     const result = validateStoryData({ ...baseValidData, places: longPlaces });
     expect(result.valid).toBe(false);
     if (!result.valid) {
       expect(result.error).toContain('"places"');
-      expect(result.error).toContain('2000 caracteres');
+      expect(result.error).toContain(`${MAX_FIELD_LENGTH} caracteres`);
     }
   });
 

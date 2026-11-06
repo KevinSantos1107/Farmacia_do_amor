@@ -27,9 +27,10 @@ export const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const JWKS = createRemoteJWKSet(new URL(GOOGLE_JWKS_URL));
 
-export const MAX_FIELD_LENGTH = 2000;
+export const MAX_FIELD_LENGTH = 100000;
+export const MAX_NAMES_LENGTH = 500;
 export const MAX_EXISTING_QUESTIONS = 300;
-export const MAX_TOTAL_BODY_LENGTH = 50000;
+export const MAX_TOTAL_BODY_LENGTH = 500000;
 
 export const RATE_LIMIT_MINUTE_MAX = 5;
 export const RATE_LIMIT_DAY_MAX = 30;
@@ -168,10 +169,10 @@ export function validateStoryData(body: unknown): ValidationResult {
     return { valid: false, error: 'O campo "names" é obrigatório e deve ser preenchido.' };
   }
 
-  if (rec.names.length > MAX_FIELD_LENGTH) {
+  if (rec.names.length > MAX_NAMES_LENGTH) {
     return {
       valid: false,
-      error: `O campo "names" excede o limite de ${MAX_FIELD_LENGTH} caracteres.`,
+      error: `O campo "names" excede o limite de ${MAX_NAMES_LENGTH} caracteres.`,
     };
   }
 
