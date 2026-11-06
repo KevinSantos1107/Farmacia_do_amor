@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo, useEffectEvent } from 'react';
-import { Trophy, RotateCcw, Heart, Clock, Zap, Leaf, Star, Flame, Eye } from 'lucide-react';
+import { Trophy, RotateCcw, Heart, Clock, Zap, Leaf, Star, Flame, Eye, Skull } from 'lucide-react';
 import { cn } from '../../../shared/utils/cn';
 import { shuffle } from '../../../shared/utils/shuffle';
 import { cloudinaryUrl } from '../../../services/cloudinary/upload';
@@ -18,12 +18,13 @@ import { RankingModal } from '../ranking/RankingModal';
 export interface DifficultyConfig {
   id: MemoryDifficulty;
   label: string;
-  iconName: 'leaf' | 'star' | 'flame';
+  iconName: 'leaf' | 'star' | 'flame' | 'skull';
   pairs: number;
   basePointsPerPair: number;
   timeMultipliers: [number, number][];
   description: string;
   gridClasses: string; // Tailwind grid cols and rows
+  cardAspect?: 'square' | 'portrait'; // padrão implícito: 'portrait'
 }
 
 export const DIFFICULTIES: DifficultyConfig[] = [
@@ -51,11 +52,23 @@ export const DIFFICULTIES: DifficultyConfig[] = [
     id: 'hard',
     label: 'Difícil',
     iconName: 'flame',
-    pairs: 12, // 24 cards → mobile: 6×4 | desktop: 8×3
+    pairs: 12, // 24 cards → mobile: 4×6 | desktop: 6×4
     basePointsPerPair: 200,
     timeMultipliers: [[45, 2.0], [60, 1.6], [Infinity, 1.2]],
-    description: '12 pares · pontuação máxima',
-    gridClasses: 'grid-cols-6 grid-rows-4 lg:grid-cols-8 lg:grid-rows-3',
+    description: '12 pares · cartas quadradas · pontuação máxima',
+    gridClasses: 'grid-cols-4 grid-rows-6 lg:grid-cols-6 lg:grid-rows-4',
+    cardAspect: 'square',
+  },
+  {
+    id: 'extreme',
+    label: 'Extremo',
+    iconName: 'skull',
+    pairs: 15,
+    basePointsPerPair: 280,
+    timeMultipliers: [[60, 2.0], [90, 1.6], [Infinity, 1.2]],
+    description: '15 pares · cartas quadradas · pontuação máxima',
+    gridClasses: 'grid-cols-5 grid-rows-6 lg:grid-cols-6 lg:grid-rows-5',
+    cardAspect: 'square',
   },
 ];
 
@@ -63,6 +76,7 @@ function DiffIcon({ name, className }: { name: string; className?: string }) {
   if (name === 'leaf') return <Leaf className={className} />;
   if (name === 'star') return <Star className={className} />;
   if (name === 'flame') return <Flame className={className} />;
+  if (name === 'skull') return <Skull className={className} />;
   return null;
 }
 
@@ -347,7 +361,8 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
 
       const { totalDealDuration } = getDealAnimationTiming(diff.pairs, orderedDeck.length);
 
-      // ── Phase 1: Exibe os pares para memorização (2.2s) ──
+      // ── Phase 1: Exibe os pares para memorização (1.5s para Extremo, 2.2s padrão) ──
+      const previewDurationMs = diff.id === 'extreme' ? 1500 : 2200;
       scheduleTimeout(() => {
         // Vira suavemente as cartas para baixo
         setCards((prev) => prev.map((c) => ({ ...c, state: 'hidden' })));
@@ -370,7 +385,7 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
             }, totalDealDuration);
           }, 420);
         }, 320);
-      }, 2200);
+      }, previewDurationMs);
     },
     [albums, getCardSrc, clearAllGameTimeouts, scheduleTimeout],
   );
@@ -778,6 +793,7 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
             <div
               className="h-full animate-preview-drain"
               style={{
+                animationDuration: `${activeDiff.id === 'extreme' ? 1500 : 2200}ms`,
                 background: 'linear-gradient(90deg, var(--theme-secondary, var(--theme-primary)), var(--theme-primary))',
                 boxShadow: '0 0 10px var(--theme-primary)',
               }}
@@ -834,6 +850,7 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
                 animDurationMs={animDurationMs}
                 isPlayable={phase === 'playing' && !isLocked}
                 isMismatched={mismatchedIds.includes(card.id)}
+                cardAspect={activeDiff.cardAspect}
                 registerRef={(el) => {
                   if (el) cardRefs.current.set(card.id, el);
                   else cardRefs.current.delete(card.id);
@@ -908,6 +925,7 @@ interface MemoryCardProps {
   animDurationMs?: number;
   isPlayable?: boolean;
   isMismatched?: boolean; // true durante a animação de erro (par errado)
+  cardAspect?: 'square' | 'portrait';
 }
 
 const MemoryCard = memo(function MemoryCard({
@@ -920,9 +938,11 @@ const MemoryCard = memo(function MemoryCard({
   animDurationMs = 280,
   isPlayable = false,
   isMismatched = false,
+  cardAspect,
 }: MemoryCardProps) {
   const isFlipped = card.state !== 'hidden';
   const isMatched = card.state === 'matched';
+  const isSquare = cardAspect === 'square';
 
   return (
     <div
@@ -930,6 +950,7 @@ const MemoryCard = memo(function MemoryCard({
       onClick={onClick}
       className={cn(
         'group relative w-full h-full select-none',
+        isSquare && 'aspect-square max-h-full max-w-full m-auto',
         card.state === 'hidden' && isPlayable && 'cursor-pointer hover:scale-[1.03] active:scale-95 transition-transform duration-150',
         card.state === 'hidden' && !isPlayable && 'cursor-default',
         isFlipped && 'cursor-default',
@@ -945,6 +966,7 @@ const MemoryCard = memo(function MemoryCard({
         animationDelay: isDeal ? `${dealDelay}ms` : undefined,
         animationDuration: isDeal ? `${animDurationMs}ms` : undefined,
         animationFillMode: isDeal ? 'both' : undefined,
+        ...(isSquare ? { aspectRatio: '1 / 1' } : {}),
       }}
     >
       <div

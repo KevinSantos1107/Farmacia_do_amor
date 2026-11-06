@@ -347,6 +347,33 @@ describe('memory — protege a gravação de recordes do jogo da memória por di
       { merge: true }
     );
   });
+
+  it('grava corretamente para a nova dificuldade "extreme"', async () => {
+    mockGetDoc.mockResolvedValueOnce({
+      exists: () => true,
+      data: () => ({ score: 300, bestTime: 45, gamesPlayed: 2, extreme: null }),
+    });
+
+    const updated = await saveMemoryRecordIfBetter('kevin', 600, 50, 'extreme', 6);
+    expect(updated).toBe(true);
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'memory_kevin' }),
+      expect.objectContaining({
+        game: 'memory',
+        player: 'kevin',
+        score: 600,
+        bestTime: 50,
+        bestScoreLevel: 'extreme',
+        extreme: expect.objectContaining({
+          score: 600,
+          bestTime: 50,
+          totalScore: 600,
+          gamesPlayed: 1,
+        }),
+      }),
+      { merge: true }
+    );
+  });
 });
 
 describe('sync — protege o formato fixo "sync_couple" e os critérios de melhoria no Sincronia', () => {

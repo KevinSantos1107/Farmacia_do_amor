@@ -416,8 +416,16 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       const siteConfig = useSiteConfigStore.getState().config;
       const { p1Id, p2Id } = getPlayerIds(siteConfig);
       if (currentPlayer === p1Id || currentPlayer === p2Id) {
-        import('../../../services/gameRecords').then(({ saveQuizRecordIfBetter }) => {
-          saveQuizRecordIfBetter(currentPlayer, newPersonalBest, newHighestCombo);
+        const roundCorrect    = state.correctAnswers;
+        const roundQuestions  = state.questions.length;
+        import('../../../services/gameRecords').then(({ saveQuizStats }) => {
+          void saveQuizStats(
+            currentPlayer,
+            state.score,       // pontuação desta partida (soma acumulada no Firestore)
+            newHighestCombo,
+            roundCorrect,
+            roundQuestions,
+          );
         });
       }
 
@@ -465,7 +473,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         const { getQuizRecord } = await import('../../../services/gameRecords');
         const record = await getQuizRecord(player);
         if (record) {
-          set({ personalBest: record.score, highestCombo: record.highestCombo });
+          set({
+            personalBest:  record.bestSingleRun ?? record.score,
+            highestCombo:  record.highestCombo,
+          });
         }
       } catch (e) {
         console.error('Erro ao sincronizar stats do quiz:', e);

@@ -53,14 +53,17 @@ describe('getDealAnimationTiming — Garante etapas fluidas e tempo completo de 
     const easy = getDealAnimationTiming(6, 12);
     const medium = getDealAnimationTiming(8, 16);
     const hard = getDealAnimationTiming(12, 24);
+    const extreme = getDealAnimationTiming(15, 30);
 
     expect(easy.staggerMs).toBe(32);
     expect(medium.staggerMs).toBe(26);
     expect(hard.staggerMs).toBe(22);
+    expect(extreme.staggerMs).toBe(22);
 
     expect(easy.totalDealDuration).toBeGreaterThan(600);
     expect(medium.totalDealDuration).toBeGreaterThan(700);
     expect(hard.totalDealDuration).toBeGreaterThan(800);
+    expect(extreme.totalDealDuration).toBeGreaterThan(900);
   });
 });
 
@@ -80,6 +83,12 @@ describe('getComboMultiplier & calcPairScore — Cálculo de pontuação e combo
     expect(calcPairScore(easy, 2)).toBe(120); // 100 * 1.2
     expect(calcPairScore(easy, 3)).toBe(150); // 100 * 1.5
     expect(calcPairScore(easy, 4)).toBe(200); // 100 * 2.0
+
+    const extreme = DIFFICULTIES[3]; // base 280
+    expect(calcPairScore(extreme, 0)).toBe(280);
+    expect(calcPairScore(extreme, 2)).toBe(336); // 280 * 1.2
+    expect(calcPairScore(extreme, 3)).toBe(420); // 280 * 1.5
+    expect(calcPairScore(extreme, 4)).toBe(560); // 280 * 2.0
   });
 });
 
@@ -91,6 +100,13 @@ describe('getTimeMultiplier & formatTime', () => {
     expect(getTimeMultiplier(45, medium)).toBe(1.6);
     expect(getTimeMultiplier(60, medium)).toBe(1.6);
     expect(getTimeMultiplier(120, medium)).toBe(1.2);
+
+    const extreme = DIFFICULTIES[3]; // [[60, 2.0], [90, 1.6], [Infinity, 1.2]]
+    expect(getTimeMultiplier(50, extreme)).toBe(2.0);
+    expect(getTimeMultiplier(60, extreme)).toBe(2.0);
+    expect(getTimeMultiplier(75, extreme)).toBe(1.6);
+    expect(getTimeMultiplier(90, extreme)).toBe(1.6);
+    expect(getTimeMultiplier(100, extreme)).toBe(1.2);
   });
 
   it('formata o tempo em mm:ss de forma legível', () => {
@@ -100,6 +116,28 @@ describe('getTimeMultiplier & formatTime', () => {
     expect(formatTime(60)).toBe('1:00');
     expect(formatTime(75)).toBe('1:15');
     expect(formatTime(360)).toBe('6:00');
+  });
+});
+
+describe('DIFFICULTIES — Configuração dos níveis', () => {
+  it('contém os 4 níveis esperados, com Difícil e Extremo configurados para cartas quadradas', () => {
+    expect(DIFFICULTIES.map((d) => d.id)).toEqual(['easy', 'medium', 'hard', 'extreme']);
+
+    const hard = DIFFICULTIES.find((d) => d.id === 'hard');
+    expect(hard).toBeDefined();
+    expect(hard?.pairs).toBe(12);
+    expect(hard?.basePointsPerPair).toBe(200);
+    expect(hard?.iconName).toBe('flame');
+    expect(hard?.cardAspect).toBe('square');
+    expect(hard?.gridClasses).toBe('grid-cols-4 grid-rows-6 lg:grid-cols-6 lg:grid-rows-4');
+
+    const extreme = DIFFICULTIES.find((d) => d.id === 'extreme');
+    expect(extreme).toBeDefined();
+    expect(extreme?.pairs).toBe(15);
+    expect(extreme?.basePointsPerPair).toBe(280);
+    expect(extreme?.iconName).toBe('skull');
+    expect(extreme?.cardAspect).toBe('square');
+    expect(extreme?.gridClasses).toBe('grid-cols-5 grid-rows-6 lg:grid-cols-6 lg:grid-rows-5');
   });
 });
 

@@ -8,7 +8,7 @@ import {
   getQuizRanking,
   getMemoryRanking,
 } from '../../../services/gameRecords';
-import type { WordRecord, QuizRecord, MemoryRecord } from '../../../services/gameRecords';
+import type { WordRecord, QuizRecord, MemoryRecord, MemoryDifficulty } from '../../../services/gameRecords';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { lockBodyScroll } from '../../../shared/utils/scrollLock';
 import { useOverlayHistory } from '../../../shared/hooks/useOverlayHistory';
@@ -28,7 +28,21 @@ interface Props {
   initialGame?: RankingGame;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Score formatter ───────────────────────────────────────────────────────────
+
+/**
+ * Formata números grandes de forma compacta:
+ * - < 1 000       → "850"
+ * - 1 000–999 999 → "12.4k"
+ * - ≥ 1 000 000   → "1.2M"
+ */
+function formatScore(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}k`;
+  return String(Math.floor(n));
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function PlayerColumn({
   name,
@@ -93,10 +107,11 @@ function LoadingRow() {
   );
 }
 
-const MEMORY_LEVELS: { key: 'easy' | 'medium' | 'hard'; label: string; timeLabel: string }[] = [
-  { key: 'easy',   label: 'Fácil',   timeLabel: 'Tempo fácil' },
-  { key: 'medium', label: 'Médio',   timeLabel: 'Tempo médio' },
-  { key: 'hard',   label: 'Difícil', timeLabel: 'Tempo difícil' },
+const MEMORY_LEVELS: { key: MemoryDifficulty; label: string; timeLabel: string }[] = [
+  { key: 'easy',    label: 'Fácil',   timeLabel: 'Tempo fácil' },
+  { key: 'medium',  label: 'Médio',   timeLabel: 'Tempo médio' },
+  { key: 'hard',    label: 'Difícil', timeLabel: 'Tempo difícil' },
+  { key: 'extreme', label: 'Extremo', timeLabel: 'Tempo extremo' },
 ];
 
 function formatMemoryTime(s: number | undefined) {
@@ -106,55 +121,6 @@ function formatMemoryTime(s: number | undefined) {
   return `${m}:${String(sec).padStart(2, '0')}`;
 }
 
-/** Pontuação, tempo e rótulo vêm sempre do nível em que a melhor pontuação foi feita. */
-function resolveBestMemoryRun(record: MemoryRecord | null) {
-  if (!record) {
-    return { score: 0, time: undefined as number | undefined, timeLabel: 'Tempo', levelLabel: '' };
-  }
-
-  const levels = MEMORY_LEVELS
-    .map((l) => ({ ...l, data: record[l.key] }))
-    .filter((l) => (l.data?.score ?? 0) > 0);
-
-  if (levels.length === 0) {
-    const fallback = MEMORY_LEVELS.find((l) => l.key === record.bestScoreLevel);
-    return {
-      score: record.score ?? 0,
-      time: record.bestTime,
-      timeLabel: fallback?.timeLabel ?? 'Tempo',
-      levelLabel: fallback?.label ?? '',
-    };
-  }
-
-  let best = levels[0];
-  for (const level of levels) {
-    const score = level.data!.score;
-    const time = level.data!.bestTime ?? 99999;
-    const bestScore = best.data!.score;
-    const bestTime = best.data!.bestTime ?? 99999;
-    if (score > bestScore || (score === bestScore && time < bestTime)) {
-      best = level;
-    }
-  }
-
-  const pinned = MEMORY_LEVELS.find((l) => l.key === record.bestScoreLevel);
-  if (pinned && (record.score ?? 0) >= (best.data?.score ?? 0) && (record.score ?? 0) > 0) {
-    const pinnedData = record[pinned.key];
-    return {
-      score: record.score,
-      time: pinnedData?.bestTime ?? record.bestTime,
-      timeLabel: pinned.timeLabel,
-      levelLabel: pinned.label,
-    };
-  }
-
-  return {
-    score: best.data!.score,
-    time: best.data!.bestTime,
-    timeLabel: best.timeLabel,
-    levelLabel: best.label,
-  };
-}
 
 // ── Tab Content ───────────────────────────────────────────────────────────────
 
@@ -350,10 +316,18 @@ function QuizTab() {
 
   const p1 = data.p1;
   const p2 = data.p2;
-  const p1Score = p1?.score ?? 0;
-  const p2Score = p2?.score ?? 0;
-  const p1Wins = p1Score > p2Score;
-  const p2Wins = p2Score > p1Score;
+  // Liderança definida por totalScore acumulado
+  const p1Total = p1?.totalScore ?? 0;
+  const p2Total = p2?.totalScore ?? 0;
+  const p1Wins = p1Total > p2Total;
+  const p2Wins = p2Total > p1Total;
+
+  function hitRate(r: QuizRecord | null): string {
+    const correct   = r?.totalCorrect   ?? 0;
+    const questions = r?.totalQuestions ?? 0;
+    if (questions === 0) return '--';
+    return `${Math.round((correct / questions) * 100)}%`;
+  }
 
   return (
     <div className="flex min-w-0 items-stretch gap-2 sm:gap-3">
@@ -362,9 +336,12 @@ function QuizTab() {
         isWinner={p1Wins}
         avatar={<div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-xl sm:text-2xl">{renderAvatar(partner1Avatar)}</div>}
       >
-        <StatRow label="Recorde" value={p1Score} />
-        <Divider label="combo" />
+        <StatRow label="Pontuação Total" value={formatScore(p1Total)} />
+        <StatRow label="Partidas" value={p1?.gamesPlayed ?? 0} />
+        <Divider label="detalhes" />
+        <StatRow label="Taxa de Acerto" value={hitRate(p1)} />
         <StatRow label="Maior Combo" value={`x${p1?.highestCombo ?? 0}`} />
+        <StatRow label="Melhor Rodada" value={formatScore(p1?.bestSingleRun ?? p1?.score ?? 0)} />
       </PlayerColumn>
 
       <div className="flex shrink-0 flex-col items-center justify-center gap-1 px-0.5 text-white/30 sm:px-1">
@@ -376,9 +353,12 @@ function QuizTab() {
         isWinner={p2Wins}
         avatar={<div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-xl sm:text-2xl">{renderAvatar(partner2Avatar)}</div>}
       >
-        <StatRow label="Recorde" value={p2Score} />
-        <Divider label="combo" />
+        <StatRow label="Pontuação Total" value={formatScore(p2Total)} />
+        <StatRow label="Partidas" value={p2?.gamesPlayed ?? 0} />
+        <Divider label="detalhes" />
+        <StatRow label="Taxa de Acerto" value={hitRate(p2)} />
         <StatRow label="Maior Combo" value={`x${p2?.highestCombo ?? 0}`} />
+        <StatRow label="Melhor Rodada" value={formatScore(p2?.bestSingleRun ?? p2?.score ?? 0)} />
       </PlayerColumn>
     </div>
   );
@@ -399,38 +379,93 @@ function MemoryTab() {
 
   if (!data) return <LoadingRow />;
 
-  const p1Best = resolveBestMemoryRun(data.p1);
-  const p2Best = resolveBestMemoryRun(data.p2);
-  const p1Wins = p1Best.score > p2Best.score;
-  const p2Wins = p2Best.score > p1Best.score;
+  const p1 = data.p1;
+  const p2 = data.p2;
+  // Liderança definida por totalScore acumulado
+  const p1Total = p1?.totalScore ?? 0;
+  const p2Total = p2?.totalScore ?? 0;
+  const p1Wins = p1Total > p2Total;
+  const p2Wins = p2Total > p1Total;
+
+  function levelCell(record: MemoryRecord | null, key: MemoryDifficulty) {
+    const lvl = record?.[key];
+    if (!lvl || (lvl.gamesPlayed ?? 0) === 0) {
+      return { total: '--', time: '--' };
+    }
+    return {
+      total: formatScore(lvl.totalScore ?? 0),
+      time:  formatMemoryTime(lvl.bestTime),
+    };
+  }
 
   return (
-    <div className="flex min-w-0 items-stretch gap-2 sm:gap-3">
-      <PlayerColumn
-        name={partner1Name}
-        isWinner={p1Wins}
-        avatar={<div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-xl sm:text-2xl">{renderAvatar(partner1Avatar)}</div>}
-      >
-        <StatRow label={p1Best.levelLabel ? `Pontuação · ${p1Best.levelLabel}` : 'Pontuação'} value={p1Best.score} />
-        <Divider label="detalhes" />
-        <StatRow label="Maior Combo" value={`x${data.p1?.bestCombo ?? 0}`} />
-        <StatRow label={p1Best.timeLabel} value={formatMemoryTime(p1Best.time)} />
-      </PlayerColumn>
+    <div className="flex flex-col gap-3 sm:gap-4">
+      <div className="flex min-w-0 items-stretch gap-2 sm:gap-3">
+        <PlayerColumn
+          name={partner1Name}
+          isWinner={p1Wins}
+          avatar={<div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-xl sm:text-2xl">{renderAvatar(partner1Avatar)}</div>}
+        >
+          <StatRow label="Pontuação Total" value={formatScore(p1Total)} />
+          <StatRow label="Recorde" value={formatScore(p1?.score ?? 0)} />
+          <StatRow label="Partidas" value={p1?.gamesPlayed ?? 0} />
+          <Divider label="detalhes" />
+          <StatRow label="Maior Combo" value={`x${p1?.bestCombo ?? 0}`} />
+        </PlayerColumn>
 
-      <div className="flex shrink-0 flex-col items-center justify-center gap-1 px-0.5 text-white/30 sm:px-1">
-        <span className="text-xs font-bold">VS</span>
+        <div className="flex shrink-0 flex-col items-center justify-center gap-1 px-0.5 text-white/30 sm:px-1">
+          <span className="text-xs font-bold">VS</span>
+        </div>
+
+        <PlayerColumn
+          name={partner2Name}
+          isWinner={p2Wins}
+          avatar={<div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-xl sm:text-2xl">{renderAvatar(partner2Avatar)}</div>}
+        >
+          <StatRow label="Pontuação Total" value={formatScore(p2Total)} />
+          <StatRow label="Recorde" value={formatScore(p2?.score ?? 0)} />
+          <StatRow label="Partidas" value={p2?.gamesPlayed ?? 0} />
+          <Divider label="detalhes" />
+          <StatRow label="Maior Combo" value={`x${p2?.bestCombo ?? 0}`} />
+        </PlayerColumn>
       </div>
 
-      <PlayerColumn
-        name={partner2Name}
-        isWinner={p2Wins}
-        avatar={<div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-xl sm:text-2xl">{renderAvatar(partner2Avatar)}</div>}
-      >
-        <StatRow label={p2Best.levelLabel ? `Pontuação · ${p2Best.levelLabel}` : 'Pontuação'} value={p2Best.score} />
-        <Divider label="detalhes" />
-        <StatRow label="Maior Combo" value={`x${data.p2?.bestCombo ?? 0}`} />
-        <StatRow label={p2Best.timeLabel} value={formatMemoryTime(p2Best.time)} />
-      </PlayerColumn>
+      {/* Breakdown por dificuldade */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-4">
+        <p className="text-white/40 text-[9px] sm:text-[10px] uppercase tracking-widest text-center mb-2 sm:mb-3">
+          Acumulado por Dificuldade
+        </p>
+        <div className="flex flex-col gap-2">
+          {MEMORY_LEVELS.map(({ key, label }) => {
+            const c1 = levelCell(p1, key);
+            const c2 = levelCell(p2, key);
+            return (
+              <div key={key} className="flex items-center gap-2 text-xs">
+                {/* P1 */}
+                <div className="flex-1 text-right">
+                  <span className="text-white/80 font-semibold tabular-nums">{c1.total}</span>
+                  {c1.time !== '--' && (
+                    <span className="text-white/35 text-[9px] ml-1">({c1.time})</span>
+                  )}
+                </div>
+                {/* label central */}
+                <span className="text-white/30 w-12 text-center shrink-0 text-[10px] uppercase tracking-wide">{label}</span>
+                {/* P2 */}
+                <div className="flex-1 text-left">
+                  <span className="text-white/80 font-semibold tabular-nums">{c2.total}</span>
+                  {c2.time !== '--' && (
+                    <span className="text-white/35 text-[9px] ml-1">({c2.time})</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex justify-between mt-2 text-[9px] sm:text-[10px]">
+          <span className="max-w-[48%] truncate text-purple-400">■ {partner1Name}</span>
+          <span className="max-w-[48%] truncate text-pink-400">■ {partner2Name}</span>
+        </div>
+      </div>
     </div>
   );
 }
