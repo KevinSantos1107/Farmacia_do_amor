@@ -79,7 +79,7 @@ export function FullScreenOverlay({
 
       {/* Header */}
       <div
-        className={`relative z-10 flex items-center justify-between px-3 sm:px-4 md:px-6 border-b border-white/5 bg-black/40 backdrop-blur-md shrink-0 ${
+        className={`relative z-10 flex items-center justify-between px-3 sm:px-5 md:px-8 lg:px-12 xl:px-16 border-b border-white/5 bg-black/40 backdrop-blur-md shrink-0 ${
           fill ? 'py-1.5 sm:py-2.5' : 'py-4'
         }`}
         style={{

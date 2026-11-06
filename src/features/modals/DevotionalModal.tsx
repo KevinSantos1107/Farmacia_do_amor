@@ -241,7 +241,7 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
         </div>
 
         {/* Conteúdo principal */}
-        <div className="relative z-10 w-full max-w-4xl mx-auto">
+        <div className="relative z-10 w-full max-w-4xl xl:max-w-5xl mx-auto">
           <AnimatePresence mode="wait">
             {/* ════════════ PASSO: ESCOLHA DE MODO (SOLO vs SYNC) ════════════ */}
             {step === 'mode-select' && (

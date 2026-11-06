@@ -84,7 +84,7 @@ export function MemoryGameModal({
       icon={<Layers className="w-6 h-6" />}
       fill
     >
-      <div className="w-full h-full min-h-0 overflow-hidden flex flex-col max-w-6xl mx-auto px-1 sm:px-2 md:px-4">
+      <div className="w-full h-full min-h-0 overflow-hidden flex flex-col px-1 sm:px-2 md:px-4 xl:px-8">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
             <div

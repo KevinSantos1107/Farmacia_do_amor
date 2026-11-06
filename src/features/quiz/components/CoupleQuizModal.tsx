@@ -58,7 +58,8 @@ export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose:
       subtitle="O quanto você lembra da nossa história?"
       icon={<MessageCircleHeart className="w-6 h-6" />}
     >
-      <div className="max-w-2xl mx-auto h-full flex flex-col p-4 md:p-8">
+      <div className="w-full min-h-full flex flex-col items-center px-3 sm:px-6 md:px-10 py-4 sm:py-6 md:py-8">
+        <div className="w-full max-w-xl md:max-w-2xl lg:max-w-3xl flex flex-col flex-1">
         {isLoading && (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-[var(--theme-primary)] border-t-transparent rounded-full animate-spin" />
@@ -90,6 +91,7 @@ export function CoupleQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose:
             {gameState === 'result' && <QuizResult />}
           </>
         )}
+        </div>
       </div>
     </FullScreenOverlay>
   );

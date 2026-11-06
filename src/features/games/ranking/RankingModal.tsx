@@ -518,10 +518,10 @@ export function RankingModal({ isOpen, onClose, initialGame = 'snake' }: Props) 
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 80 }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="relative z-10 w-full sm:max-w-lg bg-[#0d0d1a] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col"
+        className="relative z-10 w-full sm:max-w-lg lg:max-w-3xl xl:max-w-4xl bg-[#0d0d1a] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col"
         style={{
-          // Fixed height: 480px mobile, 560px tablet+
-          height: 'clamp(480px, 78dvh, 560px)',
+          // Mobile: 480px mínimo; tablet: até 560px; desktop: até 80dvh
+          height: 'clamp(480px, 78dvh, 720px)',
           maxHeight: '95dvh',
         }}
       >
@@ -566,7 +566,8 @@ export function RankingModal({ isOpen, onClose, initialGame = 'snake' }: Props) 
         </div>
 
         {/* Tab Content — fills remaining fixed space, scrolls internally */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-5 sm:pb-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-5 sm:pb-6 lg:px-8 lg:pb-8">
+          <div className="max-w-2xl mx-auto lg:max-w-none">
           {activeTab === 'snake' && (
             <motion.div key="snake" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
               <SnakeTab />
@@ -587,6 +588,7 @@ export function RankingModal({ isOpen, onClose, initialGame = 'snake' }: Props) 
               <MemoryTab />
             </motion.div>
           )}
+          </div>
         </div>
       </motion.div>
     </div>,

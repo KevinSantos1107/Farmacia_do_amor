@@ -5,6 +5,8 @@ import { useSiteConfigStore } from '../../../store/siteConfigStore';
 
 export const COLS = 17;
 export const ROWS = 15;
+export const TARGET_CELLS = 255;
+export const INITIAL_SNAKE_SPEED = 165; // ms por passo (~6 passos/s, equilibrado e responsivo)
 
 export type Point = { x: number; y: number };
 export type Dir = { x: number; y: number };
@@ -13,6 +15,8 @@ export type Particle = { x: number; y: number; vx: number; vy: number; alpha: nu
 type GamePhase = 'menu' | 'playing' | 'paused' | 'gameOver';
 
 export type GameState = {
+  cols: number;
+  rows: number;
   snake: Point[];
   dir: Dir;
   queuedDirs: Dir[];
@@ -32,11 +36,48 @@ export type GameState = {
   spawnedParticlesForThisEat: boolean;
 };
 
-function randomFood(snake: Point[]): Point {
+/**
+ * Calcula a grade dinâmica para o jogo da cobrinha:
+ * - No desktop/tablet (ou landscape): mantém o grid clássico 17 × 15 (255 quadrados).
+ * - No mobile (portrait): adapta ao formato vertical ~9:16 da tela do celular,
+ *   mantendo a quantidade de quadrados o mais próximo possível de 255.
+ */
+export function calculateSnakeGrid(availW: number, availH: number): { cols: number; rows: number } {
+  const isPortraitMobile = availW < 640 && availW < availH;
+  if (!isPortraitMobile || availH <= 0 || availW <= 0) {
+    return { cols: COLS, rows: ROWS };
+  }
+
+  const ratio = availW / availH;
+  let bestCols = 12;
+  let bestRows = 21;
+  let minPenalty = Infinity;
+
+  // Busca uma combinação harmoniosa em formato 9:16 próxima a 255 células
+  for (let c = 10; c <= 13; c++) {
+    for (let r = 18; r <= 25; r++) {
+      const cellCount = c * r;
+      const countDiff = Math.abs(cellCount - TARGET_CELLS);
+      const aspectDiff = Math.abs((c / r) - ratio) * 160;
+      const penalty = countDiff + aspectDiff;
+      if (penalty < minPenalty) {
+        minPenalty = penalty;
+        bestCols = c;
+        bestRows = r;
+      }
+    }
+  }
+
+  return { cols: bestCols, rows: bestRows };
+}
+
+function randomFood(snake: Point[], cols: number = COLS, rows: number = ROWS): Point {
   let p: Point;
+  let attempts = 0;
   do {
-    p = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
-  } while (snake.some(s => s.x === p.x && s.y === p.y));
+    p = { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
+    attempts++;
+  } while (snake.some(s => s.x === p.x && s.y === p.y) && attempts < 500);
   return p;
 }
 
@@ -138,13 +179,15 @@ export function useSnakeGame() {
 
   // Single source of truth for the engine loop
   const g = useRef<GameState>({
+    cols: COLS,
+    rows: ROWS,
     snake: [{ x: 6, y: 7 }, { x: 5, y: 7 }, { x: 4, y: 7 }],
     dir: { x: 1, y: 0 },
     queuedDirs: [],
     food: { x: 12, y: 7 },
     score: 0,
     highScore: highScoreState,
-    speed: 135,
+    speed: INITIAL_SNAKE_SPEED,
     phase: 'menu',
     isWaiting: false,
     prevHead: null,
@@ -161,14 +204,43 @@ export function useSnakeGame() {
     setHighScoreState(g.current.highScore);
   }, []);
 
-  const startGame = useCallback(() => {
-    const initialSnake = [{ x: 6, y: 7 }, { x: 5, y: 7 }, { x: 4, y: 7 }];
+  const setGridDimensions = useCallback((cols: number, rows: number) => {
+    const s = g.current;
+    if (s.cols === cols && s.rows === rows) return;
+    s.cols = cols;
+    s.rows = rows;
+    // Se estiver no menu, centraliza a cobrinha e repõe a comida na nova grade
+    if (s.phase === 'menu') {
+      const midX = Math.floor(cols / 2);
+      const midY = Math.floor(rows / 2);
+      s.snake = [
+        { x: midX, y: midY },
+        { x: Math.max(0, midX - 1), y: midY },
+        { x: Math.max(0, midX - 2), y: midY },
+      ];
+      s.food = randomFood(s.snake, cols, rows);
+    }
+  }, []);
+
+  const startGame = useCallback((customGrid?: { cols: number; rows: number }) => {
+    const cols = customGrid?.cols ?? g.current.cols ?? COLS;
+    const rows = customGrid?.rows ?? g.current.rows ?? ROWS;
+    g.current.cols = cols;
+    g.current.rows = rows;
+
+    const midX = Math.floor(cols / 2);
+    const midY = Math.floor(rows / 2);
+    const initialSnake = [
+      { x: midX, y: midY },
+      { x: Math.max(0, midX - 1), y: midY },
+      { x: Math.max(0, midX - 2), y: midY },
+    ];
     g.current.snake = initialSnake;
     g.current.dir = { x: 1, y: 0 }; // Facing right
     g.current.queuedDirs = [];
-    g.current.food = randomFood(initialSnake);
+    g.current.food = randomFood(initialSnake, cols, rows);
     g.current.score = 0;
-    g.current.speed = 135;
+    g.current.speed = INITIAL_SNAKE_SPEED;
     g.current.phase = 'playing';
     g.current.isWaiting = true; // Wait for user input to start moving
     g.current.prevHead = null;
@@ -191,6 +263,16 @@ export function useSnakeGame() {
 
   const goMenu = useCallback(() => {
     g.current.phase = 'menu';
+    const cols = g.current.cols ?? COLS;
+    const rows = g.current.rows ?? ROWS;
+    const midX = Math.floor(cols / 2);
+    const midY = Math.floor(rows / 2);
+    g.current.snake = [
+      { x: midX, y: midY },
+      { x: Math.max(0, midX - 1), y: midY },
+      { x: Math.max(0, midX - 2), y: midY },
+    ];
+    g.current.food = randomFood(g.current.snake, cols, rows);
     syncState();
   }, [syncState]);
 
@@ -231,9 +313,11 @@ export function useSnakeGame() {
 
     const head = s.snake[0];
     const newHead = { x: head.x + s.dir.x, y: head.y + s.dir.y };
+    const cols = s.cols || COLS;
+    const rows = s.rows || ROWS;
 
     // Wall collision
-    if (newHead.x < 0 || newHead.x >= COLS || newHead.y < 0 || newHead.y >= ROWS) {
+    if (newHead.x < 0 || newHead.x >= cols || newHead.y < 0 || newHead.y >= rows) {
       s.prevHead = { ...head };
       s.oldTail = { ...s.snake[s.snake.length - 1] };
       s.snake = [newHead, ...s.snake.slice(0, -1)]; 
@@ -279,7 +363,7 @@ export function useSnakeGame() {
           }
         });
       }
-      s.food = randomFood(s.snake);
+      s.food = randomFood(s.snake, cols, rows);
       s.spawnedParticlesForThisEat = false;
       playBeep(600, 'sine', 0.1, audioEnabled);
       syncState(); // ONLY sync state when score updates (prevent React lag)
@@ -293,6 +377,7 @@ export function useSnakeGame() {
     highScore: highScoreState,
     audioEnabled,
     startGame,
+    setGridDimensions,
     pauseToggle,
     goMenu,
     queueDir,

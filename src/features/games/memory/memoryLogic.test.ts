@@ -120,24 +120,40 @@ describe('getTimeMultiplier & formatTime', () => {
 });
 
 describe('DIFFICULTIES — Configuração dos níveis', () => {
-  it('contém os 4 níveis esperados, com Difícil e Extremo configurados para cartas quadradas', () => {
+  it('contém os 4 níveis esperados, com Difícil e Extremo configurados para cartas quadradas e novos ícones', () => {
     expect(DIFFICULTIES.map((d) => d.id)).toEqual(['easy', 'medium', 'hard', 'extreme']);
+
+    const easy = DIFFICULTIES.find((d) => d.id === 'easy');
+    expect(easy?.iconName).toBe('sparkles');
+
+    const medium = DIFFICULTIES.find((d) => d.id === 'medium');
+    expect(medium?.iconName).toBe('gem');
 
     const hard = DIFFICULTIES.find((d) => d.id === 'hard');
     expect(hard).toBeDefined();
     expect(hard?.pairs).toBe(12);
     expect(hard?.basePointsPerPair).toBe(200);
-    expect(hard?.iconName).toBe('flame');
+    expect(hard?.iconName).toBe('infinity');
     expect(hard?.cardAspect).toBe('square');
-    expect(hard?.gridClasses).toBe('grid-cols-4 grid-rows-6 lg:grid-cols-6 lg:grid-rows-4');
+    expect(hard?.gridClasses).toBe('grid-cols-4 grid-rows-6 sm:grid-cols-6 sm:grid-rows-4 lg:grid-cols-6 lg:grid-rows-4');
+    expect(hard?.grids).toEqual({
+      mobile: { cols: 4, rows: 6 },
+      tablet: { cols: 6, rows: 4 },
+      desktop: { cols: 6, rows: 4 },
+    });
 
     const extreme = DIFFICULTIES.find((d) => d.id === 'extreme');
     expect(extreme).toBeDefined();
     expect(extreme?.pairs).toBe(15);
     expect(extreme?.basePointsPerPair).toBe(280);
-    expect(extreme?.iconName).toBe('skull');
+    expect(extreme?.iconName).toBe('crown');
     expect(extreme?.cardAspect).toBe('square');
-    expect(extreme?.gridClasses).toBe('grid-cols-5 grid-rows-6 lg:grid-cols-6 lg:grid-rows-5');
+    expect(extreme?.gridClasses).toBe('grid-cols-5 grid-rows-6 sm:grid-cols-6 sm:grid-rows-5 lg:grid-cols-6 lg:grid-rows-5');
+    expect(extreme?.grids).toEqual({
+      mobile: { cols: 5, rows: 6 },
+      tablet: { cols: 6, rows: 5 },
+      desktop: { cols: 6, rows: 5 },
+    });
   });
 });
 

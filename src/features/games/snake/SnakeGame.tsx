@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Volume2, VolumeX, Pause, Play, Trophy } from 'lucide-react';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { SNAKE_THEMES } from './snakeTheme';
-import { useSnakeGame, COLS, ROWS } from './useSnakeGame';
+import { useSnakeGame, COLS, ROWS, calculateSnakeGrid } from './useSnakeGame';
 import type { Point, Particle } from './useSnakeGame';
 import { RankingModal } from '../ranking/RankingModal';
 
@@ -12,7 +12,7 @@ const MIN_SWIPE_PX = 12; // Minimum pixels to register a swipe direction change
 export function SnakeGame() {
   const {
     g, phase, score, highScore, audioEnabled,
-    startGame, pauseToggle, goMenu, queueDir, toggleAudio, tick
+    startGame, setGridDimensions, pauseToggle, goMenu, queueDir, toggleAudio, tick
   } = useSnakeGame();
 
   const [showRanking, setShowRanking] = useState(false);
@@ -22,6 +22,8 @@ export function SnakeGame() {
   const activeTheme = useThemeStore(s => s.activeTheme);
   const theme = SNAKE_THEMES[activeTheme];
 
+  // Grid dimensions (dynamic for mobile portrait ~9:16; 17x15 for desktop/tablet)
+  const [grid, setGrid] = useState<{ cols: number; rows: number }>({ cols: COLS, rows: ROWS });
   // cellSize is computed in integers to prevent subpixel rendering issues
   const [cellSize, setCellSize] = useState(22);
 
@@ -35,15 +37,26 @@ export function SnakeGame() {
     const compute = () => {
       const availW = el.clientWidth; // padding-box, fires AFTER layout
       const viewH = window.visualViewport?.height ?? window.innerHeight;
-      const availH = Math.floor(viewH) - 190;
+      
+      // Altura disponível descontando header e HUD
+      const isMobile = availW < 640 && availW < (viewH - 120);
+      const topOffset = isMobile ? 115 : 140;
+      const availH = Math.max(200, Math.floor(viewH) - topOffset);
+
+      // Grade dinâmica: no desktop mantém 17x15; no mobile ajusta a ~9:16 próximo de 255 células
+      const newGrid = calculateSnakeGrid(availW, availH);
+      setGrid(newGrid);
+      setGridDimensions(newGrid.cols, newGrid.rows);
 
       // Subtract border so grid never bleeds outside the wrapper
       const innerW = availW - BORDER * 2;
       const innerH = availH - BORDER * 2;
 
       // Integer floor guarantees no subpixel drift in any cell
-      let size = Math.min(Math.floor(innerW / COLS), Math.floor(innerH / ROWS));
-      size = Math.max(14, Math.min(size, 30));
+      let size = Math.min(Math.floor(innerW / newGrid.cols), Math.floor(innerH / newGrid.rows));
+      // No desktop permite crescer até 55px (muito maior e confortável); no mobile até 42px
+      const maxSize = availW >= 640 ? 55 : 42;
+      size = Math.max(14, Math.min(size, maxSize));
       setCellSize(size);
     };
 
@@ -57,11 +70,11 @@ export function SnakeGame() {
       ro.disconnect();
       window.visualViewport?.removeEventListener('resize', compute);
     };
-  }, []);
+  }, [setGridDimensions]);
 
   // Canvas dimensions are exact integer multiples of cellSize (no fractions)
-  const CANVAS_W = COLS * cellSize;
-  const CANVAS_H = ROWS * cellSize;
+  const CANVAS_W = grid.cols * cellSize;
+  const CANVAS_H = grid.rows * cellSize;
 
   // ─── Drawing Loop ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -81,8 +94,8 @@ export function SnakeGame() {
     bgCanvas.width = CANVAS_W;
     bgCanvas.height = CANVAS_H;
     const bgCtx = bgCanvas.getContext('2d')!;
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < grid.rows; r++) {
+      for (let c = 0; c < grid.cols; c++) {
         bgCtx.fillStyle = (r + c) % 2 === 0 ? theme.cellA : theme.cellB;
         bgCtx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
       }
@@ -220,13 +233,15 @@ export function SnakeGame() {
         const SNAKE_W2 = cellSize - 4;
         const eyeOffset = SNAKE_W2 * 0.25;
         const eyeFwd = SNAKE_W2 * 0.3;
+        const eyeRadius = Math.max(2.5, Math.round(cellSize * 0.14));
+        const pupilRadius = Math.max(1.2, Math.round(cellSize * 0.08));
         const perp = { x: -vy, y: vx };
         for (const side of [-1, 1]) {
           const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
           const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
-          ctx.beginPath(); ctx.arc(ex, ey, 3.5, 0, Math.PI * 2);
+          ctx.beginPath(); ctx.arc(ex, ey, eyeRadius, 0, Math.PI * 2);
           ctx.fillStyle = '#fff'; ctx.fill();
-          ctx.beginPath(); ctx.arc(ex + vx * 1.5, ey + vy * 1.5, 2, 0, Math.PI * 2);
+          ctx.beginPath(); ctx.arc(ex + vx * 1.5, ey + vy * 1.5, pupilRadius, 0, Math.PI * 2);
           ctx.fillStyle = '#000'; ctx.fill();
         }
       }
@@ -344,10 +359,10 @@ export function SnakeGame() {
       className="w-full flex flex-col items-center select-none"
       style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
     >
-      {/* ── HUD — full width, constrained by canvas size ── */}
+      {/* ── HUD — matches canvas width for clean framing ── */}
       <div
-        className="w-full flex items-center justify-between mb-3 px-1 tracking-wide"
-        style={{ color: theme.textPrimary }}
+        className="flex items-center justify-between mb-2.5 sm:mb-3 px-1 tracking-wide"
+        style={{ color: theme.textPrimary, width: CANVAS_W, maxWidth: '100%' }}
       >
         <div className="flex flex-col">
           <span className="text-[10px] uppercase opacity-70">Pontuação</span>
@@ -418,7 +433,7 @@ export function SnakeGame() {
             <p className="text-sm opacity-80 mb-8 max-w-[200px] text-center" style={{ color: theme.textPrimary }}>
               Coma, cresça e faça a maior pontuação!
             </p>
-            <SmallBtn bg={theme.btnPrimary} onClick={startGame}>JOGAR</SmallBtn>
+            <SmallBtn bg={theme.btnPrimary} onClick={() => startGame(grid)}>JOGAR</SmallBtn>
           </div>
         )}
 
@@ -454,7 +469,7 @@ export function SnakeGame() {
             </div>
 
             <div className="flex flex-col gap-3 w-44">
-              <SmallBtn bg={theme.btnPrimary} onClick={startGame}>JOGAR NOVAMENTE</SmallBtn>
+              <SmallBtn bg={theme.btnPrimary} onClick={() => startGame(grid)}>JOGAR NOVAMENTE</SmallBtn>
               <SmallBtn bg="rgba(255,255,255,0.1)" onClick={goMenu}>MENU</SmallBtn>
             </div>
           </div>

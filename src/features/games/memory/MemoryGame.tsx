@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo, useEffectEvent } from 'react';
-import { Trophy, RotateCcw, Heart, Clock, Zap, Leaf, Star, Flame, Eye, Skull } from 'lucide-react';
+import { Trophy, RotateCcw, Heart, Clock, Zap, Eye, Sparkles, Gem, Infinity as InfinityIcon, Crown, Layers } from 'lucide-react';
 import { cn } from '../../../shared/utils/cn';
 import { shuffle } from '../../../shared/utils/shuffle';
 import { cloudinaryUrl } from '../../../services/cloudinary/upload';
@@ -15,69 +15,218 @@ import { RankingModal } from '../ranking/RankingModal';
 
 // ─── Difficulty Config ────────────────────────────────────────────────────────
 
+export interface GridDimensions {
+  cols: number;
+  rows: number;
+}
+
 export interface DifficultyConfig {
   id: MemoryDifficulty;
   label: string;
-  iconName: 'leaf' | 'star' | 'flame' | 'skull';
+  badge: string;
+  iconName: 'sparkles' | 'gem' | 'infinity' | 'crown';
   pairs: number;
+  cols: number; // mobile fallback
+  rows: number; // mobile fallback
+  grids: {
+    mobile: GridDimensions;
+    tablet: GridDimensions;
+    desktop: GridDimensions;
+  };
   basePointsPerPair: number;
   timeMultipliers: [number, number][];
   description: string;
   gridClasses: string; // Tailwind grid cols and rows
   cardAspect?: 'square' | 'portrait'; // padrão implícito: 'portrait'
+  accentColor: string;
+  accentRgb: string;
 }
 
 export const DIFFICULTIES: DifficultyConfig[] = [
   {
     id: 'easy',
     label: 'Fácil',
-    iconName: 'leaf',
-    pairs: 6, // 12 cards → mobile: 4×3 | desktop: 6×2
+    badge: 'Tranquilo',
+    iconName: 'sparkles',
+    pairs: 6, // 12 cards → mobile: 4×3 | tablet: 6×2 | desktop: 6×2
+    cols: 4,
+    rows: 3,
+    grids: {
+      mobile: { cols: 4, rows: 3 },
+      tablet: { cols: 6, rows: 2 },
+      desktop: { cols: 6, rows: 2 },
+    },
     basePointsPerPair: 100,
     timeMultipliers: [[30, 2.0], [60, 1.6], [Infinity, 1.2]],
-    description: '6 pares · pontuação acessível',
-    gridClasses: 'grid-cols-4 grid-rows-3 lg:grid-cols-6 lg:grid-rows-2',
+    description: '6 pares · ritmo leve',
+    gridClasses: 'grid-cols-4 grid-rows-3 sm:grid-cols-6 sm:grid-rows-2 lg:grid-cols-6 lg:grid-rows-2',
+    accentColor: '#10b981',
+    accentRgb: '16, 185, 129',
   },
   {
     id: 'medium',
     label: 'Médio',
-    iconName: 'star',
+    badge: 'Equilibrado',
+    iconName: 'gem',
     pairs: 8, // 16 cards → mobile: 4×4 | tablet: 8×2 | desktop: 8×2
+    cols: 4,
+    rows: 4,
+    grids: {
+      mobile: { cols: 4, rows: 4 },
+      tablet: { cols: 8, rows: 2 },
+      desktop: { cols: 8, rows: 2 },
+    },
     basePointsPerPair: 150,
     timeMultipliers: [[40, 2.0], [60, 1.6], [Infinity, 1.2]],
-    description: '8 pares · pontuação intermediária',
-    gridClasses: 'grid-cols-4 grid-rows-4 sm:grid-cols-8 sm:grid-rows-2',
+    description: '8 pares · sintonia perfeita',
+    gridClasses: 'grid-cols-4 grid-rows-4 sm:grid-cols-8 sm:grid-rows-2 lg:grid-cols-8 lg:grid-rows-2',
+    accentColor: '#f59e0b',
+    accentRgb: '245, 158, 11',
   },
   {
     id: 'hard',
     label: 'Difícil',
-    iconName: 'flame',
-    pairs: 12, // 24 cards → mobile: 4×6 | desktop: 6×4
+    badge: 'Desafiador',
+    iconName: 'infinity',
+    pairs: 12, // 24 cards → mobile: 4×6 | tablet: 6×4 | desktop: 6×4
+    cols: 4,
+    rows: 6,
+    grids: {
+      mobile: { cols: 4, rows: 6 },
+      tablet: { cols: 6, rows: 4 },
+      desktop: { cols: 6, rows: 4 },
+    },
     basePointsPerPair: 200,
     timeMultipliers: [[45, 2.0], [60, 1.6], [Infinity, 1.2]],
-    description: '12 pares · cartas quadradas · pontuação máxima',
-    gridClasses: 'grid-cols-4 grid-rows-6 lg:grid-cols-6 lg:grid-rows-4',
+    description: '12 pares · cartas quadradas',
+    gridClasses: 'grid-cols-4 grid-rows-6 sm:grid-cols-6 sm:grid-rows-4 lg:grid-cols-6 lg:grid-rows-4',
     cardAspect: 'square',
+    accentColor: '#f43f5e',
+    accentRgb: '244, 63, 94',
   },
   {
     id: 'extreme',
     label: 'Extremo',
-    iconName: 'skull',
-    pairs: 15,
+    badge: 'Insuperável',
+    iconName: 'crown',
+    pairs: 15, // 30 cards → mobile: 5×6 | tablet: 6×5 | desktop: 6×5
+    cols: 5,
+    rows: 6,
+    grids: {
+      mobile: { cols: 5, rows: 6 },
+      tablet: { cols: 6, rows: 5 },
+      desktop: { cols: 6, rows: 5 },
+    },
     basePointsPerPair: 280,
     timeMultipliers: [[60, 2.0], [90, 1.6], [Infinity, 1.2]],
     description: '15 pares · cartas quadradas · pontuação máxima',
-    gridClasses: 'grid-cols-5 grid-rows-6 lg:grid-cols-6 lg:grid-rows-5',
+    gridClasses: 'grid-cols-5 grid-rows-6 sm:grid-cols-6 sm:grid-rows-5 lg:grid-cols-6 lg:grid-rows-5',
     cardAspect: 'square',
+    accentColor: '#a855f7',
+    accentRgb: '168, 85, 247',
   },
 ];
 
 function DiffIcon({ name, className }: { name: string; className?: string }) {
-  if (name === 'leaf') return <Leaf className={className} />;
-  if (name === 'star') return <Star className={className} />;
-  if (name === 'flame') return <Flame className={className} />;
-  if (name === 'skull') return <Skull className={className} />;
+  if (name === 'sparkles') return <Sparkles className={className} />;
+  if (name === 'gem') return <Gem className={className} />;
+  if (name === 'infinity') return <InfinityIcon className={className} />;
+  if (name === 'crown') return <Crown className={className} />;
   return null;
+}
+
+interface MiniGridBoxProps {
+  cols: number;
+  rows: number;
+  isSquare: boolean;
+  deviceLabel: string;
+  className?: string;
+  accentRgb: string;
+}
+
+function MiniGridBox({ cols, rows, isSquare, deviceLabel, className = '' }: MiniGridBoxProps) {
+  const total = cols * rows;
+  // Cartas quadradas (1:1) vs retrato (~2:3)
+  const dotWidth = isSquare ? 5.5 : 4.5;
+  const dotHeight = isSquare ? 5.5 : 6.5;
+  const gap = 2;
+  const paddingX = 12;
+  const totalWidth = cols * dotWidth + (cols - 1) * gap + paddingX;
+
+  return (
+    <div
+      className={cn(
+        'p-1.5 rounded-lg bg-black/50 border border-white/10 shrink-0 self-center transition-all duration-300 group-hover:border-white/25',
+        className
+      )}
+      style={{
+        width: `${Math.ceil(totalWidth)}px`,
+      }}
+      title={`${deviceLabel}: ${cols} colunas × ${rows} linhas (${total} cartas${isSquare ? ' quadradas' : ''})`}
+    >
+      <div
+        className="grid justify-center items-center"
+        style={{
+          gridTemplateColumns: `repeat(${cols}, ${dotWidth}px)`,
+          gap: `${gap}px`,
+        }}
+      >
+        {Array.from({ length: total }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-[1px] bg-white/25 group-hover:bg-white/70 transition-colors"
+            style={{
+              width: `${dotWidth}px`,
+              height: `${dotHeight}px`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MiniGridVisualizer({
+  grids,
+  isSquare = false,
+  accentRgb,
+}: {
+  grids: {
+    mobile: GridDimensions;
+    tablet: GridDimensions;
+    desktop: GridDimensions;
+  };
+  isSquare?: boolean;
+  accentRgb: string;
+}) {
+  return (
+    <>
+      <MiniGridBox
+        cols={grids.mobile.cols}
+        rows={grids.mobile.rows}
+        isSquare={isSquare}
+        deviceLabel="Mobile"
+        className="block sm:hidden"
+        accentRgb={accentRgb}
+      />
+      <MiniGridBox
+        cols={grids.tablet.cols}
+        rows={grids.tablet.rows}
+        isSquare={isSquare}
+        deviceLabel="Tablet"
+        className="hidden sm:block lg:hidden"
+        accentRgb={accentRgb}
+      />
+      <MiniGridBox
+        cols={grids.desktop.cols}
+        rows={grids.desktop.rows}
+        isSquare={isSquare}
+        deviceLabel="Desktop"
+        className="hidden lg:block"
+        accentRgb={accentRgb}
+      />
+    </>
+  );
 }
 
 // ─── Score & Time Helpers ─────────────────────────────────────────────────────
@@ -528,28 +677,54 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
 
   if (screen === 'difficulty') {
     return (
-      <div className="flex flex-col items-center py-6 px-4 h-full w-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <div className="w-full max-w-[340px] flex flex-col gap-6 sm:gap-8 my-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col items-center justify-between py-6 px-3 sm:px-6 h-full w-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative">
+        {/* Glow ambient background orbs */}
+        <div
+          className="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[360px] rounded-full blur-[130px] pointer-events-none opacity-25 -z-10"
+          style={{ background: 'radial-gradient(circle, var(--theme-primary) 0%, transparent 70%)' }}
+        />
+
+        <div className="w-full max-w-[420px] md:max-w-2xl lg:max-w-3xl flex flex-col items-center gap-6 sm:gap-8 my-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
           
-          {/* Header */}
-          <div className="text-center space-y-3">
-            <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-2" style={{ background: 'linear-gradient(145deg, rgba(var(--theme-primary-rgb),0.2), rgba(0,0,0,0.4))', border: '1px solid rgba(var(--theme-primary-rgb),0.3)' }}>
-              <Heart
-                className="w-8 h-8"
-                style={{ color: 'var(--theme-primary)', fill: 'var(--theme-primary)', filter: 'drop-shadow(0 0 12px var(--theme-primary))' }}
+          {/* Header Romântico & Elegante */}
+          <div className="text-center space-y-3 flex flex-col items-center">
+            <div className="relative group">
+              <div
+                className="absolute -inset-1 rounded-3xl blur-lg opacity-40 group-hover:opacity-75 transition duration-500 pointer-events-none"
+                style={{ background: 'linear-gradient(135deg, var(--theme-primary), var(--theme-secondary))' }}
               />
-              <div className="absolute inset-0 rounded-2xl animate-ping opacity-20" style={{ boxShadow: '0 0 20px var(--theme-primary)' }} />
+              <div
+                className="relative inline-flex items-center justify-center w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border backdrop-blur-xl transition-transform duration-300 group-hover:scale-105 shadow-xl"
+                style={{
+                  background: 'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(15,15,25,0.7) 100%)',
+                  borderColor: 'rgba(var(--theme-primary-rgb), 0.35)',
+                }}
+              >
+                <Layers
+                  className="w-8 h-8 sm:w-9 sm:h-9"
+                  style={{
+                    color: 'var(--theme-primary)',
+                    filter: 'drop-shadow(0 0 10px var(--theme-primary))',
+                  }}
+                />
+              </div>
             </div>
+
             <div>
-              <h2 className="text-3xl sm:text-4xl font-serif font-bold text-white tracking-tight" style={{ textShadow: '0 4px 24px rgba(var(--theme-primary-rgb), 0.4)' }}>
-                Memória
+              <h2
+                className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white tracking-tight"
+                style={{ textShadow: '0 4px 24px rgba(var(--theme-primary-rgb), 0.35)' }}
+              >
+                Jogo da Memória
               </h2>
-              <p className="text-white/40 text-sm mt-1">Selecione o nível de desafio</p>
+              <p className="text-white/60 text-xs sm:text-sm font-light tracking-wide mt-1.5 max-w-sm mx-auto">
+                Encontre as fotos dos nossos momentos e teste sua conexão 💕
+              </p>
             </div>
           </div>
 
-          {/* Difficulty Cards */}
-          <div className="flex flex-col gap-3.5">
+          {/* Bento Grid: 1 col on mobile, 2x2 on tablet/desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
             {DIFFICULTIES.map((diff) => (
               <button
                 key={diff.id}
@@ -557,38 +732,134 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
                   if (isStartingRef.current) return;
                   void startGame(diff);
                 }}
-                className="group relative flex flex-col p-4 sm:p-5 rounded-[1.25rem] border transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
-                style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.06)' }}
+                className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden cursor-pointer backdrop-blur-xl shadow-lg"
+                style={{
+                  background: 'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(10,10,18,0.75) 100%)',
+                  borderColor: 'rgba(255,255,255,0.08)',
+                }}
               >
-                {/* Hover Glow */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 120%, rgba(var(--theme-primary-rgb),0.15) 0%, transparent 70%)' }} />
-                
-                <div className="relative flex items-center justify-between w-full">
+                {/* Dynamic hover gradient aura specific to this level */}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(circle at 50% 0%, rgba(${diff.accentRgb}, 0.22) 0%, transparent 75%)`,
+                  }}
+                />
+
+                {/* Border glow on hover */}
+                <div
+                  className="absolute inset-0 rounded-2xl border transition-all duration-300 pointer-events-none opacity-0 group-hover:opacity-100"
+                  style={{
+                    borderColor: `rgba(${diff.accentRgb}, 0.45)`,
+                    boxShadow: `inset 0 0 15px rgba(${diff.accentRgb}, 0.1)`,
+                  }}
+                />
+
+                {/* Top Row: Icon + Title & Badge + MiniGrid */}
+                <div className="relative flex items-center justify-between w-full gap-3">
                   <div className="flex items-center gap-3.5">
-                    <div className="p-3 rounded-xl border border-white/5 shadow-inner" style={{ background: 'rgba(var(--theme-primary-rgb),0.15)', color: 'var(--theme-primary)' }}>
+                    {/* Icon container */}
+                    <div
+                      className="p-3 rounded-xl border shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-inner"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(${diff.accentRgb}, 0.18) 0%, rgba(0,0,0,0.4) 100%)`,
+                        borderColor: `rgba(${diff.accentRgb}, 0.35)`,
+                        color: diff.accentColor,
+                        boxShadow: `0 0 16px rgba(${diff.accentRgb}, 0.25)`,
+                      }}
+                    >
                       <DiffIcon name={diff.iconName} className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <div>
-                      <h3 className="text-white font-bold text-lg sm:text-xl tracking-wide">{diff.label}</h3>
-                      <p className="text-white/40 text-[10px] sm:text-xs uppercase tracking-widest mt-0.5">{diff.pairs} Pares</p>
+
+                    {/* Title + Badge */}
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-white font-bold text-base sm:text-lg tracking-wide group-hover:text-white transition-colors">
+                          {diff.label}
+                        </h3>
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider uppercase border"
+                          style={{
+                            background: `rgba(${diff.accentRgb}, 0.12)`,
+                            borderColor: `rgba(${diff.accentRgb}, 0.3)`,
+                            color: diff.accentColor,
+                          }}
+                        >
+                          {diff.badge}
+                        </span>
+                      </div>
+                      <p className="text-white/40 text-[11px] sm:text-xs mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span>{diff.pairs} Pares ({diff.pairs * 2} cartas)</span>
+                        <span className="text-white/20">·</span>
+                        {/* Mobile grid label */}
+                        <span className="text-white/60 font-mono text-[10px] sm:hidden">
+                          {diff.grids.mobile.cols}×{diff.grids.mobile.rows}
+                        </span>
+                        {/* Tablet grid label */}
+                        <span className="text-white/60 font-mono text-[10px] hidden sm:inline lg:hidden">
+                          {diff.grids.tablet.cols}×{diff.grids.tablet.rows}
+                        </span>
+                        {/* Desktop grid label */}
+                        <span className="text-white/60 font-mono text-[10px] hidden lg:inline">
+                          {diff.grids.desktop.cols}×{diff.grids.desktop.rows}
+                        </span>
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right flex flex-col items-end">
-                    <span className="text-white/80 font-mono text-sm sm:text-base font-semibold">{diff.basePointsPerPair} pts</span>
-                    <span className="text-white/30 text-[9px] sm:text-[10px] uppercase tracking-wider mt-0.5 whitespace-nowrap">Combo máx ×2</span>
+
+                  {/* Micro-Grid Visualizer adaptativo por dispositivo */}
+                  <MiniGridVisualizer
+                    grids={diff.grids}
+                    isSquare={diff.cardAspect === 'square'}
+                    accentRgb={diff.accentRgb}
+                  />
+                </div>
+
+                {/* Bottom Row: Score + Multiplier Chips */}
+                <div className="relative flex items-center justify-between pt-3 mt-3 border-t border-white/5">
+                  <div className="flex items-center gap-1.5 text-white/50 text-xs">
+                    <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="font-mono font-semibold text-white/90 text-xs sm:text-sm">
+                      {diff.basePointsPerPair} pts
+                    </span>
+                    <span className="text-[10px] text-white/30">/ par</span>
+                  </div>
+
+                  <div
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-mono font-medium border"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      borderColor: 'rgba(255,255,255,0.08)',
+                      color: 'rgba(255,255,255,0.7)',
+                    }}
+                  >
+                    <span>Combo até ×2</span>
                   </div>
                 </div>
               </button>
             ))}
           </div>
 
-          {/* Footer Action */}
+          {/* Footer Action: Floating Couple Ranking Pill */}
           <button
             onClick={() => setShowRanking(true)}
-            className="group flex items-center justify-center gap-2 text-sm text-white/40 hover:text-white/90 transition-all py-2"
+            className="group relative flex items-center gap-3 px-5 py-2.5 rounded-full border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-xl transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] shadow-lg cursor-pointer"
+            style={{
+              borderColor: 'rgba(var(--theme-primary-rgb), 0.25)',
+              boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
+            }}
           >
-            <Trophy className="w-4 h-4 group-hover:scale-110 transition-transform" style={{ color: 'var(--theme-primary)', opacity: 0.8 }} />
-            <span>Ver Ranking Global</span>
+            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-yellow-400/10 border border-yellow-400/30 text-yellow-400">
+              <Trophy className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform duration-300" />
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-white/90 text-xs sm:text-sm font-semibold tracking-wide">
+                Ranking do Casal
+              </span>
+              <span className="text-white/40 text-[10px] font-mono">
+                Kevin vs Iara · Ver placar geral
+              </span>
+            </div>
           </button>
         </div>
 
@@ -675,9 +946,9 @@ export function MemoryGame({ albums, winMessage }: MemoryGameProps) {
                 borderTop: '1px solid rgba(var(--theme-primary-rgb), 0.1)',
               }}
             >
-              <MiniStat icon="⚡" label="Jogadas" value={moves} />
-              <MiniStat icon="🔥" label="Combo" value={`×${maxCombo}`} />
-              <MiniStat icon="🕐" label="Tempo" value={formatTime(elapsed)} />
+              <MiniStat icon={<Zap className="w-4 h-4 text-amber-400" />} label="Jogadas" value={moves} />
+              <MiniStat icon={<Sparkles className="w-4 h-4 text-pink-400" />} label="Maior Combo" value={`×${maxCombo}`} />
+              <MiniStat icon={<Clock className="w-4 h-4 text-cyan-400" />} label="Tempo Final" value={formatTime(elapsed)} />
             </div>
           </div>
 
@@ -905,12 +1176,14 @@ const ScoreRow = memo(function ScoreRow({ label, value, accent }: { label: strin
   );
 });
 
-const MiniStat = memo(function MiniStat({ icon, label, value }: { icon: string; label: string; value: string | number }) {
+const MiniStat = memo(function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
-    <div className="flex flex-col items-center gap-0.5 px-2">
-      <span className="text-base">{icon}</span>
-      <span className="text-white font-bold text-sm">{value}</span>
-      <span className="text-white/30 text-[9px] uppercase tracking-wider">{label}</span>
+    <div className="flex flex-col items-center gap-1 px-2">
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 border border-white/10 text-white/80">
+        {icon}
+      </div>
+      <span className="text-white font-bold text-sm leading-tight">{value}</span>
+      <span className="text-white/40 text-[9px] uppercase tracking-wider">{label}</span>
     </div>
   );
 });
