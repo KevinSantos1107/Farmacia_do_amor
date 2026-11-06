@@ -41,6 +41,8 @@ export interface CoupleStoryData {
   other: string;
   /** Nome dos dois, para contextualizar o prompt */
   names: string;
+  /** Enunciados de perguntas já cadastradas para evitar repetições */
+  existingQuestions?: string[];
 }
 
 export interface GenerationResult {

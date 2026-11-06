@@ -295,6 +295,28 @@ describe('Construção de Prompt (buildPrompt)', () => {
     expect(prompt).toContain('- Comidas e restaurantes preferidos: Sushi');
     expect(prompt).not.toContain('- Músicas, filmes');
   });
+
+  it('deve incluir o bloco de perguntas já existentes para garantir ineditismo quando fornecidas', () => {
+    const data: CoupleStoryData = {
+      names: 'Kevin & Iara',
+      dates: '',
+      places: '',
+      phrases: '',
+      media: '',
+      food: '',
+      memories: '',
+      other: '',
+      existingQuestions: [
+        'Onde nos conhecemos?',
+        'Qual o nome do nosso primeiro pet?',
+      ],
+    };
+
+    const prompt = buildPrompt(data);
+    expect(prompt).toContain('PERGUNTAS JÁ EXISTENTES NO BANCO (REGRA CRÍTICA DE INEDITISMO)');
+    expect(prompt).toContain('1. Onde nos conhecemos?');
+    expect(prompt).toContain('2. Qual o nome do nosso primeiro pet?');
+  });
 });
 
 describe('Cliente de Geração de Quiz (generateQuestionsFromGemini)', () => {

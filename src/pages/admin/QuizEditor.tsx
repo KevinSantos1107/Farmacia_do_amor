@@ -15,6 +15,7 @@ import {
   saveAiQuestionsToFirestore,
   deleteAllAiQuestions,
   getAiQuestionCount,
+  fetchAiQuestions,
   type CoupleStoryData,
 } from '../../features/quiz/services/aiQuizService';
 import { useQuizStore } from '../../features/quiz/store/useQuizStore';
@@ -225,10 +226,35 @@ export default function QuizEditor() {
 
     try {
       setAiStatus('generating');
-      setAiStatusMsg('Enviando dados para a IA... Isso pode levar alguns segundos.');
+      setAiStatusMsg('Consultando histórico e preparando IA com diretrizes de ineditismo...');
 
-      const generatedQs = await generateQuestionsFromGemini(aiForm);
-      setAiStatusMsg(`✓ IA gerou ${generatedQs.length} perguntas! Salvando no banco...`);
+      // Se não for substituir tudo, recupera enunciados já existentes para evitar repetições
+      let existingQuestionsTexts: string[] = [];
+      if (!overwrite && siteId) {
+        try {
+          const aiQs = await fetchAiQuestions(siteId);
+          const manualQs = questions.map((q) => q.question.trim()).filter(Boolean);
+          const aiTexts = aiQs.map((q) => q.question.trim()).filter(Boolean);
+          // Combina e remove duplicatas simples locais
+          existingQuestionsTexts = Array.from(new Set([...manualQs, ...aiTexts]));
+        } catch (fetchErr) {
+          console.warn('Não foi possível carregar perguntas existentes para desduplicação:', fetchErr);
+        }
+      }
+
+      setAiStatusMsg(
+        existingQuestionsTexts.length > 0
+          ? `Enviando história para a IA (garantindo ineditismo em relação a ${existingQuestionsTexts.length} perguntas existentes)...`
+          : 'Enviando história para a IA... Isso pode levar alguns segundos.'
+      );
+
+      const payloadToSend: CoupleStoryData = {
+        ...aiForm,
+        ...(existingQuestionsTexts.length > 0 ? { existingQuestions: existingQuestionsTexts } : {}),
+      };
+
+      const generatedQs = await generateQuestionsFromGemini(payloadToSend);
+      setAiStatusMsg(`✓ IA gerou ${generatedQs.length} perguntas inéditas! Salvando no banco...`);
 
       setAiStatus('saving');
       if (overwrite && (existingAiCount ?? 0) > 0) {

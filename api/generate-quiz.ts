@@ -21,14 +21,15 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 // Constantes e Configurações
 // ─────────────────────────────────────────────
 
-export const GEMINI_MODEL = 'gemini-3.1-flash-lite';
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 export const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const JWKS = createRemoteJWKSet(new URL(GOOGLE_JWKS_URL));
 
 export const MAX_FIELD_LENGTH = 2000;
-export const MAX_TOTAL_BODY_LENGTH = 25000;
+export const MAX_EXISTING_QUESTIONS = 300;
+export const MAX_TOTAL_BODY_LENGTH = 50000;
 
 export const RATE_LIMIT_MINUTE_MAX = 5;
 export const RATE_LIMIT_DAY_MAX = 30;
@@ -48,6 +49,8 @@ export interface CoupleStoryData {
   memories: string;
   other: string;
   names: string;
+  /** Lista opcional de enunciados de perguntas que já existem no banco para evitar repetição */
+  existingQuestions?: string[];
 }
 
 export interface QuizOption {
@@ -200,6 +203,23 @@ export function validateStoryData(body: unknown): ValidationResult {
     }
   }
 
+  // Validação opcional da lista de perguntas já existentes
+  if (Array.isArray(rec.existingQuestions)) {
+    const validQuestions: string[] = [];
+    for (const item of rec.existingQuestions) {
+      if (typeof item === 'string') {
+        const trimmed = item.trim();
+        if (trimmed && trimmed.length <= 500) {
+          validQuestions.push(trimmed);
+        }
+      }
+      if (validQuestions.length >= MAX_EXISTING_QUESTIONS) break;
+    }
+    if (validQuestions.length > 0) {
+      sanitized.existingQuestions = validQuestions;
+    }
+  }
+
   return { valid: true, data: sanitized };
 }
 
@@ -245,32 +265,49 @@ export function buildPrompt(data: CoupleStoryData): string {
     .filter(Boolean)
     .join('\n');
 
-  return `Você é um assistente especializado em criar perguntas de quiz personalizadas e divertidas para casais.
+  const existingBlock =
+    data.existingQuestions && data.existingQuestions.length > 0
+      ? `\n\nPERGUNTAS JÁ EXISTENTES NO BANCO (REGRA CRÍTICA DE INEDITISMO):
+Você NÃO PODE repetir nenhuma das perguntas abaixo e nem fazer perguntas que abordem o mesmo fato pelo mesmo ângulo. Explore aspectos que ainda NÃO foram perguntados, ou aborde fatos sob um novo prisma (ex: detalhes de bastidores, reações emocionais, consequências cômicas ou curiosidades específicas).
+Perguntas já cadastradas:
+${data.existingQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n')}`
+      : '';
 
-Com base nas informações a seguir sobre o casal formado por ${data.names}, crie o máximo possível de perguntas de múltipla escolha interessantes e relevantes. Não force um número fixo — se o material permitir 30 perguntas boas, crie 30; se permitir 60, crie 60. Priorize qualidade e variedade. Evite perguntas genéricas ou que possam ser respondidas sem conhecer o casal.
+  return `Você é um mestre em quizzes românticos e íntimos de altíssimo nível, especializado em criar perguntas cativantes, bem-humoradas e desafiadoras para casais.
 
-Informações do casal:
-${parts}
+Seu objetivo é analisar profundamente os dados fornecidos sobre o casal ${data.names} e produzir o máximo de perguntas de múltipla escolha INÉDITAS, inteligentes e memoráveis. Não invente fatos externos; extraia o suco dos detalhes, hábitos, piadas internas e marcos reais fornecidos.
 
-Requisitos obrigatórios:
-1. Cada pergunta deve ter exatamente 4 alternativas (options).
-2. Use IDs das alternativas como: "opt-a", "opt-b", "opt-c", "opt-d".
-3. O campo "correctOptionId" deve conter o ID da alternativa correta.
-4. As alternativas incorretas devem ser plausíveis (não obviamente erradas).
-5. As perguntas devem testar memória real do casal, não conhecimento geral.
-6. Varie os temas: algumas sobre datas, outras sobre lugares, outras sobre hábitos etc.
+Informações da história do casal:
+${parts}${existingBlock}
 
-Responda SOMENTE com um array JSON válido, sem markdown, sem explicações, sem texto fora do JSON. Formato exato:
+DIRETRIZES DE MÁXIMA QUALIDADE E CRIATIVIDADE:
+1. Variedade e Profundidade de Ângulos:
+   - Alterne formatos: perguntas sobre cronologia ("o que aconteceu primeiro?"), detalhes de cenário ("qual era a sobremesa?"), frases exatas ("quem disse a frase tal?"), reações ("qual foi a reação quando...?"), hábitos peculiares e preferências.
+   - Não foque apenas no óbvio: se o texto menciona uma viagem e um prato, pergunte sobre o contexto da situação.
+2. Alternativas Plausíveis e Inteligentes (Pegadinhas Naturais):
+   - Cada pergunta deve ter exatamente 4 alternativas (options).
+   - As 3 alternativas incorretas DEVEM ser plausíveis e contextuais — use elementos reais ou verossímeis do universo do casal para que quem responda precise realmente lembrar do momento, sem respostas absurdas ou infantis.
+   - Distribua a alternativa correta de forma equilibrada entre "opt-a", "opt-b", "opt-c" e "opt-d".
+3. Tom e Estilo:
+   - Afetuoso, divertido, leve e envolvente. Enunciados claros e objetivos em português do Brasil.
+   - Evite perguntas de sim/não disfarçadas ou conhecimento enciclopédico externo. O foco é estritamente a vida e a intimidade do casal.
+
+REQUISITOS TÉCNICOS:
+1. Cada pergunta deve ter exatamente 4 alternativas ("opt-a", "opt-b", "opt-c", "opt-d").
+2. O campo "correctOptionId" deve corresponder exatamente ao "id" da alternativa correta.
+3. Responda SOMENTE com um array JSON válido, sem qualquer bloco de texto introdutório, sem markdown adicional fora da estrutura esperada.
+
+Formato esperado:
 [
   {
-    "question": "Texto da pergunta?",
+    "question": "Texto da pergunta inédita?",
     "options": [
-      { "id": "opt-a", "text": "Alternativa A" },
-      { "id": "opt-b", "text": "Alternativa B" },
-      { "id": "opt-c", "text": "Alternativa C" },
-      { "id": "opt-d", "text": "Alternativa D" }
+      { "id": "opt-a", "text": "Alternativa 1" },
+      { "id": "opt-b", "text": "Alternativa 2" },
+      { "id": "opt-c", "text": "Alternativa 3" },
+      { "id": "opt-d", "text": "Alternativa 4" }
     ],
-    "correctOptionId": "opt-a"
+    "correctOptionId": "opt-b"
   }
 ]`;
 }
@@ -483,7 +520,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
 
-    res.status(200).json({ questions: validQuestions });
+    // Desduplicação defensiva no backend: filtra perguntas idênticas ou muito próximas às existentes
+    const existingNormalized = new Set(
+      (validation.data.existingQuestions || []).map((q) =>
+        q.toLowerCase().replace(/[^a-z0-9]/gi, '')
+      )
+    );
+
+    const deduplicatedQuestions = validQuestions.filter((q) => {
+      const normalized = q.question.toLowerCase().replace(/[^a-z0-9]/gi, '');
+      if (existingNormalized.has(normalized)) {
+        return false;
+      }
+      existingNormalized.add(normalized);
+      return true;
+    });
+
+    if (deduplicatedQuestions.length === 0) {
+      res.status(502).json({
+        error: 'Todas as perguntas geradas coincidiram com as já existentes no banco. Tente adicionar novos detalhes ou fatos diferentes da história do casal.',
+      });
+      return;
+    }
+
+    res.status(200).json({ questions: deduplicatedQuestions });
   } catch (error) {
     // Log seguro de erro sem vazar credenciais ou dados sensíveis
     console.error('Erro interno na execução do Gemini:', (error as Error)?.message || 'Erro desconhecido');
