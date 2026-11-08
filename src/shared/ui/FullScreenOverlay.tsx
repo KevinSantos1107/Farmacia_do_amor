@@ -80,26 +80,26 @@ export function FullScreenOverlay({
       {/* Header */}
       <div
         className={`relative z-10 flex items-center justify-between px-3 sm:px-5 md:px-8 lg:px-12 xl:px-16 border-b border-white/5 bg-black/40 backdrop-blur-md shrink-0 ${
-          fill ? 'py-1.5 sm:py-2.5' : 'py-4'
+          fill ? 'py-1 sm:py-2' : 'py-4'
         }`}
         style={{
-          paddingTop: `max(${fill ? '0.4rem' : '1rem'}, env(safe-area-inset-top, 0px))`,
+          paddingTop: `max(${fill ? '0.35rem' : '1rem'}, env(safe-area-inset-top, 0px))`,
           paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0px))',
           paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0px))',
         }}
       >
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
           {icon && (
-            <div className="hidden md:flex items-center justify-center w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-white/5 border border-white/10 text-theme-secondary shadow-[0_0_15px_rgba(var(--theme-primary-rgb),0.3)]">
+            <div className="hidden md:flex items-center justify-center w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-xl bg-white/5 border border-white/10 text-theme-secondary shadow-[0_0_15px_rgba(var(--theme-primary-rgb),0.3)]">
               {icon}
             </div>
           )}
           <div className="min-w-0">
-            <h2 className={`font-serif font-bold text-white tracking-tight drop-shadow-md truncate ${fill ? 'text-base sm:text-xl md:text-2xl' : 'text-xl md:text-2xl'}`}>
+            <h2 className={`font-serif font-bold text-white tracking-tight drop-shadow-md truncate ${fill ? 'text-base sm:text-lg md:text-xl' : 'text-xl md:text-2xl'}`}>
               {title}
             </h2>
             {subtitle && (
-              <p className={`text-white/60 truncate ${fill ? 'hidden sm:block text-[11px] md:text-sm mt-0.5' : 'text-xs md:text-sm mt-0.5'}`}>
+              <p className={`text-white/60 truncate ${fill ? 'hidden sm:block text-[10px] sm:text-xs mt-0.5' : 'text-xs md:text-sm mt-0.5'}`}>
                 {subtitle}
               </p>
             )}
@@ -110,11 +110,11 @@ export function FullScreenOverlay({
           {actions}
           <button
             onClick={handleDismiss}
-            className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-all hover:scale-105 active:scale-95 ml-1 sm:ml-2 cursor-pointer ${fill ? 'w-9 h-9' : 'w-10 h-10'}`}
+            className={`flex items-center justify-center shrink-0 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-all hover:scale-105 active:scale-95 ml-1 sm:ml-2 cursor-pointer ${fill ? 'w-8 h-8 sm:w-9 sm:h-9' : 'w-10 h-10'}`}
             aria-label="Fechar"
             title="Fechar"
           >
-            <X className={fill ? 'w-5 h-5' : 'w-6 h-6'} />
+            <X className={fill ? 'w-4 h-4 sm:w-5 sm:h-5' : 'w-6 h-6'} />
           </button>
         </div>
       </div>
@@ -129,7 +129,7 @@ export function FullScreenOverlay({
         }
         style={{
           WebkitOverflowScrolling: 'touch',
-          paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+          paddingBottom: fill ? 'max(0.25rem, env(safe-area-inset-bottom, 0px))' : 'max(1rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
         {children}

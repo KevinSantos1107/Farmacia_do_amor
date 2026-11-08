@@ -37,25 +37,34 @@ export type GameState = {
 };
 
 /**
- * Calcula a grade dinâmica para o jogo da cobrinha:
- * - No desktop/tablet (ou landscape): mantém o grid clássico 17 × 15 (255 quadrados).
- * - No mobile (portrait): adapta ao formato vertical ~9:16 da tela do celular,
- *   mantendo a quantidade de quadrados o mais próximo possível de 255.
+ * Calcula a grade dinâmica para o jogo da cobrinha proporcional a qualquer tela:
+ * - Em telas em modo retrato (celulares e tablets em portrait: availW < availH):
+ *   ajusta as colunas e linhas para casar com a proporção da tela disponível (ratio = availW / availH),
+ *   mantendo a quantidade de células próxima ao equilíbrio clássico (~255 células).
+ * - Em telas em modo paisagem / desktop (availW >= availH):
+ *   mantém o grid clássico 17 × 15 (255 células).
  */
 export function calculateSnakeGrid(availW: number, availH: number): { cols: number; rows: number } {
-  const isPortraitMobile = availW < 640 && availW < availH;
-  if (!isPortraitMobile || availH <= 0 || availW <= 0) {
+  if (availH <= 0 || availW <= 0) {
     return { cols: COLS, rows: ROWS };
   }
 
+  // Se a tela for mais larga do que alta (paisagem, notebook, desktop ou tablet horizontal)
+  if (availW >= availH) {
+    return { cols: COLS, rows: ROWS };
+  }
+
+  // Modo retrato: celular ou tablet em pé (availW < availH)
   const ratio = availW / availH;
   let bestCols = 12;
   let bestRows = 21;
   let minPenalty = Infinity;
 
-  // Busca uma combinação harmoniosa em formato 9:16 próxima a 255 células
-  for (let c = 10; c <= 13; c++) {
-    for (let r = 18; r <= 25; r++) {
+  // Busca uma combinação harmoniosa que respeite a proporção da tela mantendo ~255 células
+  // Para celulares (ratio ~0.45 - 0.60): c fica em torno de 10-13, r em torno de 19-24
+  // Para tablets em pé (ratio ~0.65 - 0.85): c fica em torno de 13-16, r em torno de 16-20
+  for (let c = 10; c <= 16; c++) {
+    for (let r = 16; r <= 25; r++) {
       const cellCount = c * r;
       const countDiff = Math.abs(cellCount - TARGET_CELLS);
       const aspectDiff = Math.abs((c / r) - ratio) * 160;
@@ -219,6 +228,11 @@ export function useSnakeGame() {
         { x: Math.max(0, midX - 2), y: midY },
       ];
       s.food = randomFood(s.snake, cols, rows);
+    } else {
+      // Se a comida ficou fora dos limites da nova tela, reposiciona
+      if (s.food.x >= cols || s.food.y >= rows) {
+        s.food = randomFood(s.snake, cols, rows);
+      }
     }
   }, []);
 

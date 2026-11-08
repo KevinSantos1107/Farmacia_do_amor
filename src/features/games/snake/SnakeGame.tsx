@@ -19,6 +19,7 @@ export function SnakeGame() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hudRef = useRef<HTMLDivElement>(null);
   const activeTheme = useThemeStore(s => s.activeTheme);
   const theme = SNAKE_THEMES[activeTheme];
 
@@ -35,28 +36,35 @@ export function SnakeGame() {
     const BORDER = 2; // border px on each side of canvas wrapper
 
     const compute = () => {
-      const availW = el.clientWidth; // padding-box, fires AFTER layout
-      const viewH = window.visualViewport?.height ?? window.innerHeight;
-      
-      // Altura disponível descontando header e HUD
-      const isMobile = availW < 640 && availW < (viewH - 120);
-      const topOffset = isMobile ? 115 : 140;
-      const availH = Math.max(200, Math.floor(viewH) - topOffset);
+      // clientWidth/clientHeight reais do container já descontando header e padding
+      const containerW = el.clientWidth || window.innerWidth;
+      const containerH = el.clientHeight || (window.innerHeight - 100);
 
-      // Grade dinâmica: no desktop mantém 17x15; no mobile ajusta a ~9:16 próximo de 255 células
-      const newGrid = calculateSnakeGrid(availW, availH);
+      // Altura do HUD medida dinamicamente
+      const hudEl = hudRef.current;
+      const hudH = hudEl && hudEl.offsetHeight > 0 ? hudEl.offsetHeight : (containerW < 640 ? 44 : 50);
+      const hudMargin = containerW < 640 ? 8 : 10;
+      const safety = 4; // margem de segurança contra subpixel drift
+
+      // Área líquida máxima disponível para o canvas
+      const maxCanvasW = Math.max(100, containerW - (BORDER * 2) - safety);
+      const maxCanvasH = Math.max(100, containerH - hudH - hudMargin - (BORDER * 2) - safety);
+
+      // Grade dinâmica proporcional a qualquer tela de celular, tablet ou desktop
+      const newGrid = calculateSnakeGrid(maxCanvasW, maxCanvasH);
       setGrid(newGrid);
       setGridDimensions(newGrid.cols, newGrid.rows);
 
-      // Subtract border so grid never bleeds outside the wrapper
-      const innerW = availW - BORDER * 2;
-      const innerH = availH - BORDER * 2;
+      // Garante matematicamente que o canvas nunca ultrapasse largura nem altura
+      const maxCellW = Math.floor(maxCanvasW / newGrid.cols);
+      const maxCellH = Math.floor(maxCanvasH / newGrid.rows);
+      let size = Math.min(maxCellW, maxCellH);
 
-      // Integer floor guarantees no subpixel drift in any cell
-      let size = Math.min(Math.floor(innerW / newGrid.cols), Math.floor(innerH / newGrid.rows));
-      // No desktop permite crescer até 55px (muito maior e confortável); no mobile até 42px
-      const maxSize = availW >= 640 ? 55 : 42;
-      size = Math.max(14, Math.min(size, maxSize));
+      // Limite confortável para cada categoria de dispositivo
+      const maxSize = containerW >= 1024 ? 48 : containerW >= 640 ? 42 : 36;
+      size = Math.min(size, maxSize);
+      size = Math.max(8, size);
+
       setCellSize(size);
     };
 
@@ -64,11 +72,18 @@ export function SnakeGame() {
 
     const ro = new ResizeObserver(compute);
     ro.observe(el);
+    if (hudRef.current) {
+      ro.observe(hudRef.current);
+    }
     window.visualViewport?.addEventListener('resize', compute);
+    window.addEventListener('resize', compute);
+    window.addEventListener('orientationchange', compute);
 
     return () => {
       ro.disconnect();
       window.visualViewport?.removeEventListener('resize', compute);
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('orientationchange', compute);
     };
   }, [setGridDimensions]);
 
@@ -356,53 +371,54 @@ export function SnakeGame() {
   return (
     <div
       ref={containerRef}
-      className="w-full flex flex-col items-center select-none"
+      className="w-full h-full flex flex-col items-center justify-center select-none min-h-0 overflow-hidden"
       style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
     >
       {/* ── HUD — matches canvas width for clean framing ── */}
       <div
-        className="flex items-center justify-between mb-2.5 sm:mb-3 px-1 tracking-wide"
-        style={{ color: theme.textPrimary, width: CANVAS_W, maxWidth: '100%' }}
+        ref={hudRef}
+        className="flex items-center justify-between mb-1.5 sm:mb-2.5 px-1 tracking-wide shrink-0"
+        style={{ color: theme.textPrimary, width: Math.max(260, CANVAS_W), maxWidth: '100%' }}
       >
-        <div className="flex flex-col">
-          <span className="text-[10px] uppercase opacity-70">Pontuação</span>
-          <span className="text-2xl font-bold leading-none">{score}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-[9px] sm:text-[10px] uppercase opacity-70">Pontuação</span>
+          <span className="text-xl sm:text-2xl font-bold leading-none">{score}</span>
         </div>
 
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-2 sm:gap-3 items-center">
           <button
             onClick={() => setShowRanking(true)}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors opacity-70 hover:opacity-100 active:scale-90"
+            className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors opacity-70 hover:opacity-100 active:scale-90"
             title="Ranking do Casal"
             style={{ touchAction: 'manipulation' }}
           >
-            <Trophy size={18} />
+            <Trophy className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
           </button>
           <button
             onClick={toggleAudio}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors opacity-70 hover:opacity-100"
+            className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors opacity-70 hover:opacity-100 active:scale-90"
           >
-            {audioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            {audioEnabled ? <Volume2 className="w-4 h-4 sm:w-[18px] sm:h-[18px]" /> : <VolumeX className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />}
           </button>
           <button
             onClick={pauseToggle}
             disabled={phase === 'menu' || phase === 'gameOver'}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors opacity-70 hover:opacity-100 disabled:opacity-30"
+            className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors opacity-70 hover:opacity-100 active:scale-90 disabled:opacity-30"
           >
-            {phase === 'paused' ? <Play size={18} /> : <Pause size={18} />}
+            {phase === 'paused' ? <Play className="w-4 h-4 sm:w-[18px] sm:h-[18px]" /> : <Pause className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />}
           </button>
         </div>
 
-        <div className="flex flex-col items-end">
-          <span className="text-[10px] uppercase opacity-70">Recorde</span>
-          <span className="text-2xl font-bold leading-none" style={{ color: theme.borderNeon }}>{highScore}</span>
+        <div className="flex flex-col items-end min-w-0">
+          <span className="text-[9px] sm:text-[10px] uppercase opacity-70">Recorde</span>
+          <span className="text-xl sm:text-2xl font-bold leading-none" style={{ color: theme.borderNeon }}>{highScore}</span>
         </div>
       </div>
 
       {/* ── Canvas Area ── */}
       {/* Use exact integer pixel sizes so grid cells are all equal width */}
       <div
-        className="relative rounded-lg overflow-hidden"
+        className="relative rounded-lg overflow-hidden shrink-0"
         style={{
           width: CANVAS_W,
           height: CANVAS_H,
@@ -412,7 +428,6 @@ export function SnakeGame() {
           boxShadow: `0 0 15px ${theme.borderGlow}, inset 0 0 10px ${theme.borderGlow}`,
           background: theme.boardBg,
           overscrollBehavior: 'none',
-          flexShrink: 0,
         }}
       >
         <canvas
@@ -424,13 +439,13 @@ export function SnakeGame() {
         {/* ── Overlay: Menu ── */}
         {phase === 'menu' && (
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-300"
+            className="absolute inset-0 flex flex-col items-center justify-center p-3 animate-in fade-in zoom-in-95 duration-300"
             style={{ background: theme.overlayBg }}
           >
-            <h1 className="text-4xl font-bold mb-2 tracking-tighter" style={{ color: theme.textPrimary, textShadow: `0 0 10px ${theme.borderGlow}` }}>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2 tracking-tighter" style={{ color: theme.textPrimary, textShadow: `0 0 10px ${theme.borderGlow}` }}>
               Snake
             </h1>
-            <p className="text-sm opacity-80 mb-8 max-w-[200px] text-center" style={{ color: theme.textPrimary }}>
+            <p className="text-xs sm:text-sm opacity-80 mb-3 sm:mb-6 max-w-[220px] text-center" style={{ color: theme.textPrimary }}>
               Coma, cresça e faça a maior pontuação!
             </p>
             <SmallBtn bg={theme.btnPrimary} onClick={() => startGame(grid)}>JOGAR</SmallBtn>
@@ -440,10 +455,10 @@ export function SnakeGame() {
         {/* ── Overlay: Paused ── */}
         {phase === 'paused' && (
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center animate-in fade-in duration-200"
+            className="absolute inset-0 flex flex-col items-center justify-center p-3 animate-in fade-in duration-200"
             style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
           >
-            <h2 className="text-2xl font-bold tracking-widest mb-6" style={{ color: theme.textPrimary }}>PAUSADO</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-widest mb-3 sm:mb-6" style={{ color: theme.textPrimary }}>PAUSADO</h2>
             <SmallBtn bg={theme.btnPrimary} onClick={pauseToggle}>Continuar</SmallBtn>
           </div>
         )}
@@ -451,24 +466,24 @@ export function SnakeGame() {
         {/* ── Overlay: Game Over ── */}
         {phase === 'gameOver' && (
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-300"
+            className="absolute inset-0 flex flex-col items-center justify-center p-3 animate-in fade-in zoom-in-95 duration-300"
             style={{ background: theme.overlayBg }}
           >
-            <div className="text-5xl mb-2 animate-bounce">💀</div>
-            <h2 className="text-2xl font-bold mb-4" style={{ color: theme.textPrimary }}>GAME OVER</h2>
+            <div className="text-3xl sm:text-4xl md:text-5xl mb-1 sm:mb-2 animate-bounce">💀</div>
+            <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3" style={{ color: theme.textPrimary }}>GAME OVER</h2>
 
-            <div className="flex gap-6 mb-8 text-center" style={{ color: theme.textPrimary }}>
+            <div className="flex gap-4 sm:gap-6 mb-3 sm:mb-6 text-center" style={{ color: theme.textPrimary }}>
               <div>
-                <div className="text-xs uppercase opacity-70">Pontuação</div>
-                <div className="text-xl font-bold">{score}</div>
+                <div className="text-[10px] sm:text-xs uppercase opacity-70">Pontuação</div>
+                <div className="text-lg sm:text-xl font-bold">{score}</div>
               </div>
               <div>
-                <div className="text-xs uppercase opacity-70">Recorde</div>
-                <div className="text-xl font-bold" style={{ color: theme.borderNeon }}>{highScore}</div>
+                <div className="text-[10px] sm:text-xs uppercase opacity-70">Recorde</div>
+                <div className="text-lg sm:text-xl font-bold" style={{ color: theme.borderNeon }}>{highScore}</div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 w-44">
+            <div className="flex flex-col gap-2 sm:gap-2.5 w-40 sm:w-44">
               <SmallBtn bg={theme.btnPrimary} onClick={() => startGame(grid)}>JOGAR NOVAMENTE</SmallBtn>
               <SmallBtn bg="rgba(255,255,255,0.1)" onClick={goMenu}>MENU</SmallBtn>
             </div>
