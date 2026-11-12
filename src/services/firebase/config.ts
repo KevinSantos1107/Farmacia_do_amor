@@ -2,13 +2,35 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
+const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+const storageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
+const messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID;
+const appId = import.meta.env.VITE_FIREBASE_APP_ID;
+
+// Garante que o aplicativo não inicialize com credenciais vazias ou mascaradas
+if (!apiKey || !projectId) {
+  const missing = [
+    !apiKey && 'VITE_FIREBASE_API_KEY',
+    !projectId && 'VITE_FIREBASE_PROJECT_ID',
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  throw new Error(
+    `[Firebase Config] Variáveis de ambiente obrigatórias ausentes: ${missing}. ` +
+      'Configure seu arquivo .env com base no .env.example.'
+  );
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCgt_eD3M_n9bhuhSzOxpf5f_ck43ZZZ-o',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'kevin-iara-site.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'kevin-iara-site.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '236663809364',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:236663809364:web:c0103bf11a1c37064214c1',
+  apiKey,
+  authDomain: authDomain || `${projectId}.firebaseapp.com`,
+  projectId,
+  storageBucket: storageBucket || `${projectId}.firebasestorage.app`,
+  messagingSenderId: messagingSenderId || '',
+  appId: appId || '',
 };
 
 // Initialize Firebase

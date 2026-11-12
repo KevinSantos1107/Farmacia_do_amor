@@ -175,7 +175,7 @@ export default defineConfig(({ mode }) => {
   // Popula process.env para que as Serverless Functions locais (/api/...) consigam ler as chaves
   process.env.GEMINI_API_KEY = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   process.env.VITE_GEMINI_API_KEY = env.VITE_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-  process.env.FIREBASE_PROJECT_ID = env.FIREBASE_PROJECT_ID || env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'kevin-iara-site';
+  process.env.FIREBASE_PROJECT_ID = env.FIREBASE_PROJECT_ID || env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || '';
 
   return {
     plugins: [

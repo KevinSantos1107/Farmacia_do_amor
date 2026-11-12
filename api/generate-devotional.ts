@@ -411,11 +411,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   // 3. Verificação das variáveis de ambiente necessárias
-  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
-  if (!geminiApiKey) {
-    console.error('Configuração do servidor incompleta: GEMINI_API_KEY não definida.');
+  if (!projectId || !geminiApiKey) {
+    console.error('Configuração do servidor incompleta: FIREBASE_PROJECT_ID ou GEMINI_API_KEY não definida.');
     res.status(500).json({ error: 'Erro de configuração no servidor.' });
     return;
   }

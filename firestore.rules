@@ -1,35 +1,191 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ─── FUNÇÕES AUXILIARES DE SEGURANÇA ─────────────────────────────
     
-    // Regra geral: Permite leitura e escrita para TODO O SITE (Albuns, Timeline, Playlists, etc),
-    // EXCETO para as 3 coleções sensíveis que estamos protegendo agora.
-    match /{col}/{document=**} {
-      allow read, write: if col != 'player_tokens' 
-                         && col != 'game_records' 
-                         && col != 'player_links';
+    // Verifica se o usuário está autenticado no Firebase Auth (anônimo ou e-mail/senha)
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // 🔒 PROTEÇÕES ESPECÍFICAS 🔒 //
+    // Verifica se o usuário autenticado é um Administrador válido:
+    // 1. Possui Custom Claim de 'super_admin' ou 'site_admin'
+    // 2. OU possui login com e-mail cadastrado (administrador no Firebase Auth)
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role in ['super_admin', 'site_admin'] ||
+        (request.auth.token.email != null && request.auth.token.email != '')
+      );
+    }
 
-    // 1. Tokens mágicos de login
+    // Valida vínculo de token de jogador (o token deve existir na coleção e bater com o player reivindicado)
+    function isValidPlayerLinkLegacy(uid) {
+      return request.auth.uid == uid &&
+        exists(/databases/$(database)/documents/player_tokens/$(request.resource.data.tokenId)) &&
+        get(/databases/$(database)/documents/player_tokens/$(request.resource.data.tokenId)).data.player == request.resource.data.player;
+    }
+
+    function isValidPlayerLinkSite(siteId, uid) {
+      return request.auth.uid == uid &&
+        exists(/databases/$(database)/documents/sites/$(siteId)/player_tokens/$(request.resource.data.tokenId)) &&
+        get(/databases/$(database)/documents/sites/$(siteId)/player_tokens/$(request.resource.data.tokenId)).data.player == request.resource.data.player;
+    }
+
+    // ─── COLEÇÕES DE INTERAÇÃO DO CASAL / JOGADORES (RAIZ) ───────────
+
+    // 1. Tokens de acesso dos jogadores
     match /player_tokens/{tokenId} {
+      // Leitura individual permitida para validação inicial do link (?token=...)
       allow get: if true;
-      allow list, write: if request.auth != null && request.auth.token.email != null;
+      // Listagem, criação e exclusão restritas exclusivamente a administradores
+      allow list, write: if isAdmin();
     }
 
-    // 2. Recordes dos mini-games
+    // 2. Vínculo seguro entre UID anônima do jogador e token
+    match /player_links/{uid} {
+      allow read: if request.auth.uid == uid || isAdmin();
+      allow write: if isValidPlayerLinkLegacy(uid);
+    }
+
+    // 3. Recordes dos Mini-games (permite gravar e atualizar pontuações; exclusão restrita a admin)
     match /game_records/{recordId} {
       allow read: if true;
-      allow write: if request.auth != null; // Simplificado para evitar erros de permissão
+      allow create, update: if true;
+      allow delete: if isAdmin();
     }
 
-    // 3. Vínculo entre a UID anônima e o jogador
-    match /player_links/{uid} {
-      allow read: if request.auth.uid == uid;
-      allow write: if request.auth.uid == uid 
-                   && exists(/databases/$(database)/documents/player_tokens/$(request.resource.data.tokenId))
-                   && get(/databases/$(database)/documents/player_tokens/$(request.resource.data.tokenId)).data.player == request.resource.data.player;
+    // 4. Salas de sincronização e presença em tempo real (Sync Game)
+    match /sync_rooms/{roomId} {
+      allow read, write: if true;
+    }
+    match /sync_presence/{roomId} {
+      allow read, write: if true;
+    }
+
+    // 5. Devocional diário compartilhado (sessões, favoritos e metadados)
+    match /devotional_sessions/{date} {
+      allow read, write: if true;
+    }
+    match /devotional_favorites/{favId} {
+      allow read, write: if true;
+    }
+    match /devotional_meta/{playerId} {
+      allow read, write: if true;
+    }
+
+    // ─── CONTEÚDO DO SITE NA RAIZ (LEITURA ABERTA / ESCRITA ADMIN) ────
+    
+    // Álbuns e fotos
+    match /albums/{albumId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /album_photos/{photoId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Timeline dos momentos
+    match /timeline/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Playlists e trilhas sonoras
+    match /custom_playlists/{playlistId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /playlist_tracks/{trackId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Roleta
+    match /wheels/{wheelId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Mapa das estrelas
+    match /starmap/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Retrospectivas
+    match /retrospectives/{retroId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Quiz
+    match /quiz_questions/{questionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /quiz_config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Configuração geral do site
+    match /site_config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Fila de limpeza do Cloudinary
+    match /cloudinary_deletions_queue/{queueId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ─── SUPORTE AO MODO MULTI-SITE (sites/{siteId}/...) ──────────────
+    // Protege completamente caso VITE_DATA_LAYOUT=site seja ativado
+    match /sites/{siteId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      // Coleções aninhadas sob o site
+      match /player_tokens/{tokenId} {
+        allow get: if true;
+        allow list, write: if isAdmin();
+      }
+
+      match /player_links/{uid} {
+        allow read: if request.auth.uid == uid || isAdmin();
+        allow write: if isValidPlayerLinkSite(siteId, uid);
+      }
+
+      match /game_records/{recordId} {
+        allow read: if true;
+        allow create, update: if true;
+        allow delete: if isAdmin();
+      }
+
+      match /sync_rooms/{roomId} {
+        allow read, write: if true;
+      }
+      match /sync_presence/{roomId} {
+        allow read, write: if true;
+      }
+
+      match /devotional_sessions/{date} {
+        allow read, write: if true;
+      }
+      match /devotional_favorites/{favId} {
+        allow read, write: if true;
+      }
+      match /devotional_meta/{playerId} {
+        allow read, write: if true;
+      }
+
+      // Conteúdo estático/gerenciado sob o site
+      match /{subcol}/{document=**} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
     }
   }
 }

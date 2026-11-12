@@ -51,8 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const projectId =
         process.env.FIREBASE_PROJECT_ID ||
-        process.env.VITE_FIREBASE_PROJECT_ID ||
-        'kevin-iara-site';
+        process.env.VITE_FIREBASE_PROJECT_ID;
+      if (!projectId) {
+        throw new Error('FIREBASE_PROJECT_ID não definido');
+      }
       const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/sites/${siteId}`;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 2500);

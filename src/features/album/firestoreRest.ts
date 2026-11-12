@@ -16,8 +16,11 @@ export interface RawFirestoreDoc {
 }
 
 function getRestConfig() {
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCgt_eD3M_n9bhuhSzOxpf5f_ck43ZZZ-o';
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
+  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+  if (!apiKey || !projectId) {
+    return null;
+  }
   const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
   return { apiKey, baseUrl };
 }
@@ -35,7 +38,9 @@ export async function listCollectionDocs(
   collectionId: string,
   signal?: AbortSignal
 ): Promise<RawFirestoreDoc[] | null> {
-  const { apiKey, baseUrl } = getRestConfig();
+  const cfg = getRestConfig();
+  if (!cfg) return null;
+  const { apiKey, baseUrl } = cfg;
   const docs: RawFirestoreDoc[] = [];
   let pageToken: string | undefined;
 
@@ -66,7 +71,9 @@ export async function queryAlbumPhotoPages(
   albumId: string,
   signal?: AbortSignal
 ): Promise<RawFirestoreDoc[] | null> {
-  const { apiKey, baseUrl } = getRestConfig();
+  const cfg = getRestConfig();
+  if (!cfg) return null;
+  const { apiKey, baseUrl } = cfg;
   const res = await fetch(`${baseUrl}:runQuery?key=${apiKey}`, {
     method: 'POST',
     signal,

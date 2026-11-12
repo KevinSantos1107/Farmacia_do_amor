@@ -50,9 +50,15 @@ const ANALYZE = args.includes('--analyze');
 const concArg = args.find((a) => a.startsWith('--concurrency='));
 const CONCURRENCY = Math.max(1, Math.min(8, parseInt(concArg?.split('=')[1] ?? '3', 10) || 3));
 
-const API_KEY = process.env.VITE_FIREBASE_API_KEY || 'AIzaSyCgt_eD3M_n9bhuhSzOxpf5f_ck43ZZZ-o';
-const PROJECT_ID = process.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
-const CLOUD_NAME = process.env.VITE_CLOUDINARY_CLOUD_NAME || 'dxxnqs4gf';
+const API_KEY = process.env.VITE_FIREBASE_API_KEY;
+const PROJECT_ID = process.env.VITE_FIREBASE_PROJECT_ID;
+const CLOUD_NAME = process.env.VITE_CLOUDINARY_CLOUD_NAME;
+
+if (!API_KEY || !PROJECT_ID || !CLOUD_NAME) {
+  console.error('❌ ERRO: VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID e VITE_CLOUDINARY_CLOUD_NAME são obrigatórios.');
+  console.error('   Configure-os no arquivo .env antes de executar o script de aquecimento.');
+  process.exit(1);
+}
 
 const FIRESTORE_BASE =
   process.env.WARM_FIRESTORE_BASE ||

@@ -338,7 +338,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   // 3. Verificação das variáveis de ambiente necessárias
-  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
   if (!projectId) {
     console.error('Configuração do servidor incompleta: FIREBASE_PROJECT_ID não definido.');
     res.status(500).json({ error: 'Erro de configuração no servidor.' });
