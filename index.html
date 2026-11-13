@@ -28,25 +28,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&amp;family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=Poppins:wght@400;500;600;700&amp;display=swap" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&amp;family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=Poppins:wght@400;500;600;700&amp;display=swap" /></noscript>
-    <style>
-      /* Mantém o motor do Eruda ativo em segundo plano para estabilidade no iOS WebKit, ocultando 100% da interface visual */
-      .eruda-container, #eruda, [class*="eruda"] {
-        display: none !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-        visibility: hidden !important;
-      }
-    </style>
   </head>
   <body>
-    <!-- Runtime de estabilização do Safari iOS (Eruda headless, não-bloqueante) -->
-    <!-- Os listeners de erro ficam síncronos (custo zero) para capturar erros imediatos -->
-    <script>
-      window.addEventListener('error', function() {});
-      window.addEventListener('unhandledrejection', function() {});
-    </script>
-    <!-- Eruda carrega assincronamente: não bloqueia o parser HTML nem o JS principal -->
-    <script async src="https://cdn.jsdelivr.net/npm/eruda" onload="eruda.init()"></script>
     <div id="root"></div>
     <!-- Portal isolado para modais: não sofre com overflow:hidden do body durante o lockBodyScroll no iOS -->
     <div id="modal-root"></div>
