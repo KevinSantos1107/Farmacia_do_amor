@@ -570,7 +570,7 @@ function Home() {
                 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-wide"
                 style={{ textShadow: '0 0 20px var(--theme-primary)' }}
               >
-                Para Minha Princesa
+                {config.loveMessagesTitle || (partner2.gender === 'M' ? 'Para Meu Príncipe' : 'Para Minha Princesa')}
               </h2>
             </div>
 
