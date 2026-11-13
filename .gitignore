@@ -32,3 +32,4 @@ scripts/serviceAccountKey.json
 *.zip
 scripts/backup-*/
 scripts/backup-*
+scripts/backups/
