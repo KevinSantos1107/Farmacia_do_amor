@@ -232,4 +232,36 @@ describe('ConfigPage - Gravação Parcial e Diff (ITEM 3)', () => {
     expect(changes['couple.partner1.name']).toBe('Lucas');
     expect(changes['couple.partner1.playerId']).toBe('lucas');
   });
+
+  it('detecta alteração em loveMessages e acrostic', () => {
+    const newMessages = ['Você é a razão do meu sorriso.'];
+    const newAcrostic = [
+      { letter: 'T', short: 'udo pra mim', long: 'Você completa meus dias.' },
+    ];
+
+    const form: Partial<SiteConfig> = {
+      loveMessages: newMessages,
+      acrostic: newAcrostic,
+    };
+
+    const changes = getChangedConfigFields(currentConfig, form);
+    expect(changes['loveMessages']).toEqual(newMessages);
+    expect(changes['acrostic']).toEqual(newAcrostic);
+  });
+
+  it('preserva edições de loveMessages e acrostic durante mergeStoreConfigIntoForm', () => {
+    const form: Partial<SiteConfig> = {
+      loveMessages: ['Mensagem rascunho não salva'],
+      acrostic: [{ letter: 'K', short: 'evin', long: 'Amor' }],
+    };
+
+    const updatedStore: SiteConfig = {
+      ...currentConfig,
+      loveMessages: ['Mensagem vinda do servidor'],
+    };
+
+    const merged = mergeStoreConfigIntoForm(currentConfig, updatedStore, form);
+    expect(merged.loveMessages).toEqual(['Mensagem rascunho não salva']);
+    expect(merged.acrostic).toEqual([{ letter: 'K', short: 'evin', long: 'Amor' }]);
+  });
 });

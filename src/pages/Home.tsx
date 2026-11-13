@@ -12,8 +12,8 @@ const PlaylistTabs = lazy(() => import('../features/playlist/PlaylistTabs').then
 const AlbumCarousel = lazy(() => import('../features/album/AlbumCarousel').then(m => ({ default: m.AlbumCarousel })));
 import { getSafeTime } from '../shared/utils/dateUtils';
 
-// ─── Data ────────────────────────────────────────────────────────────────────
-const LOVE_MESSAGES = [
+// ─── Data Fallbacks ──────────────────────────────────────────────────────────
+const DEFAULT_LOVE_MESSAGES = [
   'Cada dia ao seu lado é uma página nova em nosso livro de amor, escrita com sorrisos, carinho e cumplicidade.',
   'Se eu pudesse escolher novamente entre todas as pessoas do mundo, escolheria você, sempre você.',
   'Nos seus olhos encontro meu lugar favorito no mundo, onde posso ser apenas eu e saber que sou amado.',
@@ -31,7 +31,7 @@ const LOVE_MESSAGES = [
   'Você conseguiu ser minha paz mesmo estando quilômetros de distância.',
 ];
 
-const ACROSTIC = [
+const DEFAULT_ACROSTIC = [
   {
     letter: 'I',
     color: 'text-[var(--theme-primary)]',
@@ -56,6 +56,12 @@ const ACROSTIC = [
     short: 'utêntica — a sua essência é única',
     long: 'O seu jeitinho, sua personalidade e a forma sincera com que você vive a vida me deixam completamente apaixonado. Você consegue ser diferente de todo mundo da melhor forma possível.',
   },
+];
+
+const ACROSTIC_COLORS = [
+  'text-[var(--theme-primary)]',
+  'text-[var(--theme-secondary)]',
+  'text-[var(--theme-accent)]',
 ];
 
 import type { Variants } from 'framer-motion';
@@ -93,6 +99,22 @@ function Home() {
   const { activeTheme } = useThemeStore();
   const [msgIndex, setMsgIndex] = useState(0);
   const [openAcrostic, setOpenAcrostic] = useState<number | null>(null);
+
+  const loveMessages = useMemo(() => {
+    return config?.loveMessages && config.loveMessages.length > 0
+      ? config.loveMessages
+      : DEFAULT_LOVE_MESSAGES;
+  }, [config?.loveMessages]);
+
+  const acrostic = useMemo(() => {
+    const list = config?.acrostic && config.acrostic.length > 0
+      ? config.acrostic
+      : DEFAULT_ACROSTIC;
+    return list.map((item, idx) => ({
+      ...item,
+      color: item.color || ACROSTIC_COLORS[idx % ACROSTIC_COLORS.length],
+    }));
+  }, [config?.acrostic]);
 
   const startMs = useMemo(() => {
     return getSafeTime(config?.relationship?.startDate);
@@ -441,12 +463,12 @@ function Home() {
               className="text-4xl md:text-5xl font-serif font-bold text-white mt-4 tracking-wide"
               style={{ textShadow: '0 0 20px var(--theme-primary)' }}
             >
-              I A R A
+              {acrostic.map((line) => line.letter).join(' ')}
             </h2>
           </div>
 
           <div className="space-y-5">
-            {ACROSTIC.map((line, index) => {
+            {acrostic.map((line, index) => {
               const isOpen = openAcrostic === index;
               return (
                 <motion.button
@@ -596,7 +618,7 @@ function Home() {
                   className="text-white/95 leading-relaxed md:leading-loose text-xl md:text-2xl italic font-light tracking-wide"
                   style={{ textShadow: '0 2px 10px rgba(0,0,0,0.4)' }}
                 >
-                  "{LOVE_MESSAGES[msgIndex]}"
+                  "{loveMessages[msgIndex % loveMessages.length]}"
                 </motion.p>
               </AnimatePresence>
             </div>
@@ -619,7 +641,7 @@ function Home() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setMsgIndex((i) => (i + 1) % LOVE_MESSAGES.length)}
+              onClick={() => setMsgIndex((i) => (i + 1) % loveMessages.length)}
               className="mt-2 inline-flex items-center justify-center gap-3 text-sm text-white font-bold uppercase tracking-wider px-8 py-4 rounded-full bg-[var(--theme-primary)]/10 hover:bg-[var(--theme-primary)]/25 border border-[var(--theme-primary)]/40 hover:border-[var(--theme-primary)]/80 hover:shadow-[0_0_35px_rgba(var(--theme-primary-rgb),0.5)] transition-colors duration-300"
               style={{ touchAction: 'manipulation' }}
             >

@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/Card';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import { Spinner } from '../../shared/ui/Spinner';
-import { Save, AlertTriangle } from 'lucide-react';
+import { Save, AlertTriangle, Plus, Trash2, Heart, Sparkles } from 'lucide-react';
 import type { SiteConfig } from '../../config/siteConfig.schema';
+import { meuSiteConfig } from '../../config/sites/meu-site';
 import { AvatarPicker } from '../../features/avatar/AvatarPicker';
 
 import { useToast } from '../../shared/ui/ToastProvider';
@@ -38,12 +39,22 @@ export function mergeStoreConfigIntoForm(
   newConfig: SiteConfig,
   currentForm: Partial<SiteConfig>
 ): Partial<SiteConfig> {
+  const fallbackLoveMessages = (newConfig.loveMessages && newConfig.loveMessages.length > 0)
+    ? newConfig.loveMessages
+    : (meuSiteConfig.loveMessages ?? []);
+
+  const fallbackAcrostic = (newConfig.acrostic && newConfig.acrostic.length > 0)
+    ? newConfig.acrostic
+    : (meuSiteConfig.acrostic ?? []);
+
   if (!prevConfig) {
     return {
       couple: newConfig.couple,
       relationship: newConfig.relationship,
       features: newConfig.features,
       theme: newConfig.theme,
+      loveMessages: currentForm.loveMessages ?? fallbackLoveMessages,
+      acrostic: currentForm.acrostic ?? fallbackAcrostic,
     };
   }
 
@@ -99,11 +110,21 @@ export function mergeStoreConfigIntoForm(
     }
   }
 
+  const loveMessages = (currentForm.loveMessages !== undefined && JSON.stringify(currentForm.loveMessages) !== JSON.stringify(prevConfig.loveMessages))
+    ? currentForm.loveMessages
+    : fallbackLoveMessages;
+
+  const acrostic = (currentForm.acrostic !== undefined && JSON.stringify(currentForm.acrostic) !== JSON.stringify(prevConfig.acrostic))
+    ? currentForm.acrostic
+    : fallbackAcrostic;
+
   return {
     couple: { partner1, partner2 },
     relationship,
     features,
     theme: newConfig.theme,
+    loveMessages,
+    acrostic,
   };
 }
 
@@ -177,6 +198,16 @@ export function getChangedConfigFields(
     }
   }
 
+  // Love Messages
+  if (form.loveMessages !== undefined && JSON.stringify(form.loveMessages) !== JSON.stringify(current.loveMessages)) {
+    updates['loveMessages'] = form.loveMessages;
+  }
+
+  // Acrostic
+  if (form.acrostic !== undefined && JSON.stringify(form.acrostic) !== JSON.stringify(current.acrostic)) {
+    updates['acrostic'] = form.acrostic;
+  }
+
   return updates;
 }
 
@@ -193,7 +224,25 @@ export default function ConfigPage() {
     relationship: config?.relationship,
     features: config?.features,
     theme: config?.theme,
+    loveMessages: (config?.loveMessages && config.loveMessages.length > 0)
+      ? config.loveMessages
+      : (meuSiteConfig.loveMessages ?? []),
+    acrostic: (config?.acrostic && config.acrostic.length > 0)
+      ? config.acrostic
+      : (meuSiteConfig.acrostic ?? []),
   }));
+
+  const currentAcrostic = useMemo(() => {
+    if (formData.acrostic !== undefined) return formData.acrostic;
+    if (config?.acrostic && config.acrostic.length > 0) return config.acrostic;
+    return meuSiteConfig.acrostic ?? [];
+  }, [formData.acrostic, config?.acrostic]);
+
+  const currentLoveMessages = useMemo(() => {
+    if (formData.loveMessages !== undefined) return formData.loveMessages;
+    if (config?.loveMessages && config.loveMessages.length > 0) return config.loveMessages;
+    return meuSiteConfig.loveMessages ?? [];
+  }, [formData.loveMessages, config?.loveMessages]);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -540,6 +589,180 @@ export default function ConfigPage() {
           </CardContent>
         </Card>
 
+      </div>
+
+      {/* Acróstico e Mensagens de Amor */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Acróstico Personalizado */}
+        <Card className="bg-slate-800 border-slate-700 shadow-none">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-slate-200 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-indigo-400" />
+              Acróstico Personalizado
+            </CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setFormData({
+                  ...formData,
+                  acrostic: [
+                    ...currentAcrostic,
+                    { letter: '', short: '', long: '' },
+                  ],
+                });
+              }}
+              className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-200"
+            >
+              <Plus className="w-3.5 h-3.5" /> Adicionar Letra
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-slate-400">
+              Personalize o acróstico que aparece na tela inicial. Cada letra pode ter um resumo curto e um texto longo revelado ao tocar.
+            </p>
+
+            {currentAcrostic.length === 0 ? (
+              <div className="p-6 border border-dashed border-slate-700 rounded-xl text-center text-slate-500 text-sm">
+                Nenhuma letra cadastrada no acróstico. O site usará o padrão (I-A-R-A).
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {currentAcrostic.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 bg-slate-900/70 border border-slate-700/60 rounded-xl space-y-3 relative group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-14">
+                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">Letra</label>
+                        <Input
+                          value={item.letter}
+                          maxLength={2}
+                          placeholder="A"
+                          onChange={(e) => {
+                            const updated = [...currentAcrostic];
+                            updated[idx] = { ...updated[idx], letter: e.target.value.toUpperCase() };
+                            setFormData({ ...formData, acrostic: updated });
+                          }}
+                          className="bg-slate-800 border-slate-700 text-center font-bold text-lg text-indigo-300 h-9 px-1 uppercase"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">Frase Curta</label>
+                        <Input
+                          value={item.short}
+                          placeholder="mor — você é meu tudo"
+                          onChange={(e) => {
+                            const updated = [...currentAcrostic];
+                            updated[idx] = { ...updated[idx], short: e.target.value };
+                            setFormData({ ...formData, acrostic: updated });
+                          }}
+                          className="bg-slate-800 border-slate-700 text-slate-200 h-9 text-sm"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = currentAcrostic.filter((_, i) => i !== idx);
+                          setFormData({ ...formData, acrostic: updated });
+                        }}
+                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors mt-5"
+                        title="Remover letra"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-400 block mb-1">Texto Detalhado (expandido)</label>
+                      <textarea
+                        value={item.long}
+                        rows={2}
+                        placeholder="Texto longo exibido ao clicar no card da letra..."
+                        onChange={(e) => {
+                          const updated = [...currentAcrostic];
+                          updated[idx] = { ...updated[idx], long: e.target.value };
+                          setFormData({ ...formData, acrostic: updated });
+                        }}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-xs text-slate-200 focus:ring-1 focus:ring-indigo-500 focus:outline-none resize-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mensagens de Amor */}
+        <Card className="bg-slate-800 border-slate-700 shadow-none">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-slate-200 flex items-center gap-2">
+              <Heart className="w-5 h-5 text-rose-400" />
+              Mensagens de Amor ({currentLoveMessages.length})
+            </CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setFormData({
+                  ...formData,
+                  loveMessages: [...currentLoveMessages, ''],
+                });
+              }}
+              className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-200"
+            >
+              <Plus className="w-3.5 h-3.5" /> Adicionar Frase
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-slate-400">
+              Frases românticas sorteadas no botão "Nova mensagem" da tela principal.
+            </p>
+
+            {currentLoveMessages.length === 0 ? (
+              <div className="p-6 border border-dashed border-slate-700 rounded-xl text-center text-slate-500 text-sm">
+                Nenhuma frase cadastrada. O site usará o conjunto padrão de mensagens.
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+                {currentLoveMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 p-2 bg-slate-900/60 border border-slate-700/50 rounded-lg group"
+                  >
+                    <span className="text-xs font-mono text-slate-500 w-6 text-center select-none">
+                      {idx + 1}
+                    </span>
+                    <Input
+                      value={msg}
+                      placeholder="Digite uma frase de amor..."
+                      onChange={(e) => {
+                        const updated = [...currentLoveMessages];
+                        updated[idx] = e.target.value;
+                        setFormData({ ...formData, loveMessages: updated });
+                      }}
+                      className="bg-slate-800 border-slate-700 text-slate-200 text-xs h-9 flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = currentLoveMessages.filter((_, i) => i !== idx);
+                        setFormData({ ...formData, loveMessages: updated });
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      title="Excluir frase"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4 border-t border-slate-800">

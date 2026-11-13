@@ -1,3 +1,10 @@
+export interface AcrosticItem {
+  letter: string;
+  short: string;
+  long: string;
+  color?: string;
+}
+
 export interface SiteConfig {
   id: string;
   couple: {
@@ -51,4 +58,6 @@ export interface SiteConfig {
     enableMusic: boolean;
     enableAlbum: boolean;
   };
+  loveMessages?: string[];
+  acrostic?: AcrosticItem[];
 }
