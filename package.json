@@ -39,6 +39,9 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@fontsource/dancing-script": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
+    "@fontsource/poppins": "^5.3.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/jsmediatags": "^3.9.6",
     "@types/node": "^24.13.3",
