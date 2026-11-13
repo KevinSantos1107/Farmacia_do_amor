@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, useEffect, useRef, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Heart, ChevronDown, RefreshCw, Sparkles, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -62,11 +62,33 @@ function Home() {
   const { config } = useSiteConfigStore();
   const { activeTheme } = useThemeStore();
   const [msgIndex, setMsgIndex] = useState(0);
+  const [spinCount, setSpinCount] = useState(0);
   const [openAcrostic, setOpenAcrostic] = useState<number | null>(null);
 
   const loveMessages = useMemo(() => {
     return config?.loveMessages || [];
   }, [config?.loveMessages]);
+
+  // Sorteia uma mensagem aleatória toda vez que o usuário entra no site (ou quando as mensagens carregam)
+  const hasRandomizedInitialMsg = useRef(false);
+  useEffect(() => {
+    if (loveMessages.length > 0 && !hasRandomizedInitialMsg.current) {
+      hasRandomizedInitialMsg.current = true;
+      setMsgIndex(Math.floor(Math.random() * loveMessages.length));
+    }
+  }, [loveMessages.length]);
+
+  const handleNextMessage = () => {
+    setSpinCount((prev) => prev + 1);
+    if (loveMessages.length <= 1) return;
+    setMsgIndex((currentIndex) => {
+      let nextIndex = Math.floor(Math.random() * loveMessages.length);
+      if (nextIndex === currentIndex % loveMessages.length) {
+        nextIndex = (nextIndex + 1) % loveMessages.length;
+      }
+      return nextIndex;
+    });
+  };
 
   const acrostic = useMemo(() => {
     return (config?.acrostic || []).map((item, idx) => ({
@@ -586,13 +608,13 @@ function Home() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setMsgIndex((i) => (i + 1) % loveMessages.length)}
+              onClick={handleNextMessage}
               className="mt-2 inline-flex items-center justify-center gap-3 text-sm text-white font-bold uppercase tracking-wider px-8 py-4 rounded-full bg-[var(--theme-primary)]/10 hover:bg-[var(--theme-primary)]/25 border border-[var(--theme-primary)]/40 hover:border-[var(--theme-primary)]/80 hover:shadow-[0_0_35px_rgba(var(--theme-primary-rgb),0.5)] transition-colors duration-300"
               style={{ touchAction: 'manipulation' }}
             >
               <motion.div
                 initial={false}
-                animate={{ rotate: msgIndex * 180 }}
+                animate={{ rotate: spinCount * 180 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
               >
                 <RefreshCw className="w-5 h-5" />
