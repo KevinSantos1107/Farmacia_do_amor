@@ -23,8 +23,12 @@ import type { Variants } from 'framer-motion';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 const fadeUpVariant: Variants = {
-  hidden: { opacity: 1, y: 0 },
-  visible: { opacity: 1, y: 0 },
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: 'easeOut' },
+  },
 };
 
 import { MeteorShower } from '../features/themes/components/MeteorShower';
@@ -167,13 +171,6 @@ function Home() {
           transition={{ duration: 1, ease: 'easeOut' }}
           className="relative z-10 text-center space-y-12 py-16 max-w-2xl mx-auto"
         >
-          {/* Tag temporária para conferir atualização no iPhone da Iara */}
-          <div className="flex justify-center -mb-6">
-            <span className="px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-pulse">
-              ✨ Versão Atualizada (v2.6)
-            </span>
-          </div>
-
           <div className="flex justify-center">
             <div className="relative">
               <Heart

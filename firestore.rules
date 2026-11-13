@@ -9,14 +9,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário autenticado é um Administrador válido:
-    // 1. Possui Custom Claim de 'super_admin' ou 'site_admin'
-    // 2. OU possui login com e-mail cadastrado (administrador no Firebase Auth)
+    // Verifica se o usuário é administrador APENAS por Custom Claims de role.
+    // A verificação por e-mail genérico foi removida pois permitia que qualquer
+    // conta Google autenticada fosse tratada como admin.
     function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.role in ['super_admin', 'site_admin'] ||
-        (request.auth.token.email != null && request.auth.token.email != '')
-      );
+      return isAuthenticated() &&
+        request.auth.token.role in ['super_admin', 'site_admin'];
     }
 
     // Valida vínculo de token de jogador (o token deve existir na coleção e bater com o player reivindicado)
@@ -48,30 +46,37 @@ service cloud.firestore {
       allow write: if isValidPlayerLinkLegacy(uid);
     }
 
-    // 3. Recordes dos Mini-games (permite gravar e atualizar pontuações; exclusão restrita a admin)
+    // 3. Recordes dos Mini-games
+    // Leitura pública (placar/ranking visível a todos).
+    // Criação e atualização permitidas a qualquer usuário autenticado (anônimo ou não)
+    // — os jogadores já passam pelo signInAnonymously no PlayerAuthInit.
+    // Exclusão restrita a admin.
     match /game_records/{recordId} {
       allow read: if true;
-      allow create, update: if true;
+      allow create, update: if isAuthenticated();
       allow delete: if isAdmin();
     }
 
     // 4. Salas de sincronização e presença em tempo real (Sync Game)
+    // Requer autenticação anônima para evitar abuso externo, mas permite
+    // leitura/escrita aos jogadores que já fizeram signInAnonymously.
     match /sync_rooms/{roomId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
     match /sync_presence/{roomId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
     // 5. Devocional diário compartilhado (sessões, favoritos e metadados)
+    // Requer autenticação anônima — os jogadores já fazem signInAnonymously.
     match /devotional_sessions/{date} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
     match /devotional_favorites/{favId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
     match /devotional_meta/{playerId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
     // ─── CONTEÚDO DO SITE NA RAIZ (LEITURA ABERTA / ESCRITA ADMIN) ────
@@ -160,25 +165,25 @@ service cloud.firestore {
 
       match /game_records/{recordId} {
         allow read: if true;
-        allow create, update: if true;
+        allow create, update: if isAuthenticated();
         allow delete: if isAdmin();
       }
 
       match /sync_rooms/{roomId} {
-        allow read, write: if true;
+        allow read, write: if isAuthenticated();
       }
       match /sync_presence/{roomId} {
-        allow read, write: if true;
+        allow read, write: if isAuthenticated();
       }
 
       match /devotional_sessions/{date} {
-        allow read, write: if true;
+        allow read, write: if isAuthenticated();
       }
       match /devotional_favorites/{favId} {
-        allow read, write: if true;
+        allow read, write: if isAuthenticated();
       }
       match /devotional_meta/{playerId} {
-        allow read, write: if true;
+        allow read, write: if isAuthenticated();
       }
 
       // Conteúdo estático/gerenciado sob o site
