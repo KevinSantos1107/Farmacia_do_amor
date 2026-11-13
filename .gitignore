@@ -33,3 +33,4 @@ scripts/serviceAccountKey.json
 scripts/backup-*/
 scripts/backup-*
 scripts/backups/
+scripts/audit-cloudinary.mjs
