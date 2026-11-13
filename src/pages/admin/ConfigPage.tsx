@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/Card';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import { Spinner } from '../../shared/ui/Spinner';
-import { Save, AlertTriangle, Plus, Trash2, Heart, Sparkles } from 'lucide-react';
+import { Save, AlertTriangle, Plus, Trash2, Heart, Sparkles, Mail, RotateCcw } from 'lucide-react';
 import type { SiteConfig } from '../../config/siteConfig.schema';
 import { AvatarPicker } from '../../features/avatar/AvatarPicker';
 
@@ -13,6 +13,11 @@ import { useToast } from '../../shared/ui/ToastProvider';
 import { AdminPageHeader } from './AdminPageHeader';
 
 const AVATAR_OPTIONS = Array.from({ length: 48 }, (_, i) => `/avatars/avatar_${i + 1}.webp`);
+
+const DEFAULT_LETTER_PARAGRAPHS = [
+  'Entre tantas pessoas no mundo, foi você quem fez meu coração encontrar um lugar para chamar de lar. Você chegou inesperadamente e transformou meus dias em lembranças mais bonitas, meus sonhos em planos a dois e o meu futuro em algo que mal posso esperar para viver.',
+  'Com você, aprendi que o amor está nos pequenos detalhes, na saudade que antecede um abraço e na paz de saber que temos um ao outro. Mesmo quando a distância nos separa, existe algo que nunca muda: é com você que quero compartilhar meus dias, realizar meus sonhos e construir uma vida inteira.',
+];
 
 /**
  * Reordena os avatares prontos para que o avatar SALVO (se for um dos prontos)
@@ -40,6 +45,7 @@ export function mergeStoreConfigIntoForm(
 ): Partial<SiteConfig> {
   const serverLoveMessages = newConfig.loveMessages ?? [];
   const serverAcrostic = newConfig.acrostic ?? [];
+  const serverLetter = newConfig.letter ?? { paragraphs: [] };
 
   if (!prevConfig) {
     return {
@@ -49,6 +55,7 @@ export function mergeStoreConfigIntoForm(
       theme: newConfig.theme,
       loveMessages: currentForm.loveMessages ?? serverLoveMessages,
       acrostic: currentForm.acrostic ?? serverAcrostic,
+      letter: currentForm.letter ?? serverLetter,
     };
   }
 
@@ -112,6 +119,10 @@ export function mergeStoreConfigIntoForm(
     ? currentForm.acrostic
     : serverAcrostic;
 
+  const letter = (currentForm.letter !== undefined && JSON.stringify(currentForm.letter) !== JSON.stringify(prevConfig.letter))
+    ? currentForm.letter
+    : serverLetter;
+
   return {
     couple: { partner1, partner2 },
     relationship,
@@ -119,6 +130,7 @@ export function mergeStoreConfigIntoForm(
     theme: newConfig.theme,
     loveMessages,
     acrostic,
+    letter,
   };
 }
 
@@ -202,6 +214,11 @@ export function getChangedConfigFields(
     updates['acrostic'] = form.acrostic;
   }
 
+  // Letter
+  if (form.letter !== undefined && JSON.stringify(form.letter) !== JSON.stringify(current.letter)) {
+    updates['letter'] = form.letter;
+  }
+
   return updates;
 }
 
@@ -220,6 +237,7 @@ export default function ConfigPage() {
     theme: config?.theme,
     loveMessages: config?.loveMessages ?? [],
     acrostic: config?.acrostic ?? [],
+    letter: config?.letter ?? { paragraphs: [] },
   }));
 
   const currentAcrostic = useMemo(() => {
@@ -231,6 +249,12 @@ export default function ConfigPage() {
     if (formData.loveMessages !== undefined) return formData.loveMessages;
     return config?.loveMessages ?? [];
   }, [formData.loveMessages, config?.loveMessages]);
+
+  const currentLetterParagraphs = useMemo(() => {
+    if (formData.letter?.paragraphs !== undefined) return formData.letter.paragraphs;
+    if (config?.letter?.paragraphs && config.letter.paragraphs.length > 0) return config.letter.paragraphs;
+    return DEFAULT_LETTER_PARAGRAPHS;
+  }, [formData.letter?.paragraphs, config?.letter?.paragraphs]);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -745,6 +769,109 @@ export default function ConfigPage() {
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Carta de Amor */}
+        <Card className="bg-slate-800 border-slate-700 shadow-none">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-slate-200 flex items-center gap-2">
+              <Mail className="w-5 h-5 text-pink-400" />
+              Carta de Amor ({currentLetterParagraphs.length} parágrafos)
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    letter: { paragraphs: [...DEFAULT_LETTER_PARAGRAPHS] },
+                  });
+                }}
+                className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
+                title="Restaurar parágrafos originais"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Padrão
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    letter: { paragraphs: [...currentLetterParagraphs, ''] },
+                  });
+                }}
+                className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-200"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar Parágrafo
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-slate-400">
+              Personalize o texto da carta exibida na seção "Uma Carta Para Você" da página principal.
+            </p>
+
+            {currentLetterParagraphs.length === 0 ? (
+              <div className="p-6 border border-dashed border-slate-700 rounded-xl text-center text-slate-500 text-sm space-y-3">
+                <p>Nenhum parágrafo configurado.</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      letter: { paragraphs: [...DEFAULT_LETTER_PARAGRAPHS] },
+                    });
+                  }}
+                  className="text-xs border-slate-600 text-slate-300"
+                >
+                  Restaurar Texto Original
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+                {currentLetterParagraphs.map((par, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 bg-slate-900/60 border border-slate-700/50 rounded-lg space-y-2 group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-400">
+                        Parágrafo {idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = currentLetterParagraphs.filter((_, i) => i !== idx);
+                          setFormData({ ...formData, letter: { paragraphs: updated } });
+                        }}
+                        className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                        title="Excluir parágrafo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <textarea
+                      value={par}
+                      rows={3}
+                      placeholder="Escreva este parágrafo da carta de amor..."
+                      onChange={(e) => {
+                        const updated = [...currentLetterParagraphs];
+                        updated[idx] = e.target.value;
+                        setFormData({ ...formData, letter: { paragraphs: updated } });
+                      }}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-md p-2.5 text-xs text-slate-200 focus:ring-1 focus:ring-indigo-500 focus:outline-none resize-y leading-relaxed"
+                    />
                   </div>
                 ))}
               </div>

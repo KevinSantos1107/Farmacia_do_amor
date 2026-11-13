@@ -86,11 +86,27 @@ const INTERACTIVE_ITEMS: {
   { modal: 'sync',         label: 'Sincronia',        route: '/sync',        Icon: Heart },
 ];
 
+const MENU_STORAGE_KEYS = {
+  nav: 're_menu_nav_open',
+  inter: 're_menu_inter_open',
+  theme: 're_menu_theme_open',
+};
+
+function getInitialMenuSectionState(key: string, defaultValue: boolean): boolean {
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved !== null) {
+      return saved === 'true';
+    }
+  } catch {}
+  return defaultValue;
+}
+
 export function HamburgerMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isNavOpen, setIsNavOpen] = useState(true);
-  const [isInterOpen, setIsInterOpen] = useState(false);
-  const [isThemeOpen, setIsThemeOpen] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(() => getInitialMenuSectionState(MENU_STORAGE_KEYS.nav, true));
+  const [isInterOpen, setIsInterOpen] = useState(() => getInitialMenuSectionState(MENU_STORAGE_KEYS.inter, false));
+  const [isThemeOpen, setIsThemeOpen] = useState(() => getInitialMenuSectionState(MENU_STORAGE_KEYS.theme, false));
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleBtnRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -230,7 +246,11 @@ export function HamburgerMenu() {
             {/* ── NAVEGAÇÃO ─────────────────────────────────── */}
             <div className="mb-1">
               <button
-                onClick={() => setIsNavOpen(!isNavOpen)}
+                onClick={() => {
+                  const next = !isNavOpen;
+                  setIsNavOpen(next);
+                  try { localStorage.setItem(MENU_STORAGE_KEYS.nav, String(next)); } catch {}
+                }}
                 className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-widest"
               >
                 <span>Navegação</span>
@@ -261,7 +281,11 @@ export function HamburgerMenu() {
             {/* ── INTERATIVOS ───────────────────────────────── */}
             <div className="mb-1">
               <button
-                onClick={() => setIsInterOpen(!isInterOpen)}
+                onClick={() => {
+                  const next = !isInterOpen;
+                  setIsInterOpen(next);
+                  try { localStorage.setItem(MENU_STORAGE_KEYS.inter, String(next)); } catch {}
+                }}
                 className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer"
               >
                 <span>Interativos</span>
@@ -292,7 +316,11 @@ export function HamburgerMenu() {
             {/* ── TEMAS ─────────────────────────────────────── */}
             <div className="mb-1">
               <button
-                onClick={() => setIsThemeOpen(!isThemeOpen)}
+                onClick={() => {
+                  const next = !isThemeOpen;
+                  setIsThemeOpen(next);
+                  try { localStorage.setItem(MENU_STORAGE_KEYS.theme, String(next)); } catch {}
+                }}
                 className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-widest"
               >
                 <div className="flex items-center gap-2">

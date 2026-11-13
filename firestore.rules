@@ -135,6 +135,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Jogo de palavras (perguntas e palavras cadastradas)
+    match /word_game/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Configuração geral do site
     match /site_config/{configId} {
       allow read: if true;

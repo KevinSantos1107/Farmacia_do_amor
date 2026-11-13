@@ -86,11 +86,6 @@ function Home() {
     return DEFAULT_LOVE_LETTER_PARAGRAPHS;
   }, [config?.letter?.paragraphs]);
 
-  const loveMessagesTitle = useMemo(() => {
-    if (config?.loveMessagesTitle) return config.loveMessagesTitle;
-    return config?.couple?.partner2?.gender === 'M' ? 'Para Meu Príncipe' : 'Para Minha Princesa';
-  }, [config?.loveMessagesTitle, config?.couple?.partner2?.gender]);
-
   if (!config) return null;
 
   const { partner1, partner2 } = config.couple;
@@ -553,7 +548,7 @@ function Home() {
                 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-wide"
                 style={{ textShadow: '0 0 20px var(--theme-primary)' }}
               >
-                {loveMessagesTitle}
+                Para Minha Princesa
               </h2>
             </div>
 
