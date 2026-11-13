@@ -312,19 +312,15 @@ export function AlbumCarousel() {
 
   // ─── Lazy-load / fallback de fotos ───────────────────────────────────────
   const loadAlbumPhotos = useCallback(async (albumId: string): Promise<Photo[]> => {
-    console.time(`⏱️ [AlbumCarousel] loadAlbumPhotos(${albumId})`);
     // 1. Cache hit em memória — fotos já carregadas (resposta imediata em 0ms)
     const cached = photoCacheRef.current[albumId];
     if (cached !== undefined && cached.length > 0) {
-      console.log(`⚡ [AlbumCarousel] Cache hit para ${albumId}: ${cached.length} fotos`);
-      console.timeEnd(`⏱️ [AlbumCarousel] loadAlbumPhotos(${albumId})`);
       return cached;
     }
 
     // 2. Fetch já em andamento — aguarda a mesma promise
     const existingPromise = loadingPromiseRef.current[albumId];
     if (existingPromise !== undefined) {
-      console.log(`⏳ [AlbumCarousel] Aguardando busca já em andamento para ${albumId}`);
       return existingPromise;
     }
 
@@ -333,7 +329,6 @@ export function AlbumCarousel() {
     const fetchPromise = (async (): Promise<Photo[]> => {
       try {
         if (getDataLayout() !== 'site') {
-          console.log(`🌐 [AlbumCarousel] Buscando fotos via REST runQuery para ${albumId}...`);
           const controller = new AbortController();
           const timeoutId = setTimeout(() => {
             console.warn(`⏰ [AlbumCarousel] Timeout de 8s estourou no REST para ${albumId}`);
@@ -353,14 +348,12 @@ export function AlbumCarousel() {
                   }
                 });
 
-              console.log(`✅ [AlbumCarousel] REST runQuery retornou ${photos.length} fotos para ${albumId}`);
               photoCacheRef.current[albumId] = photos;
               if (photos.length > 0) {
                 setAlbums((prev) =>
                   prev.map((a) => (a.id === albumId ? { ...a, photos } : a))
                 );
               }
-              console.timeEnd(`⏱️ [AlbumCarousel] loadAlbumPhotos(${albumId})`);
               return photos;
             }
           } catch (restErr) {
@@ -370,7 +363,6 @@ export function AlbumCarousel() {
           }
         }
 
-        console.log(`🔄 [AlbumCarousel] Fallback: buscando via SDK Firestore getDocs para ${albumId}...`);
         // Fallback SDK getDocs
         const photoSnapshots = await getDocs(
           query(
@@ -388,16 +380,13 @@ export function AlbumCarousel() {
           if (Array.isArray(pd.photos)) allPhotos.push(...pd.photos);
         });
 
-        console.log(`✅ [AlbumCarousel] SDK Firestore retornou ${allPhotos.length} fotos para ${albumId}`);
         photoCacheRef.current[albumId] = allPhotos;
         setAlbums((prev) =>
           prev.map((a) => (a.id === albumId ? { ...a, photos: allPhotos } : a))
         );
-        console.timeEnd(`⏱️ [AlbumCarousel] loadAlbumPhotos(${albumId})`);
         return allPhotos;
       } catch (e) {
         console.error('❌ [AlbumCarousel] Erro fatal ao carregar fotos do álbum:', albumId, e);
-        console.timeEnd(`⏱️ [AlbumCarousel] loadAlbumPhotos(${albumId})`);
         return [];
       } finally {
         delete loadingPromiseRef.current[albumId];
@@ -494,21 +483,16 @@ export function AlbumCarousel() {
 
   // Clique direto no card — 100% confiável no mobile/iOS Safari e Android
   const handleCardClick = useCallback((clickedIdx: number) => {
-    console.log(`📸 [AlbumCarousel] Clique no card ${clickedIdx}, activeIndex: ${activeIndex}`);
     // Se o usuário realizou um swipe nos últimos 250ms, descarta o clique
     if (Date.now() - lastSwipedAt.current < 250) {
-      console.warn('⚠️ [AlbumCarousel] Clique ignorado: swipe recente (< 250ms)');
       return;
     }
     const dist = circularDistance(activeIndex, clickedIdx, albums.length);
     if (dist === 0) {
       // Card central ativo: abre o visualizador imediatamente
-      console.log(`🚀 [AlbumCarousel] Abrindo modal do álbum index: ${clickedIdx}, id: ${albums[clickedIdx]?.id}, title: "${albums[clickedIdx]?.title}"`);
-      console.log(`📊 [AlbumCarousel] Fotos disponíveis no card antes de abrir:`, albums[clickedIdx]?.photos?.length ?? 0);
       setSelectedAlbumIndex(clickedIdx);
     } else {
       // Card lateral: rotaciona para centralizá-lo
-      console.log(`🔄 [AlbumCarousel] Rotacionando carrossel para card ${clickedIdx}`);
       lastNavigatedAt.current = Date.now();
       goToIndex(clickedIdx, albums.length);
     }

@@ -79,7 +79,6 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
   // deste efeito. Por isso, após resetar, verificamos img.complete imediatamente
   // para não travar o spinner indefinidamente em fotos que já estavam em cache.
   useEffect(() => {
-    console.log(`🖼️ [ZoomableImage] Mudando para src:`, src);
     setScale(1);
     setPan({ x: 0, y: 0 });
     pointers.current.clear();
@@ -89,10 +88,8 @@ function ZoomableImage({ src, alt, placeholderSrc }: { src: string; alt: string;
     const img = imgRef.current;
     if (img && img.complete && img.naturalWidth > 0) {
       // Já carregada do cache — marca como loaded imediatamente
-      console.log(`⚡ [ZoomableImage] Imagem já em cache completo (${img.naturalWidth}x${img.naturalHeight})`);
       setLoaded(true);
     } else {
-      console.log(`⏳ [ZoomableImage] Aguardando download da imagem...`);
       setLoaded(false);
     }
   }, [src]);
@@ -838,8 +835,8 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
         const targetVirtualIndex = virtualIndexRef.current + dir;
         const targetActualIndex = ((targetVirtualIndex % albums.length) + albums.length) % albums.length;
         const targetAlbum = albums[targetActualIndex];
-        if (targetAlbum && targetAlbum.photos.length > 0 && !(targetAlbum.id in photoIndexesRef.current)) {
-          const targetPhotoIdx = dir > 0 ? 0 : targetAlbum.photos.length - 1;
+        if (targetAlbum && !(targetAlbum.id in photoIndexesRef.current)) {
+          const targetPhotoIdx = 0;
           const updated = { ...photoIndexesRef.current, [targetAlbum.id]: targetPhotoIdx };
           photoIndexesRef.current = updated;
           setPhotoIndexes(updated);
