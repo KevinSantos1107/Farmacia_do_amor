@@ -7,7 +7,6 @@ import { Input } from '../../shared/ui/Input';
 import { Spinner } from '../../shared/ui/Spinner';
 import { Save, AlertTriangle, Plus, Trash2, Heart, Sparkles } from 'lucide-react';
 import type { SiteConfig } from '../../config/siteConfig.schema';
-import { meuSiteConfig } from '../../config/sites/meu-site';
 import { AvatarPicker } from '../../features/avatar/AvatarPicker';
 
 import { useToast } from '../../shared/ui/ToastProvider';
@@ -39,13 +38,8 @@ export function mergeStoreConfigIntoForm(
   newConfig: SiteConfig,
   currentForm: Partial<SiteConfig>
 ): Partial<SiteConfig> {
-  const fallbackLoveMessages = (newConfig.loveMessages && newConfig.loveMessages.length > 0)
-    ? newConfig.loveMessages
-    : (meuSiteConfig.loveMessages ?? []);
-
-  const fallbackAcrostic = (newConfig.acrostic && newConfig.acrostic.length > 0)
-    ? newConfig.acrostic
-    : (meuSiteConfig.acrostic ?? []);
+  const serverLoveMessages = newConfig.loveMessages ?? [];
+  const serverAcrostic = newConfig.acrostic ?? [];
 
   if (!prevConfig) {
     return {
@@ -53,8 +47,8 @@ export function mergeStoreConfigIntoForm(
       relationship: newConfig.relationship,
       features: newConfig.features,
       theme: newConfig.theme,
-      loveMessages: currentForm.loveMessages ?? fallbackLoveMessages,
-      acrostic: currentForm.acrostic ?? fallbackAcrostic,
+      loveMessages: currentForm.loveMessages ?? serverLoveMessages,
+      acrostic: currentForm.acrostic ?? serverAcrostic,
     };
   }
 
@@ -112,11 +106,11 @@ export function mergeStoreConfigIntoForm(
 
   const loveMessages = (currentForm.loveMessages !== undefined && JSON.stringify(currentForm.loveMessages) !== JSON.stringify(prevConfig.loveMessages))
     ? currentForm.loveMessages
-    : fallbackLoveMessages;
+    : serverLoveMessages;
 
   const acrostic = (currentForm.acrostic !== undefined && JSON.stringify(currentForm.acrostic) !== JSON.stringify(prevConfig.acrostic))
     ? currentForm.acrostic
-    : fallbackAcrostic;
+    : serverAcrostic;
 
   return {
     couple: { partner1, partner2 },
@@ -224,24 +218,18 @@ export default function ConfigPage() {
     relationship: config?.relationship,
     features: config?.features,
     theme: config?.theme,
-    loveMessages: (config?.loveMessages && config.loveMessages.length > 0)
-      ? config.loveMessages
-      : (meuSiteConfig.loveMessages ?? []),
-    acrostic: (config?.acrostic && config.acrostic.length > 0)
-      ? config.acrostic
-      : (meuSiteConfig.acrostic ?? []),
+    loveMessages: config?.loveMessages ?? [],
+    acrostic: config?.acrostic ?? [],
   }));
 
   const currentAcrostic = useMemo(() => {
     if (formData.acrostic !== undefined) return formData.acrostic;
-    if (config?.acrostic && config.acrostic.length > 0) return config.acrostic;
-    return meuSiteConfig.acrostic ?? [];
+    return config?.acrostic ?? [];
   }, [formData.acrostic, config?.acrostic]);
 
   const currentLoveMessages = useMemo(() => {
     if (formData.loveMessages !== undefined) return formData.loveMessages;
-    if (config?.loveMessages && config.loveMessages.length > 0) return config.loveMessages;
-    return meuSiteConfig.loveMessages ?? [];
+    return config?.loveMessages ?? [];
   }, [formData.loveMessages, config?.loveMessages]);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -625,7 +613,7 @@ export default function ConfigPage() {
 
             {currentAcrostic.length === 0 ? (
               <div className="p-6 border border-dashed border-slate-700 rounded-xl text-center text-slate-500 text-sm">
-                Nenhuma letra cadastrada no acróstico. O site usará o padrão (I-A-R-A).
+                Nenhuma letra cadastrada no acróstico. Clique em "Adicionar Letra" para criar.
               </div>
             ) : (
               <div className="space-y-3">
@@ -724,7 +712,7 @@ export default function ConfigPage() {
 
             {currentLoveMessages.length === 0 ? (
               <div className="p-6 border border-dashed border-slate-700 rounded-xl text-center text-slate-500 text-sm">
-                Nenhuma frase cadastrada. O site usará o conjunto padrão de mensagens.
+                Nenhuma frase cadastrada. Clique em "Adicionar Frase" para criar.
               </div>
             ) : (
               <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">

@@ -12,52 +12,7 @@ const PlaylistTabs = lazy(() => import('../features/playlist/PlaylistTabs').then
 const AlbumCarousel = lazy(() => import('../features/album/AlbumCarousel').then(m => ({ default: m.AlbumCarousel })));
 import { getSafeTime } from '../shared/utils/dateUtils';
 
-// ─── Data Fallbacks ──────────────────────────────────────────────────────────
-const DEFAULT_LOVE_MESSAGES = [
-  'Cada dia ao seu lado é uma página nova em nosso livro de amor, escrita com sorrisos, carinho e cumplicidade.',
-  'Se eu pudesse escolher novamente entre todas as pessoas do mundo, escolheria você, sempre você.',
-  'Nos seus olhos encontro meu lugar favorito no mundo, onde posso ser apenas eu e saber que sou amado.',
-  'O amor que sinto por você não cabe em palavras, mas transborda em cada gesto, cada olhar, cada momento juntos.',
-  'Mesmo de longe, você conseguiu fazer eu me sentir mais amado do que nunca.',
-  'Você transformou a distância em mais uma prova de que fomos feitos um para o outro.',
-  'Amar você é a coisa mais natural e bonita que já aconteceu na minha vida.',
-  'Você chegou na minha vida e, sem perceber, se tornou meu lugar favorito.',
-  'Não importa a distância, meu coração sempre encontra o caminho até você.',
-  'Com você, até os dias comuns se tornam especiais.',
-  'Você é a melhor coincidência que a vida colocou no meu caminho.',
-  'Entre tantas pessoas no mundo, foi você quem fez meu coração se sentir em casa.',
-  'Seu amor mudou completamente a forma como eu vejo a vida.',
-  'Toda vez que penso no futuro, é você que eu imagino ao meu lado.',
-  'Você conseguiu ser minha paz mesmo estando quilômetros de distância.',
-];
-
-const DEFAULT_ACROSTIC = [
-  {
-    letter: 'I',
-    color: 'text-[var(--theme-primary)]',
-    short: 'ncrível — você é boa em tudo que faz',
-    long: 'Sua dedicação, seu esforço e o carinho fazem eu admirar você cada dia mais. Estar ao seu lado me inspira a querer ser alguém melhor todos os dias.',
-  },
-  {
-    letter: 'A',
-    color: 'text-[var(--theme-secondary)]',
-    short: 'mor — você me mostrou o que é o verdadeiro amor',
-    long: 'Com você, amar deixou de ser apenas uma palavra e virou sentimento, cuidado, reciprocidade e paz. Seu amor melhorou a minha vida em todos os sentidos.',
-  },
-  {
-    letter: 'R',
-    color: 'text-[var(--theme-accent)]',
-    short: 'ara — não é fácil encontrar alguém como você',
-    long: 'Quanto mais eu te conheço, mais percebo o quão única e especial você é. Você é como uma joia rara: difícil de encontrar, impossível de substituir.',
-  },
-  {
-    letter: 'A',
-    color: 'text-[var(--theme-primary)]',
-    short: 'utêntica — a sua essência é única',
-    long: 'O seu jeitinho, sua personalidade e a forma sincera com que você vive a vida me deixam completamente apaixonado. Você consegue ser diferente de todo mundo da melhor forma possível.',
-  },
-];
-
+// ─── Data ────────────────────────────────────────────────────────────────────
 const ACROSTIC_COLORS = [
   'text-[var(--theme-primary)]',
   'text-[var(--theme-secondary)]',
@@ -101,16 +56,11 @@ function Home() {
   const [openAcrostic, setOpenAcrostic] = useState<number | null>(null);
 
   const loveMessages = useMemo(() => {
-    return config?.loveMessages && config.loveMessages.length > 0
-      ? config.loveMessages
-      : DEFAULT_LOVE_MESSAGES;
+    return config?.loveMessages || [];
   }, [config?.loveMessages]);
 
   const acrostic = useMemo(() => {
-    const list = config?.acrostic && config.acrostic.length > 0
-      ? config.acrostic
-      : DEFAULT_ACROSTIC;
-    return list.map((item, idx) => ({
+    return (config?.acrostic || []).map((item, idx) => ({
       ...item,
       color: item.color || ACROSTIC_COLORS[idx % ACROSTIC_COLORS.length],
     }));
@@ -220,7 +170,7 @@ function Home() {
           {/* Tag temporária para conferir atualização no iPhone da Iara */}
           <div className="flex justify-center -mb-6">
             <span className="px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-pulse">
-              ✨ Versão Atualizada (v2.1)
+              ✨ Versão Atualizada (v2.2)
             </span>
           </div>
 
@@ -448,7 +398,8 @@ function Home() {
       )}
 
       {/* ══════════════════════════ ACRÓSTICO ══════════════════════════ */}
-      <motion.section
+      {acrostic.length > 0 && (
+        <motion.section
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
@@ -572,9 +523,11 @@ function Home() {
           </div>
         </div>
       </motion.section>
+      )}
 
       {/* ══════════════════════════ MENSAGEM ROMÂNTICA ══════════════════════════ */}
-      <motion.section
+      {loveMessages.length > 0 && (
+        <motion.section
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
@@ -657,6 +610,7 @@ function Home() {
           </div>
         </div>
       </motion.section>
+      )}
 
       {/* ══════════════════════════ NOSSA HISTÓRIA (TIMELINE) ══════════════════════════ */}
       {config.features.enableTimeline && (
