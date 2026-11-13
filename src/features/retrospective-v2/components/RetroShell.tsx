@@ -242,8 +242,8 @@ export function RetroShell() {
           </div>
         )}
 
-      {/* Controles do topo — botão mudo */}
-      {currentSlide > 0 && (
+      {/* Controles do topo — botão mudo (apenas se houver música configurada) */}
+      {currentSlide > 0 && !!config.musicUrl && (
         <div className="absolute top-5 right-4 z-50 flex items-center pointer-events-none">
           <button
             onClick={(e) => { e.stopPropagation(); toggleMute(); }}

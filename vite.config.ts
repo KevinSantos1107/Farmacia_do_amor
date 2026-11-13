@@ -260,7 +260,8 @@ export default defineConfig(({ mode }) => {
               if (id.includes('@firebase/auth') || id.includes('firebase/auth')) return 'firebase-auth';
               if (id.includes('@firebase/firestore') || id.includes('firebase/firestore')) return 'firebase-firestore';
               if (id.includes('firebase')) return 'firebase-core';
-              if (id.includes('swiper') || id.includes('lucide')) return 'ui';
+              if (id.includes('swiper')) return 'swiper';
+              if (id.includes('lucide')) return 'icons';
               if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) return 'vendor';
             }
           }
