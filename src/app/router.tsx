@@ -71,11 +71,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'couple-quiz',
-        element: (
-          <SuspenseWrapper>
-            <QuizPage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/quiz" replace />,
       },
       {
         path: 'word-game',
@@ -87,11 +83,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'palavras',
-        element: (
-          <SuspenseWrapper>
-            <WordGamePage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/word-game" replace />,
       },
       {
         path: 'snake',
@@ -103,11 +95,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'cobrinha',
-        element: (
-          <SuspenseWrapper>
-            <SnakePage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/snake" replace />,
       },
       {
         path: 'star-map',
@@ -119,19 +107,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'starmap',
-        element: (
-          <SuspenseWrapper>
-            <StarMapPage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/star-map" replace />,
       },
       {
         path: 'mapa-estelar',
-        element: (
-          <SuspenseWrapper>
-            <StarMapPage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/star-map" replace />,
       },
       {
         path: 'timeline',
@@ -143,19 +123,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'historia',
-        element: (
-          <SuspenseWrapper>
-            <TimelinePage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/timeline" replace />,
       },
       {
         path: 'nossa-historia',
-        element: (
-          <SuspenseWrapper>
-            <TimelinePage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/timeline" replace />,
       },
       {
         path: 'memory-game',
@@ -167,11 +139,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'memoria',
-        element: (
-          <SuspenseWrapper>
-            <MemoryGamePage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/memory-game" replace />,
       },
       {
         path: 'sync',
@@ -183,11 +151,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'sincronia',
-        element: (
-          <SuspenseWrapper>
-            <SyncPage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/sync" replace />,
       },
       {
         path: 'retrospective',
@@ -199,11 +163,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'retrospectiva',
-        element: (
-          <SuspenseWrapper>
-            <RetrospectivePage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/retrospective" replace />,
       },
       {
         path: '*',

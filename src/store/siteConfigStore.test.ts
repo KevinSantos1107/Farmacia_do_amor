@@ -3,6 +3,7 @@ import {
   useSiteConfigStore,
   applyConfigUpdates,
   mapFirebaseError,
+  validateAndNormalizeSiteConfig,
 } from './siteConfigStore';
 import { getDoc, updateDoc } from 'firebase/firestore';
 import type { SiteConfig } from '../config/siteConfig.schema';
@@ -264,5 +265,53 @@ describe('mapFirebaseError - Tradução amigável de erros do Firestore', () => 
   it('retorna mensagem padrão se o erro não tiver código conhecido', () => {
     const err = new Error('Falha customizada');
     expect(mapFirebaseError(err)).toBe('Falha customizada');
+  });
+});
+
+describe('validateAndNormalizeSiteConfig - Validação e Proteção contra Schema Corrompido', () => {
+  it('retorna null para valores primitivos ou nulos', () => {
+    expect(validateAndNormalizeSiteConfig(null)).toBeNull();
+    expect(validateAndNormalizeSiteConfig(undefined)).toBeNull();
+    expect(validateAndNormalizeSiteConfig('string')).toBeNull();
+    expect(validateAndNormalizeSiteConfig({})).toBeNull();
+  });
+
+  it('normaliza dados válidos preenchendo nós ausentes com fallbacks seguros', () => {
+    const partialData = {
+      id: 'site-teste',
+      couple: {
+        partner1: { name: 'Kevin Teste', playerId: 'kevin' },
+        partner2: { name: 'Iara Teste', playerId: 'iara' },
+      },
+      relationship: { startDate: '2025-10-27' },
+    };
+
+    const result = validateAndNormalizeSiteConfig(partialData);
+    expect(result).not.toBeNull();
+    expect(result?.couple.partner1.name).toBe('Kevin Teste');
+    expect(result?.couple.partner2.name).toBe('Iara Teste');
+    // Deve ter preenchido theme e colors a partir do fallback
+    expect(result?.theme.colors.bg).toBeDefined();
+    expect(result?.features.enableGames).toBe(true);
+  });
+
+  it('preserva campos opcionais letter e loveMessagesTitle quando presentes', () => {
+    const fullData = {
+      id: 'site-completo',
+      couple: {
+        partner1: { name: 'Kevin', playerId: 'kevin' },
+        partner2: { name: 'Iara', playerId: 'iara' },
+      },
+      relationship: { startDate: '2025-10-27' },
+      loveMessagesTitle: 'Para Meu Amor Eterno',
+      letter: {
+        paragraphs: ['Parágrafo 1 customizado', 'Parágrafo 2 customizado'],
+      },
+    };
+
+    const result = validateAndNormalizeSiteConfig(fullData);
+    expect(result?.loveMessagesTitle).toBe('Para Meu Amor Eterno');
+    expect(result?.letter?.paragraphs).toHaveLength(2);
+    expect(result?.letter?.paragraphs?.[0]).toBe('Parágrafo 1 customizado');
   });
 });

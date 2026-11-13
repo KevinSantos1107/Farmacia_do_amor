@@ -59,5 +59,9 @@ export interface SiteConfig {
     enableAlbum: boolean;
   };
   loveMessages?: string[];
+  loveMessagesTitle?: string;
+  letter?: {
+    paragraphs?: string[];
+  };
   acrostic?: AcrosticItem[];
 }

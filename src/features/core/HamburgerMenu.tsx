@@ -89,8 +89,8 @@ const INTERACTIVE_ITEMS: {
 export function HamburgerMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(true);
-  const [isInterOpen, setIsInterOpen] = useState(true);
-  const [isThemeOpen, setIsThemeOpen] = useState(true);
+  const [isInterOpen, setIsInterOpen] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleBtnRef = useRef<HTMLDivElement>(null);
   const location = useLocation();

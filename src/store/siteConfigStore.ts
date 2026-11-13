@@ -44,10 +44,84 @@ function loadConfigCache(): SiteConfig | null {
   try {
     const raw = localStorage.getItem(CONFIG_CACHE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as SiteConfig;
+    const parsed = JSON.parse(raw);
+    return validateAndNormalizeSiteConfig(parsed);
   } catch {
     return null;
   }
+}
+
+/**
+ * Valida e normaliza dados de configuração (do Firestore ou do cache local).
+ * Garante que a aplicação nunca quebre com TypeError por nós obrigatórios faltantes
+ * (ex.: couple, partner1, partner2, theme.colors, relationship.startDate).
+ */
+export function validateAndNormalizeSiteConfig(
+  raw: unknown,
+  fallback: SiteConfig = meuSiteConfig
+): SiteConfig | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const candidate = raw as Partial<SiteConfig>;
+  const p1Raw = candidate.couple?.partner1;
+  const p2Raw = candidate.couple?.partner2;
+
+  // Se for um objeto sem nenhum nó essencial de configuração
+  if (!candidate.couple && !candidate.relationship && !candidate.theme) {
+    return null;
+  }
+
+  return {
+    id: typeof candidate.id === 'string' && candidate.id.trim() ? candidate.id : fallback.id,
+    couple: {
+      partner1: {
+        name: p1Raw?.name?.trim() || fallback.couple.partner1.name,
+        playerId: p1Raw?.playerId?.trim() || fallback.couple.partner1.playerId,
+        birthDate: p1Raw?.birthDate || fallback.couple.partner1.birthDate,
+        gender: p1Raw?.gender === 'F' ? 'F' : 'M',
+        avatar: p1Raw?.avatar || fallback.couple.partner1.avatar,
+        photoUrl: p1Raw?.photoUrl,
+        _photoPublicId: p1Raw?._photoPublicId,
+      },
+      partner2: {
+        name: p2Raw?.name?.trim() || fallback.couple.partner2.name,
+        playerId: p2Raw?.playerId?.trim() || fallback.couple.partner2.playerId,
+        birthDate: p2Raw?.birthDate || fallback.couple.partner2.birthDate,
+        gender: p2Raw?.gender === 'M' ? 'M' : 'F',
+        avatar: p2Raw?.avatar || fallback.couple.partner2.avatar,
+        photoUrl: p2Raw?.photoUrl,
+        _photoPublicId: p2Raw?._photoPublicId,
+      },
+    },
+    relationship: {
+      startDate: candidate.relationship?.startDate?.trim() || fallback.relationship.startDate,
+    },
+    theme: {
+      colors: {
+        bg: candidate.theme?.colors?.bg || fallback.theme.colors.bg,
+        primary: candidate.theme?.colors?.primary || fallback.theme.colors.primary,
+        secondary: candidate.theme?.colors?.secondary || fallback.theme.colors.secondary,
+        accent: candidate.theme?.colors?.accent || fallback.theme.colors.accent,
+        text: candidate.theme?.colors?.text || fallback.theme.colors.text,
+        textSecondary: candidate.theme?.colors?.textSecondary || fallback.theme.colors.textSecondary,
+        cardBg: candidate.theme?.colors?.cardBg || fallback.theme.colors.cardBg,
+        cardBorder: candidate.theme?.colors?.cardBorder || fallback.theme.colors.cardBorder,
+      },
+      font: candidate.theme?.font || fallback.theme.font,
+    },
+    features: {
+      enableTimeline: candidate.features?.enableTimeline ?? fallback.features.enableTimeline,
+      enableGames: candidate.features?.enableGames ?? fallback.features.enableGames,
+      enableMusic: candidate.features?.enableMusic ?? fallback.features.enableMusic,
+      enableAlbum: candidate.features?.enableAlbum ?? fallback.features.enableAlbum,
+    },
+    loveMessages: Array.isArray(candidate.loveMessages) ? candidate.loveMessages : fallback.loveMessages,
+    loveMessagesTitle: typeof candidate.loveMessagesTitle === 'string' ? candidate.loveMessagesTitle : fallback.loveMessagesTitle,
+    letter: candidate.letter && Array.isArray(candidate.letter.paragraphs) ? candidate.letter : fallback.letter,
+    acrostic: Array.isArray(candidate.acrostic) ? candidate.acrostic : fallback.acrostic,
+  };
 }
 
 /**
@@ -190,11 +264,24 @@ export const useSiteConfigStore = create<SiteConfigState>((set, get) => ({
       clearTimeout(timeoutId);
 
       if (docSnap.exists()) {
-        const data = docSnap.data() as SiteConfig;
-        if (data.theme?.colors) applyThemeVars(data.theme.colors);
-        if (data.couple) applySiteMetadata(getCoupleDisplayName(data.couple), data.id);
-        saveConfigCache(data);
-        set({ config: data, configSource: 'server', isLoading: false, error: null });
+        const rawData = docSnap.data();
+        const data = validateAndNormalizeSiteConfig(rawData);
+        if (data) {
+          if (data.theme?.colors) applyThemeVars(data.theme.colors);
+          if (data.couple) applySiteMetadata(getCoupleDisplayName(data.couple), data.id);
+          saveConfigCache(data);
+          set({ config: data, configSource: 'server', isLoading: false, error: null });
+        } else {
+          // Documento corrompido ou com formato inválido
+          if (cached) {
+            set({ isLoading: false, error: null, configSource: 'cache' });
+          } else {
+            set({
+              isLoading: false,
+              error: 'Configuração do site com formato inválido no servidor.',
+            });
+          }
+        }
       } else {
         // Documento não existe: usa cache se disponível, senão erro
         if (cached) {

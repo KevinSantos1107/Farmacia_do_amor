@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Heart, ChevronDown, RefreshCw, Sparkles, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,11 @@ const AlbumCarousel = lazy(() => import('../features/album/AlbumCarousel').then(
 import { getSafeTime } from '../shared/utils/dateUtils';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
+const DEFAULT_LOVE_LETTER_PARAGRAPHS = [
+  'Entre tantas pessoas no mundo, foi você quem fez meu coração encontrar um lugar para chamar de lar. Você chegou inesperadamente e transformou meus dias em lembranças mais bonitas, meus sonhos em planos a dois e o meu futuro em algo que mal posso esperar para viver.',
+  'Com você, aprendi que o amor está nos pequenos detalhes, na saudade que antecede um abraço e na paz de saber que temos um ao outro. Mesmo quando a distância nos separa, existe algo que nunca muda: é com você que quero compartilhar meus dias, realizar meus sonhos e construir uma vida inteira.',
+];
+
 const ACROSTIC_COLORS = [
   'text-[var(--theme-primary)]',
   'text-[var(--theme-secondary)]',
@@ -74,19 +79,17 @@ function Home() {
     return getSafeTime(config?.relationship?.startDate);
   }, [config?.relationship?.startDate]);
 
-  // Preload dinâmico da imagem de capa apenas quando a rota Home estiver montada
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = '/capa_principal.webp';
-    document.head.appendChild(link);
-    return () => {
-      if (document.head.contains(link)) {
-        document.head.removeChild(link);
-      }
-    };
-  }, []);
+  const letterParagraphs = useMemo(() => {
+    if (config?.letter?.paragraphs && config.letter.paragraphs.length > 0) {
+      return config.letter.paragraphs;
+    }
+    return DEFAULT_LOVE_LETTER_PARAGRAPHS;
+  }, [config?.letter?.paragraphs]);
+
+  const loveMessagesTitle = useMemo(() => {
+    if (config?.loveMessagesTitle) return config.loveMessagesTitle;
+    return config?.couple?.partner2?.gender === 'M' ? 'Para Meu Príncipe' : 'Para Minha Princesa';
+  }, [config?.loveMessagesTitle, config?.couple?.partner2?.gender]);
 
   if (!config) return null;
 
@@ -181,9 +184,9 @@ function Home() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h1
-              className="font-serif font-bold leading-none tracking-tight"
+          <h1 className="space-y-4">
+            <span
+              className="block font-serif font-bold leading-none tracking-tight"
               style={{
                 fontSize: 'clamp(4rem, 15vw, 7.5rem)',
                 color: '#fff',
@@ -191,18 +194,18 @@ function Home() {
               }}
             >
               {partner1.name}
-            </h1>
-            <p
-              className="text-5xl text-white"
+            </span>
+            <span
+              className="block text-5xl text-white"
               style={{
                 fontFamily: "'Dancing Script', cursive",
                 textShadow: '0 0 15px var(--theme-primary), 0 0 30px var(--theme-primary)',
               }}
             >
               &amp;
-            </p>
-            <h1
-              className="font-serif font-bold leading-none tracking-tight"
+            </span>
+            <span
+              className="block font-serif font-bold leading-none tracking-tight"
               style={{
                 fontSize: 'clamp(4rem, 15vw, 7.5rem)',
                 color: '#fff',
@@ -210,8 +213,8 @@ function Home() {
               }}
             >
               {partner2.name}
-            </h1>
-          </div>
+            </span>
+          </h1>
 
           <p
             className="text-xl md:text-2xl text-white italic leading-relaxed px-4 font-light"
@@ -291,12 +294,9 @@ function Home() {
               </p>
 
               <div className="space-y-6 text-base md:text-lg leading-relaxed text-slate-200/90 font-light">
-                <p>
-                  Entre tantas pessoas no mundo, foi você quem fez meu coração encontrar um lugar para chamar de lar. Você chegou inesperadamente e transformou meus dias em lembranças mais bonitas, meus sonhos em planos a dois e o meu futuro em algo que mal posso esperar para viver.
-                </p>
-                <p>
-                  Com você, aprendi que o amor está nos pequenos detalhes, na saudade que antecede um abraço e na paz de saber que temos um ao outro. Mesmo quando a distância nos separa, existe algo que nunca muda: é com você que quero compartilhar meus dias, realizar meus sonhos e construir uma vida inteira.
-                </p>
+                {letterParagraphs.map((paragraph, index) => (
+                  <p key={index}>{paragraph}</p>
+                ))}
               </div>
 
               <div className="mt-10 pt-8 border-t border-[var(--theme-primary)]/20 text-right">
@@ -553,7 +553,7 @@ function Home() {
                 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-wide"
                 style={{ textShadow: '0 0 20px var(--theme-primary)' }}
               >
-                Para Minha Princesa
+                {loveMessagesTitle}
               </h2>
             </div>
 
