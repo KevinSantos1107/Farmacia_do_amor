@@ -1,5 +1,4 @@
 import { useSiteConfigStore } from '../../../../store/siteConfigStore';
-import { useRetroV2Store } from '../../store/useRetroV2Store';
 import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { animate } from 'framer-motion';
@@ -23,7 +22,6 @@ const STARS = Array.from({ length: 55 }, (_, i) => ({
 
 export function IntroSlide({ onStart, isReady }: { onStart: () => void; isReady: boolean }) {
   const { config } = useSiteConfigStore();
-  const { config: retroConfig } = useRetroV2Store();
   const [displayDays, setDisplayDays] = useState(0);
 
   const { days, startDate } = useMemo(() => {
@@ -193,20 +191,6 @@ export function IntroSlide({ onStart, isReady }: { onStart: () => void; isReady:
             {isReady ? '▶  Começar' : 'Carregando...'}
           </span>
         </motion.button>
-
-        {/* Feedback visual da presença ou ausência de trilha sonora */}
-        <motion.div variants={fadeIn} transition={{ delay: 0.4 }} className="flex items-center gap-1.5 text-xs text-white/50 -mt-1">
-          {retroConfig?.musicUrl ? (
-            <span className="flex items-center gap-1.5 text-white/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              🎵 Com trilha sonora ({retroConfig.musicName || 'Música de fundo'})
-            </span>
-          ) : (
-            <span className="text-white/30 text-[11px]">
-              🔇 Sem trilha sonora configurada
-            </span>
-          )}
-        </motion.div>
       </motion.div>
     </div>
   );
