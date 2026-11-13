@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/Card';
 import { Button } from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
 import { Spinner } from '../../shared/ui/Spinner';
-import { Save, AlertTriangle, Plus, Trash2, Heart, Sparkles, Mail, RotateCcw } from 'lucide-react';
+import { Save, AlertTriangle, Plus, Trash2, Heart, Sparkles, Mail, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import type { SiteConfig } from '../../config/siteConfig.schema';
 import { AvatarPicker } from '../../features/avatar/AvatarPicker';
 
@@ -255,6 +255,11 @@ export default function ConfigPage() {
     if (config?.letter?.paragraphs && config.letter.paragraphs.length > 0) return config.letter.paragraphs;
     return DEFAULT_LETTER_PARAGRAPHS;
   }, [formData.letter?.paragraphs, config?.letter?.paragraphs]);
+
+  // Estados de visualização compacta / expandida dos cards extensos
+  const [isAcrosticExpanded, setIsAcrosticExpanded] = useState(false);
+  const [isLoveMessagesExpanded, setIsLoveMessagesExpanded] = useState(false);
+  const [isLetterExpanded, setIsLetterExpanded] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -604,7 +609,7 @@ export default function ConfigPage() {
       </div>
 
       {/* Acróstico e Mensagens de Amor */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-6 items-start">
         {/* Acróstico Personalizado */}
         <Card className="bg-slate-800 border-slate-700 shadow-none">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -612,35 +617,82 @@ export default function ConfigPage() {
               <Sparkles className="w-5 h-5 text-indigo-400" />
               Acróstico Personalizado
             </CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setFormData({
-                  ...formData,
-                  acrostic: [
-                    ...currentAcrostic,
-                    { letter: '', short: '', long: '' },
-                  ],
-                });
-              }}
-              className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-200"
-            >
-              <Plus className="w-3.5 h-3.5" /> Adicionar Letra
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAcrosticExpanded(!isAcrosticExpanded)}
+                className="gap-1 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
+              >
+                {isAcrosticExpanded ? (
+                  <>
+                    <ChevronUp className="w-3.5 h-3.5" /> Recolher
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-3.5 h-3.5" /> Expandir ({currentAcrostic.length})
+                  </>
+                )}
+              </Button>
+              {isAcrosticExpanded && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      acrostic: [
+                        ...currentAcrostic,
+                        { letter: '', short: '', long: '' },
+                      ],
+                    });
+                  }}
+                  className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-200"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Letra
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-xs text-slate-400">
-              Personalize o acróstico que aparece na tela inicial. Cada letra pode ter um resumo curto e um texto longo revelado ao tocar.
+              Personalize o acróstico que aparece na tela inicial. Cada letra tem um resumo curto e um texto longo revelado ao tocar.
             </p>
 
-            {currentAcrostic.length === 0 ? (
+            {!isAcrosticExpanded ? (
+              <div
+                onClick={() => setIsAcrosticExpanded(true)}
+                className="p-3.5 bg-slate-900/50 hover:bg-slate-900/80 border border-slate-700/60 rounded-xl cursor-pointer transition-all flex flex-wrap items-center justify-between gap-3 group"
+              >
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {currentAcrostic.length === 0 ? (
+                    <span className="text-xs text-slate-500 italic">Nenhuma letra cadastrada</span>
+                  ) : (
+                    currentAcrostic.map((item, i) => (
+                      <span
+                        key={i}
+                        className="w-7 h-7 flex items-center justify-center bg-indigo-500/15 border border-indigo-500/40 text-indigo-300 font-bold rounded-lg text-xs"
+                      >
+                        {item.letter || '?'}
+                      </span>
+                    ))
+                  )}
+                  <span className="text-xs text-slate-400 ml-2">
+                    {currentAcrostic.length} {currentAcrostic.length === 1 ? 'letra' : 'letras'}
+                  </span>
+                </div>
+                <span className="text-xs text-indigo-400 font-medium group-hover:underline flex items-center gap-1">
+                  Editar Letras →
+                </span>
+              </div>
+            ) : currentAcrostic.length === 0 ? (
               <div className="p-6 border border-dashed border-slate-700 rounded-xl text-center text-slate-500 text-sm">
                 Nenhuma letra cadastrada no acróstico. Clique em "Adicionar Letra" para criar.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
                 {currentAcrostic.map((item, idx) => (
                   <div
                     key={idx}
@@ -714,27 +766,65 @@ export default function ConfigPage() {
               <Heart className="w-5 h-5 text-rose-400" />
               Mensagens de Amor ({currentLoveMessages.length})
             </CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setFormData({
-                  ...formData,
-                  loveMessages: [...currentLoveMessages, ''],
-                });
-              }}
-              className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-200"
-            >
-              <Plus className="w-3.5 h-3.5" /> Adicionar Frase
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsLoveMessagesExpanded(!isLoveMessagesExpanded)}
+                className="gap-1 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
+              >
+                {isLoveMessagesExpanded ? (
+                  <>
+                    <ChevronUp className="w-3.5 h-3.5" /> Recolher
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-3.5 h-3.5" /> Expandir ({currentLoveMessages.length})
+                  </>
+                )}
+              </Button>
+              {isLoveMessagesExpanded && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      loveMessages: [...currentLoveMessages, ''],
+                    });
+                  }}
+                  className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-200"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Frase
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-xs text-slate-400">
               Frases românticas sorteadas no botão "Nova mensagem" da tela principal.
             </p>
 
-            {currentLoveMessages.length === 0 ? (
+            {!isLoveMessagesExpanded ? (
+              <div
+                onClick={() => setIsLoveMessagesExpanded(true)}
+                className="p-3.5 bg-slate-900/50 hover:bg-slate-900/80 border border-slate-700/60 rounded-xl cursor-pointer transition-all flex items-center justify-between gap-3 group"
+              >
+                <div className="truncate min-w-0 mr-2">
+                  <p className="text-xs text-slate-300 font-medium truncate italic">
+                    "{currentLoveMessages[0] || 'Nenhuma frase cadastrada'}"
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {currentLoveMessages.length} {currentLoveMessages.length === 1 ? 'frase cadastrada' : 'frases cadastradas'}
+                  </p>
+                </div>
+                <span className="text-xs text-rose-400 font-medium group-hover:underline shrink-0">
+                  Ver Todas →
+                </span>
+              </div>
+            ) : currentLoveMessages.length === 0 ? (
               <div className="p-6 border border-dashed border-slate-700 rounded-xl text-center text-slate-500 text-sm">
                 Nenhuma frase cadastrada. Clique em "Adicionar Frase" para criar.
               </div>
@@ -788,31 +878,52 @@ export default function ConfigPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setFormData({
-                    ...formData,
-                    letter: { paragraphs: [...DEFAULT_LETTER_PARAGRAPHS] },
-                  });
-                }}
-                className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
-                title="Restaurar parágrafos originais"
+                onClick={() => setIsLetterExpanded(!isLetterExpanded)}
+                className="gap-1 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
               >
-                <RotateCcw className="w-3.5 h-3.5" /> Padrão
+                {isLetterExpanded ? (
+                  <>
+                    <ChevronUp className="w-3.5 h-3.5" /> Recolher
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-3.5 h-3.5" /> Expandir ({currentLetterParagraphs.length})
+                  </>
+                )}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFormData({
-                    ...formData,
-                    letter: { paragraphs: [...currentLetterParagraphs, ''] },
-                  });
-                }}
-                className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-200"
-              >
-                <Plus className="w-3.5 h-3.5" /> Adicionar Parágrafo
-              </Button>
+              {isLetterExpanded && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        letter: { paragraphs: [...DEFAULT_LETTER_PARAGRAPHS] },
+                      });
+                    }}
+                    className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-300"
+                    title="Restaurar parágrafos originais"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Padrão
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        letter: { paragraphs: [...currentLetterParagraphs, ''] },
+                      });
+                    }}
+                    className="gap-1.5 text-xs border-slate-600 hover:bg-slate-700 text-slate-200"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Adicionar Parágrafo
+                  </Button>
+                </>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -820,7 +931,24 @@ export default function ConfigPage() {
               Personalize o texto da carta exibida na seção "Uma Carta Para Você" da página principal.
             </p>
 
-            {currentLetterParagraphs.length === 0 ? (
+            {!isLetterExpanded ? (
+              <div
+                onClick={() => setIsLetterExpanded(true)}
+                className="p-3.5 bg-slate-900/50 hover:bg-slate-900/80 border border-slate-700/60 rounded-xl cursor-pointer transition-all flex items-center justify-between gap-3 group"
+              >
+                <div className="truncate min-w-0 mr-2">
+                  <p className="text-xs text-slate-300 font-medium truncate italic">
+                    "{currentLetterParagraphs[0]?.slice(0, 110) || 'Nenhum parágrafo configurado'}..."
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {currentLetterParagraphs.length} {currentLetterParagraphs.length === 1 ? 'parágrafo configurado' : 'parágrafos configurados'}
+                  </p>
+                </div>
+                <span className="text-xs text-pink-400 font-medium group-hover:underline shrink-0">
+                  Editar Carta →
+                </span>
+              </div>
+            ) : currentLetterParagraphs.length === 0 ? (
               <div className="p-6 border border-dashed border-slate-700 rounded-xl text-center text-slate-500 text-sm space-y-3">
                 <p>Nenhum parágrafo configurado.</p>
                 <Button
