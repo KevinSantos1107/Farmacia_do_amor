@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 // ─── Meteor Shower ──────────────────────────────────────────────────────────
 
@@ -12,7 +12,7 @@ const METEOR_TYPES = [
 
 type MeteorLayer = 'large' | 'mid' | 'small';
 
-const LAYER_CONFIG: Record<MeteorLayer, {
+const BASE_LAYER_CONFIG: Record<MeteorLayer, {
   count: number; len: string; thick: string; head: number;
   speedMin: number; speedMax: number;
 }> = {
@@ -22,7 +22,7 @@ const LAYER_CONFIG: Record<MeteorLayer, {
 };
 
 function makeMeteor(layer: MeteorLayer, id: number) {
-  const cfg   = LAYER_CONFIG[layer];
+  const cfg   = BASE_LAYER_CONFIG[layer];
   const type  = METEOR_TYPES[Math.floor(Math.random() * METEOR_TYPES.length)];
   const speed = cfg.speedMin + Math.random() * (cfg.speedMax - cfg.speedMin);
   const delay = -(Math.random() * speed);
@@ -46,18 +46,42 @@ function makeMeteor(layer: MeteorLayer, id: number) {
   };
 }
 
-const METEORS = (Object.keys(LAYER_CONFIG) as MeteorLayer[]).flatMap((layer) =>
-  Array.from({ length: LAYER_CONFIG[layer].count }, (_, i) => makeMeteor(layer, i))
-);
-
 export function MeteorShower() {
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      setIsPaused(document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  const meteors = useMemo(() => {
+    const cores = typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency ?? 4) : 4;
+    const densityMultiplier = cores <= 2 ? 0.4 : cores <= 4 ? 0.65 : 1.0;
+
+    return (Object.keys(BASE_LAYER_CONFIG) as MeteorLayer[]).flatMap((layer) => {
+      const scaledCount = Math.max(2, Math.round(BASE_LAYER_CONFIG[layer].count * densityMultiplier));
+      return Array.from({ length: scaledCount }, (_, i) => makeMeteor(layer, i));
+    });
+  }, []);
+
   return (
-    <div className="meteor-shower">
-      {METEORS.map((m, idx) => (
+    <div
+      className="meteor-shower"
+      style={isPaused ? { animationPlayState: 'paused' } : undefined}
+    >
+      {meteors.map((m, idx) => (
         <div
           key={`${m.layer}-${m.id}-${idx}`}
           className={`meteor meteor-${m.layer}`}
-          style={{ top: m.top, left: m.left, ...m.style }}
+          style={{
+            top: m.top,
+            left: m.left,
+            ...m.style,
+            ...(isPaused ? { animationPlayState: 'paused' } : {}),
+          }}
         />
       ))}
     </div>

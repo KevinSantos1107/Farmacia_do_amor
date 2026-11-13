@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Heart } from 'lucide-react';
 
 const HEART_COLORS = ['#ff0055', '#ff4d94', '#ffb3c6', '#ff2a7a', '#ffffff', 'var(--theme-primary)'];
@@ -35,20 +35,49 @@ function generateHeart(id: number, layer: 'front' | 'mid' | 'back'): HeartDef {
   };
 }
 
-const HEARTS = [
-  ...Array.from({ length: 5 }, (_, i) => generateHeart(i, 'front')),
-  ...Array.from({ length: 14 }, (_, i) => generateHeart(i + 5, 'mid')),
-  ...Array.from({ length: 9 }, (_, i) => generateHeart(i + 19, 'back')),
-];
-
 export function FallingHearts() {
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      setIsPaused(document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  const hearts = useMemo(() => {
+    const cores = typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency ?? 4) : 4;
+    const densityMultiplier = cores <= 2 ? 0.4 : cores <= 4 ? 0.65 : 1.0;
+
+    const frontCount = Math.max(2, Math.round(5 * densityMultiplier));
+    const midCount = Math.max(5, Math.round(14 * densityMultiplier));
+    const backCount = Math.max(3, Math.round(9 * densityMultiplier));
+
+    return [
+      ...Array.from({ length: frontCount }, (_, i) => generateHeart(i, 'front')),
+      ...Array.from({ length: midCount }, (_, i) => generateHeart(i + frontCount, 'mid')),
+      ...Array.from({ length: backCount }, (_, i) => generateHeart(i + frontCount + midCount, 'back')),
+    ];
+  }, []);
+
   return (
-    <div className="falling-hearts pointer-events-none">
-      {HEARTS.map((h) => {
+    <div
+      className="falling-hearts pointer-events-none"
+      style={isPaused ? { animationPlayState: 'paused' } : undefined}
+    >
+      {hearts.map((h) => {
         const isPulsing = h.layer === 'mid' && Math.random() > 0.4;
         const layerClass = `heart-layer-${h.layer}`;
         return (
-          <div key={h.id} className={`heart-container ${layerClass}`} style={h.style}>
+          <div
+            key={h.id}
+            className={`heart-container ${layerClass}`}
+            style={{
+              ...h.style,
+              ...(isPaused ? { animationPlayState: 'paused' } : {}),
+            }}
+          >
             <div className={`heart-wrapper ${isPulsing ? 'heart-pulse' : ''}`}>
               {h.variant === 'glass' ? (
                 <svg

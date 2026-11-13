@@ -16,23 +16,49 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
     let isPaused = false;
     let resumeLoop: (() => void) | null = null;
 
+    // ── Hardware detection (Tasks 2 & 3) ──────────────────────────────────
+    const cores = typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency ?? 4) : 4;
+    const isLowEnd = cores <= 4;
+    const FRAME_INTERVAL = 1000 / (isLowEnd ? 30 : 60);
+    let lastFrameTime = 0;
+    const densityMultiplier = cores <= 2 ? 0.4 : cores <= 4 ? 0.65 : 1.0;
+
+    let pauseTimer: number | null = null;
+
     // Pausa a animação quando a aba está oculta OU quando um overlay (modal de álbum)
-    // está aberto. No iPhone, o canvas de partículas compete com o modal pela GPU
-    // e causa tela preta/travamento. Para garantir que a pausa seja IMEDIATA (sem esperar
-    // o próximo frame do requestAnimationFrame), cancelamos o animId existente e só
-    // retomamos quando o overlay fechar.
+    // está aberto.
+    // - Se a aba for ocultada (`document.hidden`), pausa imediatamente (0ms).
+    // - Se um overlay/modal abrir (`data-overlay-open`), aguarda 300ms para que o modal
+    //   fique 100% aberto antes de pausar a animação, e NUNCA limpa o canvas (sem clearRect),
+    //   evitando que o usuário veja a animação congelar ou sumir durante a abertura!
     const handlePause = () => {
-      const shouldPause = document.hidden || document.documentElement.hasAttribute('data-overlay-open');
-      if (shouldPause && !isPaused) {
-        isPaused = true;
-        // Cancela o frame atual para liberar GPU imediatamente
-        cancelAnimationFrame(animId);
-        // Garante que o canvas fique limpo enquanto pausado
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      } else if (!shouldPause && isPaused) {
-        isPaused = false;
-        // Retoma o loop de animação específico do tema ativo
-        resumeLoop?.();
+      const isHidden = document.hidden;
+      const isOverlay = document.documentElement.hasAttribute('data-overlay-open');
+
+      if (pauseTimer !== null) {
+        window.clearTimeout(pauseTimer);
+        pauseTimer = null;
+      }
+
+      if (isHidden) {
+        if (!isPaused) {
+          isPaused = true;
+          cancelAnimationFrame(animId);
+        }
+      } else if (isOverlay) {
+        if (!isPaused) {
+          pauseTimer = window.setTimeout(() => {
+            if (document.documentElement.hasAttribute('data-overlay-open')) {
+              isPaused = true;
+              cancelAnimationFrame(animId);
+            }
+          }, 300);
+        }
+      } else {
+        if (isPaused) {
+          isPaused = false;
+          resumeLoop?.();
+        }
       }
     };
     document.addEventListener('visibilitychange', handlePause);
@@ -99,11 +125,12 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
 
       const init = () => {
         snowFlakes.length = 0;
-        for (let i = 0; i < 110; i++) {
+        const snowCount = Math.round(110 * densityMultiplier);
+        for (let i = 0; i < snowCount; i++) {
           let type: 'orb' | 'flake' | 'dot';
           let r, speedY;
-          if (i < 12) { type = 'orb'; r = Math.random() * 4 + 8; speedY = Math.random() * 0.8 + 0.8; }
-          else if (i < 40) { type = 'flake'; r = Math.random() * 2 + 3; speedY = Math.random() * 0.5 + 0.5; }
+          if (i < Math.round(12 * densityMultiplier)) { type = 'orb'; r = Math.random() * 4 + 8; speedY = Math.random() * 0.8 + 0.8; }
+          else if (i < Math.round(40 * densityMultiplier)) { type = 'flake'; r = Math.random() * 2 + 3; speedY = Math.random() * 0.5 + 0.5; }
           else { type = 'dot'; r = Math.random() * 1 + 1; speedY = Math.random() * 0.3 + 0.2; }
 
           snowFlakes.push({
@@ -126,10 +153,11 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
         init();
       };
 
-      const draw = () => {
-        // Quando pausado, o handleVisibilityChange já cancelou o animId.
-        // O draw() só é chamado de novo quando o overlay fechar (isPaused = false → draw()).
+      const draw = (timestamp: number) => {
         if (isPaused) return;
+        animId = requestAnimationFrame(draw);
+        if (timestamp - lastFrameTime < FRAME_INTERVAL) return;
+        lastFrameTime = timestamp;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         snowFlakes.forEach((f) => {
@@ -160,15 +188,15 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
           const sprite = sprites[f.type];
           ctx.drawImage(sprite, f.x - f.r, f.y - f.r, f.r * 2, f.r * 2);
         });
-        animId = requestAnimationFrame(draw);
       };
       
       window.addEventListener('resize', resize);
       resize();
-      resumeLoop = draw;
-      draw();
+      resumeLoop = () => { animId = requestAnimationFrame(draw); };
+      animId = requestAnimationFrame(draw);
       
       return () => {
+        if (pauseTimer !== null) window.clearTimeout(pauseTimer);
         resumeLoop = null;
         window.removeEventListener('resize', resize);
         window.removeEventListener('mousemove', onMouseMove);
@@ -199,7 +227,8 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
 
       const init = () => {
         stars.length = 0;
-        for (let i = 0; i < 80; i++) {
+        const starCount = Math.round(80 * densityMultiplier);
+        for (let i = 0; i < starCount; i++) {
           stars.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height * 0.75,
@@ -224,8 +253,11 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
         init(); 
       };
 
-      const draw = () => {
+      const draw = (timestamp: number) => {
         if (isPaused) return;
+        animId = requestAnimationFrame(draw);
+        if (timestamp - lastFrameTime < FRAME_INTERVAL) return;
+        lastFrameTime = timestamp;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         time += 0.016;
         stars.forEach((s) => {
@@ -233,13 +265,13 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
           ctx.fillStyle = `${s.color}${alpha})`;
           ctx.fillRect(s.x, s.y, s.r * 2, s.r * 2);
         });
-        animId = requestAnimationFrame(draw);
       };
       window.addEventListener('resize', resize);
       resize();
-      resumeLoop = draw;
-      draw();
+      resumeLoop = () => { animId = requestAnimationFrame(draw); };
+      animId = requestAnimationFrame(draw);
       return () => {
+        if (pauseTimer !== null) window.clearTimeout(pauseTimer);
         resumeLoop = null;
         window.removeEventListener('resize', resize);
         document.removeEventListener('visibilitychange', handlePause);
@@ -258,7 +290,7 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
 
       const init = () => {
         stars.length = 0;
-        const count = window.innerWidth < 640 ? 60 : 120;
+        const count = Math.round((window.innerWidth < 640 ? 60 : 120) * densityMultiplier);
         for (let i = 0; i < count; i++) {
           stars.push({
             x: Math.random() * canvas.width,
@@ -281,8 +313,11 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
         init();
       };
 
-      const draw = () => {
+      const draw = (timestamp: number) => {
         if (isPaused) return;
+        animId = requestAnimationFrame(draw);
+        if (timestamp - lastFrameTime < FRAME_INTERVAL) return;
+        lastFrameTime = timestamp;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         time += 0.016;
         
@@ -299,15 +334,15 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
           ctx.fill();
         });
         ctx.globalAlpha = 1;
-        animId = requestAnimationFrame(draw);
       };
       
       window.addEventListener('resize', resize);
       resize();
-      resumeLoop = draw;
-      draw();
+      resumeLoop = () => { animId = requestAnimationFrame(draw); };
+      animId = requestAnimationFrame(draw);
       
       return () => {
+        if (pauseTimer !== null) window.clearTimeout(pauseTimer);
         resumeLoop = null;
         window.removeEventListener('resize', resize);
         document.removeEventListener('visibilitychange', handlePause);
@@ -330,7 +365,8 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
 
     const init = () => {
       particles.length = 0;
-      for (let i = 0; i < 80; i++) {
+      const particleCount = Math.round(80 * densityMultiplier);
+      for (let i = 0; i < particleCount; i++) {
         particles.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
@@ -355,8 +391,11 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
       init();
     };
 
-    const draw = () => {
+    const draw = (timestamp: number) => {
       if (isPaused) return;
+      animId = requestAnimationFrame(draw);
+      if (timestamp - lastFrameTime < FRAME_INTERVAL) return;
+      lastFrameTime = timestamp;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particles.forEach((p) => {
         ctx.beginPath();
@@ -372,13 +411,13 @@ export function ParticleCanvas({ theme }: { theme: 'meteors' | 'hearts' | 'auror
         if (p.x < -10) p.x = canvas.width + 10;
         if (p.x > canvas.width + 10) p.x = -10;
       });
-      animId = requestAnimationFrame(draw);
     };
     window.addEventListener('resize', resize);
     resize();
-    resumeLoop = draw;
-    draw();
+    resumeLoop = () => { animId = requestAnimationFrame(draw); };
+    animId = requestAnimationFrame(draw);
     return () => {
+      if (pauseTimer !== null) window.clearTimeout(pauseTimer);
       resumeLoop = null;
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', handlePause);
