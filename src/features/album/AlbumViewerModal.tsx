@@ -375,7 +375,17 @@ function AlbumPanel({
       </div>
 
       {/* Foto customizada com Zoom & Pan isolados */}
-      {url && <ZoomableImage src={url} alt={caption || `Foto ${photoIndex + 1}`} placeholderSrc={photoIndex === 0 ? coverUrl : undefined} />}
+      {url && (
+        <ZoomableImage
+          src={url}
+          alt={caption || `Foto ${photoIndex + 1}`}
+          placeholderSrc={
+            photoIndex === 0 && coverUrl && !coverUrl.includes('kevin-iara/images')
+              ? coverUrl
+              : undefined
+          }
+        />
+      )}
 
       {/* Legenda (respeita barra de navegação/Home indicator do iOS) */}
       {caption && (
@@ -593,7 +603,7 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
       const p = a.photos[pIdx];
       if (!p) return;
       const url = getPhotoUrl(p);
-      if (url && !urls.includes(url)) urls.push(url);
+      if (url && !url.includes('kevin-iara/images') && !urls.includes(url)) urls.push(url);
     };
 
     const curA = actualIndex;
@@ -645,9 +655,8 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
       const targetActualIndex = ((targetVirtualIndex % albums.length) + albums.length) % albums.length;
       const targetAlbum = albums[targetActualIndex];
 
-      if (targetAlbum && targetAlbum.photos.length > 0) {
-        const targetPhotoIdx = dir > 0 ? 0 : targetAlbum.photos.length - 1;
-        const updated = { ...photoIndexesRef.current, [targetAlbum.id]: targetPhotoIdx };
+      if (targetAlbum && !(targetAlbum.id in photoIndexesRef.current)) {
+        const updated = { ...photoIndexesRef.current, [targetAlbum.id]: 0 };
         photoIndexesRef.current = updated;
         setPhotoIndexes(updated);
       }

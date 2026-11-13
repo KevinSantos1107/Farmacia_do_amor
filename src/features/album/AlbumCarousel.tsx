@@ -510,20 +510,52 @@ export function AlbumCarousel() {
     }
   }, [albums.length, activeIndex, goToIndex]);
 
+  const isBrokenPath = useCallback((url?: string | null) => Boolean(url && url.includes('kevin-iara/images')), []);
+
+  const getCover = useCallback((album: AlbumSummary): string | null => {
+    const raw = album.cover || album.coverThumb || album.coverLarge;
+    if (raw && !isBrokenPath(raw)) {
+      return raw;
+    }
+    if (album.coverPublicId && !isBrokenPath(album.coverPublicId)) {
+      return cloudinaryUrl(album.coverPublicId, { w: 300 });
+    }
+    // Fallback: se a capa cadastrada apontava para imagem deletada do Cloudinary,
+    // usa a primeira foto válida do próprio álbum
+    const fallbackPhoto = album.photos?.[0] || photoCacheRef.current[album.id]?.[0];
+    if (fallbackPhoto) {
+      const pUrl = fallbackPhoto.src || fallbackPhoto.url;
+      if (pUrl && !isBrokenPath(pUrl)) return pUrl;
+    }
+    return null;
+  }, [isBrokenPath]);
+
+  // Generates a srcset for carousel card images (card width = 240px)
+  const getCoverSrcSet = useCallback((album: AlbumSummary): string | null => {
+    if (!album.coverPublicId || isBrokenPath(album.coverPublicId)) return null;
+    return cloudinaryResponsiveSrcSet(album.coverPublicId, [300, 480, 600]);
+  }, [isBrokenPath]);
+
   // Constrói o array de álbuns com fotos para o modal (memoizado ANTES de early returns)
   // Garante que se photoCacheRef tiver as fotos, elas são passadas imediatamente
   // coverUrl: URL da capa pequena (300px) já carregada no carrossel — usada como placeholder borrado
   const albumsForModal = useMemo(
     () =>
-      albums.map((a) => ({
-        id: a.id,
-        title: a.title,
-        description: a.description,
-        date: a.date,
-        coverUrl: normalizeCloudinaryUrl(a.cover || a.coverThumb || (a.coverPublicId ? cloudinaryUrl(a.coverPublicId, { w: 300, f: 'webp' }) : '')),
-        photos: a.photos ?? photoCacheRef.current[a.id] ?? [],
-      })),
-    [albums]
+      albums.map((a) => {
+        const cover = getCover(a);
+        const pList = (a.photos ?? photoCacheRef.current[a.id] ?? []).filter(
+          (p) => !isBrokenPath(p.src || p.url)
+        );
+        return {
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          date: a.date,
+          coverUrl: cover ? normalizeCloudinaryUrl(cover) : undefined,
+          photos: pList,
+        };
+      }),
+    [albums, getCover, isBrokenPath]
   );
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -536,19 +568,6 @@ export function AlbumCarousel() {
     );
   }
   if (albums.length === 0) return null;
-
-  const getCover = (album: AlbumSummary): string | null => {
-    if (album.cover || album.coverThumb || album.coverLarge)
-      return album.cover || album.coverThumb || album.coverLarge || null;
-    if (album.coverPublicId) return cloudinaryUrl(album.coverPublicId, { w: 300 });
-    return null;
-  };
-
-  // Generates a srcset for carousel card images (card width = 240px)
-  const getCoverSrcSet = (album: AlbumSummary): string | null => {
-    if (!album.coverPublicId) return null;
-    return cloudinaryResponsiveSrcSet(album.coverPublicId, [300, 480, 600]);
-  };
 
   const CARD_W = 240;
   const GAP    = 24;
