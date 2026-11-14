@@ -56,11 +56,14 @@ export function FullScreenOverlay({
     }
   };
 
+  const handleDismissRef = useRef(handleDismiss);
+  handleDismissRef.current = handleDismiss;
+
   useEffect(() => {
     if (isOpen) {
       const unlock = lockBodyScroll();
       const onKey = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') handleDismiss();
+        if (e.key === 'Escape') handleDismissRef.current();
       };
       window.addEventListener('keydown', onKey);
       return () => {
@@ -73,7 +76,12 @@ export function FullScreenOverlay({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] h-[100dvh] max-h-[100dvh] bg-theme-bg flex flex-col overscroll-contain animate-in fade-in zoom-in-[0.98] duration-300">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="fullscreen-overlay-title"
+      className="fixed inset-0 z-[99999] h-[100dvh] max-h-[100dvh] bg-theme-bg flex flex-col overscroll-contain animate-in fade-in zoom-in-[0.98] duration-300"
+    >
       {/* Dynamic Background matching theme */}
       <div className="absolute inset-0 pointer-events-none opacity-50 bg-[radial-gradient(circle_at_center,rgba(var(--theme-primary-rgb),0.15)_0%,transparent_70%)]" />
 
@@ -95,7 +103,7 @@ export function FullScreenOverlay({
             </div>
           )}
           <div className="min-w-0">
-            <h2 className={`font-serif font-bold text-white tracking-tight drop-shadow-md truncate ${fill ? 'text-base sm:text-lg md:text-xl' : 'text-xl md:text-2xl'}`}>
+            <h2 id="fullscreen-overlay-title" className={`font-serif font-bold text-white tracking-tight drop-shadow-md truncate ${fill ? 'text-base sm:text-lg md:text-xl' : 'text-xl md:text-2xl'}`}>
               {title}
             </h2>
             {subtitle && (

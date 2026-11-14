@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { cn } from '../../shared/utils/cn';
 import { SplashScreen } from '../../features/core/SplashScreen';
@@ -35,8 +35,10 @@ export function Shell() {
   // como primeira página da sessão (idx === 0), prepara a raiz '/' no histórico.
   // Assim, se o usuário pressionar Voltar no navegador ou notebook, ele voltará para a Home
   // em vez de ser jogado para fora do site (ex: tela inicial do Google).
+  const initialPathnameRef = useRef(location.pathname);
   useEffect(() => {
-    const isOverlayRoute = location.pathname !== '/' && !location.pathname.startsWith('/admin');
+    const isOverlayRoute =
+      initialPathnameRef.current !== '/' && !initialPathnameRef.current.startsWith('/admin');
     const isFirstEntry = window.history.state?.idx === 0;
 
     if (isOverlayRoute && isFirstEntry) {

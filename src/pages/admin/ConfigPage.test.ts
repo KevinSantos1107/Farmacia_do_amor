@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   mergeStoreConfigIntoForm,
   getChangedConfigFields,
-} from './ConfigPage';
+} from './configPageUtils';
 import type { SiteConfig } from '../../config/siteConfig.schema';
 
 describe('ConfigPage - Preservação de Edições não Salvas (ITEM 4)', () => {

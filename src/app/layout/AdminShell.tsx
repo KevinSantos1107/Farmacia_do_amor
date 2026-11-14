@@ -13,10 +13,13 @@ import {
   History,
   Menu,
   X,
-  ExternalLink,
   Share2,
   KeyRound,
   Sparkles,
+  Dices,
+  Compass,
+  HelpCircle,
+  ExternalLink,
 } from 'lucide-react';
 
 export function AdminShell() {
@@ -43,9 +46,9 @@ export function AdminShell() {
     { label: 'Álbum', icon: ImageIcon, path: '/admin/album' },
     { label: 'História', icon: History, path: '/admin/timeline' },
     { label: 'Músicas', icon: Music, path: '/admin/playlist' },
-    { label: 'Roleta', icon: LayoutDashboard, path: '/admin/roulette' },
-    { label: 'Mapa de Estrelas', icon: LayoutDashboard, path: '/admin/starmap' },
-    { label: 'Quiz do Casal', icon: Settings, path: '/admin/quiz' },
+    { label: 'Roleta', icon: Dices, path: '/admin/roulette' },
+    { label: 'Mapa de Estrelas', icon: Compass, path: '/admin/starmap' },
+    { label: 'Quiz do Casal', icon: HelpCircle, path: '/admin/quiz' },
     { label: 'Acessos (Links)', icon: KeyRound, path: '/admin/tokens' },
     { label: 'Compartilhar', icon: Share2, path: '/admin/share' },
   ];

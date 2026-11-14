@@ -278,7 +278,7 @@ export function SnakeGame() {
 
     rafId = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafId);
-  }, [theme, cellSize, CANVAS_W, CANVAS_H, g, tick]);
+  }, [theme, cellSize, CANVAS_W, CANVAS_H, grid.cols, grid.rows, g, tick]);
 
   // ─── Keyboard Input ────────────────────────────────────────────────────────
   useEffect(() => {

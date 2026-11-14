@@ -7,7 +7,7 @@ import {
   formatTime,
   getDealAnimationTiming,
   canTriggerGameWin,
-} from './MemoryGame';
+} from './memoryUtils';
 import { selectPhotosForGame } from './selectPhotosForGame';
 import type { AlbumForGame } from './selectPhotosForGame';
 

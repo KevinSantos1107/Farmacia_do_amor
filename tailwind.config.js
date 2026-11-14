@@ -22,7 +22,6 @@ export default {
         sans: ['Poppins', 'sans-serif'],
         serif: ['Playfair Display', 'serif'],
         script: ['Dancing Script', 'cursive'],
-        display: ['Raleway', 'sans-serif'],
       }
     },
   },

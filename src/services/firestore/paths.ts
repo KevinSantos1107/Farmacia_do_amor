@@ -1,13 +1,12 @@
 /**
- * ATENÇÃO CRÍTICA DE SEGURANÇA:
- * NUNCA virar VITE_DATA_LAYOUT=site em produção antes de reescrevermos as firestore.rules!
- * As regras atuais do Firestore deixam leitura/escrita sob 'sites/' aberta para qualquer
- * usuário autenticado ou anônimo, o que exporia player_tokens, game_records e player_links.
- * 
  * Este arquivo define a camada de abstração de caminhos do Firestore para suportar
- * a transição gradual para a arquitetura multi-site:
+ * a arquitetura multi-site:
  * - 'legacy' (padrão): coleções na raiz do Firestore (ex: collection(db, 'timeline'))
  * - 'site': coleções aninhadas sob o site (ex: collection(db, 'sites', siteId, 'timeline'))
+ *
+ * As regras do Firestore (firestore.rules) já protegem corretamente ambos os layouts:
+ * leitura pública controlada, escrita restrita a isAdmin() e validação de player_links
+ * via isValidPlayerLinkSite(). É seguro usar VITE_DATA_LAYOUT=site em produção.
  */
 
 import {

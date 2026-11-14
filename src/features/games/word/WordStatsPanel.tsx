@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Flame, Trophy, Gamepad2, Check } from 'lucide-react';
@@ -19,11 +19,14 @@ export function WordStatsPanel({ isOpen, onClose, stats }: WordStatsPanelProps) 
     onClose,
   });
 
+  const handleDismissRef = useRef(handleDismiss);
+  handleDismissRef.current = handleDismiss;
+
   useEffect(() => {
     if (isOpen) {
       const unlock = lockBodyScroll();
       const onKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') handleDismiss();
+        if (e.key === 'Escape') handleDismissRef.current();
       };
       window.addEventListener('keydown', onKeyDown);
       return () => {

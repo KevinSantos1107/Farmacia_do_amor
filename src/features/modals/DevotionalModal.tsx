@@ -155,7 +155,17 @@ export function DevotionalModal({ isOpen, onClose }: DevotionalModalProps) {
         clearInterval(midnightTimer);
       };
     }
-  }, [isOpen, isPlayer, siteId, player]);
+  }, [
+    isOpen,
+    isPlayer,
+    siteId,
+    player,
+    loadHistory,
+    loadFavorites,
+    handleModalOpen,
+    checkMidnightExpiration,
+    showToast,
+  ]);
 
   // Se o usuário for visitante (sem token cadastrado), bloqueia o acesso igual ao Sincronia
   if (!isPlayer) {

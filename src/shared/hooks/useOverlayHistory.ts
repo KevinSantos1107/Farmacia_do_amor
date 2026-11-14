@@ -25,13 +25,16 @@ export function useOverlayHistory({ id, isOpen, onClose, onBack }: UseOverlayHis
     onBackRef.current = onBack;
   }, [onClose, onBack]);
 
+  // Extrai para variável booleana estável para evitar expressão inline no array de dependências
+  const hasBack = Boolean(onBack);
+
   useEffect(() => {
     if (!isOpen) return;
 
     const cleanup = pushNavigationLayer({
       id,
       onClose: () => onCloseRef.current(),
-      onBack: onBack ? () => onBackRef.current?.() : undefined,
+      onBack: hasBack ? () => onBackRef.current?.() : undefined,
     });
 
     // Flag que indica se este cleanup é um remount imediato do React StrictMode.
@@ -49,7 +52,7 @@ export function useOverlayHistory({ id, isOpen, onClose, onBack }: UseOverlayHis
       // para não consumir a entrada que o próximo mount vai criar.
       cleanup(isStrictModeRemount);
     };
-  }, [isOpen, id, onBack !== undefined]);
+  }, [isOpen, id, hasBack]);
 
   const handleDismiss = () => {
     removeNavigationLayer(id, true);
