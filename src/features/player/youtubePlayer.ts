@@ -206,14 +206,17 @@ export async function initYouTubePlayer(elementId: string) {
           // Pausado
           // Se a tela foi desligada ou o app foi minimizado (document.hidden === true),
           // mas o usuário quer a música tocando (isPlaying === true),
-          // retoma imediatamente sem mudar o estado para pausado!
+          // retoma em múltiplas tentativas sem mudar o estado para pausado!
           const state = _callbacks.getInitialState?.();
           if (typeof document !== 'undefined' && document.hidden && state?.isPlaying) {
-            setTimeout(() => {
-              if (_callbacks.getInitialState?.().isPlaying) {
-                resumeYouTubeVideo();
-              }
-            }, 60);
+            // Tenta retomar em vários delays: o iframe pode demorar a acordar
+            [0, 150, 400, 900, 1800].forEach((delay) => {
+              setTimeout(() => {
+                if (_callbacks.getInitialState?.()?.isPlaying && document.hidden) {
+                  resumeYouTubeVideo();
+                }
+              }, delay);
+            });
             return;
           }
 

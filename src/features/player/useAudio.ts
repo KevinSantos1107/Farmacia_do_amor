@@ -268,26 +268,53 @@ if (_audio) {
   }
 }
 
+let _youtubeBackgroundInterval: number | null = null;
+
 // ── Listener de visibilidade: mantém o áudio tocando ao apagar a tela ou minimizar ─────
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     const state = useAudioStore.getState();
     const currentTrack = state.playlist[state.currentTrackIndex];
-    if (isYouTubeTrack(currentTrack) && state.isPlaying) {
-      if (document.hidden) {
+
+    if (document.hidden) {
+      // Página foi para background (tela desligada / app minimizado)
+      if (isYouTubeTrack(currentTrack) && state.isPlaying) {
+        // 1. Garantir que o áudio silencioso está tocando (mantém o processo principal vivo)
         if (_audio && _audio.paused) {
           _audio.play().catch(() => {});
         }
+        // 2. Tentativa imediata de retomada
         setTimeout(() => {
-          if (useAudioStore.getState().isPlaying) {
-            resumeYouTubeVideo();
-          }
+          if (useAudioStore.getState().isPlaying) resumeYouTubeVideo();
         }, 80);
-      } else {
-        setTimeout(() => {
-          if (useAudioStore.getState().isPlaying) {
+        // 3. Intervalo periódico: acorda o iframe do YouTube a cada 2s enquanto em background.
+        //    O iframe roda em processo separado (Site Isolation) e pode ser suspenso pelo SO
+        //    independente do nosso processo. Enviar playVideo() via postMessage o acorda.
+        if (!_youtubeBackgroundInterval) {
+          _youtubeBackgroundInterval = window.setInterval(() => {
+            const st = useAudioStore.getState();
+            const track = st.playlist[st.currentTrackIndex];
+            if (!st.isPlaying || !isYouTubeTrack(track)) {
+              clearInterval(_youtubeBackgroundInterval!);
+              _youtubeBackgroundInterval = null;
+              return;
+            }
+            // Manter o silent audio ativo
+            if (_audio && _audio.paused) _audio.play().catch(() => {});
+            // Acordar o iframe com o comando de play (postMessage interno do IFrame API)
             resumeYouTubeVideo();
-          }
+          }, 2000);
+        }
+      }
+    } else {
+      // Página voltou ao foreground
+      if (_youtubeBackgroundInterval !== null) {
+        clearInterval(_youtubeBackgroundInterval);
+        _youtubeBackgroundInterval = null;
+      }
+      if (state.isPlaying && isYouTubeTrack(currentTrack)) {
+        setTimeout(() => {
+          if (useAudioStore.getState().isPlaying) resumeYouTubeVideo();
         }, 50);
       }
     }
@@ -580,6 +607,12 @@ export function resumeUnifiedAudio(track?: Track) {
  * Pausa a reprodução do áudio ativo (MP3 ou YouTube).
  */
 export function pauseUnifiedAudio() {
+  // Cancelar o keep-alive de background ao pausar manualmente
+  if (_youtubeBackgroundInterval !== null) {
+    clearInterval(_youtubeBackgroundInterval);
+    _youtubeBackgroundInterval = null;
+  }
+
   const state = useAudioStore.getState();
   const current = state.playlist[state.currentTrackIndex];
 
@@ -650,6 +683,11 @@ export function setUnifiedVolume(volume: number, isMuted: boolean) {
  * Para completamente a reprodução em ambos os backends.
  */
 export function stopUnifiedAudio() {
+  // Cancelar o keep-alive de background ao parar
+  if (_youtubeBackgroundInterval !== null) {
+    clearInterval(_youtubeBackgroundInterval);
+    _youtubeBackgroundInterval = null;
+  }
   stopAudioElement();
   stopYouTubeVideo();
   _activeTrackUrl = '';
