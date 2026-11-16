@@ -69,6 +69,57 @@ let _activeTrackUrl = '';
 let _loadGeneration = 0;
 let _isAudioSilenced = false;
 
+// Áudio silencioso em base64 (WAV puro de 86 bytes) usado para manter a sessão de áudio do sistema operacional ativa
+const SILENT_AUDIO_URI =
+  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
+/**
+ * Ativa o áudio silencioso em loop no HTMLAudioElement para garantir que o sistema operacional
+ * (Android, iOS) reconheça uma sessão de áudio nativa ativa, permitindo:
+ * 1. Reprodução em segundo plano mesmo ao minimizar o navegador ou desligar a tela.
+ * 2. Controle completo pela central de notificações e tela de bloqueio com barra de progresso.
+ */
+export function startSilentAudioKeepalive() {
+  if (!_audio) return;
+  try {
+    _isAudioSilenced = true;
+    _audio.loop = true;
+    if (_audio.src !== SILENT_AUDIO_URI) {
+      _audio.src = SILENT_AUDIO_URI;
+    }
+    _audio.play().catch(() => {});
+  } catch {}
+  setTimeout(() => {
+    _isAudioSilenced = false;
+  }, 50);
+}
+
+/**
+ * Atualiza a barra de progresso e o tempo decorrido na central de notificações / tela de bloqueio.
+ */
+export function updateMediaSessionPositionState(currentTime: number, duration: number) {
+  if (
+    typeof navigator === 'undefined' ||
+    !('mediaSession' in navigator) ||
+    !('setPositionState' in navigator.mediaSession)
+  ) {
+    return;
+  }
+  if (!isFinite(duration) || duration <= 0 || !isFinite(currentTime) || currentTime < 0) {
+    return;
+  }
+  try {
+    const pos = Math.min(Math.max(0, currentTime), duration);
+    navigator.mediaSession.setPositionState({
+      duration: Math.round(duration),
+      playbackRate: 1,
+      position: Math.round(pos),
+    });
+  } catch {
+    // Ignora pequenos desvios transitórios durante busca rápida
+  }
+}
+
 // ── Configuração de eventos do HTMLAudioElement ───────────────────────────────
 if (_audio) {
   _audio.preload = 'auto';
@@ -76,12 +127,14 @@ if (_audio) {
   _audio.addEventListener('timeupdate', () => {
     if (_isAudioSilenced || isYouTubeTrackActive()) return;
     _emitTime(_audio!.currentTime);
+    updateMediaSessionPositionState(_audio!.currentTime, _audio!.duration);
   });
 
   _audio.addEventListener('durationchange', () => {
     if (_isAudioSilenced || isYouTubeTrackActive()) return;
     if (!isNaN(_audio!.duration) && isFinite(_audio!.duration)) {
       _emitDuration(_audio!.duration);
+      updateMediaSessionPositionState(_audio!.currentTime, _audio!.duration);
     }
   });
 
@@ -89,6 +142,7 @@ if (_audio) {
     if (_isAudioSilenced || isYouTubeTrackActive()) return;
     if (!isNaN(_audio!.duration) && isFinite(_audio!.duration)) {
       _emitDuration(_audio!.duration);
+      updateMediaSessionPositionState(_audio!.currentTime, _audio!.duration);
     }
   });
 
@@ -113,8 +167,9 @@ if (_audio) {
   });
 
   _audio.addEventListener('playing', () => {
-    if (_isAudioSilenced || isYouTubeTrackActive()) {
-      _audio!.pause();
+    if (_isAudioSilenced) return;
+    if (isYouTubeTrackActive()) {
+      // Deixa o áudio silencioso rodar para manter a sessão de mídia e o segundo plano ativos no Android/iOS
       return;
     }
     _emitStatus(false, null, false);
@@ -174,11 +229,12 @@ if (_audio) {
   // Registra os handlers de controle na tela de bloqueio e central de mídia (MediaSession API)
   if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
     try {
-      const handleToggle = () => {
-        useAudioStore.getState().togglePlayPause();
-      };
-      navigator.mediaSession.setActionHandler('play', handleToggle);
-      navigator.mediaSession.setActionHandler('pause', handleToggle);
+      navigator.mediaSession.setActionHandler('play', () => {
+        useAudioStore.getState().resumeTrack();
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        useAudioStore.getState().pauseTrack();
+      });
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         useAudioStore.getState().nextTrack();
       });
@@ -186,26 +242,70 @@ if (_audio) {
         useAudioStore.getState().previousTrack();
       });
       navigator.mediaSession.setActionHandler('seekto', (details) => {
-        if (details.seekTime !== undefined) {
+        if (details.seekTime !== undefined && isFinite(details.seekTime)) {
           seekUnifiedAudio(details.seekTime);
         }
       });
+      try {
+        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+          const skip = details.seekOffset || 10;
+          seekUnifiedAudio(Math.max(0, _currentTime - skip));
+        });
+        navigator.mediaSession.setActionHandler('seekforward', (details) => {
+          const skip = details.seekOffset || 10;
+          seekUnifiedAudio(Math.min(isFinite(_duration) ? _duration : Infinity, _currentTime + skip));
+        });
+        navigator.mediaSession.setActionHandler('stop', () => {
+          stopUnifiedAudio();
+          useAudioStore.setState({ isPlaying: false });
+        });
+      } catch {
+        // Ignora ações não suportadas por navegadores legados
+      }
     } catch (e) {
       console.warn('Erro ao configurar MediaSession handlers:', e);
     }
   }
 }
 
+// ── Listener de visibilidade: mantém o áudio tocando ao apagar a tela ou minimizar ─────
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    const state = useAudioStore.getState();
+    const currentTrack = state.playlist[state.currentTrackIndex];
+    if (isYouTubeTrack(currentTrack) && state.isPlaying) {
+      if (document.hidden) {
+        if (_audio && _audio.paused) {
+          _audio.play().catch(() => {});
+        }
+        setTimeout(() => {
+          if (useAudioStore.getState().isPlaying) {
+            resumeYouTubeVideo();
+          }
+        }, 80);
+      } else {
+        setTimeout(() => {
+          if (useAudioStore.getState().isPlaying) {
+            resumeYouTubeVideo();
+          }
+        }, 50);
+      }
+    }
+  });
+}
+
 // ── Conexão dos eventos do YouTube aos listeners unificados ───────────────────
 subscribeYouTubeTime((t) => {
   if (isYouTubeTrackActive()) {
     _emitTime(t);
+    updateMediaSessionPositionState(t, _duration);
   }
 });
 
 subscribeYouTubeDuration((d) => {
   if (isYouTubeTrackActive()) {
     _emitDuration(d);
+    updateMediaSessionPositionState(_currentTime, d);
   }
 });
 
@@ -282,6 +382,7 @@ export function stopAudioElement() {
   try {
     _audio.pause();
     _audio.currentTime = 0;
+    _audio.loop = false;
     _audio.removeAttribute('src');
     _audio.load();
   } catch {}
@@ -364,9 +465,6 @@ export async function loadAndPlayUnifiedTrack(track: Track | undefined, autoPlay
 
   // ── Caso 1: Faixa do YouTube ──────────────────────────────────────────────
   if (isYt && ytId) {
-    // 1. Para e silencia com total segurança o HTMLAudioElement
-    stopAudioElement();
-
     _activeTrackUrl = ytId;
     _isLoadingTrack = false;
     _emitTime(0);
@@ -374,6 +472,7 @@ export async function loadAndPlayUnifiedTrack(track: Track | undefined, autoPlay
     _emitDuration(initialDur);
 
     if (autoPlay) {
+      startSilentAudioKeepalive();
       playYouTubeVideo(ytId);
     } else {
       cueYouTubeVideo(ytId);
@@ -386,6 +485,7 @@ export async function loadAndPlayUnifiedTrack(track: Track | undefined, autoPlay
   stopYouTubeVideo();
 
   if (!_audio) return;
+  _audio.loop = false;
 
   if (!shouldReloadTrack(_activeTrackUrl, track.url, !!_audio.src)) {
     if (autoPlay && _audio.paused) {
@@ -453,6 +553,7 @@ export function resumeUnifiedAudio(track?: Track) {
   if (!current) return;
 
   if (isYouTubeTrack(current)) {
+    startSilentAudioKeepalive();
     const ytId = extractVideoId(current.videoId || current.url);
     if (ytId && !getActiveYouTubeVideoId()) {
       playYouTubeVideo(ytId);
@@ -463,6 +564,7 @@ export function resumeUnifiedAudio(track?: Track) {
   }
 
   if (_audio) {
+    _audio.loop = false;
     if (
       current.url &&
       !_audio.src &&

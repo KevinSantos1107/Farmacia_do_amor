@@ -204,6 +204,19 @@ export async function initYouTubePlayer(elementId: string) {
           _callbacks.onPlay?.();
         } else if (event.data === 2) {
           // Pausado
+          // Se a tela foi desligada ou o app foi minimizado (document.hidden === true),
+          // mas o usuário quer a música tocando (isPlaying === true),
+          // retoma imediatamente sem mudar o estado para pausado!
+          const state = _callbacks.getInitialState?.();
+          if (typeof document !== 'undefined' && document.hidden && state?.isPlaying) {
+            setTimeout(() => {
+              if (_callbacks.getInitialState?.().isPlaying) {
+                resumeYouTubeVideo();
+              }
+            }, 60);
+            return;
+          }
+
           stopPolling();
           _ytStatusListeners.forEach((fn) => fn({ buffering: false, error: null }));
           _callbacks.onPause?.();

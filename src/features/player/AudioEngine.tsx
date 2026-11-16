@@ -17,13 +17,14 @@ export function AudioEngine() {
       aria-hidden="true"
       style={{
         position: 'fixed',
-        top: '-9999px',
-        left: '-9999px',
-        width: '240px',
-        height: '240px',
+        bottom: 0,
+        right: 0,
+        width: '1px',
+        height: '1px',
+        overflow: 'hidden',
         pointerEvents: 'none',
-        zIndex: -9999,
-        opacity: 0,
+        zIndex: -1,
+        opacity: 0.01,
       }}
     >
       <div id="youtube-audio-host" />

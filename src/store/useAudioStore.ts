@@ -34,6 +34,8 @@ interface PlayerState {
   setPlaylistAndPlay: (tracks: Track[], index?: number) => void;
   playTrack: (index: number) => void;
   togglePlayPause: () => void;
+  pauseTrack: () => void;
+  resumeTrack: () => void;
   nextTrack: () => void;
   previousTrack: () => void;
   setVolume: (volume: number) => void;
@@ -99,6 +101,26 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
       } else {
         pauseUnifiedAudio();
       }
+    }
+  },
+
+  pauseTrack: () => {
+    const { currentTrackIndex, isPlaying, playlist } = get();
+    if (isPlaying && currentTrackIndex !== -1 && playlist[currentTrackIndex]) {
+      set({ isPlaying: false });
+      const target = playlist[currentTrackIndex];
+      updateMediaSession(target, false);
+      pauseUnifiedAudio();
+    }
+  },
+
+  resumeTrack: () => {
+    const { currentTrackIndex, isPlaying, playlist } = get();
+    if (!isPlaying && currentTrackIndex !== -1 && playlist[currentTrackIndex]) {
+      set({ isPlaying: true });
+      const target = playlist[currentTrackIndex];
+      updateMediaSession(target, true);
+      resumeUnifiedAudio(target);
     }
   },
 
