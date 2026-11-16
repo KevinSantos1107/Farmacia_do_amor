@@ -1,5 +1,40 @@
 import { describe, it, expect } from 'vitest';
 import { shouldReloadTrack, isSameAudioUrl, describeMediaError } from './playerLogic';
+import { extractVideoId, isYouTubeTrack } from './youtubePlayer';
+
+describe('youtubePlayer: extractVideoId', () => {
+  it('extrai ID de links padrão do YouTube', () => {
+    expect(extractVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(extractVideoId('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(extractVideoId('https://www.youtube.com/embed/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+  });
+
+  it('retorna o próprio ID se já for um ID de 11 caracteres', () => {
+    expect(extractVideoId('dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+  });
+
+  it('retorna null para valores vazios ou inválidos', () => {
+    expect(extractVideoId(undefined)).toBeNull();
+    expect(extractVideoId('')).toBeNull();
+    expect(extractVideoId('https://example.com/audio.mp3')).toBeNull();
+  });
+});
+
+describe('youtubePlayer: isYouTubeTrack', () => {
+  it('identifica faixa do YouTube por source, videoId ou url', () => {
+    expect(isYouTubeTrack({ source: 'youtube', url: 'https://any.com' })).toBe(true);
+    expect(isYouTubeTrack({ videoId: 'dQw4w9WgXcQ', url: '' })).toBe(true);
+    expect(isYouTubeTrack({ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' })).toBe(true);
+    expect(isYouTubeTrack({ url: 'https://youtu.be/dQw4w9WgXcQ' })).toBe(true);
+  });
+
+  it('retorna false para faixas MP3 normais ou nulas', () => {
+    expect(isYouTubeTrack(null)).toBe(false);
+    expect(isYouTubeTrack(undefined)).toBe(false);
+    expect(isYouTubeTrack({ url: 'https://res.cloudinary.com/demo/video/song.mp3' })).toBe(false);
+    expect(isYouTubeTrack({ source: 'upload', url: 'https://domain.com/song.mp3' })).toBe(false);
+  });
+});
 
 describe('playerLogic: shouldReloadTrack', () => {
   it('mesma URL e hasSrc → não recarrega', () => {

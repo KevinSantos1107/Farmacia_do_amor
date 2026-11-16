@@ -1,59 +1,123 @@
 /**
- * useAudio — Singleton de áudio global.
+ * useAudio — Singleton de áudio global com suporte híbrido unificado (HTMLAudio + YouTube IFrame).
  *
- * O HTMLAudioElement é criado UMA vez no nível do módulo e compartilhado
- * por todos os componentes que chamarem este hook. Isso garante que a
- * música continua tocando ao navegar entre páginas/abas.
+ * Músicas MP3 (Cloudinary/Upload manual) tocam via HTMLAudioElement.
+ * Músicas pesquisadas (YouTube) tocam via player do YouTube em segundo plano.
+ * O player visual e os controles (play, pause, seek, volume, barra de progresso)
+ * são 100% idênticos, síncronos e integrados para ambos os tipos de faixa.
  */
 import { useEffect, useState } from 'react';
-import { useAudioStore } from '../../store/useAudioStore';
+import { useAudioStore, type Track } from '../../store/useAudioStore';
 import { getPlayableAudioUrl } from '../../services/mp3/audioService';
-import { shouldReloadTrack, isSameAudioUrl, describeMediaError } from './playerLogic';
+import { isSameAudioUrl, describeMediaError, shouldReloadTrack } from './playerLogic';
+import {
+  extractVideoId,
+  isYouTubeTrack,
+  playYouTubeVideo,
+  cueYouTubeVideo,
+  pauseYouTubeVideo,
+  resumeYouTubeVideo,
+  stopYouTubeVideo,
+  seekYouTubeVideo,
+  setYouTubeVolume,
+  isYouTubeTrackActive,
+  getActiveYouTubeVideoId,
+  subscribeYouTubeTime,
+  subscribeYouTubeDuration,
+  subscribeYouTubeStatus,
+  setYouTubeCallbacks,
+} from './youtubePlayer';
 
-// ── Singleton — criado uma única vez quando o módulo é importado ─────────────
+// ── Singleton HTMLAudioElement — criado uma única vez ─────────────────────────
 const _audio = typeof window !== 'undefined' ? new Audio() : null;
 
-// Callbacks de "timeupdate" / "durationchange" podem ser subscritos de fora
+// Callbacks de "timeupdate" / "durationchange" unificados
 type TimeListener = (time: number) => void;
 type DurListener = (dur: number) => void;
+type StatusListener = (s: { buffering: boolean; error: string | null; loading?: boolean }) => void;
+
 const _timeListeners = new Set<TimeListener>();
 const _durListeners = new Set<DurListener>();
-
-// Estado de buffering / erro do elemento <audio> (para a UI mostrar feedback)
-type StatusListener = (s: { buffering: boolean; error: string | null }) => void;
 const _statusListeners = new Set<StatusListener>();
-const _emitStatus = (buffering: boolean, error: string | null = null) => {
-  _statusListeners.forEach((fn) => fn({ buffering, error }));
-};
+
+let _currentTime = 0;
+let _duration = 0;
+let _isBuffering = false;
+let _isLoadingTrack = false;
+let _currentError: string | null = null;
+
+function _emitTime(t: number) {
+  _currentTime = t;
+  _timeListeners.forEach((fn) => fn(t));
+}
+
+function _emitDuration(d: number) {
+  _duration = d;
+  _durListeners.forEach((fn) => fn(d));
+}
+
+function _emitStatus(buffering: boolean, error: string | null = null, loading?: boolean) {
+  _isBuffering = buffering;
+  _currentError = error;
+  if (loading !== undefined) {
+    _isLoadingTrack = loading;
+  }
+  _statusListeners.forEach((fn) => fn({ buffering, error, loading: _isLoadingTrack }));
+}
 
 let _activeTrackUrl = '';
-let _isLoadingTrack = false;
-let _loadGeneration = 0; // incremented on every new load; each async fn captures its own snapshot
+let _loadGeneration = 0;
+let _isAudioSilenced = false;
 
+// ── Configuração de eventos do HTMLAudioElement ───────────────────────────────
 if (_audio) {
-  _audio.preload = 'metadata';
+  _audio.preload = 'auto';
 
   _audio.addEventListener('timeupdate', () => {
-    _timeListeners.forEach((fn) => fn(_audio!.currentTime));
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
+    _emitTime(_audio!.currentTime);
   });
+
   _audio.addEventListener('durationchange', () => {
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
     if (!isNaN(_audio!.duration) && isFinite(_audio!.duration)) {
-      _durListeners.forEach((fn) => fn(_audio!.duration));
+      _emitDuration(_audio!.duration);
     }
   });
+
   _audio.addEventListener('loadedmetadata', () => {
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
     if (!isNaN(_audio!.duration) && isFinite(_audio!.duration)) {
-      _durListeners.forEach((fn) => fn(_audio!.duration));
+      _emitDuration(_audio!.duration);
     }
   });
-  // Feedback de carregamento: antes, se o MP3 demorasse ou falhasse, a UI ficava
-  // "tocando" sem nenhuma indicação.
-  _audio.addEventListener('loadstart', () => { if (_audio!.src) _emitStatus(true); });
-  _audio.addEventListener('waiting', () => _emitStatus(true));
-  _audio.addEventListener('stalled', () => { if (!_audio!.paused) _emitStatus(true); });
-  _audio.addEventListener('canplay', () => _emitStatus(false));
+
+  _audio.addEventListener('loadstart', () => {
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
+    if (_audio!.src) _emitStatus(true, null, true);
+  });
+
+  _audio.addEventListener('waiting', () => {
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
+    _emitStatus(true);
+  });
+
+  _audio.addEventListener('stalled', () => {
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
+    if (!_audio!.paused) _emitStatus(true);
+  });
+
+  _audio.addEventListener('canplay', () => {
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
+    _emitStatus(false, null, false);
+  });
+
   _audio.addEventListener('playing', () => {
-    _emitStatus(false);
+    if (_isAudioSilenced || isYouTubeTrackActive()) {
+      _audio!.pause();
+      return;
+    }
+    _emitStatus(false, null, false);
     if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
       navigator.mediaSession.playbackState = 'playing';
       const state = useAudioStore.getState();
@@ -63,23 +127,31 @@ if (_audio) {
       }
     }
   });
+
   _audio.addEventListener('pause', () => {
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
     if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
       navigator.mediaSession.playbackState = 'paused';
     }
   });
+
   _audio.addEventListener('error', () => {
-    // src vazio (ao limpar a faixa) também dispara 'error' — ignorar
-    if (!_audio!.src) return;
-    _emitStatus(false, describeMediaError(_audio!.error?.code));
-    if (useAudioStore.getState().isPlaying) useAudioStore.setState({ isPlaying: false });
+    // Ignora se o áudio foi resetado/silenciado propositalmente ou se a fonte está vazia
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
+    if (!_audio!.getAttribute('src')) return;
+
+    _emitStatus(false, describeMediaError(_audio!.error?.code), false);
+    if (useAudioStore.getState().isPlaying) {
+      useAudioStore.setState({ isPlaying: false });
+    }
   });
 
   _audio.addEventListener('ended', () => {
+    if (_isAudioSilenced || isYouTubeTrackActive()) return;
     const { isRepeat, nextTrack } = useAudioStore.getState();
     if (isRepeat) {
       _audio!.currentTime = 0;
-      _timeListeners.forEach((fn) => fn(0));
+      _emitTime(0);
       _audio!.play().catch(console.error);
       return;
     }
@@ -92,7 +164,6 @@ if (_audio) {
       if (_audio && _audio.paused && !_audio.src) {
         _audio.load();
       }
-      // O flag de capture precisa ser o mesmo do addEventListener, senão não remove
       window.removeEventListener('touchstart', unlockAudio, true);
       window.removeEventListener('click', unlockAudio, true);
     };
@@ -108,64 +179,143 @@ if (_audio) {
       };
       navigator.mediaSession.setActionHandler('play', handleToggle);
       navigator.mediaSession.setActionHandler('pause', handleToggle);
-      navigator.mediaSession.setActionHandler('previoustrack', () => {
-        useAudioStore.getState().previousTrack();
-      });
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         useAudioStore.getState().nextTrack();
       });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        useAudioStore.getState().previousTrack();
+      });
       navigator.mediaSession.setActionHandler('seekto', (details) => {
-        if (details.seekTime != null && _audio) {
-          _audio.currentTime = details.seekTime;
+        if (details.seekTime !== undefined) {
+          seekUnifiedAudio(details.seekTime);
         }
       });
-    } catch {
-      // Ignora caso algum handler específico não seja suportado pelo sistema
+    } catch (e) {
+      console.warn('Erro ao configurar MediaSession handlers:', e);
     }
   }
 }
 
-export function toAbsoluteUrl(pathOrUrl: string): string {
-  if (!pathOrUrl) return '';
-  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) return pathOrUrl;
-  if (typeof window !== 'undefined' && window.location) {
-    try {
-      return new URL(pathOrUrl, window.location.origin).href;
-    } catch {
-      return pathOrUrl;
-    }
+// ── Conexão dos eventos do YouTube aos listeners unificados ───────────────────
+subscribeYouTubeTime((t) => {
+  if (isYouTubeTrackActive()) {
+    _emitTime(t);
   }
-  return pathOrUrl;
+});
+
+subscribeYouTubeDuration((d) => {
+  if (isYouTubeTrackActive()) {
+    _emitDuration(d);
+  }
+});
+
+subscribeYouTubeStatus(({ buffering, error }) => {
+  if (isYouTubeTrackActive()) {
+    _emitStatus(buffering, error, false);
+  }
+});
+
+setYouTubeCallbacks({
+  onEnded: () => {
+    const state = useAudioStore.getState();
+    const currentTrack = state.playlist[state.currentTrackIndex];
+    if (!isYouTubeTrack(currentTrack)) return;
+    if (state.isRepeat) {
+      replayCurrentAudio();
+    } else {
+      state.nextTrack();
+    }
+  },
+  onPlay: () => {
+    const state = useAudioStore.getState();
+    if (!state.isPlaying) {
+      useAudioStore.setState({ isPlaying: true });
+    }
+    const currentTrack = state.playlist[state.currentTrackIndex];
+    if (currentTrack) {
+      updateMediaSession(currentTrack, true);
+    }
+  },
+  onPause: () => {
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'paused';
+    }
+  },
+  onCued: () => {
+    const state = useAudioStore.getState();
+    if (state.isPlaying) {
+      resumeYouTubeVideo();
+    }
+  },
+  getInitialState: () => {
+    const state = useAudioStore.getState();
+    return {
+      volume: state.volume,
+      isMuted: state.isMuted,
+      isPlaying: state.isPlaying,
+    };
+  },
+  onError: (code: any) => {
+    console.warn('[useAudio] Erro no player do YouTube (código):', code);
+    const state = useAudioStore.getState();
+    // Se o vídeo estiver com restrição de incorporação (101/150) ou removido (100),
+    // avança para a próxima música para não travar a experiência do usuário
+    if (state.isPlaying && state.playlist.length > 1) {
+      setTimeout(() => {
+        const curr = useAudioStore.getState();
+        if (curr.isPlaying) {
+          curr.nextTrack();
+        }
+      }, 1200);
+    }
+  },
+});
+
+/**
+ * Para e silencia com segurança o elemento <audio> HTML5 sem disparar eventos de erro espúrios.
+ */
+export function stopAudioElement() {
+  if (!_audio) return;
+  _isAudioSilenced = true;
+  _activeTrackUrl = '';
+  _isLoadingTrack = false;
+  try {
+    _audio.pause();
+    _audio.currentTime = 0;
+    _audio.removeAttribute('src');
+    _audio.load();
+  } catch {}
+  setTimeout(() => {
+    _isAudioSilenced = false;
+  }, 50);
 }
 
 export function updateMediaSession(
-  track?: { title?: string; artist?: string; coverUrl?: string } | null,
+  track:
+    | {
+        title: string;
+        artist: string;
+        coverUrl?: string;
+        cover?: string;
+        image?: string;
+        photoUrl?: string;
+      }
+    | undefined,
   isPlaying?: boolean
 ) {
-  if (typeof window === 'undefined' || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
-
-  if (!track) {
-    try {
-      navigator.mediaSession.metadata = null;
-      navigator.mediaSession.playbackState = 'none';
-    } catch {}
+  if (typeof window === 'undefined' || !('mediaSession' in navigator) || !track) {
     return;
   }
 
   try {
-    const artwork: MediaImage[] = [];
-    if (track.coverUrl) {
-      const absCover = toAbsoluteUrl(track.coverUrl);
-      artwork.push(
-        { src: absCover, sizes: '96x96' },
-        { src: absCover, sizes: '128x128' },
-        { src: absCover, sizes: '256x256' },
-        { src: absCover, sizes: '512x512' }
-      );
+    const artwork: { src: string; sizes?: string; type?: string }[] = [];
+    const directCover = track.coverUrl || track.cover || track.image || track.photoUrl;
+
+    if (directCover && (directCover.startsWith('http://') || directCover.startsWith('https://'))) {
+      artwork.push({ src: directCover });
     } else {
-      // iOS Safari (NowPlayingInfoCenter) exige PNG ou JPEG para a capa na tela de bloqueio
-      const icon192 = toAbsoluteUrl('/icon-192.png');
-      const icon512 = toAbsoluteUrl('/icon-512.png');
+      const icon192 = `${window.location.origin}/icon-192.png`;
+      const icon512 = `${window.location.origin}/icon-512.png`;
       artwork.push(
         { src: icon192, sizes: '192x192', type: 'image/png' },
         { src: icon512, sizes: '512x512', type: 'image/png' }
@@ -187,176 +337,266 @@ export function updateMediaSession(
   }
 }
 
+export function getActiveTrackUrl(): string {
+  return _activeTrackUrl;
+}
+
 export function getAudioElement(): HTMLAudioElement | null {
   return _audio;
 }
 
-export function replayCurrentAudio() {
-  if (_isLoadingTrack) return;
-  if (_audio) {
+/**
+ * Carrega e executa uma faixa de forma unificada (seja ela MP3 ou YouTube).
+ */
+export async function loadAndPlayUnifiedTrack(track: Track | undefined, autoPlay: boolean) {
+  if (!track) {
+    stopAudioElement();
+    stopYouTubeVideo();
+    _activeTrackUrl = '';
+    _isLoadingTrack = false;
+    _emitTime(0);
+    _emitDuration(0);
+    return;
+  }
+
+  const isYt = isYouTubeTrack(track);
+  const ytId = extractVideoId(track.videoId || track.url);
+
+  // ── Caso 1: Faixa do YouTube ──────────────────────────────────────────────
+  if (isYt && ytId) {
+    // 1. Para e silencia com total segurança o HTMLAudioElement
+    stopAudioElement();
+
+    _activeTrackUrl = ytId;
+    _isLoadingTrack = false;
+    _emitTime(0);
+    const initialDur = track.duration && track.duration > 0 ? track.duration : 0;
+    _emitDuration(initialDur);
+
+    if (autoPlay) {
+      playYouTubeVideo(ytId);
+    } else {
+      cueYouTubeVideo(ytId);
+    }
+    return;
+  }
+
+  // ── Caso 2: Faixa de MP3 normal ───────────────────────────────────────────
+  // 1. Para o YouTube com segurança
+  stopYouTubeVideo();
+
+  if (!_audio) return;
+
+  if (!shouldReloadTrack(_activeTrackUrl, track.url, !!_audio.src)) {
+    if (autoPlay && _audio.paused) {
+      _audio.play().catch(console.error);
+    }
+    return;
+  }
+
+  const isDirectUrlTrack = track.url && (track.url.startsWith('http://') || track.url.startsWith('https://'));
+  const sameUrl = isDirectUrlTrack && isSameAudioUrl(_audio.src, track.url);
+
+  if (!sameUrl) {
+    _audio.pause();
     _audio.currentTime = 0;
-    _timeListeners.forEach((fn) => fn(0));
+  }
+
+  _emitTime(0);
+  const initialDur = track.duration && track.duration > 0 ? track.duration : 0;
+  _emitDuration(initialDur);
+
+  _activeTrackUrl = track.url || '';
+  _isLoadingTrack = true;
+  _emitStatus(true, null, true);
+  const myGeneration = ++_loadGeneration;
+
+  try {
+    const isDirectUrl = track.url && (track.url.startsWith('http://') || track.url.startsWith('https://'));
+    const url = isDirectUrl ? track.url : await getPlayableAudioUrl(track.url);
+
+    if (myGeneration !== _loadGeneration) return;
+
+    if (!isSameAudioUrl(_audio.src, url)) {
+      _audio.src = url;
+    }
+
+    if (autoPlay) {
+      if (_audio.paused) {
+        _audio.play().catch((e) => {
+          console.warn('Audio play deferred by browser policy:', e);
+        });
+      }
+    } else {
+      _audio.pause();
+    }
+  } catch (err: unknown) {
+    if (myGeneration === _loadGeneration) {
+      _activeTrackUrl = '';
+      const msg = err instanceof Error ? err.message || 'Erro ao carregar áudio' : 'Erro ao carregar áudio';
+      _emitStatus(false, msg, false);
+    }
+  } finally {
+    if (myGeneration === _loadGeneration) {
+      _isLoadingTrack = false;
+      _emitStatus(false, null, false);
+    }
+  }
+}
+
+/**
+ * Retoma a reprodução do áudio ativo (MP3 ou YouTube).
+ */
+export function resumeUnifiedAudio(track?: Track) {
+  const state = useAudioStore.getState();
+  const current = track || state.playlist[state.currentTrackIndex];
+  if (!current) return;
+
+  if (isYouTubeTrack(current)) {
+    const ytId = extractVideoId(current.videoId || current.url);
+    if (ytId && !getActiveYouTubeVideoId()) {
+      playYouTubeVideo(ytId);
+    } else {
+      resumeYouTubeVideo();
+    }
+    return;
+  }
+
+  if (_audio) {
+    if (
+      current.url &&
+      !_audio.src &&
+      (current.url.startsWith('http://') || current.url.startsWith('https://'))
+    ) {
+      _audio.src = current.url;
+    }
     _audio.play().catch(console.error);
   }
 }
 
-// ── Hook ──────────────────────────────────────────────────────────────────────
+/**
+ * Pausa a reprodução do áudio ativo (MP3 ou YouTube).
+ */
+export function pauseUnifiedAudio() {
+  const state = useAudioStore.getState();
+  const current = state.playlist[state.currentTrackIndex];
+
+  if (isYouTubeTrack(current) || isYouTubeTrackActive()) {
+    pauseYouTubeVideo();
+  }
+
+  if (_audio && !_audio.paused) {
+    _audio.pause();
+  }
+}
+
+/**
+ * Reinicia a faixa atual do início (replay).
+ */
+export function replayCurrentAudio() {
+  const state = useAudioStore.getState();
+  const current = state.playlist[state.currentTrackIndex];
+  if (!current) return;
+
+  if (isYouTubeTrack(current)) {
+    seekYouTubeVideo(0);
+    resumeYouTubeVideo();
+    _emitTime(0);
+    return;
+  }
+
+  if (_audio) {
+    _audio.currentTime = 0;
+    _emitTime(0);
+    _audio.play().catch(console.error);
+  }
+}
+
+/**
+ * Pula para determinado tempo na faixa ativa (seek).
+ */
+export function seekUnifiedAudio(seconds: number) {
+  const state = useAudioStore.getState();
+  const current = state.playlist[state.currentTrackIndex];
+
+  if (isYouTubeTrack(current) || isYouTubeTrackActive()) {
+    seekYouTubeVideo(seconds);
+    _emitTime(seconds);
+    return;
+  }
+
+  if (_audio && isFinite(seconds)) {
+    _audio.currentTime = seconds;
+    _emitTime(seconds);
+  }
+}
+
+/**
+ * Ajusta o volume e o mudo para todos os backends.
+ */
+export function setUnifiedVolume(volume: number, isMuted: boolean) {
+  setYouTubeVolume(isMuted ? 0 : volume);
+  if (_audio) {
+    try {
+      _audio.volume = volume;
+      _audio.muted = isMuted;
+    } catch {}
+  }
+}
+
+/**
+ * Para completamente a reprodução em ambos os backends.
+ */
+export function stopUnifiedAudio() {
+  stopAudioElement();
+  stopYouTubeVideo();
+  _activeTrackUrl = '';
+  _isLoadingTrack = false;
+  _emitTime(0);
+  _emitDuration(0);
+}
+
+// ── Hook de UI (Consumido por AudioPlayer, PlaylistTabs, etc.) ─────────────────
 export function useAudio() {
-  const { playlist, currentTrackIndex, isPlaying, volume, isMuted } = useAudioStore();
+  const [currentTime, setCurrentTime] = useState(_currentTime);
+  const [duration, setDuration] = useState(_duration);
+  const [isLoading, setIsLoading] = useState(_isLoadingTrack);
+  const [isBuffering, setIsBuffering] = useState(_isBuffering);
+  const [error, setError] = useState<string | null>(_currentError);
 
-  const [currentTime, setCurrentTime] = useState(_audio ? _audio.currentTime : 0);
-  const [duration, setDuration] = useState(_audio && !isNaN(_audio.duration) ? _audio.duration : 0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isBuffering, setIsBuffering] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // ── Subscrever/desinscrever listeners de tempo ────────────────────────────
   useEffect(() => {
     const onTime: TimeListener = (t) => setCurrentTime(t);
     const onDur: DurListener = (d) => setDuration(d);
+    const onStatus: StatusListener = ({ buffering, error: err, loading }) => {
+      setIsBuffering(buffering);
+      setError(err);
+      if (loading !== undefined) setIsLoading(loading);
+    };
+
     _timeListeners.add(onTime);
     _durListeners.add(onDur);
+    _statusListeners.add(onStatus);
+
+    // Sync inicial com o estado singleton
+    setCurrentTime(_currentTime);
+    setDuration(_duration);
+    setIsBuffering(_isBuffering);
+    setIsLoading(_isLoadingTrack);
+    setError(_currentError);
+
     return () => {
       _timeListeners.delete(onTime);
       _durListeners.delete(onDur);
+      _statusListeners.delete(onStatus);
     };
   }, []);
 
-  // ── Buffering / erro do elemento <audio> ──────────────────────────────────
-  useEffect(() => {
-    const onStatus: StatusListener = ({ buffering, error: err }) => {
-      setIsBuffering(buffering);
-      if (err) setError(err);
-      else if (!buffering) setError(null);
-    };
-    _statusListeners.add(onStatus);
-    return () => { _statusListeners.delete(onStatus); };
-  }, []);
-
-  // ── Sincroniza com a MediaSession API (Lock screen / Dynamic Island / Bluetooth) ──
-  useEffect(() => {
-    const track = playlist[currentTrackIndex];
-    updateMediaSession(track, isPlaying);
-  }, [playlist, currentTrackIndex, isPlaying]);
-
-  // ── Carregar track quando index/playlist mudar ────────────────────────────
-  useEffect(() => {
-    if (!_audio) return;
-
-    const track = playlist[currentTrackIndex];
-    if (!track) {
-      _audio.pause();
-      _audio.src = '';
-      _activeTrackUrl = '';
-      _isLoadingTrack = false;
-      setCurrentTime(0);
-      setDuration(0);
-      _timeListeners.forEach((fn) => fn(0));
-      _durListeners.forEach((fn) => fn(0));
-      return;
-    }
-
-    // Se já está carregando ou tocando esta faixa com a mesma URL, não duplica requisições
-    if (!shouldReloadTrack(_activeTrackUrl, track.url, !!_audio.src)) {
-      return;
-    }
-
-    _activeTrackUrl = track.url;
-    _isLoadingTrack = true;
-    const myGeneration = ++_loadGeneration;
-
-    // O store já define `audio.src` e chama play() de forma síncrona dentro do toque
-    // (exigência do iOS). Se o src já é o desta faixa, NÃO pausa/zera de novo —
-    // isso abortaria o play() recém-iniciado e atrasaria o começo da música.
-    const isDirectUrlTrack = track.url.startsWith('http://') || track.url.startsWith('https://');
-    const alreadyLoadedByStore = isDirectUrlTrack && isSameAudioUrl(_audio.src, track.url);
-
-    // 1. ZERA IMEDIATAMENTE a barra e áudio anterior de forma síncrona
-    if (!alreadyLoadedByStore) {
-      _audio.pause();
-      _audio.currentTime = 0;
-    }
-    setCurrentTime(0);
-    _timeListeners.forEach((fn) => fn(0));
-    const initialDur = track.duration && track.duration > 0 ? track.duration : 0;
-    setDuration(initialDur);
-    _durListeners.forEach((fn) => fn(initialDur));
-
-    let isCancelled = false;
-
-    const loadTrack = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const isDirectUrl = track.url.startsWith('http://') || track.url.startsWith('https://');
-        const url = isDirectUrl ? track.url : await getPlayableAudioUrl(track.url);
-        if (isCancelled) return;
-
-        if (!isSameAudioUrl(_audio.src, url)) {
-          _audio.src = url;
-        }
-
-        if (useAudioStore.getState().isPlaying && _audio.paused) {
-          _audio.play().catch((e) => {
-            console.warn('Audio play deferred by browser policy:', e);
-          });
-        }
-      } catch (err: unknown) {
-        if (!isCancelled && myGeneration === _loadGeneration) {
-          _activeTrackUrl = '';
-          const msg = err instanceof Error ? err.message || 'Erro ao carregar áudio' : 'Erro ao carregar áudio';
-          setError(msg);
-        }
-      } finally {
-        if (myGeneration === _loadGeneration) {
-          _isLoadingTrack = false;
-        }
-        if (!isCancelled && myGeneration === _loadGeneration) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadTrack();
-
-    return () => {
-      isCancelled = true;
-      if (myGeneration === _loadGeneration) {
-        _isLoadingTrack = false;
-      }
-    };
-  }, [currentTrackIndex, playlist]);
-
-  // ── Play / Pause ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!_audio || !_audio.src) return;
-    if (isPlaying && _audio.paused) {
-      _audio.play().catch((e) => console.error(e));
-    } else if (!isPlaying && !_audio.paused) {
-      _audio.pause();
-    }
-  }, [isPlaying]);
-
-  // ── Volume / Mute ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!_audio) return;
-    try {
-      _audio.volume = volume;
-    } catch {
-      // Ignora erro no iOS onde volume é controlado apenas por botões físicos
-    }
-    _audio.muted = isMuted;
-  }, [volume, isMuted]);
-
-  // ── Seek ──────────────────────────────────────────────────────────────────
-  const seek = (time: number) => {
-    if (_audio && isFinite(time)) {
-      _audio.currentTime = time;
-      setCurrentTime(time);
-      _timeListeners.forEach((fn) => fn(time));
-    }
+  return {
+    currentTime,
+    duration,
+    isLoading,
+    isBuffering,
+    error,
+    seek: seekUnifiedAudio,
   };
-
-  return { currentTime, duration, isLoading, isBuffering, error, seek };
 }

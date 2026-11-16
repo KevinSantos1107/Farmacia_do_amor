@@ -12,6 +12,25 @@ interface UseTrackUploadProps {
   onUploadSuccess: () => void;
 }
 
+/** Lê a duração de um arquivo de áudio usando um elemento <audio> temporário. */
+function getAudioFileDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => {
+      const dur = isFinite(audio.duration) ? Math.round(audio.duration) : 0;
+      URL.revokeObjectURL(url);
+      resolve(dur);
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(0);
+    };
+    audio.src = url;
+  });
+}
+
 export function useTrackUpload({
   siteId,
   activePlaylist,
@@ -92,6 +111,9 @@ export function useTrackUpload({
       prev.map((s) => (s.id === slot.id ? { ...s, uploading: true, error: null, progress: 0 } : s))
     );
     try {
+      // Extrai duração do arquivo de áudio antes do upload
+      const audioDuration = await getAudioFileDuration(slot.file);
+
       const audioRes = await uploadAudio(
         slot.file,
         `${siteId}/music`,
@@ -142,6 +164,7 @@ export function useTrackUpload({
           publicId: audioRes.publicId,
           cover: coverUrl,
           coverPublicId,
+          duration: audioDuration || undefined,
           date: new Date().toISOString(),
           orderIndex: tracks.length,
           playlistId: activePlaylist.id,
@@ -188,6 +211,7 @@ export function useTrackUpload({
 
   return {
     creatingTrack,
+
     setCreatingTrack,
     trackSlots,
     setTrackSlots,

@@ -108,6 +108,44 @@ function apiDevPlugin(): Plugin {
           return;
         }
 
+        if (url === '/api/music-search') {
+          try {
+            const query: Record<string, string> = {};
+            if (fullUrl.includes('?')) {
+              const qs = fullUrl.split('?')[1];
+              const params = new URLSearchParams(qs);
+              params.forEach((val, key) => {
+                query[key] = val;
+              });
+            }
+
+            const mod = await server.ssrLoadModule('/api/music-search.ts');
+            const handler = mod.default;
+
+            const vercelReq = Object.assign(req, { query, body: {} });
+            const vercelRes = Object.assign(res, {
+              status(code: number) {
+                res.statusCode = code;
+                return this;
+              },
+              json(data: unknown) {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify(data));
+                return this;
+              },
+            });
+
+            await handler(vercelReq, vercelRes);
+          } catch (err: unknown) {
+            console.error(`Erro no endpoint ${url}:`, err);
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            const msg = err instanceof Error ? err.message : String(err);
+            res.end(JSON.stringify({ error: msg || 'Erro ao buscar músicas.' }));
+          }
+          return;
+        }
+
         next();
       });
     },
@@ -176,6 +214,9 @@ export default defineConfig(({ mode }) => {
   process.env.GEMINI_API_KEY = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   process.env.VITE_GEMINI_API_KEY = env.VITE_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   process.env.FIREBASE_PROJECT_ID = env.FIREBASE_PROJECT_ID || env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || '';
+  process.env.CLOUDINARY_CLOUD_NAME = env.VITE_CLOUDINARY_CLOUD_NAME || env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+  process.env.CLOUDINARY_API_KEY = env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY;
+  process.env.CLOUDINARY_API_SECRET = env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_API_SECRET;
 
   return {
     plugins: [
@@ -242,14 +283,6 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, './src'),
-      },
-    },
-    server: {
-      proxy: {
-        '/api': {
-          target: 'http://localhost:3000',
-          changeOrigin: true,
-        },
       },
     },
     build: {

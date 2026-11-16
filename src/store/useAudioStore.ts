@@ -1,14 +1,23 @@
 import { create } from 'zustand';
-import { replayCurrentAudio, getAudioElement, updateMediaSession } from '../features/player/useAudio';
-import { isSameAudioUrl } from '../features/player/playerLogic';
+import {
+  loadAndPlayUnifiedTrack,
+  resumeUnifiedAudio,
+  pauseUnifiedAudio,
+  replayCurrentAudio,
+  stopUnifiedAudio,
+  setUnifiedVolume,
+  updateMediaSession,
+} from '../features/player/useAudio';
 
 export interface Track {
   id: string;
   title: string;
   artist: string;
-  url: string; // The full URL from Firestore migration or Cloudinary
+  url: string; // The full URL from Firestore migration or Cloudinary or YouTube
   coverUrl?: string;
   duration?: number;
+  videoId?: string;
+  source?: string;
 }
 
 interface PlayerState {
@@ -42,23 +51,25 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
   isShuffle: false,
   isRepeat: false,
 
-  setPlaylist: (tracks) => set({ playlist: tracks, currentTrackIndex: tracks.length > 0 ? 0 : -1 }),
+  setPlaylist: (tracks) => {
+    const safeIdx = tracks.length > 0 ? 0 : -1;
+    set({ playlist: tracks, currentTrackIndex: safeIdx, isPlaying: false });
+    if (tracks.length > 0) {
+      // Prepara a primeira faixa sem iniciar a reprodução (cue)
+      loadAndPlayUnifiedTrack(tracks[0], false);
+      updateMediaSession(tracks[0], false);
+    } else {
+      stopUnifiedAudio();
+    }
+  },
 
   setPlaylistAndPlay: (tracks, index = 0) => {
     if (tracks.length === 0) return;
     const safeIdx = Math.min(Math.max(0, index), tracks.length - 1);
-    set({ playlist: tracks, currentTrackIndex: safeIdx, isPlaying: true });
     const target = tracks[safeIdx];
+    set({ playlist: tracks, currentTrackIndex: safeIdx, isPlaying: true });
     updateMediaSession(target, true);
-    const audio = getAudioElement();
-    if (audio) {
-      if (target?.url && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
-        if (!isSameAudioUrl(audio.src, target.url)) {
-          audio.src = target.url;
-        }
-        audio.play().catch(() => {});
-      }
-    }
+    loadAndPlayUnifiedTrack(target, true);
   },
 
   playTrack: (index) => {
@@ -71,35 +82,22 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
         replayCurrentAudio();
       } else {
         set({ currentTrackIndex: index, isPlaying: true });
-        const audio = getAudioElement();
-        if (audio) {
-          if (target?.url && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
-            if (!isSameAudioUrl(audio.src, target.url)) {
-              audio.src = target.url;
-            }
-            audio.play().catch(() => {});
-          }
-        }
+        loadAndPlayUnifiedTrack(target, true);
       }
     }
   },
 
   togglePlayPause: () => {
     const { currentTrackIndex, isPlaying, playlist } = get();
-    if (currentTrackIndex !== -1) {
+    if (currentTrackIndex !== -1 && playlist[currentTrackIndex]) {
       const nextPlaying = !isPlaying;
       set({ isPlaying: nextPlaying });
-      const audio = getAudioElement();
-      if (audio) {
-        if (nextPlaying) {
-          const target = playlist[currentTrackIndex];
-          if (target?.url && !audio.src && (target.url.startsWith('http://') || target.url.startsWith('https://'))) {
-            audio.src = target.url;
-          }
-          audio.play().catch(() => {});
-        } else {
-          audio.pause();
-        }
+      const target = playlist[currentTrackIndex];
+      updateMediaSession(target, nextPlaying);
+      if (nextPlaying) {
+        resumeUnifiedAudio(target);
+      } else {
+        pauseUnifiedAudio();
       }
     }
   },
@@ -108,51 +106,70 @@ export const useAudioStore = create<PlayerState>((set, get) => ({
     const { currentTrackIndex, playlist, isShuffle, isRepeat } = get();
     if (playlist.length === 0) return;
 
+    let nextIndex = currentTrackIndex;
     if (isShuffle && playlist.length > 1) {
-      let nextIndex = Math.floor(Math.random() * playlist.length);
-      while (nextIndex === currentTrackIndex) {
-        nextIndex = Math.floor(Math.random() * playlist.length);
+      let rand = Math.floor(Math.random() * playlist.length);
+      while (rand === currentTrackIndex) {
+        rand = Math.floor(Math.random() * playlist.length);
       }
-      set({ currentTrackIndex: nextIndex, isPlaying: true });
-      return;
-    }
-
-    if (currentTrackIndex < playlist.length - 1) {
-      set({ currentTrackIndex: currentTrackIndex + 1, isPlaying: true });
+      nextIndex = rand;
+    } else if (currentTrackIndex < playlist.length - 1) {
+      nextIndex = currentTrackIndex + 1;
     } else if (isRepeat) {
       if (currentTrackIndex === 0) {
         set({ isPlaying: true });
         replayCurrentAudio();
-      } else {
-        set({ currentTrackIndex: 0, isPlaying: true });
+        return;
       }
+      nextIndex = 0;
     } else {
       set({ isPlaying: false });
+      stopUnifiedAudio();
+      return;
     }
+
+    const nextT = playlist[nextIndex];
+    set({ currentTrackIndex: nextIndex, isPlaying: true });
+    updateMediaSession(nextT, true);
+    loadAndPlayUnifiedTrack(nextT, true);
   },
 
   previousTrack: () => {
     const { currentTrackIndex, playlist, isShuffle } = get();
     if (playlist.length === 0) return;
 
+    let prevIndex = 0;
     if (isShuffle && playlist.length > 1) {
-      let prevIndex = Math.floor(Math.random() * playlist.length);
-      while (prevIndex === currentTrackIndex) {
-        prevIndex = Math.floor(Math.random() * playlist.length);
+      let rand = Math.floor(Math.random() * playlist.length);
+      while (rand === currentTrackIndex) {
+        rand = Math.floor(Math.random() * playlist.length);
       }
-      set({ currentTrackIndex: prevIndex, isPlaying: true });
-      return;
+      prevIndex = rand;
+    } else if (currentTrackIndex > 0) {
+      prevIndex = currentTrackIndex - 1;
+    } else {
+      prevIndex = playlist.length - 1;
     }
 
-    if (currentTrackIndex > 0) {
-      set({ currentTrackIndex: currentTrackIndex - 1, isPlaying: true });
-    } else {
-      set({ currentTrackIndex: playlist.length - 1, isPlaying: true });
-    }
+    const prevT = playlist[prevIndex];
+    set({ currentTrackIndex: prevIndex, isPlaying: true });
+    updateMediaSession(prevT, true);
+    loadAndPlayUnifiedTrack(prevT, true);
   },
 
-  setVolume: (volume) => set({ volume: Math.max(0, Math.min(1, volume)), isMuted: volume === 0 }),
-  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+  setVolume: (volume) => {
+    const clamped = Math.max(0, Math.min(1, volume));
+    const isMuted = clamped === 0;
+    set({ volume: clamped, isMuted });
+    setUnifiedVolume(clamped, isMuted);
+  },
+
+  toggleMute: () => {
+    const nextMuted = !get().isMuted;
+    set({ isMuted: nextMuted });
+    setUnifiedVolume(get().volume, nextMuted);
+  },
+
   toggleShuffle: () => set((state) => ({ isShuffle: !state.isShuffle })),
   toggleRepeat: () => set((state) => ({ isRepeat: !state.isRepeat })),
 }));

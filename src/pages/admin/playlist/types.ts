@@ -38,6 +38,9 @@ export interface Track {
   image?: string; // campo legado
   date?: string;
   orderIndex?: number;
+  duration?: number;
+  videoId?: string;
+  source?: 'upload' | 'youtube' | string;
 }
 
 export interface Playlist {

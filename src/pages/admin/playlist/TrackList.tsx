@@ -15,6 +15,7 @@ interface TrackListProps {
   trackSortable: ReturnType<typeof useSortableList<Track & { id: string }>>;
   onDeleteTrack: (track: Track) => void;
   playlistCoverUrl?: string;
+  siteId?: string;
 }
 
 function TrackCover({ track, playlistCoverUrl }: { track: Track; playlistCoverUrl?: string }) {
@@ -66,6 +67,7 @@ export function TrackList({
   trackSortable,
   onDeleteTrack,
   playlistCoverUrl,
+  siteId,
 }: TrackListProps) {
   if (tracks.length === 0) {
     return (
@@ -130,7 +132,7 @@ export function TrackList({
                     {/* Área do Player de Áudio */}
                     <div className="w-full md:w-auto md:flex-1 md:max-w-md lg:max-w-none flex items-center min-w-0 pl-7 md:pl-0">
                       {track.src || track.url ? (
-                        <TrackPlayer src={track.src || track.url || ''} trackId={tId} />
+                        <TrackPlayer track={track} trackId={tId} siteId={siteId} />
                       ) : (
                         <div className="flex-1" />
                       )}

@@ -28,6 +28,9 @@
     },
     "api/manifest.ts": {
       "maxDuration": 10
+    },
+    "api/music-search.ts": {
+      "maxDuration": 30
     }
   },
   "rewrites": [

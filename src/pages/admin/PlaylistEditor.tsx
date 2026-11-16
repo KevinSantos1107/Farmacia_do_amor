@@ -31,6 +31,8 @@ import { TrackList } from './playlist/TrackList';
 import { TrackUploadSection } from './playlist/TrackUploadSection';
 import { PlaylistCreateCard } from './playlist/PlaylistCreateCard';
 import { PlaylistList } from './playlist/PlaylistList';
+import { MusicSearchModal } from './playlist/MusicSearchModal';
+import { AddTrackDropdown } from './playlist/AddTrackDropdown';
 
 export default function PlaylistEditor() {
   const { show, Toast } = useToast();
@@ -119,6 +121,9 @@ export default function PlaylistEditor() {
       setTracks([]);
     }
   }, [playlists, activePlaylistId]);
+
+  // Music search modal
+  const [musicSearchOpen, setMusicSearchOpen] = useState(false);
 
   // Track upload hook
   const {
@@ -357,12 +362,12 @@ export default function PlaylistEditor() {
               {tracks.length} músicas
             </span>
           </div>
-          <Button
-            onClick={() => setCreatingTrack(true)}
-            className="gap-2 shrink-0 self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" /> Adicionar Música
-          </Button>
+          <div className="w-full sm:w-auto shrink-0">
+            <AddTrackDropdown
+              onOpenSearch={() => setMusicSearchOpen(true)}
+              onOpenUpload={() => setCreatingTrack(true)}
+            />
+          </div>
         </div>
 
         {creatingTrack && (
@@ -397,12 +402,24 @@ export default function PlaylistEditor() {
           trackSortable={trackSortable}
           onDeleteTrack={handleDeleteTrack}
           playlistCoverUrl={activePlaylist.coverUrl}
+          siteId={siteId}
         />
 
         <ConfirmModal
           dialog={confirmDialog}
           onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
         />
+
+        {musicSearchOpen && activePlaylist && (
+          <MusicSearchModal
+            isOpen={musicSearchOpen}
+            onClose={() => setMusicSearchOpen(false)}
+            activePlaylist={activePlaylist}
+            siteId={siteId}
+            tracks={tracks}
+            onImportSuccess={loadPlaylists}
+          />
+        )}
       </div>
     );
   }

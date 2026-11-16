@@ -4,7 +4,7 @@ import { siteCollection } from '../../services/firestore/paths';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { useAudioStore } from '../../store/useAudioStore';
 import type { Track } from '../../store/useAudioStore';
-import { useAudio, getAudioElement } from '../player/useAudio';
+import { useAudio, pauseUnifiedAudio, resumeUnifiedAudio } from '../player/useAudio';
 import { Play, Pause, Music, SkipBack, SkipForward, Shuffle, Repeat } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 import { resolveMediaCoverUrl } from '../../pages/admin/playlist/playlistPureUtils';
@@ -157,7 +157,11 @@ export function PlaylistTabs() {
   const isCurrentTabLoaded =
     currentTracks.length > 0 &&
     activeTabPlaylist.tracks.length > 0 &&
-    currentTracks.some((t) => t.url === activeTabPlaylist.tracks[0]?.url);
+    currentTracks.some(
+      (t) =>
+        (t.id && t.id === activeTabPlaylist.tracks[0]?.id) ||
+        (t.url && t.url === activeTabPlaylist.tracks[0]?.url)
+    );
 
   // Qual playlist está de fato ativa no player (qualquer tab que tenha tracks no store)
   const loadedPlaylist =
@@ -165,7 +169,11 @@ export function PlaylistTabs() {
       (p) =>
         p.tracks.length > 0 &&
         currentTracks.length > 0 &&
-        currentTracks.some((t) => t.url === p.tracks[0]?.url)
+        currentTracks.some(
+          (t) =>
+            (t.id && t.id === p.tracks[0]?.id) ||
+            (t.url && t.url === p.tracks[0]?.url)
+        )
     ) || null;
 
   // Track sendo mostrado no card:
@@ -191,7 +199,11 @@ export function PlaylistTabs() {
     if (!isCurrentTabLoaded) {
       setPlaylistAndPlay(activeTabPlaylist.tracks, idx);
     } else {
-      playTrack(idx);
+      const track = activeTabPlaylist.tracks[idx];
+      const storeIdx = currentTracks.findIndex(
+        (t) => (t.id && t.id === track?.id) || (t.url && t.url === track?.url)
+      );
+      playTrack(storeIdx >= 0 ? storeIdx : idx);
     }
   };
 
@@ -202,12 +214,9 @@ export function PlaylistTabs() {
     isSeeking.current = true;
     setIsDragging(true);
 
-    const audio = getAudioElement();
     // Congela a reprodução sem alterar o estado do play/pause no store
     wasPlayingRef.current = useAudioStore.getState().isPlaying;
-    if (audio && !audio.paused) {
-      audio.pause();
-    }
+    pauseUnifiedAudio();
 
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -239,9 +248,8 @@ export function PlaylistTabs() {
     seek(finalTime);
 
     // Retoma a reprodução apenas se estava tocando antes
-    const audio = getAudioElement();
-    if (wasPlayingRef.current && audio) {
-      audio.play().catch(console.error);
+    if (wasPlayingRef.current) {
+      resumeUnifiedAudio();
     }
   };
 
@@ -256,9 +264,8 @@ export function PlaylistTabs() {
       }
     } catch {}
 
-    const audio = getAudioElement();
-    if (wasPlayingRef.current && audio) {
-      audio.play().catch(console.error);
+    if (wasPlayingRef.current) {
+      resumeUnifiedAudio();
     }
   };
 
@@ -480,7 +487,9 @@ export function PlaylistTabs() {
           {activeTabPlaylist.tracks.map((track, idx) => {
             // Índice na playlist do store (caso a tab ativa seja a carregada)
             const storeIdx = isCurrentTabLoaded
-              ? currentTracks.findIndex((t) => t.url === track.url)
+              ? currentTracks.findIndex(
+                  (t) => (t.id && t.id === track.id) || (t.url && t.url === track.url)
+                )
               : -1;
             const isThisPlaying = isCurrentTabLoaded && storeIdx === currentTrackIndex;
 
@@ -556,13 +565,6 @@ export function PlaylistTabs() {
                   </p>
                   <p className="text-xs text-slate-500 truncate">{track.artist}</p>
                 </div>
-
-                {/* Duração */}
-                {track.duration && (
-                  <span className="text-xs text-slate-600 font-mono flex-shrink-0">
-                    {fmt(track.duration)}
-                  </span>
-                )}
               </button>
             );
           })}
