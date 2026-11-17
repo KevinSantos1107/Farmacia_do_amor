@@ -94,10 +94,16 @@ export function startSilentAudioKeepalive() {
   }, 50);
 }
 
+let _lastMediaSessionPositionUpdate = 0;
+
 /**
  * Atualiza a barra de progresso e o tempo decorrido na central de notificações / tela de bloqueio.
  */
-export function updateMediaSessionPositionState(currentTime: number, duration: number) {
+export function updateMediaSessionPositionState(
+  currentTime: number,
+  duration: number,
+  force = false
+) {
   if (
     typeof navigator === 'undefined' ||
     !('mediaSession' in navigator) ||
@@ -108,11 +114,18 @@ export function updateMediaSessionPositionState(currentTime: number, duration: n
   if (!isFinite(duration) || duration <= 0 || !isFinite(currentTime) || currentTime < 0) {
     return;
   }
+  const now = Date.now();
+  // Se não for forçado (ex: seek ou play), limita a 1 atualização a cada 2000ms para evitar que o Android trave a barra
+  if (!force && now - _lastMediaSessionPositionUpdate < 2000) {
+    return;
+  }
+  _lastMediaSessionPositionUpdate = now;
+
   try {
     const pos = Math.min(Math.max(0, currentTime), duration);
     navigator.mediaSession.setPositionState({
       duration: Math.round(duration),
-      playbackRate: 1,
+      playbackRate: useAudioStore.getState().isPlaying ? 1 : 0,
       position: Math.round(pos),
     });
   } catch {
@@ -231,9 +244,11 @@ if (_audio) {
     try {
       navigator.mediaSession.setActionHandler('play', () => {
         useAudioStore.getState().resumeTrack();
+        updateMediaSessionPositionState(_currentTime, _duration, true);
       });
       navigator.mediaSession.setActionHandler('pause', () => {
         useAudioStore.getState().pauseTrack();
+        updateMediaSessionPositionState(_currentTime, _duration, true);
       });
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         useAudioStore.getState().nextTrack();
@@ -244,16 +259,21 @@ if (_audio) {
       navigator.mediaSession.setActionHandler('seekto', (details) => {
         if (details.seekTime !== undefined && isFinite(details.seekTime)) {
           seekUnifiedAudio(details.seekTime);
+          updateMediaSessionPositionState(details.seekTime, _duration, true);
         }
       });
       try {
         navigator.mediaSession.setActionHandler('seekbackward', (details) => {
           const skip = details.seekOffset || 10;
-          seekUnifiedAudio(Math.max(0, _currentTime - skip));
+          const target = Math.max(0, _currentTime - skip);
+          seekUnifiedAudio(target);
+          updateMediaSessionPositionState(target, _duration, true);
         });
         navigator.mediaSession.setActionHandler('seekforward', (details) => {
           const skip = details.seekOffset || 10;
-          seekUnifiedAudio(Math.min(isFinite(_duration) ? _duration : Infinity, _currentTime + skip));
+          const target = Math.min(isFinite(_duration) ? _duration : Infinity, _currentTime + skip);
+          seekUnifiedAudio(target);
+          updateMediaSessionPositionState(target, _duration, true);
         });
         navigator.mediaSession.setActionHandler('stop', () => {
           stopUnifiedAudio();
@@ -332,7 +352,7 @@ subscribeYouTubeTime((t) => {
 subscribeYouTubeDuration((d) => {
   if (isYouTubeTrackActive()) {
     _emitDuration(d);
-    updateMediaSessionPositionState(_currentTime, d);
+    updateMediaSessionPositionState(_currentTime, d, true);
   }
 });
 
@@ -362,10 +382,15 @@ setYouTubeCallbacks({
     if (currentTrack) {
       updateMediaSession(currentTrack, true);
     }
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'playing';
+      updateMediaSessionPositionState(_currentTime, _duration, true);
+    }
   },
   onPause: () => {
     if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
       navigator.mediaSession.playbackState = 'paused';
+      updateMediaSessionPositionState(_currentTime, _duration, true);
     }
   },
   onCued: () => {
@@ -497,6 +522,7 @@ export async function loadAndPlayUnifiedTrack(track: Track | undefined, autoPlay
     _emitTime(0);
     const initialDur = track.duration && track.duration > 0 ? track.duration : 0;
     _emitDuration(initialDur);
+    updateMediaSessionPositionState(0, initialDur, true);
 
     if (autoPlay) {
       startSilentAudioKeepalive();
@@ -532,6 +558,7 @@ export async function loadAndPlayUnifiedTrack(track: Track | undefined, autoPlay
   _emitTime(0);
   const initialDur = track.duration && track.duration > 0 ? track.duration : 0;
   _emitDuration(initialDur);
+  updateMediaSessionPositionState(0, initialDur, true);
 
   _activeTrackUrl = track.url || '';
   _isLoadingTrack = true;
