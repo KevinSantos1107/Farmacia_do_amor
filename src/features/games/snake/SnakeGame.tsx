@@ -24,6 +24,20 @@ export function SnakeGame() {
   const prevHighScoreRef = useRef(highScore);
   const isFirstRenderRef = useRef(true);
 
+  // [novo] Exibe o overlay de Game Over apenas após a animação de morte acontecer
+  const [showGameOverOverlay, setShowGameOverOverlay] = useState(false);
+
+  useEffect(() => {
+    if (phase === 'gameOver') {
+      const timer = setTimeout(() => {
+        setShowGameOverOverlay(true);
+      }, 1200);
+      return () => clearTimeout(timer);
+    } else {
+      setShowGameOverOverlay(false);
+    }
+  }, [phase]);
+
   // [novo] Detecta mudança de score e dispara bump
   useEffect(() => {
     if (isFirstRenderRef.current) { isFirstRenderRef.current = false; return; }
@@ -329,18 +343,8 @@ export function SnakeGame() {
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
 
-          // 1. Sombra suave de contato projetada no tabuleiro (profundidade realista)
-          ctx.lineWidth = SNAKE_W;
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.28)';
-          ctx.beginPath();
-          ctx.moveTo(path[0].x * cellSize + cellSize / 2 + 1.5, path[0].y * cellSize + cellSize / 2 + 2.5);
-          for (let i = 1; i < path.length; i++) {
-            ctx.lineTo(path[i].x * cellSize + cellSize / 2 + 1.5, path[i].y * cellSize + cellSize / 2 + 2.5);
-          }
-          ctx.stroke();
-
-          // 2. Contorno limpo e elegante
-          ctx.lineWidth = SNAKE_W + 3;
+          // 1. Contorno nítido e limpo
+          ctx.lineWidth = SNAKE_W + 4;
           ctx.strokeStyle = theme.snakeOutline;
           ctx.beginPath();
           ctx.moveTo(path[0].x * cellSize + cellSize / 2, path[0].y * cellSize + cellSize / 2);
@@ -349,52 +353,11 @@ export function SnakeGame() {
           }
           ctx.stroke();
 
-          // 3. Corpo principal com gradiente suave contínuo e uniforme (cabeça → cauda)
-          if (path.length >= 2) {
-            const gx0 = path[0].x * cellSize + cellSize / 2;
-            const gy0 = path[0].y * cellSize + cellSize / 2;
-            const gxN = path[path.length - 1].x * cellSize + cellSize / 2;
-            const gyN = path[path.length - 1].y * cellSize + cellSize / 2;
-            const bodyGrad = ctx.createLinearGradient(gx0, gy0, gxN, gyN);
-            bodyGrad.addColorStop(0, theme.snakeBody);
-            bodyGrad.addColorStop(1, theme.snakeShade);
-            ctx.lineWidth = SNAKE_W;
-            ctx.strokeStyle = bodyGrad;
-            ctx.stroke();
-          } else {
-            ctx.lineWidth = SNAKE_W;
-            ctx.strokeStyle = theme.snakeBody;
-            ctx.stroke();
-          }
-
-          // 4. Luz dorsal acetinada contínua (volume 3D cilíndrico suave, sem pontos piscando)
-          ctx.lineWidth = Math.max(1.5, SNAKE_W * 0.26);
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+          // 2. Corpo sólido limpo na cor do tema (sem camadas extras)
+          ctx.lineWidth = SNAKE_W;
+          ctx.strokeStyle = theme.snakeBody;
           ctx.stroke();
 
-          // 5. Sulcos segmentares discretos (anéis ultra sutis nas vértebras para textura natural)
-          if (path.length >= 2) {
-            for (let i = 1; i < path.length; i++) {
-              const ax = path[i - 1].x * cellSize + cellSize / 2;
-              const ay = path[i - 1].y * cellSize + cellSize / 2;
-              const bx = path[i].x * cellSize + cellSize / 2;
-              const by = path[i].y * cellSize + cellSize / 2;
-              const dx = bx - ax;
-              const dy = by - ay;
-              const len = Math.sqrt(dx * dx + dy * dy);
-              if (len < 0.001) continue;
-              const perpX = -dy / len;
-              const perpY = dx / len;
-              const ringHalf = SNAKE_W * 0.38;
-
-              ctx.beginPath();
-              ctx.moveTo(bx - perpX * ringHalf, by - perpY * ringHalf);
-              ctx.lineTo(bx + perpX * ringHalf, by + perpY * ringHalf);
-              ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
-              ctx.lineWidth = 1.2;
-              ctx.stroke();
-            }
-          }
           ctx.restore();
 
           // ── CABEÇA EXPRESSIVA & CARA DE DERROTA NA BATIDA ─────────────────
@@ -420,133 +383,86 @@ export function SnakeGame() {
 
           // ─── CENÁRIO DE GAME OVER: CARA DE DERROTA COMPLETA (BATIDA) ─────
           if (s.phase === 'gameOver') {
-            const hitTime = s.gameOverTime > 0 ? now - s.gameOverTime : 0;
-
-            // 1. Boca de derrota: aberta em choque com a língua caída para o lado ("bleh")
+            // 1. Boca de derrota: aberta com a língua caída para o lado ("bleh")
             const mouthX = hx + vx * (eyeFwd + SNAKE_W2 * 0.28);
             const mouthY = hy + vy * (eyeFwd + SNAKE_W2 * 0.28);
 
-            // Boquinha aberta (arco escuro triste)
+            // Boquinha aberta
             ctx.save();
             ctx.fillStyle = '#1c1917';
             ctx.beginPath();
-            ctx.arc(mouthX, mouthY, eyeRadius * 0.9, 0, Math.PI * 2);
+            ctx.arc(mouthX, mouthY, eyeRadius * 0.85, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = '#ef4444';
             ctx.lineWidth = 1.2;
             ctx.stroke();
 
-            // Língua desmaiada caída para o lado (flácida)
-            const tongueHangX = mouthX + perp.x * (cellSize * 0.28) + vx * (cellSize * 0.15);
-            const tongueHangY = mouthY + perp.y * (cellSize * 0.28) + vy * (cellSize * 0.15);
+            // Língua caída para o lado (flácida)
+            const tongueHangX = mouthX + perp.x * (cellSize * 0.25) + vx * (cellSize * 0.12);
+            const tongueHangY = mouthY + perp.y * (cellSize * 0.25) + vy * (cellSize * 0.12);
             ctx.beginPath();
             ctx.moveTo(mouthX, mouthY);
-            ctx.quadraticCurveTo(mouthX + perp.x * (cellSize * 0.18), mouthY + perp.y * (cellSize * 0.18), tongueHangX, tongueHangY);
+            ctx.quadraticCurveTo(mouthX + perp.x * (cellSize * 0.15), mouthY + perp.y * (cellSize * 0.15), tongueHangX, tongueHangY);
             ctx.strokeStyle = '#ff2d55';
-            ctx.lineWidth = Math.max(2, cellSize * 0.09);
+            ctx.lineWidth = Math.max(2, cellSize * 0.08);
             ctx.lineCap = 'round';
             ctx.stroke();
             // Pontinha bífida mole
             ctx.beginPath();
             ctx.moveTo(tongueHangX, tongueHangY);
-            ctx.lineTo(tongueHangX + perp.x * 3 + vx * 2, tongueHangY + perp.y * 3 + vy * 2);
+            ctx.lineTo(tongueHangX + perp.x * 2.5 + vx * 1.5, tongueHangY + perp.y * 2.5 + vy * 1.5);
             ctx.moveTo(tongueHangX, tongueHangY);
-            ctx.lineTo(tongueHangX + perp.x * 2 - vx * 3, tongueHangY + perp.y * 2 - vy * 3);
+            ctx.lineTo(tongueHangX + perp.x * 1.5 - vx * 2.5, tongueHangY + perp.y * 1.5 - vy * 2.5);
             ctx.stroke();
             ctx.restore();
 
-            // 2. Olhos de Nocaute: Um em Espiral girando contínua, o outro em "X" dolorido
-            // Olho esquerdo (Espiral de tontura girando continuamente)
-            const e1x = hx + vx * eyeFwd + perp.x * eyeOffset;
-            const e1y = hy + vy * eyeFwd + perp.y * eyeOffset;
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(e1x, e1y, eyeRadius * 1.15, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+            // 2. Olhos de Nocaute: design clássico limpo com dois "X" simétricos e nítidos
+            for (const side of [-1, 1]) {
+              const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
+              const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
 
-            // Espiral de tontura girando
-            ctx.beginPath();
-            const spiralAngle = now * 0.007;
-            const maxR = eyeRadius * 0.85;
-            for (let a = 0; a < Math.PI * 4; a += 0.25) {
-              const r = (a / (Math.PI * 4)) * maxR;
-              const sx = e1x + Math.cos(a + spiralAngle) * r;
-              const sy = e1y + Math.sin(a + spiralAngle) * r;
-              if (a === 0) ctx.moveTo(sx, sy);
-              else ctx.lineTo(sx, sy);
+              // Fundo branco do olho
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(ex, ey, eyeRadius, 0, Math.PI * 2);
+              ctx.fillStyle = '#ffffff';
+              ctx.fill();
+              ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+              ctx.lineWidth = 1.2;
+              ctx.stroke();
+
+              // "X" nítido e estilizado com pontas arredondadas
+              const xr = eyeRadius * 0.52;
+              ctx.strokeStyle = '#0f172a';
+              ctx.lineWidth = Math.max(2, eyeRadius * 0.38);
+              ctx.lineCap = 'round';
+              ctx.beginPath();
+              ctx.moveTo(ex - xr, ey - xr); ctx.lineTo(ex + xr, ey + xr);
+              ctx.moveTo(ex + xr, ey - xr); ctx.lineTo(ex - xr, ey + xr);
+              ctx.stroke();
+              ctx.restore();
             }
-            ctx.strokeStyle = '#1e1b4b';
-            ctx.lineWidth = Math.max(1.5, cellSize * 0.06);
-            ctx.stroke();
-            ctx.restore();
 
-            // Olho direito (X estilizado com pálpebra dolorida)
-            const e2x = hx + vx * eyeFwd - perp.x * eyeOffset;
-            const e2y = hy + vy * eyeFwd - perp.y * eyeOffset;
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(e2x, e2y, eyeRadius * 1.15, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+            // Sobrancelhas de dor / derrota caídas em ângulo (\ /)
+            for (const side of [-1, 1]) {
+              const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
+              const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
+              ctx.save();
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = Math.max(1.8, eyeRadius * 0.35);
+              ctx.lineCap = 'round';
+              ctx.beginPath();
+              const browInX = ex - perp.x * (eyeRadius * 0.5) * side + vx * (eyeRadius * 0.45);
+              const browInY = ey - perp.y * (eyeRadius * 0.5) * side + vy * (eyeRadius * 0.45);
+              const browOutX = ex + perp.x * (eyeRadius * 0.7) * side - vx * (eyeRadius * 0.25);
+              const browOutY = ey + perp.y * (eyeRadius * 0.7) * side - vy * (eyeRadius * 0.25);
+              ctx.moveTo(browInX, browInY);
+              ctx.lineTo(browOutX, browOutY);
+              ctx.stroke();
+              ctx.restore();
+            }
 
-            // "X" de impacto no olho
-            const xr = eyeRadius * 0.65;
-            ctx.strokeStyle = '#dc2626';
-            ctx.lineWidth = Math.max(2, cellSize * 0.08);
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(e2x - xr, e2y - xr); ctx.lineTo(e2x + xr, e2y + xr);
-            ctx.moveTo(e2x + xr, e2y - xr); ctx.lineTo(e2x - xr, e2y + xr);
-            ctx.stroke();
-            ctx.restore();
-
-            // Sobrancelhas de sofrimento/derrota caídas em ângulo (\ /)
-            ctx.save();
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = Math.max(1.5, cellSize * 0.07);
-            ctx.lineCap = 'round';
-            // Sobrancelha esquerda
-            ctx.beginPath();
-            ctx.moveTo(e1x - perp.x * (eyeRadius * 0.9) - vx * (eyeRadius * 0.4), e1y - perp.y * (eyeRadius * 0.9) - vy * (eyeRadius * 0.4));
-            ctx.lineTo(e1x + perp.x * (eyeRadius * 0.7) + vx * (eyeRadius * 0.5), e1y + perp.y * (eyeRadius * 0.7) + vy * (eyeRadius * 0.5));
-            ctx.stroke();
-            // Sobrancelha direita
-            ctx.beginPath();
-            ctx.moveTo(e2x + perp.x * (eyeRadius * 0.9) - vx * (eyeRadius * 0.4), e2y + perp.y * (eyeRadius * 0.9) - vy * (eyeRadius * 0.4));
-            ctx.lineTo(e2x - perp.x * (eyeRadius * 0.7) + vx * (eyeRadius * 0.5), e2y - perp.y * (eyeRadius * 0.7) + vy * (eyeRadius * 0.5));
-            ctx.stroke();
-            ctx.restore();
-
-            // 3. Gotinha de Lágrima / Suor animada (Cartoon Sweat / Tear drop)
-            const tearX = e2x - perp.x * (eyeRadius * 1.2);
-            const tearY = e2y - perp.y * (eyeRadius * 1.2) + Math.sin(now * 0.008) * 1.5;
-            ctx.save();
-            ctx.fillStyle = '#38bdf8';
-            ctx.beginPath();
-            ctx.arc(tearX, tearY, eyeRadius * 0.45, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.moveTo(tearX - eyeRadius * 0.4, tearY);
-            ctx.lineTo(tearX, tearY - eyeRadius * 0.9);
-            ctx.lineTo(tearX + eyeRadius * 0.4, tearY);
-            ctx.closePath();
-            ctx.fill();
-            // Brilho na lágrima
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(tearX - eyeRadius * 0.15, tearY - eyeRadius * 0.15, eyeRadius * 0.15, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-
-            // 4. Estrelinhas de Atordoamento Orbitando ("Dizzy Stars")
-            // 3 estrelas brilhantes girando em órbita elíptica em torno da cabeça
+            // 3. Estrelinhas de Atordoamento Orbitando ("Dizzy Stars")
             const numStars = 3;
             const orbitRx = cellSize * 0.75;
             const orbitRy = cellSize * 0.38;
@@ -574,6 +490,16 @@ export function SnakeGame() {
               ctx.closePath();
               ctx.fill();
               ctx.strokeStyle = '#ca8a04';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+
+              // Ponto brilhante central
+              ctx.fillStyle = '#ffffff';
+              ctx.beginPath();
+              ctx.arc(0, 0, starSize * 0.28, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
               ctx.lineWidth = 1;
               ctx.stroke();
 
@@ -943,9 +869,9 @@ export function SnakeGame() {
           </div>
         )}
 
-        {/* ── [novo] MELHORIA 8: Overlay Game Over com animações de entrada ── */}
-        {phase === 'gameOver' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-3"
+        {/* ── Overlay Game Over exibido apenas após a animação de morte acontecer ── */}
+        {phase === 'gameOver' && showGameOverOverlay && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 animate-in fade-in duration-300"
                style={{ background: theme.overlayBg }}>
             <div className="text-3xl sm:text-4xl md:text-5xl mb-1 sm:mb-2 animate-in zoom-in-95 duration-300">💀</div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3 animate-in fade-in duration-300 delay-150"
