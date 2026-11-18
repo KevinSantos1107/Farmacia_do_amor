@@ -309,17 +309,20 @@ export function SnakeGame() {
           const SNAKE_W = cellSize - 4;
           const now = performance.now();
 
-          // Recoil elástico da cabeça em Game Over ("bata e volte")
-          if (s.phase === 'gameOver') {
+          // Em Game Over: mostra a cobrinha realmente virando na direção da batida (s.dir) e recuando
+          if (s.phase === 'gameOver' && path.length > 0) {
             const hitTime = s.gameOverTime > 0 ? now - s.gameOverTime : 0;
-            // Bate na parede e recua suavemente para dentro do tabuleiro
-            const recoilT = Math.min(hitTime / 180, 1);
-            // Curva com amortecimento elástico
-            const recoilDist = Math.sin(recoilT * Math.PI * 0.75) * (cellSize * 0.38);
-            path[0] = {
-              x: path[0].x - s.dir.x * (recoilDist / cellSize),
-              y: path[0].y - s.dir.y * (recoilDist / cellSize)
+            // No momento do impacto atinge a colisão e recua elasticamente para trás
+            const tRecoil = Math.min(hitTime / 240, 1);
+            // Recuo elástico suave com desaceleração (bate e volta)
+            const bounce = Math.cos(tRecoil * Math.PI * 0.5); // de 1.0 (impacto) a 0.0 (estável)
+            const headOffset = 0.10 + bounce * 0.28;
+            const collisionHead: Point = {
+              x: path[0].x + s.dir.x * headOffset,
+              y: path[0].y + s.dir.y * headOffset
             };
+            // Insere o pescoço virado na ponta para mostrar claramente que virou e bateu
+            path.unshift(collisionHead);
           }
 
           ctx.save();
@@ -398,7 +401,11 @@ export function SnakeGame() {
           const hx = path[0].x * cellSize + cellSize / 2;
           const hy = path[0].y * cellSize + cellSize / 2;
           let vx = s.dir.x, vy = s.dir.y;
-          if (path.length > 1 && !s.isWaiting) {
+          if (s.phase === 'gameOver') {
+            // Em Game Over, a cabeça e o rosto ficam 100% virados para a direção em que virou e bateu (s.dir)
+            vx = s.dir.x;
+            vy = s.dir.y;
+          } else if (path.length > 1 && !s.isWaiting) {
             const dx = path[0].x - path[1].x;
             const dy = path[0].y - path[1].y;
             const len = Math.sqrt(dx * dx + dy * dy);
@@ -410,8 +417,6 @@ export function SnakeGame() {
           const eyeRadius = Math.max(3, Math.round(cellSize * 0.16));
           const pupilRadius = Math.max(1.5, Math.round(cellSize * 0.09));
           const perp = { x: -vy, y: vx };
-
-          const now = performance.now();
 
           // ─── CENÁRIO DE GAME OVER: CARA DE DERROTA COMPLETA (BATIDA) ─────
           if (s.phase === 'gameOver') {
