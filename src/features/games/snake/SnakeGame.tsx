@@ -3,7 +3,7 @@ import { Volume2, VolumeX, Pause, Play, Trophy } from 'lucide-react';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { SNAKE_THEMES } from './snakeTheme';
 import { useSnakeGame, COLS, ROWS, calculateSnakeGrid } from './useSnakeGame';
-import type { Point, Particle } from './useSnakeGame';
+import type { Point, Particle, Ring, Popup } from './useSnakeGame';
 import { RankingModal } from '../ranking/RankingModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -17,6 +17,34 @@ export function SnakeGame() {
 
   const [showRanking, setShowRanking] = useState(false);
 
+  // [novo] Estado de bump de pontuação para animação de escala
+  const [scoreBump, setScoreBump] = useState(false);
+  const [highScoreBump, setHighScoreBump] = useState(false);
+  const prevScoreRef = useRef(score);
+  const prevHighScoreRef = useRef(highScore);
+  const isFirstRenderRef = useRef(true);
+
+  // [novo] Detecta mudança de score e dispara bump
+  useEffect(() => {
+    if (isFirstRenderRef.current) { isFirstRenderRef.current = false; return; }
+    if (score !== prevScoreRef.current) {
+      prevScoreRef.current = score;
+      setScoreBump(true);
+      setTimeout(() => setScoreBump(false), 220);
+    }
+  }, [score]);
+
+  // [novo] Detecta mudança de highScore e dispara bump
+  useEffect(() => {
+    if (highScore !== prevHighScoreRef.current && prevHighScoreRef.current > 0) {
+      prevHighScoreRef.current = highScore;
+      setHighScoreBump(true);
+      setTimeout(() => setHighScoreBump(false), 220);
+    } else {
+      prevHighScoreRef.current = highScore;
+    }
+  }, [highScore]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hudRef = useRef<HTMLDivElement>(null);
@@ -27,6 +55,12 @@ export function SnakeGame() {
   const [grid, setGrid] = useState<{ cols: number; rows: number }>({ cols: COLS, rows: ROWS });
   // cellSize is computed in integers to prevent subpixel rendering issues
   const [cellSize, setCellSize] = useState(22);
+
+  // [novo] Refs para animações cosméticas da cabeça (piscar, língua)
+  const blinkTime = useRef(performance.now() + 2500 + Math.random() * 3500);
+  const blinkUntil = useRef(0);
+  const tongueTime = useRef(performance.now() + 1500 + Math.random() * 3000);
+  const tongueUntil = useRef(0);
 
   // ─── Resize via ResizeObserver (fires when container actually changes) ─────
   useEffect(() => {
@@ -116,6 +150,18 @@ export function SnakeGame() {
       }
     }
 
+    // [novo] Vinheta pré-renderizada no bgCanvas: radial gradient do centro às bordas
+    {
+      const vgr = bgCtx.createRadialGradient(
+        CANVAS_W / 2, CANVAS_H / 2, 0,
+        CANVAS_W / 2, CANVAS_H / 2, Math.sqrt(CANVAS_W * CANVAS_W + CANVAS_H * CANVAS_H) / 2
+      );
+      vgr.addColorStop(0, 'rgba(0,0,0,0)');
+      vgr.addColorStop(1, 'rgba(0,0,0,0.38)');
+      bgCtx.fillStyle = vgr;
+      bgCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    }
+
     let rafId: number;
     let lastTime = performance.now();
 
@@ -171,105 +217,350 @@ export function SnakeGame() {
         }
       }
 
+      // ── [novo] MELHORIA 7: Shake de câmera no game over ──────────────────
+      const SHAKE_DUR = 350;
+      const sinceGameOver = s.gameOverTime > 0 ? time - s.gameOverTime : 999999;
+      const shakeActive = s.phase === 'gameOver' && sinceGameOver < SHAKE_DUR;
+      if (shakeActive) {
+        const shakeFade = 1 - sinceGameOver / SHAKE_DUR;
+        const amp = 6 * shakeFade;
+        const sx = (Math.random() - 0.5) * 2 * amp;
+        const sy = (Math.random() - 0.5) * 2 * amp;
+        ctx.save();
+        ctx.translate(sx, sy);
+      }
+
       // 1. Draw cached grid (exact 1:1 blit, no scaling)
       ctx.drawImage(bgCanvas, 0, 0);
 
-      // 2. Food
-      drawApple(s.food.x, s.food.y);
-
-      // Eating animation
-      if (s.isEating) {
-        if (s.progress < 0.6) {
-          drawApple(s.snake[0].x, s.snake[0].y, 1 - s.progress / 0.6);
-        } else if (!s.spawnedParticlesForThisEat) {
-          s.particles.push(...spawnParticles(
-            s.snake[0].x * cellSize + cellSize / 2,
-            s.snake[0].y * cellSize + cellSize / 2
-          ));
-          s.spawnedParticlesForThisEat = true;
-        }
-      }
-
-      // 3. Snake path
-      const path: Point[] = [];
+      // ── [novo] MELHORIA 3: Glow da cabeça (radial gradient centrado na cabeça) ──
       if (s.snake.length > 0) {
-        if ((s.phase === 'playing' || s.phase === 'gameOver') && s.prevHead && s.oldTail && !s.isWaiting) {
-          const p = s.phase === 'gameOver' ? 1.0 : s.progress;
-          const vHead = {
-            x: lerp(s.prevHead.x, s.snake[0].x, p),
-            y: lerp(s.prevHead.y, s.snake[0].y, p)
-          };
-          const vTail = s.isEating ? s.snake[s.snake.length - 1] : {
-            x: lerp(s.oldTail.x, s.snake[s.snake.length - 1].x, p),
-            y: lerp(s.oldTail.y, s.snake[s.snake.length - 1].y, p)
-          };
-          path.push(vHead, ...s.snake.slice(1), vTail);
+        let hxGlow: number, hyGlow: number;
+        if ((s.phase === 'playing' || s.phase === 'gameOver') && s.prevHead && !s.isWaiting) {
+          const pGlow = s.phase === 'gameOver' ? 1.0 : s.progress;
+          hxGlow = lerp(s.prevHead.x, s.snake[0].x, pGlow) * cellSize + cellSize / 2;
+          hyGlow = lerp(s.prevHead.y, s.snake[0].y, pGlow) * cellSize + cellSize / 2;
         } else {
-          path.push(...s.snake);
+          hxGlow = s.snake[0].x * cellSize + cellSize / 2;
+          hyGlow = s.snake[0].y * cellSize + cellSize / 2;
         }
-
-        const SNAKE_W = cellSize - 4;
+        const glowRadius = cellSize * 2.5;
+        const glowGr = ctx.createRadialGradient(hxGlow, hyGlow, 0, hxGlow, hyGlow, glowRadius);
+        glowGr.addColorStop(0, theme.borderGlow);
+        glowGr.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.save();
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        // Outline
-        ctx.lineWidth = SNAKE_W + 4;
-        ctx.strokeStyle = theme.snakeOutline;
-        ctx.beginPath();
-        ctx.moveTo(path[0].x * cellSize + cellSize / 2, path[0].y * cellSize + cellSize / 2);
-        for (let i = 1; i < path.length; i++) {
-          ctx.lineTo(path[i].x * cellSize + cellSize / 2, path[i].y * cellSize + cellSize / 2);
-        }
-        ctx.stroke();
-
-        // Body
-        ctx.lineWidth = SNAKE_W;
-        ctx.strokeStyle = theme.snakeBody;
-        ctx.stroke();
-
-        // Shine
-        ctx.lineWidth = SNAKE_W * 0.3;
-        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-        ctx.translate(-SNAKE_W * 0.15, -SNAKE_W * 0.15);
-        ctx.stroke();
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = glowGr;
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
         ctx.restore();
-
-        // Eyes
-        const hx = path[0].x * cellSize + cellSize / 2;
-        const hy = path[0].y * cellSize + cellSize / 2;
-        let vx = s.dir.x, vy = s.dir.y;
-        if (path.length > 1 && !s.isWaiting) {
-          const dx = path[0].x - path[1].x;
-          const dy = path[0].y - path[1].y;
-          const len = Math.sqrt(dx * dx + dy * dy);
-          if (len > 0.001) { vx = dx / len; vy = dy / len; }
-        }
-        const SNAKE_W2 = cellSize - 4;
-        const eyeOffset = SNAKE_W2 * 0.25;
-        const eyeFwd = SNAKE_W2 * 0.3;
-        const eyeRadius = Math.max(2.5, Math.round(cellSize * 0.14));
-        const pupilRadius = Math.max(1.2, Math.round(cellSize * 0.08));
-        const perp = { x: -vy, y: vx };
-        for (const side of [-1, 1]) {
-          const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
-          const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
-          ctx.beginPath(); ctx.arc(ex, ey, eyeRadius, 0, Math.PI * 2);
-          ctx.fillStyle = '#fff'; ctx.fill();
-          ctx.beginPath(); ctx.arc(ex + vx * 1.5, ey + vy * 1.5, pupilRadius, 0, Math.PI * 2);
-          ctx.fillStyle = '#000'; ctx.fill();
-        }
       }
 
-      // 4. Particles
-      for (let i = s.particles.length - 1; i >= 0; i--) {
-        const p = s.particles[i];
-        p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.alpha -= 0.025;
-        if (p.alpha <= 0) { s.particles.splice(i, 1); continue; }
+      // ── [novo] MELHORIA 4: Efeito de nascimento (birth effect) ────────────
+      // Função local que encapsula todo o conteúdo do jogo (cobra, comida, partículas, rings, popups)
+      const drawGameContent = () => {
+        // 2. Food
+        drawApple(s.food.x, s.food.y);
+
+        // Eating animation + spawn de rings/popups
+        if (s.isEating) {
+          if (s.progress < 0.6) {
+            drawApple(s.snake[0].x, s.snake[0].y, 1 - s.progress / 0.6);
+          } else if (!s.spawnedParticlesForThisEat) {
+            const headX = s.snake[0].x * cellSize + cellSize / 2;
+            const headY = s.snake[0].y * cellSize + cellSize / 2;
+            s.particles.push(...spawnParticles(headX, headY));
+            // [novo] Ring de expansão ao comer
+            (s.rings as Ring[]).push({ x: headX, y: headY, r: cellSize * 0.3, alpha: 1 });
+            // [novo] Popup de pontuação ao comer
+            (s.popups as Popup[]).push({ x: headX, y: headY - cellSize * 0.5, alpha: 1, vy: -1.2, text: '+10' });
+            s.spawnedParticlesForThisEat = true;
+          }
+
+          // [novo] MELHORIA 6: Broto na cauda durante crescimento
+          const tailX = s.snake[s.snake.length - 1].x * cellSize + cellSize / 2;
+          const tailY = s.snake[s.snake.length - 1].y * cellSize + cellSize / 2;
+          const SNAKE_W_TAIL = cellSize - 4;
+          const growRadius = (SNAKE_W_TAIL / 2) * Math.min(s.progress, 0.8) / 0.8;
+          ctx.save();
+          ctx.globalAlpha = 0.7;
+          ctx.beginPath();
+          ctx.arc(tailX, tailY, growRadius, 0, Math.PI * 2);
+          ctx.fillStyle = theme.snakeBody;
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 3. Snake path
+        const path: Point[] = [];
+        if (s.snake.length > 0) {
+          if ((s.phase === 'playing' || s.phase === 'gameOver') && s.prevHead && s.oldTail && !s.isWaiting) {
+            const p = s.phase === 'gameOver' ? 1.0 : s.progress;
+            const vHead = {
+              x: lerp(s.prevHead.x, s.snake[0].x, p),
+              y: lerp(s.prevHead.y, s.snake[0].y, p)
+            };
+            const vTail = s.isEating ? s.snake[s.snake.length - 1] : {
+              x: lerp(s.oldTail.x, s.snake[s.snake.length - 1].x, p),
+              y: lerp(s.oldTail.y, s.snake[s.snake.length - 1].y, p)
+            };
+            path.push(vHead, ...s.snake.slice(1), vTail);
+          } else {
+            path.push(...s.snake);
+          }
+
+          const SNAKE_W = cellSize - 4;
+          ctx.save();
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+
+          // Outline
+          ctx.lineWidth = SNAKE_W + 4;
+          ctx.strokeStyle = theme.snakeOutline;
+          ctx.beginPath();
+          ctx.moveTo(path[0].x * cellSize + cellSize / 2, path[0].y * cellSize + cellSize / 2);
+          for (let i = 1; i < path.length; i++) {
+            ctx.lineTo(path[i].x * cellSize + cellSize / 2, path[i].y * cellSize + cellSize / 2);
+          }
+          ctx.stroke();
+
+          // Body
+          ctx.lineWidth = SNAKE_W;
+          ctx.strokeStyle = theme.snakeBody;
+          ctx.stroke();
+
+          // [novo] MELHORIA 1: Gradiente linear cabeça→cauda sobre o corpo
+          if (path.length >= 2) {
+            const gx0 = path[0].x * cellSize + cellSize / 2;
+            const gy0 = path[0].y * cellSize + cellSize / 2;
+            const gxN = path[path.length - 1].x * cellSize + cellSize / 2;
+            const gyN = path[path.length - 1].y * cellSize + cellSize / 2;
+            const bodyGrad = ctx.createLinearGradient(gx0, gy0, gxN, gyN);
+            bodyGrad.addColorStop(0, theme.snakeBody);
+            bodyGrad.addColorStop(1, theme.snakeShade);
+            ctx.lineWidth = SNAKE_W;
+            ctx.strokeStyle = bodyGrad;
+            ctx.globalAlpha = 0.45;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+          }
+
+          // Shine
+          ctx.lineWidth = SNAKE_W * 0.3;
+          ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+          ctx.translate(-SNAKE_W * 0.15, -SNAKE_W * 0.15);
+          ctx.stroke();
+          ctx.restore();
+
+          // [novo] MELHORIA 1: Escamas semitransparentes ao longo do corpo
+          if (path.length >= 2) {
+            ctx.save();
+            ctx.fillStyle = theme.scaleColor;
+            for (let i = 0; i < path.length - 1; i++) {
+              const ax = path[i].x * cellSize + cellSize / 2;
+              const ay = path[i].y * cellSize + cellSize / 2;
+              const bx = path[i + 1].x * cellSize + cellSize / 2;
+              const by = path[i + 1].y * cellSize + cellSize / 2;
+              const tx = bx - ax;
+              const ty = by - ay;
+              const len = Math.sqrt(tx * tx + ty * ty);
+              if (len < 0.001) continue;
+              const angle = Math.atan2(ty, tx);
+              // Posição intermediária entre os dois segmentos
+              const mx = (ax + bx) / 2;
+              const my = (ay + by) / 2;
+              // Perpendicular normalizada
+              const px = -ty / len;
+              const py = tx / len;
+              // Alterna lado a cada segmento
+              const side = i % 2 === 0 ? 1 : -1;
+              const SNAKE_W2 = cellSize - 4;
+              const ex = mx + px * SNAKE_W2 * 0.22 * side;
+              const ey = my + py * SNAKE_W2 * 0.22 * side;
+              ctx.beginPath();
+              ctx.ellipse(ex, ey, SNAKE_W2 * 0.18, SNAKE_W2 * 0.32, angle, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+
+          // ── [novo] MELHORIA 2: Cabeça mais expressiva ─────────────────────
+          const hx = path[0].x * cellSize + cellSize / 2;
+          const hy = path[0].y * cellSize + cellSize / 2;
+          let vx = s.dir.x, vy = s.dir.y;
+          if (path.length > 1 && !s.isWaiting) {
+            const dx = path[0].x - path[1].x;
+            const dy = path[0].y - path[1].y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len > 0.001) { vx = dx / len; vy = dy / len; }
+          }
+          const SNAKE_W2 = cellSize - 4;
+          const eyeOffset = SNAKE_W2 * 0.25;
+          const eyeFwd = SNAKE_W2 * 0.3;
+          const eyeRadius = Math.max(2.5, Math.round(cellSize * 0.14));
+          const pupilRadius = Math.max(1.2, Math.round(cellSize * 0.08));
+          const perp = { x: -vy, y: vx };
+
+          // Atualizar estado de piscar
+          const now = performance.now();
+          if (now >= blinkTime.current) {
+            blinkUntil.current = now + 120;
+            blinkTime.current = now + 2500 + Math.random() * 3500;
+          }
+          const isBlinking = now < blinkUntil.current;
+
+          // Atualizar estado de língua
+          if (now >= tongueTime.current) {
+            tongueUntil.current = now + 300;
+            tongueTime.current = now + 1500 + Math.random() * 3000;
+          }
+          const showTongue = now < tongueUntil.current && s.phase === 'playing' && !s.isWaiting;
+
+          // Desenhar língua (antes dos olhos)
+          if (showTongue) {
+            const tongueLen = cellSize * 0.45;
+            const forkLen = cellSize * 0.18;
+            const tx = hx + vx * (eyeFwd + SNAKE_W2 * 0.5);
+            const ty = hy + vy * (eyeFwd + SNAKE_W2 * 0.5);
+            ctx.save();
+            ctx.strokeStyle = '#ff2d55';
+            ctx.lineWidth = Math.max(1.5, cellSize * 0.07);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            const mx = tx + vx * tongueLen * 0.6;
+            const my = ty + vy * tongueLen * 0.6;
+            ctx.lineTo(mx, my);
+            // Fork esquerdo
+            ctx.moveTo(mx, my);
+            ctx.lineTo(mx + vx * forkLen - vy * forkLen * 0.5, my + vy * forkLen + vx * forkLen * 0.5);
+            // Fork direito
+            ctx.moveTo(mx, my);
+            ctx.lineTo(mx + vx * forkLen + vy * forkLen * 0.5, my + vy * forkLen - vx * forkLen * 0.5);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // Olhos: X (game over) | piscando | normais
+          if (s.phase === 'gameOver') {
+            // [novo] Olhos em X no game over
+            for (const side of [-1, 1]) {
+              const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
+              const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
+              ctx.save();
+              ctx.strokeStyle = '#ff2d55';
+              ctx.lineWidth = Math.max(2, eyeRadius * 0.6);
+              ctx.lineCap = 'round';
+              const r = eyeRadius * 0.7;
+              ctx.beginPath();
+              ctx.moveTo(ex - r, ey - r); ctx.lineTo(ex + r, ey + r);
+              ctx.moveTo(ex + r, ey - r); ctx.lineTo(ex - r, ey + r);
+              ctx.stroke();
+              ctx.restore();
+            }
+          } else if (isBlinking) {
+            // [novo] Linha fina fechada ao piscar
+            for (const side of [-1, 1]) {
+              const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
+              const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
+              ctx.save();
+              ctx.strokeStyle = '#fff';
+              ctx.lineWidth = Math.max(1.5, eyeRadius * 0.5);
+              ctx.lineCap = 'round';
+              const r2 = eyeRadius * 0.7;
+              ctx.beginPath();
+              ctx.moveTo(ex - r2, ey); ctx.lineTo(ex + r2, ey);
+              ctx.stroke();
+              ctx.restore();
+            }
+          } else {
+            // Olhos normais
+            for (const side of [-1, 1]) {
+              const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
+              const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
+              ctx.beginPath(); ctx.arc(ex, ey, eyeRadius, 0, Math.PI * 2);
+              ctx.fillStyle = '#fff'; ctx.fill();
+              ctx.beginPath(); ctx.arc(ex + vx * 1.5, ey + vy * 1.5, pupilRadius, 0, Math.PI * 2);
+              ctx.fillStyle = '#000'; ctx.fill();
+            }
+          }
+        }
+
+        // 4. Particles
+        for (let i = s.particles.length - 1; i >= 0; i--) {
+          const p = s.particles[i];
+          p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.alpha -= 0.025;
+          if (p.alpha <= 0) { s.particles.splice(i, 1); continue; }
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.color; ctx.fill();
+          ctx.restore();
+        }
+
+        // [novo] MELHORIA 5: Rings expandindo ao comer
+        for (let i = (s.rings as Ring[]).length - 1; i >= 0; i--) {
+          const ring = (s.rings as Ring[])[i];
+          ring.r += cellSize * 0.04;
+          ring.alpha -= 0.035;
+          if (ring.alpha <= 0 || ring.r > cellSize * 1.5) { (s.rings as Ring[]).splice(i, 1); continue; }
+          ctx.save();
+          ctx.globalAlpha = ring.alpha;
+          ctx.beginPath();
+          ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+          ctx.strokeStyle = theme.food;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // [novo] MELHORIA 5: Popups de pontuação ao comer
+        for (let i = (s.popups as Popup[]).length - 1; i >= 0; i--) {
+          const pop = (s.popups as Popup[])[i];
+          pop.y += pop.vy;
+          pop.alpha -= 0.022;
+          if (pop.alpha <= 0) { (s.popups as Popup[]).splice(i, 1); continue; }
+          ctx.save();
+          ctx.globalAlpha = pop.alpha;
+          ctx.fillStyle = theme.textPrimary;
+          ctx.font = `bold ${Math.max(10, cellSize * 0.55)}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText(pop.text, pop.x, pop.y);
+          ctx.restore();
+        }
+      }; // fim drawGameContent
+
+      // [novo] MELHORIA 4: Birth effect — escala e fade ao iniciar partida
+      const sinceStart = s.gameStartTime > 0 ? time - s.gameStartTime : 999999;
+      const BIRTH_DUR = 350;
+      if (s.phase === 'playing' && sinceStart < BIRTH_DUR) {
+        const t = sinceStart / BIRTH_DUR;
+        const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+        const sc = 0.7 + 0.3 * ease;
+        const alpha = ease;
         ctx.save();
-        ctx.globalAlpha = Math.max(0, p.alpha);
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = p.color; ctx.fill();
+        ctx.globalAlpha = alpha;
+        ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
+        ctx.scale(sc, sc);
+        ctx.translate(-CANVAS_W / 2, -CANVAS_H / 2);
+        drawGameContent();
+        ctx.restore();
+      } else {
+        drawGameContent();
+      }
+
+      // ── [novo] Fechar shake translate ────────────────────────────────────
+      if (shakeActive) {
+        ctx.restore();
+      }
+
+      // ── [novo] MELHORIA 7: Flash vermelho FORA do shake ──────────────────
+      const FLASH_DUR = 250;
+      if (s.phase === 'gameOver' && sinceGameOver < FLASH_DUR) {
+        const flashAlpha = 0.35 * (1 - sinceGameOver / FLASH_DUR);
+        ctx.save();
+        ctx.globalAlpha = flashAlpha;
+        ctx.fillStyle = '#ff2d55';
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
         ctx.restore();
       }
 
@@ -382,7 +673,12 @@ export function SnakeGame() {
       >
         <div className="flex flex-col min-w-0">
           <span className="text-[9px] sm:text-[10px] uppercase opacity-70">Pontuação</span>
-          <span className="text-xl sm:text-2xl font-bold leading-none">{score}</span>
+          {/* [novo] MELHORIA 9: Bump de escala ao pontuar */}
+          <span
+            className={`text-xl sm:text-2xl font-bold leading-none inline-block transition-transform duration-200 ${scoreBump ? 'scale-125' : 'scale-100'}`}
+          >
+            {score}
+          </span>
         </div>
 
         <div className="flex gap-2 sm:gap-3 items-center">
@@ -411,7 +707,16 @@ export function SnakeGame() {
 
         <div className="flex flex-col items-end min-w-0">
           <span className="text-[9px] sm:text-[10px] uppercase opacity-70">Recorde</span>
-          <span className="text-xl sm:text-2xl font-bold leading-none" style={{ color: theme.borderNeon }}>{highScore}</span>
+          {/* [novo] MELHORIA 9: Bump de escala + glow ao bater recorde */}
+          <span
+            className={`text-xl sm:text-2xl font-bold leading-none inline-block transition-transform duration-200 ${highScoreBump ? 'scale-125' : 'scale-100'}`}
+            style={{
+              color: theme.borderNeon,
+              filter: highScoreBump ? `drop-shadow(0 0 6px ${theme.borderNeon})` : 'none'
+            }}
+          >
+            {highScore}
+          </span>
         </div>
       </div>
 
@@ -436,43 +741,44 @@ export function SnakeGame() {
           style={{ display: 'block' }}
         />
 
-        {/* ── Overlay: Menu ── */}
+        {/* ── [novo] MELHORIA 8: Overlay Menu com animações de entrada ── */}
         {phase === 'menu' && (
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center p-3 animate-in fade-in zoom-in-95 duration-300"
-            style={{ background: theme.overlayBg }}
-          >
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2 tracking-tighter" style={{ color: theme.textPrimary, textShadow: `0 0 10px ${theme.borderGlow}` }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-3" style={{ background: theme.overlayBg }}>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2 tracking-tighter animate-in fade-in slide-in-from-top-4 duration-500"
+                style={{ color: theme.textPrimary, textShadow: `0 0 10px ${theme.borderGlow}` }}>
               Snake
             </h1>
-            <p className="text-xs sm:text-sm opacity-80 mb-3 sm:mb-6 max-w-[220px] text-center" style={{ color: theme.textPrimary }}>
+            <p className="text-xs sm:text-sm opacity-80 mb-3 sm:mb-6 max-w-[220px] text-center animate-in fade-in duration-500 delay-150"
+               style={{ color: theme.textPrimary }}>
               Coma, cresça e faça a maior pontuação!
             </p>
-            <SmallBtn bg={theme.btnPrimary} onClick={() => startGame(grid)}>JOGAR</SmallBtn>
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300">
+              <SmallBtn bg={theme.btnPrimary} onClick={() => startGame(grid)}>JOGAR</SmallBtn>
+            </div>
           </div>
         )}
 
-        {/* ── Overlay: Paused ── */}
+        {/* ── [novo] MELHORIA 8: Overlay Paused com animações de entrada ── */}
         {phase === 'paused' && (
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center p-3 animate-in fade-in duration-200"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
-          >
-            <h2 className="text-xl sm:text-2xl font-bold tracking-widest mb-3 sm:mb-6" style={{ color: theme.textPrimary }}>PAUSADO</h2>
-            <SmallBtn bg={theme.btnPrimary} onClick={pauseToggle}>Continuar</SmallBtn>
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 animate-in fade-in duration-200"
+               style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-widest mb-3 sm:mb-6 animate-in fade-in slide-in-from-top-4 duration-300"
+                style={{ color: theme.textPrimary }}>PAUSADO</h2>
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 delay-150">
+              <SmallBtn bg={theme.btnPrimary} onClick={pauseToggle}>Continuar</SmallBtn>
+            </div>
           </div>
         )}
 
-        {/* ── Overlay: Game Over ── */}
+        {/* ── [novo] MELHORIA 8: Overlay Game Over com animações de entrada ── */}
         {phase === 'gameOver' && (
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center p-3 animate-in fade-in zoom-in-95 duration-300"
-            style={{ background: theme.overlayBg }}
-          >
-            <div className="text-3xl sm:text-4xl md:text-5xl mb-1 sm:mb-2 animate-bounce">💀</div>
-            <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3" style={{ color: theme.textPrimary }}>GAME OVER</h2>
-
-            <div className="flex gap-4 sm:gap-6 mb-3 sm:mb-6 text-center" style={{ color: theme.textPrimary }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-3"
+               style={{ background: theme.overlayBg }}>
+            <div className="text-3xl sm:text-4xl md:text-5xl mb-1 sm:mb-2 animate-in zoom-in-95 duration-300">💀</div>
+            <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3 animate-in fade-in duration-300 delay-150"
+                style={{ color: theme.textPrimary }}>GAME OVER</h2>
+            <div className="flex gap-4 sm:gap-6 mb-3 sm:mb-6 text-center animate-in fade-in duration-300 delay-300"
+                 style={{ color: theme.textPrimary }}>
               <div>
                 <div className="text-[10px] sm:text-xs uppercase opacity-70">Pontuação</div>
                 <div className="text-lg sm:text-xl font-bold">{score}</div>
@@ -482,8 +788,7 @@ export function SnakeGame() {
                 <div className="text-lg sm:text-xl font-bold" style={{ color: theme.borderNeon }}>{highScore}</div>
               </div>
             </div>
-
-            <div className="flex flex-col gap-2 sm:gap-2.5 w-40 sm:w-44">
+            <div className="flex flex-col gap-2 sm:gap-2.5 w-40 sm:w-44 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300">
               <SmallBtn bg={theme.btnPrimary} onClick={() => startGame(grid)}>JOGAR NOVAMENTE</SmallBtn>
               <SmallBtn bg="rgba(255,255,255,0.1)" onClick={goMenu}>MENU</SmallBtn>
             </div>

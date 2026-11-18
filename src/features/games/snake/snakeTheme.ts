@@ -14,6 +14,8 @@ export type SnakeThemeConfig = {
   btnPrimary: string;
   btnDanger: string;
   textPrimary: string;
+  // [novo] Cor das escamas semitransparentes ao longo do corpo da cobra
+  scaleColor: string;
 };
 
 export const SNAKE_THEMES: Record<'meteors' | 'hearts' | 'aurora' | 'snow', SnakeThemeConfig> = {
@@ -33,6 +35,8 @@ export const SNAKE_THEMES: Record<'meteors' | 'hearts' | 'aurora' | 'snow', Snak
     btnPrimary: '#9d4edd',
     btnDanger: '#ff4d6d',
     textPrimary: '#e0aaff',
+    // [novo] escamas: tom derivado de snakeOutline com baixa opacidade
+    scaleColor: 'rgba(224, 170, 255, 0.18)',
   },
   hearts: {
     cellA: '#2f0d1b',
@@ -50,6 +54,8 @@ export const SNAKE_THEMES: Record<'meteors' | 'hearts' | 'aurora' | 'snow', Snak
     btnPrimary: '#ff0055',
     btnDanger: '#ff4d6d',
     textPrimary: '#ffb3c6',
+    // [novo] escamas: tom derivado de snakeOutline com baixa opacidade
+    scaleColor: 'rgba(255, 128, 179, 0.18)',
   },
   aurora: {
     cellA: '#092a2a',
@@ -67,6 +73,8 @@ export const SNAKE_THEMES: Record<'meteors' | 'hearts' | 'aurora' | 'snow', Snak
     btnPrimary: '#00ffc8',
     btnDanger: '#ff0055',
     textPrimary: '#22d3ee',
+    // [novo] escamas: tom derivado de snakeOutline com baixa opacidade
+    scaleColor: 'rgba(168, 85, 247, 0.18)',
   },
   snow: {
     cellA: '#141d2b',
@@ -84,5 +92,7 @@ export const SNAKE_THEMES: Record<'meteors' | 'hearts' | 'aurora' | 'snow', Snak
     btnPrimary: '#00f0ff',
     btnDanger: '#e63946',
     textPrimary: '#8dc0ff',
+    // [novo] escamas: tom derivado de snakeOutline com baixa opacidade
+    scaleColor: 'rgba(141, 192, 255, 0.18)',
   }
 };

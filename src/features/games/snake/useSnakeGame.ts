@@ -12,6 +12,10 @@ export type Point = { x: number; y: number };
 export type Dir = { x: number; y: number };
 export type Particle = { x: number; y: number; vx: number; vy: number; alpha: number; r: number; color: string };
 
+// [novo] Tipos para efeitos visuais de comer
+export type Ring = { x: number; y: number; r: number; alpha: number };
+export type Popup = { x: number; y: number; alpha: number; vy: number; text: string };
+
 type GamePhase = 'menu' | 'playing' | 'paused' | 'gameOver';
 
 export type GameState = {
@@ -34,6 +38,17 @@ export type GameState = {
   // Visual effects
   particles: Particle[];
   spawnedParticlesForThisEat: boolean;
+  // [novo] Rings e popups de feedback ao comer
+  rings: Ring[];
+  popups: Popup[];
+  // [novo] Timestamp de início da partida (para efeito de nascimento)
+  gameStartTime: number;
+  // [novo] Timestamp de game over (para shake + flash)
+  gameOverTime: number;
+  // [novo] High score no momento em que a partida começou (para detectar recorde)
+  highScoreAtRunStart: number;
+  // [novo] Se o som de recorde já foi tocado nesta partida
+  recordAnnouncedThisRun: boolean;
 };
 
 /**
@@ -126,30 +141,88 @@ if (typeof window !== 'undefined') {
   window.addEventListener('click', unlockSnakeAudio, { passive: true });
 }
 
-// Simple Web Audio API beep generator
-function playBeep(freq: number, type: OscillatorType, duration: number, audioEnabled: boolean) {
+// [novo] Som de comer: dois osciladores (880Hz senoidal + 1320Hz triangular)
+function playEatSound(audioEnabled: boolean) {
   if (!audioEnabled) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
+    // Primeiro oscilador: 880Hz senoidal
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(880, ctx.currentTime);
+    gain1.gain.setValueAtTime(0.001, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.015);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    osc1.connect(gain1); gain1.connect(ctx.destination);
+    osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 0.08);
+    // Segundo oscilador: 1320Hz triangular, ~15ms depois
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(1320, ctx.currentTime + 0.015);
+    gain2.gain.setValueAtTime(0.001, ctx.currentTime + 0.015);
+    gain2.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.03);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc2.connect(gain2); gain2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.015); osc2.stop(ctx.currentTime + 0.1);
+  } catch { }
+}
 
+// [novo] Som de recorde: arpejo ascendente de 4 notas triangulares
+function playRecordSound(audioEnabled: boolean) {
+  if (!audioEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = ctx.currentTime + i * 0.09;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.exponentialRampToValueAtTime(0.1, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.1);
+    });
+  } catch { }
+}
+
+// [novo] Som de game over: sawtooth descendente + ruído branco curto
+function playGameOverSound(audioEnabled: boolean) {
+  if (!audioEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    // Oscilador sawtooth deslizando 220→60Hz em 500ms
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
-    
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  } catch {
-    // Ignore audio context errors
-  }
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + 0.5);
+    // Ruído branco curto (~150ms)
+    const bufSize = Math.floor(ctx.sampleRate * 0.15);
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize) * 0.5;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.3, ctx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    src.connect(noiseGain); noiseGain.connect(ctx.destination);
+    src.start(); src.stop(ctx.currentTime + 0.15);
+  } catch { }
 }
 
 export function useSnakeGame() {
@@ -205,6 +278,13 @@ export function useSnakeGame() {
     progress: 0,
     particles: [],
     spawnedParticlesForThisEat: false,
+    // [novo] campos de efeitos visuais
+    rings: [],
+    popups: [],
+    gameStartTime: 0,
+    gameOverTime: 0,
+    highScoreAtRunStart: 0,
+    recordAnnouncedThisRun: false,
   });
 
   const syncState = useCallback(() => {
@@ -263,6 +343,13 @@ export function useSnakeGame() {
     g.current.progress = 0;
     g.current.particles = [];
     g.current.spawnedParticlesForThisEat = false;
+    // [novo] Resetar efeitos visuais ao iniciar partida
+    g.current.rings = [];
+    g.current.popups = [];
+    g.current.gameStartTime = performance.now();
+    g.current.gameOverTime = 0;
+    g.current.highScoreAtRunStart = g.current.highScore;
+    g.current.recordAnnouncedThisRun = false;
     syncState();
   }, [syncState]);
 
@@ -287,6 +374,11 @@ export function useSnakeGame() {
       { x: Math.max(0, midX - 2), y: midY },
     ];
     g.current.food = randomFood(g.current.snake, cols, rows);
+    // [novo] Resetar campos de efeitos ao voltar ao menu
+    g.current.rings = [];
+    g.current.popups = [];
+    g.current.gameStartTime = 0;
+    g.current.gameOverTime = 0;
     syncState();
   }, [syncState]);
 
@@ -335,8 +427,10 @@ export function useSnakeGame() {
       s.prevHead = { ...head };
       s.oldTail = { ...s.snake[s.snake.length - 1] };
       s.snake = [newHead, ...s.snake.slice(0, -1)]; 
+      // [novo] Registrar timestamp de game over para shake + flash
+      s.gameOverTime = performance.now();
       s.phase = 'gameOver';
-      playBeep(150, 'sawtooth', 0.4, audioEnabled);
+      playGameOverSound(audioEnabled);
       syncState();
       return;
     }
@@ -348,8 +442,10 @@ export function useSnakeGame() {
       s.prevHead = { ...head };
       s.oldTail = { ...s.snake[s.snake.length - 1] };
       s.snake = [newHead, ...s.snake.slice(0, -1)]; 
+      // [novo] Registrar timestamp de game over para shake + flash
+      s.gameOverTime = performance.now();
       s.phase = 'gameOver';
-      playBeep(150, 'sawtooth', 0.4, audioEnabled);
+      playGameOverSound(audioEnabled);
       syncState();
       return;
     }
@@ -379,7 +475,13 @@ export function useSnakeGame() {
       }
       s.food = randomFood(s.snake, cols, rows);
       s.spawnedParticlesForThisEat = false;
-      playBeep(600, 'sine', 0.1, audioEnabled);
+      // [novo] Som de recorde ou som de comer dependendo se bateu o recorde
+      if (s.score > s.highScoreAtRunStart && !s.recordAnnouncedThisRun) {
+        playRecordSound(audioEnabled);
+        s.recordAnnouncedThisRun = true;
+      } else {
+        playEatSound(audioEnabled);
+      }
       syncState(); // ONLY sync state when score updates (prevent React lag)
     }
   }, [syncState, audioEnabled]);
