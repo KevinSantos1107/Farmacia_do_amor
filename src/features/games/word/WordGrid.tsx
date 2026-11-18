@@ -30,9 +30,6 @@ function getDynamicStyle(
   if (state === 'active') {
     return {
       animationDelay: delay,
-      backgroundColor: 'rgba(var(--theme-primary-rgb), 0.18)',
-      boxShadow:
-        '0 0 0 1px var(--theme-primary), 0 0 20px var(--theme-primary), 0 0 40px var(--theme-primary)',
       textShadow: '0 0 8px rgba(255,255,255,0.9)',
     };
   }
@@ -63,13 +60,36 @@ export function WordGrid({
   gameOver,
   onTileClick,
 }: WordGridProps) {
+  // ── Fundo atmosférico reativo ao progresso da tentativa ─────────────────────
+  const maxCorrect = React.useMemo(() => {
+    if (!guesses || guesses.length === 0) return 0;
+    return guesses.reduce((max, row) => {
+      const correctCount = row.filter((c) => c.state === 'correct').length;
+      return Math.max(max, correctCount);
+    }, 0);
+  }, [guesses]);
+
+  const wordLength = rows[0]?.cells.length || 5;
+  const progressRatio = wordLength > 0 ? Math.min(1, maxCorrect / wordLength) : 0;
+  // Interpolação suave de 0.04 até 0.12 conforme o jogador encontra letras certas
+  const bgOpacity = Number((0.04 + progressRatio * 0.08).toFixed(3));
+  const isWinning = bounceRow >= 0;
+
   return (
-    <div className="relative flex flex-col gap-[5px] items-center py-1 flex-1 justify-center">
-      {/* Fundo atmosférico do board */}
+    <div className="
+      relative flex flex-col gap-[5px] sm:gap-[6px] md:gap-[7px] items-center
+      py-1 md:py-2
+      flex-1 justify-center w-full
+    ">
+      {/* Fundo atmosférico reativo do board */}
       <div
         className="absolute inset-0 rounded-3xl pointer-events-none"
         style={{
-          background: `radial-gradient(ellipse at center, rgba(var(--theme-primary-rgb), 0.04) 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse at center, rgba(var(--theme-primary-rgb), ${
+            isWinning ? 0.22 : bgOpacity
+          }) 0%, transparent 72%)`,
+          transform: isWinning ? 'scale(1.18)' : 'scale(1)',
+          transition: 'all 600ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       />
 
@@ -77,7 +97,7 @@ export function WordGrid({
         <div
           key={ri}
           className={cn(
-            'flex gap-[5px] transition-all duration-300 relative',
+            'flex gap-[5px] sm:gap-[6px] md:gap-[7px] transition-all duration-300 relative',
             shake && ri === guesses.length && 'wg-shake',
             !row.isActive && ri >= guesses.length && 'opacity-20 scale-[0.97]'
           )}
@@ -86,6 +106,7 @@ export function WordGrid({
             const isRevealing = ri === revealingRow;
             const isBouncing = ri === bounceRow;
             const isJustTyped = row.isActive && ci === lastTypedIdx && cell.letter !== '';
+            const isFinalCorrect = cell.state === 'correct';
 
             let visualState = cell.state;
             if (isRevealing && ci >= revealProgress) {
@@ -106,9 +127,10 @@ export function WordGrid({
                 <div
                   className={cn(
                     'wg-tile',
-                    isRevealing && 'wg-flip',
+                    isRevealing && (isFinalCorrect ? 'wg-flip-correct' : 'wg-flip'),
                     isBouncing && 'wg-bounce',
                     isJustTyped && 'wg-pop',
+                    visualState === 'active' && 'wg-cursor-breathe',
                     CELL_BG[visualState]
                   )}
                   style={getDynamicStyle(visualState, ci, isRevealing, isBouncing)}

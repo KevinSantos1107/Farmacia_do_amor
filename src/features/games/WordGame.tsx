@@ -26,6 +26,7 @@ import { WordKeyboard } from './word/WordKeyboard';
 import { WordGameOverOverlay } from './word/WordGameOverOverlay';
 import { WordStatsPanel } from './word/WordStatsPanel';
 import { WordGameStyles } from './word/WordGameStyles';
+import { Confetti } from './word/Confetti';
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function WordGame() {
@@ -53,39 +54,44 @@ export function WordGame() {
   const [showStats, setShowStats] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
   const [cursorPos, setCursorPos] = useState(0);
+  const [showVictoryConfetti, setShowVictoryConfetti] = useState(false);
+  const isTransitioningRef = useRef(false);
 
   // Stats & Streak (Firestore sync)
   const { stats, recordRoundResult } = useWordStats();
 
   // ── Start a round ──────────────────────────────────────────────────────────
   const startNewRound = useCallback(
-    (qs: Question[]) => {
+    (qs: Question[], forceNew: boolean = false) => {
       if (!questionsLoaded || qs.length === 0) return;
 
-      // Tenta restaurar uma partida em andamento
-      const activeGame = loadActiveGame();
-      if (activeGame && activeGame.word) {
-        const isWon = (activeGame.guesses || []).some((row: LetterCell[]) =>
-          row.every((c) => c.state === 'correct')
-        );
-        const isLost = !isWon && (activeGame.guesses || []).length >= 6;
+      // Tenta restaurar uma partida em andamento (somente se não for pedido explícito de nova rodada)
+      if (!forceNew) {
+        const activeGame = loadActiveGame();
+        if (activeGame && activeGame.word) {
+          const isWon = (activeGame.guesses || []).some((row: LetterCell[]) =>
+            row.every((c) => c.state === 'correct')
+          );
+          const isLost = !isWon && (activeGame.guesses || []).length >= 6;
 
-        setCurrentWord(activeGame.word);
-        setCurrentQuestion(activeGame.question);
-        setCurrentMessage(activeGame.message);
-        setWordLength(activeGame.word.length);
-        setGuesses(activeGame.guesses || []);
-        setCurrentInput(activeGame.currentInput || '');
-        setCursorPos(activeGame.cursorPos || 0);
-        setWon(isWon);
-        setGameOver(isWon || isLost);
-        setRevealingRow(-1);
-        setBounceRow(-1);
-        setToast('');
-        setLastTypedIdx(-1);
+          setCurrentWord(activeGame.word);
+          setCurrentQuestion(activeGame.question);
+          setCurrentMessage(activeGame.message);
+          setWordLength(activeGame.word.length);
+          setGuesses(activeGame.guesses || []);
+          setCurrentInput(activeGame.currentInput || '');
+          setCursorPos(activeGame.cursorPos || 0);
+          setWon(isWon);
+          setGameOver(isWon || isLost);
+          setRevealingRow(-1);
+          setBounceRow(-1);
+          setToast('');
+          setLastTypedIdx(-1);
+          setShowVictoryConfetti(false);
 
-        if (isWon || isLost) clearActiveGame();
-        return;
+          if (isWon || isLost) clearActiveGame();
+          return;
+        }
       }
 
       let currentUsed = [...usedWords.current];
@@ -134,6 +140,7 @@ export function WordGame() {
       setToast('');
       setLastTypedIdx(-1);
       setCursorPos(0);
+      setShowVictoryConfetti(false);
 
       saveActiveGame({
         word,
@@ -155,7 +162,7 @@ export function WordGame() {
 
   // Sincroniza estado atual da partida em andamento
   useEffect(() => {
-    if (currentWord && !gameOver && !won) {
+    if (currentWord && !gameOver && !won && !isTransitioningRef.current) {
       saveActiveGame({
         word: currentWord,
         question: currentQuestion,
@@ -166,6 +173,20 @@ export function WordGame() {
       });
     }
   }, [currentWord, currentQuestion, currentMessage, guesses, currentInput, cursorPos, gameOver, won]);
+
+  // ── Transição suave entre rodadas ──────────────────────────────────────────
+  const handleNextRound = useCallback(() => {
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
+    // Interrompe imediatamente qualquer confete e efeito de vitória
+    setShowVictoryConfetti(false);
+    setBounceRow(-1);
+    setGameOver(false);
+    setTimeout(() => {
+      startNewRound(questions, true /* forceNew */);
+      isTransitioningRef.current = false;
+    }, 280);
+  }, [questions, startNewRound]);
 
   // ── Keyboard handler ───────────────────────────────────────────────────────
   const showToast = (msg: string) => {
@@ -239,6 +260,7 @@ export function WordGame() {
 
           if (inputToValidate === currentWord) {
             setBounceRow(rowIdx);
+            setShowVictoryConfetti(true);
             recordRoundResult(true, newGuesses.length);
             setTimeout(() => {
               setWon(true);
@@ -340,6 +362,9 @@ export function WordGame() {
 
   const keyStates = getKeyboardStates(guesses, revealingRow, revealProgress);
   const rows = buildGridRows(guesses, currentInput, cursorPos, wordLength, gameOver, MAX_ATTEMPTS);
+  // Ponto de origem (%) para o confete nascer na linha vencedora do grid
+  const winningRowOriginY =
+    bounceRow >= 0 ? Math.round(20 + (bounceRow / MAX_ATTEMPTS) * 36) : 35;
 
   // ── Loading state ──────────────────────────────────────────────────────────
   if (!currentWord)
@@ -357,9 +382,10 @@ export function WordGame() {
     );
 
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col items-center h-full relative select-none">
+    <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto flex flex-col items-center h-full relative select-none">
+
       {/* ── Header / Stats ─────────────────────────────────────────────────── */}
-      <div className="flex items-center w-full justify-between px-4 py-1.5">
+      <div className="flex items-center w-full justify-between px-4 py-1.5 shrink-0">
         <div className="flex items-center gap-1.5 opacity-50">
           <div
             className="w-1.5 h-1.5 rounded-full animate-pulse"
@@ -399,13 +425,13 @@ export function WordGame() {
       </div>
 
       {/* ── Question ───────────────────────────────────────────────────────── */}
-      <div className="w-full text-center px-6 pt-0 pb-2 relative">
+      <div className="w-full text-center px-4 sm:px-6 pt-0 pb-2 relative shrink-0">
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-px opacity-50"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-10 sm:w-16 h-px opacity-50"
           style={{ backgroundColor: 'var(--theme-primary)' }}
         />
-        <p className="text-xs leading-relaxed tracking-wide text-white/60 font-medium italic">
-          "{currentQuestion}"
+        <p className="text-xs sm:text-sm md:text-base leading-relaxed tracking-wide text-white/70 font-medium italic">
+          &ldquo;{currentQuestion}&rdquo;
         </p>
       </div>
 
@@ -429,6 +455,11 @@ export function WordGame() {
         )}
       </AnimatePresence>
 
+      {/* ── Confete da vitória ─────────────────────────────────────────────── */}
+      {showVictoryConfetti && !gameOver && (
+        <Confetti originY={winningRowOriginY} />
+      )}
+
       {/* ── Board ──────────────────────────────────────────────────────────── */}
       <WordGrid
         rows={rows}
@@ -443,7 +474,9 @@ export function WordGame() {
       />
 
       {/* ── Keyboard ───────────────────────────────────────────────────────── */}
-      <WordKeyboard keyStates={keyStates} onKey={handleKey} />
+      <div className="w-full shrink-0">
+        <WordKeyboard keyStates={keyStates} onKey={handleKey} />
+      </div>
 
       {/* ── Game Over Overlay ──────────────────────────────────────────────── */}
       <WordGameOverOverlay
@@ -452,7 +485,8 @@ export function WordGame() {
         currentWord={currentWord}
         currentMessage={currentMessage}
         attempts={guesses.length}
-        onNextRound={() => startNewRound(questions)}
+        originY={winningRowOriginY}
+        onNextRound={handleNextRound}
         onShare={shareOnWhatsApp}
       />
 

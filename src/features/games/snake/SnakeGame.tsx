@@ -3,7 +3,7 @@ import { Volume2, VolumeX, Pause, Play, Trophy } from 'lucide-react';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { SNAKE_THEMES } from './snakeTheme';
 import { useSnakeGame, COLS, ROWS, calculateSnakeGrid } from './useSnakeGame';
-import type { Point, Particle, Ring, Popup } from './useSnakeGame';
+import type { Point, Particle, Ring } from './useSnakeGame';
 import { RankingModal } from '../ranking/RankingModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
