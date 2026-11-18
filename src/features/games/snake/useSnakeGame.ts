@@ -426,8 +426,9 @@ export function useSnakeGame() {
     if (newHead.x < 0 || newHead.x >= cols || newHead.y < 0 || newHead.y >= rows) {
       s.prevHead = { ...head };
       s.oldTail = { ...s.snake[s.snake.length - 1] };
-      s.snake = [newHead, ...s.snake.slice(0, -1)]; 
-      // [novo] Registrar timestamp de game over para shake + flash
+      // Mantém a cabeça na borda válida interna (não ultrapassa o bloco para fora)
+      s.snake = [...s.snake]; 
+      // [novo] Registrar timestamp de game over para recoil, shake e cara de derrota
       s.gameOverTime = performance.now();
       s.phase = 'gameOver';
       playGameOverSound(audioEnabled);
@@ -441,8 +442,9 @@ export function useSnakeGame() {
     if (bodyToCheck.some(seg => seg.x === newHead.x && seg.y === newHead.y)) {
       s.prevHead = { ...head };
       s.oldTail = { ...s.snake[s.snake.length - 1] };
-      s.snake = [newHead, ...s.snake.slice(0, -1)]; 
-      // [novo] Registrar timestamp de game over para shake + flash
+      // Mantém a cabeça na posição de colisão sem sobrepor de forma confusa
+      s.snake = [...s.snake]; 
+      // [novo] Registrar timestamp de game over para recoil, shake e cara de derrota
       s.gameOverTime = performance.now();
       s.phase = 'gameOver';
       playGameOverSound(audioEnabled);

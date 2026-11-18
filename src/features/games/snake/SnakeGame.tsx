@@ -307,12 +307,37 @@ export function SnakeGame() {
           }
 
           const SNAKE_W = cellSize - 4;
+          const now = performance.now();
+
+          // Recoil elástico da cabeça em Game Over ("bata e volte")
+          if (s.phase === 'gameOver') {
+            const hitTime = s.gameOverTime > 0 ? now - s.gameOverTime : 0;
+            // Bate na parede e recua suavemente para dentro do tabuleiro
+            const recoilT = Math.min(hitTime / 180, 1);
+            // Curva com amortecimento elástico
+            const recoilDist = Math.sin(recoilT * Math.PI * 0.75) * (cellSize * 0.38);
+            path[0] = {
+              x: path[0].x - s.dir.x * (recoilDist / cellSize),
+              y: path[0].y - s.dir.y * (recoilDist / cellSize)
+            };
+          }
+
           ctx.save();
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
 
-          // 1. Outline externo com brilho suave
-          ctx.lineWidth = SNAKE_W + 5;
+          // 1. Sombra suave de contato projetada no tabuleiro (profundidade realista)
+          ctx.lineWidth = SNAKE_W;
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.28)';
+          ctx.beginPath();
+          ctx.moveTo(path[0].x * cellSize + cellSize / 2 + 1.5, path[0].y * cellSize + cellSize / 2 + 2.5);
+          for (let i = 1; i < path.length; i++) {
+            ctx.lineTo(path[i].x * cellSize + cellSize / 2 + 1.5, path[i].y * cellSize + cellSize / 2 + 2.5);
+          }
+          ctx.stroke();
+
+          // 2. Contorno limpo e elegante
+          ctx.lineWidth = SNAKE_W + 3;
           ctx.strokeStyle = theme.snakeOutline;
           ctx.beginPath();
           ctx.moveTo(path[0].x * cellSize + cellSize / 2, path[0].y * cellSize + cellSize / 2);
@@ -321,12 +346,7 @@ export function SnakeGame() {
           }
           ctx.stroke();
 
-          // 2. Corpo base da cobra
-          ctx.lineWidth = SNAKE_W;
-          ctx.strokeStyle = theme.snakeBody;
-          ctx.stroke();
-
-          // 3. Gradiente contínuo da cabeça até a cauda
+          // 3. Corpo principal com gradiente suave contínuo e uniforme (cabeça → cauda)
           if (path.length >= 2) {
             const gx0 = path[0].x * cellSize + cellSize / 2;
             const gy0 = path[0].y * cellSize + cellSize / 2;
@@ -334,89 +354,45 @@ export function SnakeGame() {
             const gyN = path[path.length - 1].y * cellSize + cellSize / 2;
             const bodyGrad = ctx.createLinearGradient(gx0, gy0, gxN, gyN);
             bodyGrad.addColorStop(0, theme.snakeBody);
-            bodyGrad.addColorStop(0.5, theme.snakeBody);
             bodyGrad.addColorStop(1, theme.snakeShade);
             ctx.lineWidth = SNAKE_W;
             ctx.strokeStyle = bodyGrad;
-            ctx.globalAlpha = 0.55;
             ctx.stroke();
-            ctx.globalAlpha = 1;
+          } else {
+            ctx.lineWidth = SNAKE_W;
+            ctx.strokeStyle = theme.snakeBody;
+            ctx.stroke();
           }
 
-          // 4. Luz especular dorsal (gloss tridimensional cilíndrico)
-          ctx.lineWidth = Math.max(2, SNAKE_W * 0.28);
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+          // 4. Luz dorsal acetinada contínua (volume 3D cilíndrico suave, sem pontos piscando)
+          ctx.lineWidth = Math.max(1.5, SNAKE_W * 0.26);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
           ctx.stroke();
-          ctx.restore();
 
-          // 5. Escamas dorsais elegantes em padrão Chevron / Diamante
-          // Desenha placas de escamas estilizadas no centro do corpo, alinhadas à curvatura
+          // 5. Sulcos segmentares discretos (anéis ultra sutis nas vértebras para textura natural)
           if (path.length >= 2) {
-            ctx.save();
-            for (let i = path.length - 1; i >= 1; i--) {
-              const pA = path[i];     // em direção à cauda
-              const pB = path[i - 1]; // em direção à cabeça
-              const ax = pA.x * cellSize + cellSize / 2;
-              const ay = pA.y * cellSize + cellSize / 2;
-              const bx = pB.x * cellSize + cellSize / 2;
-              const by = pB.y * cellSize + cellSize / 2;
+            for (let i = 1; i < path.length; i++) {
+              const ax = path[i - 1].x * cellSize + cellSize / 2;
+              const ay = path[i - 1].y * cellSize + cellSize / 2;
+              const bx = path[i].x * cellSize + cellSize / 2;
+              const by = path[i].y * cellSize + cellSize / 2;
               const dx = bx - ax;
               const dy = by - ay;
-              const segLen = Math.sqrt(dx * dx + dy * dy);
-              if (segLen < 0.001) continue;
+              const len = Math.sqrt(dx * dx + dy * dy);
+              if (len < 0.001) continue;
+              const perpX = -dy / len;
+              const perpY = dx / len;
+              const ringHalf = SNAKE_W * 0.38;
 
-              const angle = Math.atan2(dy, dx);
-              // Proporção de onde estamos no corpo (0 na cauda, 1 na cabeça)
-              const bodyT = (path.length - i) / path.length;
-
-              // Anéis de escama sutis transversais (sulcos segmentares de réptil)
-              const perpX = -dy / segLen;
-              const perpY = dx / segLen;
-              const ringW = SNAKE_W * 0.42;
               ctx.beginPath();
-              ctx.moveTo(bx - perpX * ringW, by - perpY * ringW);
-              ctx.lineTo(bx + perpX * ringW, by + perpY * ringW);
-              ctx.strokeStyle = theme.snakeShade;
-              ctx.lineWidth = Math.max(1.5, cellSize * 0.08);
-              ctx.globalAlpha = 0.5;
+              ctx.moveTo(bx - perpX * ringHalf, by - perpY * ringHalf);
+              ctx.lineTo(bx + perpX * ringHalf, by + perpY * ringHalf);
+              ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+              ctx.lineWidth = 1.2;
               ctx.stroke();
-
-              // Escama dorsal em diamante / chevron no centro do segmento
-              const midX = (ax + bx) * 0.5;
-              const midY = (ay + by) * 0.5;
-              const scaleLen = Math.min(segLen * 0.85, cellSize * 0.48);
-              const scaleWidth = cellSize * 0.36;
-
-              ctx.save();
-              ctx.translate(midX, midY);
-              ctx.rotate(angle);
-              ctx.globalAlpha = 0.9;
-
-              // Desenho da escama dorsal em forma de diamante esculpido
-              ctx.beginPath();
-              ctx.moveTo(scaleLen * 0.5, 0);                 // ponta frontal
-              ctx.lineTo(0, scaleWidth * 0.5);               // asa direita
-              ctx.lineTo(-scaleLen * 0.5, 0);                // ponta traseira
-              ctx.lineTo(0, -scaleWidth * 0.5);              // asa esquerda
-              ctx.closePath();
-
-              // Gradiente da escama (brilho neon no centro com borda definida)
-              ctx.fillStyle = i % 2 === 0 ? theme.borderNeon : theme.snakeOutline;
-              ctx.globalAlpha = 0.75 + bodyT * 0.2;
-              ctx.fill();
-
-              // Linha da crista da escama (dorsal ridge highlight)
-              ctx.beginPath();
-              ctx.moveTo(-scaleLen * 0.4, 0);
-              ctx.lineTo(scaleLen * 0.4, 0);
-              ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-              ctx.lineWidth = Math.max(1, cellSize * 0.05);
-              ctx.stroke();
-
-              ctx.restore();
             }
-            ctx.restore();
           }
+          ctx.restore();
 
           // ── CABEÇA EXPRESSIVA & CARA DE DERROTA NA BATIDA ─────────────────
           const hx = path[0].x * cellSize + cellSize / 2;
@@ -430,7 +406,7 @@ export function SnakeGame() {
           }
           const SNAKE_W2 = cellSize - 4;
           const eyeOffset = SNAKE_W2 * 0.26;
-          const eyeFwd = SNAKE_W2 * 0.32;
+          const eyeFwd = SNAKE_W2 * 0.30;
           const eyeRadius = Math.max(3, Math.round(cellSize * 0.16));
           const pupilRadius = Math.max(1.5, Math.round(cellSize * 0.09));
           const perp = { x: -vy, y: vx };
