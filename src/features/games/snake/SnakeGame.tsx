@@ -500,16 +500,6 @@ export function SnakeGame() {
               ctx.fill();
               ctx.restore();
             }
-              ctx.lineWidth = 1;
-              ctx.stroke();
-
-              // Ponto brilhante central
-              ctx.fillStyle = '#ffffff';
-              ctx.beginPath();
-              ctx.arc(0, 0, starSize * 0.28, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.restore();
-            }
 
           } else {
             // ─── CENÁRIO NORMAL / JOGANDO: CABEÇA VIVA, PISCAR E LÍNGUA ─────
