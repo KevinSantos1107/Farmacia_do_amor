@@ -343,7 +343,7 @@ export function SnakeGame() {
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
 
-          // 1. Contorno nítido e limpo
+          // Outline
           ctx.lineWidth = SNAKE_W + 4;
           ctx.strokeStyle = theme.snakeOutline;
           ctx.beginPath();
@@ -353,11 +353,16 @@ export function SnakeGame() {
           }
           ctx.stroke();
 
-          // 2. Corpo sólido limpo na cor do tema (sem camadas extras)
+          // Body
           ctx.lineWidth = SNAKE_W;
           ctx.strokeStyle = theme.snakeBody;
           ctx.stroke();
 
+          // Shine
+          ctx.lineWidth = SNAKE_W * 0.3;
+          ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+          ctx.translate(-SNAKE_W * 0.15, -SNAKE_W * 0.15);
+          ctx.stroke();
           ctx.restore();
 
           // ── CABEÇA EXPRESSIVA & CARA DE DERROTA NA BATIDA ─────────────────
