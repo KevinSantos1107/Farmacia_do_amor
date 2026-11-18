@@ -271,8 +271,6 @@ export function SnakeGame() {
             s.particles.push(...spawnParticles(headX, headY));
             // [novo] Ring de expansão ao comer
             (s.rings as Ring[]).push({ x: headX, y: headY, r: cellSize * 0.3, alpha: 1 });
-            // [novo] Popup de pontuação ao comer
-            (s.popups as Popup[]).push({ x: headX, y: headY - cellSize * 0.5, alpha: 1, vy: -1.2, text: '+10' });
             s.spawnedParticlesForThisEat = true;
           }
 
@@ -313,8 +311,8 @@ export function SnakeGame() {
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
 
-          // Outline
-          ctx.lineWidth = SNAKE_W + 4;
+          // 1. Outline externo com brilho suave
+          ctx.lineWidth = SNAKE_W + 5;
           ctx.strokeStyle = theme.snakeOutline;
           ctx.beginPath();
           ctx.moveTo(path[0].x * cellSize + cellSize / 2, path[0].y * cellSize + cellSize / 2);
@@ -323,12 +321,12 @@ export function SnakeGame() {
           }
           ctx.stroke();
 
-          // Body
+          // 2. Corpo base da cobra
           ctx.lineWidth = SNAKE_W;
           ctx.strokeStyle = theme.snakeBody;
           ctx.stroke();
 
-          // [novo] MELHORIA 1: Gradiente linear cabeça→cauda sobre o corpo
+          // 3. Gradiente contínuo da cabeça até a cauda
           if (path.length >= 2) {
             const gx0 = path[0].x * cellSize + cellSize / 2;
             const gy0 = path[0].y * cellSize + cellSize / 2;
@@ -336,54 +334,91 @@ export function SnakeGame() {
             const gyN = path[path.length - 1].y * cellSize + cellSize / 2;
             const bodyGrad = ctx.createLinearGradient(gx0, gy0, gxN, gyN);
             bodyGrad.addColorStop(0, theme.snakeBody);
+            bodyGrad.addColorStop(0.5, theme.snakeBody);
             bodyGrad.addColorStop(1, theme.snakeShade);
             ctx.lineWidth = SNAKE_W;
             ctx.strokeStyle = bodyGrad;
-            ctx.globalAlpha = 0.45;
+            ctx.globalAlpha = 0.55;
             ctx.stroke();
             ctx.globalAlpha = 1;
           }
 
-          // Shine
-          ctx.lineWidth = SNAKE_W * 0.3;
-          ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-          ctx.translate(-SNAKE_W * 0.15, -SNAKE_W * 0.15);
+          // 4. Luz especular dorsal (gloss tridimensional cilíndrico)
+          ctx.lineWidth = Math.max(2, SNAKE_W * 0.28);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
           ctx.stroke();
           ctx.restore();
 
-          // [novo] MELHORIA 1: Escamas semitransparentes ao longo do corpo
+          // 5. Escamas dorsais elegantes em padrão Chevron / Diamante
+          // Desenha placas de escamas estilizadas no centro do corpo, alinhadas à curvatura
           if (path.length >= 2) {
             ctx.save();
-            ctx.fillStyle = theme.scaleColor;
-            for (let i = 0; i < path.length - 1; i++) {
-              const ax = path[i].x * cellSize + cellSize / 2;
-              const ay = path[i].y * cellSize + cellSize / 2;
-              const bx = path[i + 1].x * cellSize + cellSize / 2;
-              const by = path[i + 1].y * cellSize + cellSize / 2;
-              const tx = bx - ax;
-              const ty = by - ay;
-              const len = Math.sqrt(tx * tx + ty * ty);
-              if (len < 0.001) continue;
-              const angle = Math.atan2(ty, tx);
-              // Posição intermediária entre os dois segmentos
-              const mx = (ax + bx) / 2;
-              const my = (ay + by) / 2;
-              // Perpendicular normalizada
-              const px = -ty / len;
-              const py = tx / len;
-              // Alterna lado a cada segmento
-              const side = i % 2 === 0 ? 1 : -1;
-              const SNAKE_W2 = cellSize - 4;
-              const ex = mx + px * SNAKE_W2 * 0.22 * side;
-              const ey = my + py * SNAKE_W2 * 0.22 * side;
+            for (let i = path.length - 1; i >= 1; i--) {
+              const pA = path[i];     // em direção à cauda
+              const pB = path[i - 1]; // em direção à cabeça
+              const ax = pA.x * cellSize + cellSize / 2;
+              const ay = pA.y * cellSize + cellSize / 2;
+              const bx = pB.x * cellSize + cellSize / 2;
+              const by = pB.y * cellSize + cellSize / 2;
+              const dx = bx - ax;
+              const dy = by - ay;
+              const segLen = Math.sqrt(dx * dx + dy * dy);
+              if (segLen < 0.001) continue;
+
+              const angle = Math.atan2(dy, dx);
+              // Proporção de onde estamos no corpo (0 na cauda, 1 na cabeça)
+              const bodyT = (path.length - i) / path.length;
+
+              // Anéis de escama sutis transversais (sulcos segmentares de réptil)
+              const perpX = -dy / segLen;
+              const perpY = dx / segLen;
+              const ringW = SNAKE_W * 0.42;
               ctx.beginPath();
-              ctx.ellipse(ex, ey, SNAKE_W2 * 0.18, SNAKE_W2 * 0.32, angle, 0, Math.PI * 2);
+              ctx.moveTo(bx - perpX * ringW, by - perpY * ringW);
+              ctx.lineTo(bx + perpX * ringW, by + perpY * ringW);
+              ctx.strokeStyle = theme.snakeShade;
+              ctx.lineWidth = Math.max(1.5, cellSize * 0.08);
+              ctx.globalAlpha = 0.5;
+              ctx.stroke();
+
+              // Escama dorsal em diamante / chevron no centro do segmento
+              const midX = (ax + bx) * 0.5;
+              const midY = (ay + by) * 0.5;
+              const scaleLen = Math.min(segLen * 0.85, cellSize * 0.48);
+              const scaleWidth = cellSize * 0.36;
+
+              ctx.save();
+              ctx.translate(midX, midY);
+              ctx.rotate(angle);
+              ctx.globalAlpha = 0.9;
+
+              // Desenho da escama dorsal em forma de diamante esculpido
+              ctx.beginPath();
+              ctx.moveTo(scaleLen * 0.5, 0);                 // ponta frontal
+              ctx.lineTo(0, scaleWidth * 0.5);               // asa direita
+              ctx.lineTo(-scaleLen * 0.5, 0);                // ponta traseira
+              ctx.lineTo(0, -scaleWidth * 0.5);              // asa esquerda
+              ctx.closePath();
+
+              // Gradiente da escama (brilho neon no centro com borda definida)
+              ctx.fillStyle = i % 2 === 0 ? theme.borderNeon : theme.snakeOutline;
+              ctx.globalAlpha = 0.75 + bodyT * 0.2;
               ctx.fill();
+
+              // Linha da crista da escama (dorsal ridge highlight)
+              ctx.beginPath();
+              ctx.moveTo(-scaleLen * 0.4, 0);
+              ctx.lineTo(scaleLen * 0.4, 0);
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+              ctx.lineWidth = Math.max(1, cellSize * 0.05);
+              ctx.stroke();
+
+              ctx.restore();
             }
             ctx.restore();
           }
 
-          // ── [novo] MELHORIA 2: Cabeça mais expressiva ─────────────────────
+          // ── CABEÇA EXPRESSIVA & CARA DE DERROTA NA BATIDA ─────────────────
           const hx = path[0].x * cellSize + cellSize / 2;
           const hy = path[0].y * cellSize + cellSize / 2;
           let vx = s.dir.x, vy = s.dir.y;
@@ -394,93 +429,265 @@ export function SnakeGame() {
             if (len > 0.001) { vx = dx / len; vy = dy / len; }
           }
           const SNAKE_W2 = cellSize - 4;
-          const eyeOffset = SNAKE_W2 * 0.25;
-          const eyeFwd = SNAKE_W2 * 0.3;
-          const eyeRadius = Math.max(2.5, Math.round(cellSize * 0.14));
-          const pupilRadius = Math.max(1.2, Math.round(cellSize * 0.08));
+          const eyeOffset = SNAKE_W2 * 0.26;
+          const eyeFwd = SNAKE_W2 * 0.32;
+          const eyeRadius = Math.max(3, Math.round(cellSize * 0.16));
+          const pupilRadius = Math.max(1.5, Math.round(cellSize * 0.09));
           const perp = { x: -vy, y: vx };
 
-          // Atualizar estado de piscar
           const now = performance.now();
-          if (now >= blinkTime.current) {
-            blinkUntil.current = now + 120;
-            blinkTime.current = now + 2500 + Math.random() * 3500;
-          }
-          const isBlinking = now < blinkUntil.current;
 
-          // Atualizar estado de língua
-          if (now >= tongueTime.current) {
-            tongueUntil.current = now + 300;
-            tongueTime.current = now + 1500 + Math.random() * 3000;
-          }
-          const showTongue = now < tongueUntil.current && s.phase === 'playing' && !s.isWaiting;
+          // ─── CENÁRIO DE GAME OVER: CARA DE DERROTA COMPLETA (BATIDA) ─────
+          if (s.phase === 'gameOver') {
+            const hitTime = s.gameOverTime > 0 ? now - s.gameOverTime : 0;
 
-          // Desenhar língua (antes dos olhos)
-          if (showTongue) {
-            const tongueLen = cellSize * 0.45;
-            const forkLen = cellSize * 0.18;
-            const tx = hx + vx * (eyeFwd + SNAKE_W2 * 0.5);
-            const ty = hy + vy * (eyeFwd + SNAKE_W2 * 0.5);
+            // 1. Boca de derrota: aberta em choque com a língua caída para o lado ("bleh")
+            const mouthX = hx + vx * (eyeFwd + SNAKE_W2 * 0.28);
+            const mouthY = hy + vy * (eyeFwd + SNAKE_W2 * 0.28);
+
+            // Boquinha aberta (arco escuro triste)
             ctx.save();
-            ctx.strokeStyle = '#ff2d55';
-            ctx.lineWidth = Math.max(1.5, cellSize * 0.07);
-            ctx.lineCap = 'round';
+            ctx.fillStyle = '#1c1917';
             ctx.beginPath();
-            ctx.moveTo(tx, ty);
-            const mx = tx + vx * tongueLen * 0.6;
-            const my = ty + vy * tongueLen * 0.6;
-            ctx.lineTo(mx, my);
-            // Fork esquerdo
-            ctx.moveTo(mx, my);
-            ctx.lineTo(mx + vx * forkLen - vy * forkLen * 0.5, my + vy * forkLen + vx * forkLen * 0.5);
-            // Fork direito
-            ctx.moveTo(mx, my);
-            ctx.lineTo(mx + vx * forkLen + vy * forkLen * 0.5, my + vy * forkLen - vx * forkLen * 0.5);
+            ctx.arc(mouthX, mouthY, eyeRadius * 0.9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            // Língua desmaiada caída para o lado (flácida)
+            const tongueHangX = mouthX + perp.x * (cellSize * 0.28) + vx * (cellSize * 0.15);
+            const tongueHangY = mouthY + perp.y * (cellSize * 0.28) + vy * (cellSize * 0.15);
+            ctx.beginPath();
+            ctx.moveTo(mouthX, mouthY);
+            ctx.quadraticCurveTo(mouthX + perp.x * (cellSize * 0.18), mouthY + perp.y * (cellSize * 0.18), tongueHangX, tongueHangY);
+            ctx.strokeStyle = '#ff2d55';
+            ctx.lineWidth = Math.max(2, cellSize * 0.09);
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            // Pontinha bífida mole
+            ctx.beginPath();
+            ctx.moveTo(tongueHangX, tongueHangY);
+            ctx.lineTo(tongueHangX + perp.x * 3 + vx * 2, tongueHangY + perp.y * 3 + vy * 2);
+            ctx.moveTo(tongueHangX, tongueHangY);
+            ctx.lineTo(tongueHangX + perp.x * 2 - vx * 3, tongueHangY + perp.y * 2 - vy * 3);
             ctx.stroke();
             ctx.restore();
-          }
 
-          // Olhos: X (game over) | piscando | normais
-          if (s.phase === 'gameOver') {
-            // [novo] Olhos em X no game over
-            for (const side of [-1, 1]) {
-              const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
-              const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
+            // 2. Olhos de Nocaute: Um em Espiral girando contínua, o outro em "X" dolorido
+            // Olho esquerdo (Espiral de tontura girando continuamente)
+            const e1x = hx + vx * eyeFwd + perp.x * eyeOffset;
+            const e1y = hy + vy * eyeFwd + perp.y * eyeOffset;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(e1x, e1y, eyeRadius * 1.15, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Espiral de tontura girando
+            ctx.beginPath();
+            const spiralAngle = now * 0.007;
+            const maxR = eyeRadius * 0.85;
+            for (let a = 0; a < Math.PI * 4; a += 0.25) {
+              const r = (a / (Math.PI * 4)) * maxR;
+              const sx = e1x + Math.cos(a + spiralAngle) * r;
+              const sy = e1y + Math.sin(a + spiralAngle) * r;
+              if (a === 0) ctx.moveTo(sx, sy);
+              else ctx.lineTo(sx, sy);
+            }
+            ctx.strokeStyle = '#1e1b4b';
+            ctx.lineWidth = Math.max(1.5, cellSize * 0.06);
+            ctx.stroke();
+            ctx.restore();
+
+            // Olho direito (X estilizado com pálpebra dolorida)
+            const e2x = hx + vx * eyeFwd - perp.x * eyeOffset;
+            const e2y = hy + vy * eyeFwd - perp.y * eyeOffset;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(e2x, e2y, eyeRadius * 1.15, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // "X" de impacto no olho
+            const xr = eyeRadius * 0.65;
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = Math.max(2, cellSize * 0.08);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(e2x - xr, e2y - xr); ctx.lineTo(e2x + xr, e2y + xr);
+            ctx.moveTo(e2x + xr, e2y - xr); ctx.lineTo(e2x - xr, e2y + xr);
+            ctx.stroke();
+            ctx.restore();
+
+            // Sobrancelhas de sofrimento/derrota caídas em ângulo (\ /)
+            ctx.save();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(1.5, cellSize * 0.07);
+            ctx.lineCap = 'round';
+            // Sobrancelha esquerda
+            ctx.beginPath();
+            ctx.moveTo(e1x - perp.x * (eyeRadius * 0.9) - vx * (eyeRadius * 0.4), e1y - perp.y * (eyeRadius * 0.9) - vy * (eyeRadius * 0.4));
+            ctx.lineTo(e1x + perp.x * (eyeRadius * 0.7) + vx * (eyeRadius * 0.5), e1y + perp.y * (eyeRadius * 0.7) + vy * (eyeRadius * 0.5));
+            ctx.stroke();
+            // Sobrancelha direita
+            ctx.beginPath();
+            ctx.moveTo(e2x + perp.x * (eyeRadius * 0.9) - vx * (eyeRadius * 0.4), e2y + perp.y * (eyeRadius * 0.9) - vy * (eyeRadius * 0.4));
+            ctx.lineTo(e2x - perp.x * (eyeRadius * 0.7) + vx * (eyeRadius * 0.5), e2y - perp.y * (eyeRadius * 0.7) + vy * (eyeRadius * 0.5));
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Gotinha de Lágrima / Suor animada (Cartoon Sweat / Tear drop)
+            const tearX = e2x - perp.x * (eyeRadius * 1.2);
+            const tearY = e2y - perp.y * (eyeRadius * 1.2) + Math.sin(now * 0.008) * 1.5;
+            ctx.save();
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(tearX, tearY, eyeRadius * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(tearX - eyeRadius * 0.4, tearY);
+            ctx.lineTo(tearX, tearY - eyeRadius * 0.9);
+            ctx.lineTo(tearX + eyeRadius * 0.4, tearY);
+            ctx.closePath();
+            ctx.fill();
+            // Brilho na lágrima
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(tearX - eyeRadius * 0.15, tearY - eyeRadius * 0.15, eyeRadius * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 4. Estrelinhas de Atordoamento Orbitando ("Dizzy Stars")
+            // 3 estrelas brilhantes girando em órbita elíptica em torno da cabeça
+            const numStars = 3;
+            const orbitRx = cellSize * 0.75;
+            const orbitRy = cellSize * 0.38;
+            for (let st = 0; st < numStars; st++) {
+              const starAngle = now * 0.005 + (st * Math.PI * 2) / numStars;
+              const starX = hx + Math.cos(starAngle) * orbitRx;
+              const starY = hy - cellSize * 0.45 + Math.sin(starAngle) * orbitRy;
+
+              ctx.save();
+              ctx.translate(starX, starY);
+              ctx.rotate(now * 0.008 + st);
+              const starSize = Math.max(3.5, cellSize * 0.16);
+
+              // Desenha estrela de 4 pontas fofa dourada
+              ctx.fillStyle = '#facc15';
+              ctx.beginPath();
+              for (let pt = 0; pt < 8; pt++) {
+                const a = (pt * Math.PI) / 4;
+                const r = pt % 2 === 0 ? starSize : starSize * 0.38;
+                const px = Math.cos(a) * r;
+                const py = Math.sin(a) * r;
+                if (pt === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+              }
+              ctx.closePath();
+              ctx.fill();
+              ctx.strokeStyle = '#ca8a04';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+
+              // Ponto brilhante central
+              ctx.fillStyle = '#ffffff';
+              ctx.beginPath();
+              ctx.arc(0, 0, starSize * 0.28, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+
+          } else {
+            // ─── CENÁRIO NORMAL / JOGANDO: CABEÇA VIVA, PISCAR E LÍNGUA ─────
+            // Atualizar estado de piscar
+            if (now >= blinkTime.current) {
+              blinkUntil.current = now + 120;
+              blinkTime.current = now + 2500 + Math.random() * 3500;
+            }
+            const isBlinking = now < blinkUntil.current;
+
+            // Atualizar estado de língua
+            if (now >= tongueTime.current) {
+              tongueUntil.current = now + 300;
+              tongueTime.current = now + 1500 + Math.random() * 3000;
+            }
+            const showTongue = now < tongueUntil.current && s.phase === 'playing' && !s.isWaiting;
+
+            // Desenhar língua bífida
+            if (showTongue) {
+              const tongueLen = cellSize * 0.45;
+              const forkLen = cellSize * 0.18;
+              const tx = hx + vx * (eyeFwd + SNAKE_W2 * 0.5);
+              const ty = hy + vy * (eyeFwd + SNAKE_W2 * 0.5);
               ctx.save();
               ctx.strokeStyle = '#ff2d55';
-              ctx.lineWidth = Math.max(2, eyeRadius * 0.6);
+              ctx.lineWidth = Math.max(1.5, cellSize * 0.07);
               ctx.lineCap = 'round';
-              const r = eyeRadius * 0.7;
               ctx.beginPath();
-              ctx.moveTo(ex - r, ey - r); ctx.lineTo(ex + r, ey + r);
-              ctx.moveTo(ex + r, ey - r); ctx.lineTo(ex - r, ey + r);
+              ctx.moveTo(tx, ty);
+              const mx = tx + vx * tongueLen * 0.6;
+              const my = ty + vy * tongueLen * 0.6;
+              ctx.lineTo(mx, my);
+              // Fork esquerdo
+              ctx.moveTo(mx, my);
+              ctx.lineTo(mx + vx * forkLen - vy * forkLen * 0.5, my + vy * forkLen + vx * forkLen * 0.5);
+              // Fork direito
+              ctx.moveTo(mx, my);
+              ctx.lineTo(mx + vx * forkLen + vy * forkLen * 0.5, my + vy * forkLen - vx * forkLen * 0.5);
               ctx.stroke();
               ctx.restore();
             }
-          } else if (isBlinking) {
-            // [novo] Linha fina fechada ao piscar
-            for (const side of [-1, 1]) {
-              const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
-              const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
-              ctx.save();
-              ctx.strokeStyle = '#fff';
-              ctx.lineWidth = Math.max(1.5, eyeRadius * 0.5);
-              ctx.lineCap = 'round';
-              const r2 = eyeRadius * 0.7;
-              ctx.beginPath();
-              ctx.moveTo(ex - r2, ey); ctx.lineTo(ex + r2, ey);
-              ctx.stroke();
-              ctx.restore();
-            }
-          } else {
-            // Olhos normais
-            for (const side of [-1, 1]) {
-              const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
-              const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
-              ctx.beginPath(); ctx.arc(ex, ey, eyeRadius, 0, Math.PI * 2);
-              ctx.fillStyle = '#fff'; ctx.fill();
-              ctx.beginPath(); ctx.arc(ex + vx * 1.5, ey + vy * 1.5, pupilRadius, 0, Math.PI * 2);
-              ctx.fillStyle = '#000'; ctx.fill();
+
+            if (isBlinking) {
+              // Linha fina fechada ao piscar
+              for (const side of [-1, 1]) {
+                const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
+                const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
+                ctx.save();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = Math.max(1.8, eyeRadius * 0.55);
+                ctx.lineCap = 'round';
+                const r2 = eyeRadius * 0.75;
+                ctx.beginPath();
+                ctx.moveTo(ex - r2, ey); ctx.lineTo(ex + r2, ey);
+                ctx.stroke();
+                ctx.restore();
+              }
+            } else {
+              // Olhos normais com reflexo expressivo
+              for (const side of [-1, 1]) {
+                const ex = hx + vx * eyeFwd + perp.x * eyeOffset * side;
+                const ey = hy + vy * eyeFwd + perp.y * eyeOffset * side;
+                // Globo ocular branco com contorno fino escuro
+                ctx.beginPath();
+                ctx.arc(ex, ey, eyeRadius, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Pupila olhando na direção do movimento
+                const pupX = ex + vx * (eyeRadius * 0.35);
+                const pupY = ey + vy * (eyeRadius * 0.35);
+                ctx.beginPath();
+                ctx.arc(pupX, pupY, pupilRadius, 0, Math.PI * 2);
+                ctx.fillStyle = '#0f172a';
+                ctx.fill();
+
+                // Ponto de brilho de luz na pupila (olhar vivo)
+                ctx.beginPath();
+                ctx.arc(pupX - 1, pupY - 1, Math.max(1, pupilRadius * 0.4), 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+              }
             }
           }
         }
@@ -510,21 +717,6 @@ export function SnakeGame() {
           ctx.strokeStyle = theme.food;
           ctx.lineWidth = 2;
           ctx.stroke();
-          ctx.restore();
-        }
-
-        // [novo] MELHORIA 5: Popups de pontuação ao comer
-        for (let i = (s.popups as Popup[]).length - 1; i >= 0; i--) {
-          const pop = (s.popups as Popup[])[i];
-          pop.y += pop.vy;
-          pop.alpha -= 0.022;
-          if (pop.alpha <= 0) { (s.popups as Popup[]).splice(i, 1); continue; }
-          ctx.save();
-          ctx.globalAlpha = pop.alpha;
-          ctx.fillStyle = theme.textPrimary;
-          ctx.font = `bold ${Math.max(10, cellSize * 0.55)}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.fillText(pop.text, pop.x, pop.y);
           ctx.restore();
         }
       }; // fim drawGameContent
