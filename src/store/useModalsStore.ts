@@ -9,6 +9,8 @@ export type ModalType =
   | 'memory-game'
   | 'sync'
   | 'devotional'
+  | 'universe'
+  | 'milestones'
   | null;
 
 interface ModalsState {

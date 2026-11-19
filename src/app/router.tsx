@@ -13,6 +13,7 @@ const WordGamePage = lazy(() => import('../features/games/word/WordGamePage'));
 const SnakePage = lazy(() => import('../features/games/snake/SnakePage'));
 const StarMapPage = lazy(() => import('../features/maps/StarMapPage'));
 const TimelinePage = lazy(() => import('../features/timeline/TimelinePage'));
+const MilestonesPage = lazy(() => import('../features/milestones/MilestonesPage'));
 const MemoryGamePage = lazy(() => import('../features/games/memory/MemoryGamePage'));
 const SyncPage = lazy(() => import('../features/games/sync/SyncPage'));
 const RetrospectivePage = lazy(() => import('../features/retrospective-v2/RetrospectivePage'));
@@ -128,6 +129,22 @@ export const router = createBrowserRouter([
       {
         path: 'nossa-historia',
         element: <Navigate to="/timeline" replace />,
+      },
+      {
+        path: 'universe',
+        element: (
+          <SuspenseWrapper>
+            <MilestonesPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'marcos',
+        element: <Navigate to="/universe" replace />,
+      },
+      {
+        path: 'universo',
+        element: <Navigate to="/universe" replace />,
       },
       {
         path: 'memory-game',

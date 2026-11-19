@@ -11,6 +11,8 @@ const MODAL_ROUTES: Record<NonNullable<ModalType>, string> = {
   'memory-game': '/memory-game',
   'sync': '/sync',
   'devotional': '/devotional',
+  'universe': '/universe',
+  'milestones': '/universe',
 };
 
 export function GlobalModals() {

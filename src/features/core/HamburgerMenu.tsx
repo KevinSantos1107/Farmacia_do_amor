@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu, X, Home, Clock, Palette, PlayCircle, ChevronDown,
   Heart, Timer, Music, Images, Stars, Gamepad2,
-  Rocket, Snowflake, Waves, Mail, Worm, MessageCircleHeart, SpellCheck2, Layers, BookOpen
+  Rocket, Snowflake, Waves, Mail, Worm, MessageCircleHeart, SpellCheck2, Layers, BookOpen,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 import { useThemeStore } from '../../store/useThemeStore';
@@ -78,6 +79,7 @@ const INTERACTIVE_ITEMS: {
   route: string;
   Icon: React.ElementType;
 }[] = [
+  { modal: 'universe',     label: 'Universo de Marcos', route: '/universe',   Icon: Sparkles },
   { modal: 'word-game',    label: 'Jogo de Palavras', route: '/word-game',   Icon: Gamepad2 },
   { modal: 'snake',        label: 'Cobrinha',         route: '/snake',       Icon: Worm },
   { modal: 'star-map',     label: 'Mapa das Estrelas', route: '/star-map',   Icon: Stars },
