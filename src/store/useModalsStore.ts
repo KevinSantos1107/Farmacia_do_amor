@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 export type ModalType =
   | 'word-game'
+  | 'word-duel'
   | 'snake'
   | 'star-map'
   | 'timeline'

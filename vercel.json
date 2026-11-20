@@ -31,6 +31,17 @@
     },
     "api/music-search.ts": {
       "maxDuration": 30
+    },
+    "api/word-duel-set.ts": {
+      "maxDuration": 30,
+      "includeFiles": "public/pt-5-letters.json"
+    },
+    "api/word-duel-guess.ts": {
+      "maxDuration": 30,
+      "includeFiles": "public/pt-5-letters.json"
+    },
+    "api/word-duel-reset.ts": {
+      "maxDuration": 30
     }
   },
   "rewrites": [

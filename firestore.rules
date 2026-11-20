@@ -67,6 +67,16 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
+    // 4.1 Modo Duelo do Jogo de Palavras (Word Duel)
+    // Sala pública com status e tentativas visíveis aos jogadores autenticados
+    match /word_duel_rooms/{roomId} {
+      allow read, write: if isAuthenticated();
+    }
+    // Palavras secretas: NENHUM cliente pode ler ou escrever. Restrito exclusivamente ao Firebase Admin SDK
+    match /word_duel_secrets/{roomId} {
+      allow read, write: if false;
+    }
+
     // 5. Devocional diário compartilhado (sessões, favoritos e metadados)
     // Requer autenticação anônima — os jogadores já fazem signInAnonymously.
     match /devotional_sessions/{date} {
@@ -180,6 +190,14 @@ service cloud.firestore {
       }
       match /sync_presence/{roomId} {
         allow read, write: if isAuthenticated();
+      }
+
+      // Modo Duelo do Jogo de Palavras (Word Duel) sob o site
+      match /word_duel_rooms/{roomId} {
+        allow read, write: if isAuthenticated();
+      }
+      match /word_duel_secrets/{roomId} {
+        allow read, write: if false;
       }
 
       match /devotional_sessions/{date} {

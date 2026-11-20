@@ -49,7 +49,13 @@ function apiDevPlugin(): Plugin {
           return;
         }
 
-        if (url === '/api/generate-devotional' || url === '/api/generate-quiz') {
+        if (
+          url === '/api/generate-devotional' ||
+          url === '/api/generate-quiz' ||
+          url === '/api/word-duel-set' ||
+          url === '/api/word-duel-guess' ||
+          url === '/api/word-duel-reset'
+        ) {
           if (req.method !== 'POST') {
             res.statusCode = 405;
             res.setHeader('Content-Type', 'application/json');
@@ -72,10 +78,7 @@ function apiDevPlugin(): Plugin {
               }
             }
 
-            const filePath =
-              url === '/api/generate-devotional'
-                ? '/api/generate-devotional.ts'
-                : '/api/generate-quiz.ts';
+            const filePath = `${url}.ts`;
 
             const mod = await server.ssrLoadModule(filePath);
             const handler = mod.default;

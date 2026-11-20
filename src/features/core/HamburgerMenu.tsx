@@ -4,7 +4,7 @@ import {
   Menu, X, Home, Clock, Palette, PlayCircle, ChevronDown,
   Heart, Timer, Music, Images, Stars, Gamepad2,
   Rocket, Snowflake, Waves, Mail, Worm, MessageCircleHeart, SpellCheck2, Layers, BookOpen,
-  Sparkles
+  Sparkles, Swords
 } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 import { useThemeStore } from '../../store/useThemeStore';
@@ -81,6 +81,7 @@ const INTERACTIVE_ITEMS: {
 }[] = [
   { modal: 'universe',     label: 'Universo de Marcos', route: '/universe',   Icon: Sparkles },
   { modal: 'word-game',    label: 'Jogo de Palavras', route: '/word-game',   Icon: Gamepad2 },
+  { modal: 'word-duel',    label: 'Duelo de Palavras', route: '/word-duel',   Icon: Swords },
   { modal: 'snake',        label: 'Cobrinha',         route: '/snake',       Icon: Worm },
   { modal: 'star-map',     label: 'Mapa das Estrelas', route: '/star-map',   Icon: Stars },
   { modal: 'couple-quiz',  label: 'Quiz do Casal',    route: '/quiz',        Icon: MessageCircleHeart },

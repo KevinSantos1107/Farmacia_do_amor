@@ -10,6 +10,7 @@ import { Spinner } from '../shared/ui/Spinner';
 const DevotionalPage = lazy(() => import('../features/devotional/DevotionalPage'));
 const QuizPage = lazy(() => import('../features/quiz/QuizPage'));
 const WordGamePage = lazy(() => import('../features/games/word/WordGamePage'));
+const WordDuelPage = lazy(() => import('../features/games/word-duel/WordDuelPage'));
 const SnakePage = lazy(() => import('../features/games/snake/SnakePage'));
 const StarMapPage = lazy(() => import('../features/maps/StarMapPage'));
 const TimelinePage = lazy(() => import('../features/timeline/TimelinePage'));
@@ -85,6 +86,18 @@ export const router = createBrowserRouter([
       {
         path: 'palavras',
         element: <Navigate to="/word-game" replace />,
+      },
+      {
+        path: 'word-duel',
+        element: (
+          <SuspenseWrapper>
+            <WordDuelPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'duelo',
+        element: <Navigate to="/word-duel" replace />,
       },
       {
         path: 'snake',

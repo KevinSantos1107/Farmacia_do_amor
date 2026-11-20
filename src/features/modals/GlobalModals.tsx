@@ -5,6 +5,7 @@ import { useModalsStore, type ModalType } from '../../store/useModalsStore';
 const MODAL_ROUTES: Record<NonNullable<ModalType>, string> = {
   'timeline': '/timeline',
   'word-game': '/word-game',
+  'word-duel': '/word-duel',
   'snake': '/snake',
   'star-map': '/star-map',
   'couple-quiz': '/quiz',
