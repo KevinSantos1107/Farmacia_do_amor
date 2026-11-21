@@ -69,12 +69,12 @@ export function WordGameStyles() {
 
       @keyframes wg-cursor-breathe {
         0%, 100% {
-          box-shadow: 0 0 0 1.5px var(--theme-primary), 0 0 14px rgba(var(--theme-primary-rgb), 0.5), 0 0 28px rgba(var(--theme-primary-rgb), 0.2);
-          background-color: rgba(var(--theme-primary-rgb), 0.14);
+          box-shadow: 0 0 0 1.5px var(--theme-primary), 0 0 18px var(--theme-primary), 0 0 35px rgba(var(--theme-primary-rgb), 0.5);
+          background-color: rgba(var(--theme-primary-rgb), 0.2);
         }
         50% {
-          box-shadow: 0 0 0 2px var(--theme-primary), 0 0 24px rgba(var(--theme-primary-rgb), 0.9), 0 0 45px rgba(var(--theme-primary-rgb), 0.45);
-          background-color: rgba(var(--theme-primary-rgb), 0.24);
+          box-shadow: 0 0 0 2px var(--theme-primary), 0 0 28px var(--theme-primary), 0 0 50px rgba(var(--theme-primary-rgb), 0.7);
+          background-color: rgba(var(--theme-primary-rgb), 0.3);
         }
       }
 

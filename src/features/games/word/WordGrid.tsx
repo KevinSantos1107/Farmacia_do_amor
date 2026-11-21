@@ -30,13 +30,15 @@ function getDynamicStyle(
   if (state === 'active') {
     return {
       animationDelay: delay,
-      textShadow: '0 0 8px rgba(255,255,255,0.9)',
+      boxShadow:
+        '0 0 24px var(--theme-primary), 0 0 10px var(--theme-primary), inset 0 0 8px rgba(var(--theme-primary-rgb), 0.35)',
+      textShadow: '0 0 10px rgba(255,255,255,1)',
     };
   }
   if (state === 'typed') {
     return {
       animationDelay: delay,
-      boxShadow: '0 0 12px var(--theme-primary)',
+      boxShadow: '0 0 10px var(--theme-primary)',
       textShadow: '0 0 8px rgba(255,255,255,0.8)',
     };
   }

@@ -322,32 +322,40 @@ export function WordDuelBattle({
 
   // Sem limite fixo de 6 tentativas:
   // Durante a animação de revelação de uma tentativa, NÃO adiciona a linha nova ainda!
-  // Somente após todas as letras terminarem de virar (revealingRow === -1), acrescenta a linha ativa (+1).
+  // E quando o jogador acerta todas as letras (vitória), NÃO adiciona linha nova.
+  // Somente após todas as letras terminarem de virar e não sendo vitória, acrescenta a linha ativa (+1).
   const isMyRevealing = revealingRow >= 0;
   const isPartnerRevealing = partnerRevealingRow >= 0;
 
-  const myMaxAttempts = isMyRevealing ? myGuesses.length : myGuesses.length + 1;
-  const partnerMaxAttempts = isPartnerRevealing ? partnerGuesses.length : partnerGuesses.length + 1;
+  const isMyWinning = myGuesses.some(
+    (row) => row.length === 5 && row.every((c) => c.state === 'correct')
+  );
+  const isPartnerWinning = partnerGuesses.some(
+    (row) => row.length === 5 && row.every((c) => c.state === 'correct')
+  );
+
+  const myMaxAttempts = isMyRevealing || isMyWinning ? myGuesses.length : myGuesses.length + 1;
+  const partnerMaxAttempts = isPartnerRevealing || isPartnerWinning ? partnerGuesses.length : partnerGuesses.length + 1;
 
   const myRows = buildGridRows(
     myGuesses,
-    isMyRevealing ? '' : currentInput,
-    isMyRevealing ? -1 : cursorPos,
+    isMyRevealing || isMyWinning ? '' : currentInput,
+    isMyRevealing || isMyWinning ? -1 : cursorPos,
     5,
-    false,
+    isMyWinning,
     myMaxAttempts
   );
 
   // Linhas do parceiro com digitação ao vivo
-  const partnerInputDraft = !isMyTurn && !isPartnerRevealing ? partnerDraft?.text || '' : '';
-  const partnerCursorDraft = !isMyTurn && !isPartnerRevealing ? partnerDraft?.cursor ?? -1 : -1;
+  const partnerInputDraft = !isMyTurn && !isPartnerRevealing && !isPartnerWinning ? partnerDraft?.text || '' : '';
+  const partnerCursorDraft = !isMyTurn && !isPartnerRevealing && !isPartnerWinning ? partnerDraft?.cursor ?? -1 : -1;
 
   const partnerRows = buildGridRows(
     partnerGuesses,
     partnerInputDraft,
     partnerCursorDraft,
     5,
-    false,
+    isPartnerWinning,
     partnerMaxAttempts
   );
 

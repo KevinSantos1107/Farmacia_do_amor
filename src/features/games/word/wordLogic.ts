@@ -73,19 +73,29 @@ export function buildGridRows(
   gameOver: boolean,
   maxAttempts: number = 6
 ): { cells: LetterCell[]; isActive: boolean }[] {
+  // Se o jogador já acertou a palavra (todas as letras 'correct'), não gera mais linha ativa
+  const isWon = guesses.some(
+    (row) => row.length === wordLength && row.every((c) => c.state === 'correct')
+  );
+
   const rows: { cells: LetterCell[]; isActive: boolean }[] = [];
   for (let i = 0; i < maxAttempts; i++) {
     if (i < guesses.length) {
       rows.push({ cells: guesses[i], isActive: false });
-    } else if (i === guesses.length && !gameOver) {
+    } else if (i === guesses.length && !gameOver && !isWon) {
       const isAnimating = currentInput === 'ANIMATING';
       const cells: LetterCell[] = Array(wordLength)
         .fill(null)
         .map((_, j) => {
           if (isAnimating) return { letter: '', state: 'empty' as LetterState };
           let st: LetterState = 'empty';
-          if (j === cursorPos) st = 'active';
-          else if (currentInput[j] && currentInput[j] !== ' ') st = 'typed';
+          if (j === cursorPos) {
+            // Quadrado selecionado pelo clique / cursor ativo: recebe neon mais forte
+            st = 'active';
+          } else if (currentInput[j] && currentInput[j] !== ' ') {
+            // Demais quadrados já digitados: neon padrão
+            st = 'typed';
+          }
 
           return {
             letter: currentInput[j] === ' ' ? '' : (currentInput[j] || ''),
