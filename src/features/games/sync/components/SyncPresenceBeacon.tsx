@@ -12,17 +12,27 @@ export type SyncPresenceState = 'offline' | 'site' | 'game';
 export interface SyncPresenceDoc {
   updatedAt: unknown;
   presence: Record<string, SyncPresenceState>;
+  currentGame?: Record<string, 'sync' | 'word-duel' | null>;
   lastSeen: Record<string, number>;
 }
 
 /** Retorna true se o pathname indica que estamos dentro de um jogo multiplayer (Sincronia ou Duelo) */
-function isOnGameRoute(pathname: string): boolean {
-  return (
+function getActiveGameFromRoute(pathname: string, activeModal: string | null): 'sync' | 'word-duel' | null {
+  if (
+    activeModal === 'sync' ||
     pathname === '/sync' ||
-    pathname === '/sincronia' ||
+    pathname === '/sincronia'
+  ) {
+    return 'sync';
+  }
+  if (
+    activeModal === 'word-duel' ||
     pathname === '/word-duel' ||
     pathname === '/duelo'
-  );
+  ) {
+    return 'word-duel';
+  }
+  return null;
 }
 
 export function SyncPresenceBeacon() {
@@ -39,22 +49,18 @@ export function SyncPresenceBeacon() {
     const roomId = `${p1Id}_${p2Id}`;
     const ref = siteDoc('sync_presence', roomId);
 
-    // Considera "no jogo" tanto quando aberto via modal (sync / word-duel)
-    // quanto quando acessado diretamente pelas rotas de jogo
-    const getStatus = (): SyncPresenceState =>
-      activeModal === 'sync' ||
-      activeModal === 'word-duel' ||
-      isOnGameRoute(location.pathname)
-        ? 'game'
-        : 'site';
+    const activeGame = getActiveGameFromRoute(location.pathname, activeModal);
+    const getStatus = (): SyncPresenceState => (activeGame ? 'game' : 'site');
 
     // IMPORTANT: Use nested objects (not dot-notation keys) so Firestore
     // merges them as sub-fields, not literal dot-in-key field names.
     const updatePresence = (status: SyncPresenceState) => {
+      const currentGameValue = status === 'offline' ? null : activeGame;
       setDoc(
         ref,
         {
           presence: { [player]: status },
+          currentGame: { [player]: currentGameValue },
           lastSeen: { [player]: Date.now() },
           updatedAt: serverTimestamp(),
         },

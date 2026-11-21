@@ -233,26 +233,26 @@ export function SyncGame({ onClose, registerLeaveGame }: { onClose: () => void; 
 
 
   const partnerLeftBanner = room?.leftBy === partnerId ? (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-[99998] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-sm bg-gray-900 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4 text-center"
+        className="w-full max-w-sm sm:max-w-md bg-neutral-900 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center gap-4 text-center"
       >
-        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-2">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/5 flex items-center justify-center overflow-hidden border border-white/10">
           {partnerAvatar ? (
-            <img src={partnerAvatar} alt={partnerName} className="w-full h-full object-cover rounded-full opacity-50 grayscale" />
+            <img src={partnerAvatar} alt={partnerName} className="w-full h-full object-cover opacity-50 grayscale" />
           ) : (
-            <span className="text-2xl opacity-50">{partnerName.charAt(0).toUpperCase()}</span>
+            <span className="text-2xl sm:text-3xl font-bold opacity-50 text-white">{partnerName.charAt(0).toUpperCase()}</span>
           )}
         </div>
-        <h3 className="text-xl font-bold text-white">{partnerName} saiu.</h3>
-        <p className="text-white/60 text-sm">
+        <h3 className="text-xl sm:text-2xl font-bold text-white">{partnerName} saiu da partida.</h3>
+        <p className="text-neutral-400 text-xs sm:text-sm">
           Aguardando retorno... ({partnerLeftTimeout}s)
         </p>
         <button
           onClick={forceEndGame}
-          className="mt-4 w-full py-3 rounded-xl text-sm font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all"
+          className="mt-2 w-full py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all active:scale-95 cursor-pointer"
         >
           Encerrar Partida
         </button>
@@ -278,35 +278,35 @@ export function SyncGame({ onClose, registerLeaveGame }: { onClose: () => void; 
   if (room && room.endGameProposal) {
     const isSender = room.endGameProposal.by === player;
     exitConfirmOverlay = (
-      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+      <div className="fixed inset-0 z-[99998] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-sm bg-gray-900 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4 text-center"
+          className="w-full max-w-sm sm:max-w-md bg-neutral-900 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center gap-4 text-center"
         >
           {isSender ? (
             <>
-              <h3 className="text-xl font-bold text-white">Aguardando...</h3>
-              <p className="text-white/60 text-sm">
+              <h3 className="text-xl sm:text-2xl font-bold text-white">Aguardando...</h3>
+              <p className="text-neutral-400 text-xs sm:text-sm">
                 Esperando resposta de {partnerName} para encerrar a partida.
               </p>
               <button
                 onClick={rejectEndGame}
-                className="mt-2 w-full py-3 rounded-xl text-sm font-semibold text-white/70 bg-white/5 hover:bg-white/10 transition-all"
+                className="mt-2 w-full py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-semibold text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-95 cursor-pointer"
               >
                 Cancelar pedido
               </button>
             </>
           ) : (
             <>
-              <h3 className="text-xl font-bold text-white">Encerrar partida?</h3>
-              <p className="text-white/60 text-sm">
+              <h3 className="text-xl sm:text-2xl font-bold text-white">Encerrar partida?</h3>
+              <p className="text-neutral-400 text-xs sm:text-sm">
                 {partnerName} pediu para encerrar a partida. Aceitar?
               </p>
               <div className="flex gap-3 w-full mt-2">
                 <button
                   onClick={rejectEndGame}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold text-white/70 bg-white/5 hover:bg-white/10 transition-all"
+                  className="flex-1 py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-semibold text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-95 cursor-pointer"
                 >
                   Continuar jogando
                 </button>
@@ -314,7 +314,7 @@ export function SyncGame({ onClose, registerLeaveGame }: { onClose: () => void; 
                   onClick={() => {
                     acceptEndGame();
                   }}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all"
+                  className="flex-1 py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all active:scale-95 cursor-pointer"
                 >
                   Encerrar
                 </button>

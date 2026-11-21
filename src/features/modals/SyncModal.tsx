@@ -24,8 +24,8 @@ export function SyncModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       subtitle="Pensem na mesma palavra sem combinar 💞"
       icon={<Heart className="w-6 h-6" style={{ strokeDasharray: 'none' }} />}
     >
-      <div className="w-full flex flex-col items-center px-3 sm:px-6 md:px-10 py-4 sm:py-6">
-        <div className="w-full max-w-lg md:max-w-2xl lg:max-w-3xl flex flex-col flex-1 min-h-0 overflow-y-auto">
+      <div className="w-full flex flex-col items-center px-2 sm:px-6 md:px-10 py-4 sm:py-6">
+        <div className="w-full max-w-sm sm:max-w-xl md:max-w-2xl lg:max-w-4xl flex flex-col flex-1 min-h-0 overflow-y-auto">
           <SyncGame onClose={onClose} registerLeaveGame={(fn) => { leaveGameRef.current = fn; }} />
         </div>
       </div>

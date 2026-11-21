@@ -30,8 +30,10 @@ export function Lobby({
   onCancelInvite,
 }: LobbyProps) {
   const [starting, setStarting] = useState(false);
+  const isOffline = partnerPresence === 'offline' || !isPartnerOnline;
 
   const handleStart = async (turbo: boolean) => {
+    if (isOffline) return;
     setStarting(true);
     try {
       if (turbo) await onStartTurbo();
@@ -42,7 +44,7 @@ export function Lobby({
   };
 
   return (
-    <div className="w-full flex flex-col items-center justify-center p-4 md:p-8">
+    <div className="w-full flex flex-col items-center justify-center p-3 sm:p-6 md:p-10 max-w-4xl mx-auto">
       {/* Background Orbs */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[var(--theme-primary)] opacity-20 rounded-full blur-[100px] -z-10 mix-blend-screen animate-pulse" />
       <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[var(--theme-accent)] opacity-20 rounded-full blur-[80px] -z-10 mix-blend-screen animate-pulse delay-1000" />
@@ -89,25 +91,38 @@ export function Lobby({
         <div className="flex flex-col gap-3 w-full max-w-sm">
           <button
             onClick={() => handleStart(false)}
-            disabled={!isPartnerOnline || starting}
-            className="group relative w-full py-4 rounded-2xl font-semibold text-base text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden shadow-lg"
+            disabled={isOffline || starting}
+            className="group relative w-full py-4 rounded-2xl font-semibold text-base text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden shadow-lg cursor-pointer"
             aria-label="Começar sessão"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-accent)] opacity-90 group-hover:opacity-100 transition-opacity" />
             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative flex items-center justify-center gap-2">
-              {starting ? 'Criando sala…' : 'Começar'}
+              <Heart className="w-4 h-4" />
+              {starting
+                ? 'Criando sala…'
+                : isOffline
+                ? `Aguardando ${partnerName}...`
+                : partnerPresence === 'site'
+                ? `Convidar ${partnerName}`
+                : 'Começar'}
             </div>
           </button>
 
           <button
             onClick={() => handleStart(true)}
-            disabled={!isPartnerOnline || starting}
-            className="group w-full py-3 rounded-2xl font-medium text-sm text-white/90 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 backdrop-blur-sm"
+            disabled={isOffline || starting}
+            className="group w-full py-3 rounded-2xl font-medium text-sm text-white/90 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 backdrop-blur-sm cursor-pointer"
             aria-label="Modo turbo"
           >
             <Zap className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" />
-            Modo Turbo (30s)
+            {starting
+              ? 'Criando sala…'
+              : isOffline
+              ? `Aguardando ${partnerName}...`
+              : partnerPresence === 'site'
+              ? 'Convidar Modo Turbo'
+              : 'Modo Turbo (30s)'}
           </button>
         </div>
 
@@ -126,14 +141,14 @@ export function Lobby({
             {onCancelInvite && (
               <button
                 onClick={onCancelInvite}
-                className="text-xs text-white/40 hover:text-white/80 transition-colors"
+                className="text-xs text-white/40 hover:text-white/80 transition-colors cursor-pointer"
               >
                 Cancelar convite
               </button>
             )}
           </div>
         )}
-        {!isInviting && !isPartnerOnline && (
+        {!isInviting && isOffline && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: [0.5, 1, 0.5] }}
@@ -142,6 +157,17 @@ export function Lobby({
             aria-live="polite"
           >
             Aguardando {partnerName} conectar…
+          </motion.p>
+        )}
+        {!isInviting && partnerPresence === 'game' && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="text-emerald-400 font-medium text-sm bg-emerald-500/10 border border-emerald-500/20 px-6 py-2 rounded-full"
+            aria-live="polite"
+          >
+            {partnerName} está na sala! Prontos para sincronizar.
           </motion.p>
         )}
       </motion.div>

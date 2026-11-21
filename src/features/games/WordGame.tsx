@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../shared/utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Flame, Swords } from 'lucide-react';
 import { RankingModal } from './ranking/RankingModal';
+import { useModalsStore } from '../../store/useModalsStore';
 
 import type { LetterCell, Question } from './word/types';
 export type { ActiveGameState } from './word/types';
@@ -32,6 +33,8 @@ import { Confetti } from './word/Confetti';
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function WordGame() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { activeModal, closeModal } = useModalsStore();
   const { questions, questionsLoaded } = useWordQuestions();
   const usedWords = useRef<string[]>(loadUsedWords());
   const { isValidWord } = useWordDictionary();
@@ -310,7 +313,11 @@ export function WordGame() {
   // Physical keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      e.stopPropagation();
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      // Não captura teclas se o usuário estiver no Duelo de Palavras ou em outro modal
+      if (activeModal && activeModal !== 'word-game') return;
+      if (location.pathname.startsWith('/word-duel') || location.pathname.startsWith('/duelo')) return;
+
       const key = e.key.toUpperCase();
       if (key === 'ENTER') {
         e.preventDefault();
@@ -321,9 +328,9 @@ export function WordGame() {
         handleKey(key);
       }
     };
-    window.addEventListener('keydown', onKey, { capture: true });
-    return () => window.removeEventListener('keydown', onKey, { capture: true });
-  }, [handleKey]);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleKey, activeModal, location.pathname]);
 
   // Share logic
   const shareOnWhatsApp = () => {
@@ -401,7 +408,10 @@ export function WordGame() {
         <div className="flex items-center gap-2">
           {/* Botão minimalista para alternar para o Modo Duelo 1v1 */}
           <button
-            onClick={() => navigate('/word-duel')}
+            onClick={() => {
+              closeModal();
+              navigate('/word-duel');
+            }}
             className={cn(
               'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-300 border cursor-pointer',
               'bg-gradient-to-r from-amber-500/10 to-rose-500/10 border-amber-500/30 hover:border-amber-400 hover:from-amber-500/20 hover:to-rose-500/20 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)] text-white/90 active:scale-95'

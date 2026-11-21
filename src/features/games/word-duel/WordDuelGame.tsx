@@ -108,7 +108,7 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
     <div className="relative flex flex-col flex-1 w-full min-h-full">
       {/* Banner de Parceiro Saiu (idêntico ao Sincronia, responsivo) */}
       {isPartnerLeft && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-[99998] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

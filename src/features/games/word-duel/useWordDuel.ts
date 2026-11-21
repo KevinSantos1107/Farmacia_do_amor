@@ -74,11 +74,16 @@ export function useWordDuel() {
       if (snap.exists()) {
         const data = snap.data() as SyncPresenceDoc;
         const status = data.presence?.[partnerId] || 'offline';
+        const partnerGame = data.currentGame?.[partnerId];
         const lastSeen = data.lastSeen?.[partnerId] || 0;
         if (status === 'offline' || Date.now() - lastSeen > 20000) {
           setPartnerPresence('offline');
+        } else if (status === 'game' && partnerGame === 'word-duel') {
+          // Parceiro está especificamente na sala do Duelo de Palavras!
+          setPartnerPresence('game');
         } else {
-          setPartnerPresence(status);
+          // Parceiro está no site geral ou em outro jogo (ex: Sincronia)
+          setPartnerPresence('site');
         }
       } else {
         setPartnerPresence('offline');

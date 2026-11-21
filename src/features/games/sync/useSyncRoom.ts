@@ -144,12 +144,17 @@ export function useSyncRoom() {
         const data = snap.data() as SyncPresenceDoc;
         const pId = player === p1Id ? p2Id : p1Id;
         const status = data.presence?.[pId] || 'offline';
+        const partnerGame = data.currentGame?.[pId];
         const lastSeen = data.lastSeen?.[pId] || 0;
         // Se o status explicitamente for offline ou se faz mais de 20s sem heartbeat, considera offline
         if (status === 'offline' || Date.now() - lastSeen > 20000) {
           setPartnerPresence('offline');
+        } else if (status === 'game' && partnerGame === 'sync') {
+          // Parceiro está especificamente na sala do Sincronia!
+          setPartnerPresence('game');
         } else {
-          setPartnerPresence(status);
+          // Parceiro está no site geral ou em outro jogo (ex: Duelo de Palavras)
+          setPartnerPresence('site');
         }
       } else {
         setPartnerPresence('offline');
