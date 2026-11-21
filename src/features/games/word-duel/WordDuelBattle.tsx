@@ -105,26 +105,37 @@ export function WordDuelBattle({
       setRevealingRow(newRowIdx);
       setRevealProgress(0);
 
+      // Intervalo de 220ms por letra (cada letra tem 500ms de CSS flip),
+      // dando 220ms de "head start" antes da próxima começar.
+      // Após a 5ª letra (prog=5), aguarda mais 550ms para o flip CSS terminar
+      // completamente antes de exibir a nova linha de input.
       let prog = 0;
+      let finishTimer: ReturnType<typeof setTimeout> | null = null;
       const interval = setInterval(() => {
         prog++;
         setRevealProgress(prog);
         if (prog >= 5) {
           clearInterval(interval);
-          setRevealingRow(-1);
-          setRevealProgress(-1);
-          setCurrentInput('');
-          setCursorPos(0);
-          isSubmittingRef.current = false;
-          setIsSubmittingLocal(false);
-          if (isWin) {
-            setBounceRow(newRowIdx);
-          }
+          // Aguarda o CSS flip da última letra (500ms) + margem de segurança (50ms)
+          finishTimer = setTimeout(() => {
+            setRevealingRow(-1);
+            setRevealProgress(-1);
+            setCurrentInput('');
+            setCursorPos(0);
+            isSubmittingRef.current = false;
+            setIsSubmittingLocal(false);
+            if (isWin) {
+              setBounceRow(newRowIdx);
+            }
+          }, 550);
         }
-      }, 180);
+      }, 220);
 
       prevGuessesCount.current = myGuesses.length;
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        if (finishTimer) clearTimeout(finishTimer);
+      };
     } else {
       prevGuessesCount.current = myGuesses.length;
     }
@@ -141,21 +152,28 @@ export function WordDuelBattle({
       const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
 
       let prog = 0;
+      let finishTimer: ReturnType<typeof setTimeout> | null = null;
       const interval = setInterval(() => {
         prog++;
         setPartnerRevealProgress(prog);
         if (prog >= 5) {
           clearInterval(interval);
-          setPartnerRevealingRow(-1);
-          setPartnerRevealProgress(-1);
-          if (isWin) {
-            setPartnerBounceRow(newRowIdx);
-          }
+          // Aguarda o CSS flip da última letra (500ms) + margem de segurança (50ms)
+          finishTimer = setTimeout(() => {
+            setPartnerRevealingRow(-1);
+            setPartnerRevealProgress(-1);
+            if (isWin) {
+              setPartnerBounceRow(newRowIdx);
+            }
+          }, 550);
         }
-      }, 180);
+      }, 220);
 
       prevPartnerGuessesCount.current = partnerGuesses.length;
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        if (finishTimer) clearTimeout(finishTimer);
+      };
     } else {
       prevPartnerGuessesCount.current = partnerGuesses.length;
     }
