@@ -207,7 +207,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     res.status(200).json(responseResult);
   } catch (err: unknown) {
-    console.error('Erro em word-duel-guess:', err);
-    res.status(500).json({ error: 'internal_error' });
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error('Erro em word-duel-guess:', msg, stack);
+    res.status(500).json({ error: 'internal_error', detail: msg });
   }
 }

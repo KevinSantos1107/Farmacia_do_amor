@@ -22,9 +22,11 @@ function loadDictionary(): Set<string> {
     path.resolve(cwd, 'public', 'pt-5-letters.json'),
   ];
 
-  // Em ambientes que possuem __dirname
+  // Em ambientes que possuem __dirname (Vercel Serverless: includeFiles copia para mesmo dir da função)
   if (typeof __dirname !== 'undefined') {
     potentialPaths.push(
+      path.join(__dirname, 'pt-5-letters.json'),          // Vercel: mesmo dir da função (includeFiles)
+      path.join(__dirname, '..', 'pt-5-letters.json'),
       path.join(__dirname, '..', '..', 'public', 'pt-5-letters.json'),
       path.join(__dirname, '..', 'public', 'pt-5-letters.json'),
       path.join(__dirname, 'public', 'pt-5-letters.json')
