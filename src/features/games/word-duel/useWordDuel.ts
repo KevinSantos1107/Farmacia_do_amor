@@ -18,6 +18,7 @@ import {
   submitSecretWord,
   submitGuess,
   resetWordDuel,
+  recoverDuelingTransition,
 } from './wordDuelService';
 import type { WordDuelRoom } from './types';
 import type { LetterCell } from '../word/types';
@@ -190,6 +191,20 @@ export function useWordDuel() {
       return () => clearTimeout(timer);
     }
   }, [status, room?.leftBy, partnerPresence, leaveGame, partnerId]);
+
+  // Watchdog: detecta estado preso em waiting_words com ambos já travados.
+  // Isso cobre o race condition de submissão simultânea onde a API de cada
+  // jogador não detectou o outro como pronto na mesma transação.
+  useEffect(() => {
+    if (status !== 'waiting_words') return;
+    if (!myLocked || !partnerLocked) return;
+    // Aguarda 2.5s para dar tempo às APIs de fazerem sua verificação pós-transação.
+    // Se o status ainda não mudou, força a recuperação via cliente.
+    const timer = setTimeout(() => {
+      recoverDuelingTransition(roomId, siteId).catch(() => {});
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [status, myLocked, partnerLocked, roomId, siteId]);
 
   // Ao fechar aba / descarregar janela do navegador
   useEffect(() => {

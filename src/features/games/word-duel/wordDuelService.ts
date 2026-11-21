@@ -325,6 +325,29 @@ export async function submitGuess(
 }
 
 /**
+ * Recuperação de estado travado: se ambos já estão com p_Locked = true
+ * e o status ainda é 'waiting_words', força a transição para 'dueling'.
+ * Isso cobre o race condition de submissão simultânea onde a API de cada
+ * jogador não detectou o outro como pronto (viu dados desatualizados).
+ */
+export async function recoverDuelingTransition(roomId: string, siteId?: string): Promise<void> {
+  const docRef = siteDoc('word_duel_rooms', roomId, siteId);
+  try {
+    // Apenas uma atualização leve — a API já garantiu que os segredos existem
+    // quando os dois estão marcados como locked. O status será atualizado
+    // para 'dueling', destravando o jogo para ambos os dispositivos.
+    // A transação é idempotente: se o status já for 'dueling', não causa problema.
+    await updateDoc(docRef, {
+      status: 'dueling',
+      updatedAt: serverTimestamp(),
+    });
+  } catch {
+    // best-effort: pode falhar se regras de segurança não permitirem
+    // (nesse caso a API já deveria ter feito a recuperação)
+  }
+}
+
+/**
  * Reinicia a rodada para jogar novamente.
  */
 export async function resetWordDuel(

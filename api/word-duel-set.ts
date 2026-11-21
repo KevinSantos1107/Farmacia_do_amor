@@ -204,6 +204,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const lockedField = isP1 ? 'p1Locked' : 'p2Locked';
 
   try {
+    // ── Fase 1: Salvar segredo e fazer transição atômica para 'dueling' ──────
+    let bothReadyFromTx = false;
+
     await db.runTransaction(async (t) => {
       const [roomSnap, secretsSnap] = await Promise.all([
         t.get(roomDocRef),
@@ -212,27 +215,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
       const secretsData = secretsSnap.exists ? secretsSnap.data() || {} : {};
       const roomData = roomSnap.exists ? roomSnap.data() || {} : {};
-
-      const otherLocked = isP1 ? !!roomData.p2Locked : !!roomData.p1Locked;
-      const otherSecret = otherLocked ? (isP1 ? secretsData.p2Secret : secretsData.p1Secret) : null;
       const roundNumber = typeof secretsData.roundNumber === 'number' ? secretsData.roundNumber : 1;
 
+      // Salva ESTRITAMENTE o segredo do jogador atual.
+      // NUNCA zera o segredo do outro jogador aqui (o reset é feito apenas em word-duel-reset).
       const secretsUpdate: Record<string, unknown> = {
         [secretField]: normalized,
         roundNumber,
         updatedAt: FieldValue.serverTimestamp(),
       };
-      if (!otherLocked) {
-        const otherSecretField = isP1 ? 'p2Secret' : 'p1Secret';
-        secretsUpdate[otherSecretField] = null;
-      }
-
       t.set(secretsDocRef, secretsUpdate, { merge: true });
 
-      const bothReady = !!(normalized && otherLocked && otherSecret);
+      // Avalia o estado consolidado de ambos os jogadores
+      const finalP1Secret = isP1 ? normalized : (secretsData.p1Secret as string | undefined);
+      const finalP2Secret = isP1 ? (secretsData.p2Secret as string | undefined) : normalized;
+
+      const finalP1Locked = isP1 ? true : !!roomData.p1Locked;
+      const finalP2Locked = isP1 ? !!roomData.p2Locked : true;
+
+      const isP1SecretValid = typeof finalP1Secret === 'string' && finalP1Secret.trim().length === 5;
+      const isP2SecretValid = typeof finalP2Secret === 'string' && finalP2Secret.trim().length === 5;
+
+      const bothReady = finalP1Locked && finalP2Locked && isP1SecretValid && isP2SecretValid;
+      bothReadyFromTx = bothReady;
+
+      const starterId = roomData.starterId || p1Id;
 
       if (bothReady) {
-        const starterId = roomData.starterId || p1Id;
+        // Ambos prontos com palavras válidas: inicia a batalha!
         t.set(
           roomDocRef,
           {
@@ -254,6 +264,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           { merge: true }
         );
       } else {
+        // Apenas o jogador atual travou sua palavra, aguardando o parceiro
         t.set(
           roomDocRef,
           {
@@ -262,8 +273,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             p2Id,
             status: 'waiting_words',
             [lockedField]: true,
-            starterId: roomData.starterId || p1Id,
-            currentTurn: roomData.starterId || p1Id,
+            starterId,
+            currentTurn: starterId,
             winnerId: null,
             p1RevealedWord: null,
             p2RevealedWord: null,
@@ -273,6 +284,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         );
       }
     });
+
+    // ── Fase 2: Recuperação pós-transação contra condições de corrida ────────
+    // Se por milissegundos duas requisições concorrentes não viram o estado uma da outra
+    // durante a transação, re-verificamos o documento final consolidado.
+    if (!bothReadyFromTx) {
+      const [freshRoomSnap, freshSecretsSnap] = await Promise.all([
+        roomDocRef.get(),
+        secretsDocRef.get(),
+      ]);
+
+      const freshRoom = freshRoomSnap.exists ? freshRoomSnap.data() || {} : {};
+      const freshSecrets = freshSecretsSnap.exists ? freshSecretsSnap.data() || {} : {};
+
+      const realP1Locked = !!freshRoom.p1Locked;
+      const realP2Locked = !!freshRoom.p2Locked;
+      const realP1Secret = typeof freshSecrets.p1Secret === 'string' && freshSecrets.p1Secret.trim().length === 5;
+      const realP2Secret = typeof freshSecrets.p2Secret === 'string' && freshSecrets.p2Secret.trim().length === 5;
+      const currentStatus = freshRoom.status;
+
+      if (
+        realP1Locked &&
+        realP2Locked &&
+        realP1Secret &&
+        realP2Secret &&
+        currentStatus === 'waiting_words'
+      ) {
+        const starterId = freshRoom.starterId || p1Id;
+        await roomDocRef.update({
+          status: 'dueling',
+          p1Locked: true,
+          p2Locked: true,
+          currentTurn: starterId,
+          starterId,
+          p1Guesses: [],
+          p2Guesses: [],
+          winnerId: null,
+          p1RevealedWord: null,
+          p2RevealedWord: null,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
+    }
 
     res.status(200).json({ success: true, locked: true });
   } catch (err: unknown) {

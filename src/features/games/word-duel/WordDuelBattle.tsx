@@ -56,33 +56,17 @@ export function WordDuelBattle({
   const isSubmittingRef = useRef(false);
   const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
   const prevGuessesCount = useRef(myGuesses.length);
-  const [prevMyGuessesLen, setPrevMyGuessesLen] = useState(myGuesses.length);
 
   // Animações para o espectador (assistindo o parceiro jogar ao vivo)
   const [partnerRevealingRow, setPartnerRevealingRow] = useState(-1);
   const [partnerRevealProgress, setPartnerRevealProgress] = useState(-1);
   const [partnerBounceRow, setPartnerBounceRow] = useState(-1);
   const prevPartnerGuessesCount = useRef(partnerGuesses.length);
-  const [prevPartnerGuessesLen, setPrevPartnerGuessesLen] = useState(partnerGuesses.length);
-
-  // Ajuste síncrono durante a renderização: se chegou um novo palpite,
-  // já inicia no estado de animação (revealProgress = 0) sem nenhum flash das cores finais
-  if (myGuesses.length > prevMyGuessesLen) {
-    setPrevMyGuessesLen(myGuesses.length);
-    setRevealingRow(myGuesses.length - 1);
-    setRevealProgress(0);
-    setCurrentInput('');
-    setCursorPos(0);
-  }
-
-  if (partnerGuesses.length > prevPartnerGuessesLen) {
-    setPrevPartnerGuessesLen(partnerGuesses.length);
-    setPartnerRevealingRow(partnerGuesses.length - 1);
-    setPartnerRevealProgress(0);
-  }
 
   // Aba selecionada: 'my' (minha tela) ou 'partner' (assistir o parceiro em tempo real)
   const [activeTab, setActiveTab] = useState<'my' | 'partner'>('my');
+  // Ref espelho de activeTab para usar dentro de effects sem re-disparar dependências
+  const activeTabRef = useRef<'my' | 'partner'>('my');
 
   // Banner de transição de turno ("Sua Vez!" / "Turno de [Nome]")
   const [turnBanner, setTurnBanner] = useState<{
@@ -95,89 +79,143 @@ export function WordDuelBattle({
   const turnTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Refs para manter dados atualizados sem disparar cleanups indesejados nos effects
+  const myGuessesRef = useRef(myGuesses);
+  myGuessesRef.current = myGuesses;
+  const partnerGuessesRef = useRef(partnerGuesses);
+  partnerGuessesRef.current = partnerGuesses;
+
   // ── Animação de revelação das minhas tentativas ────────────────────────────
+  // Safety net: se myGuesses for zerado (reset do jogo), limpa qualquer estado de animação preso
+  useEffect(() => {
+    if (myGuesses.length === 0) {
+      setRevealingRow(-1);
+      setRevealProgress(-1);
+      setBounceRow(-1);
+      setCurrentInput('');
+      setCursorPos(0);
+      isSubmittingRef.current = false;
+      setIsSubmittingLocal(false);
+      prevGuessesCount.current = 0;
+    }
+  }, [myGuesses.length]);
+
+  useEffect(() => {
+    if (partnerGuesses.length === 0) {
+      setPartnerRevealingRow(-1);
+      setPartnerRevealProgress(-1);
+      setPartnerBounceRow(-1);
+      prevPartnerGuessesCount.current = 0;
+    }
+  }, [partnerGuesses.length]);
+
   useEffect(() => {
     if (myGuesses.length > prevGuessesCount.current) {
       const newRowIdx = myGuesses.length - 1;
-      const latestGuess = myGuesses[newRowIdx];
+      const latestGuess = myGuessesRef.current[newRowIdx] || myGuesses[newRowIdx];
       const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
+
+      // Atualiza o ref ANTES de iniciar os timers para evitar que uma segunda
+      // execução deste efeito (causada por re-render) rode a animação duas vezes
+      prevGuessesCount.current = myGuesses.length;
 
       setRevealingRow(newRowIdx);
       setRevealProgress(0);
+      setCurrentInput('');
+      setCursorPos(0);
 
-      // Intervalo de 220ms por letra (cada letra tem 500ms de CSS flip),
-      // dando 220ms de "head start" antes da próxima começar.
-      // Após a 5ª letra (prog=5), aguarda mais 550ms para o flip CSS terminar
-      // completamente antes de exibir a nova linha de input.
       let prog = 0;
       let finishTimer: ReturnType<typeof setTimeout> | null = null;
+      let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const finishAnimation = () => {
+        setRevealingRow(-1);
+        setRevealProgress(-1);
+        setCurrentInput('');
+        setCursorPos(0);
+        isSubmittingRef.current = false;
+        setIsSubmittingLocal(false);
+        if (isWin) {
+          setBounceRow(newRowIdx);
+        }
+      };
+
+      // Intervalo de 220ms por letra (cada letra tem 500ms de CSS flip)
       const interval = setInterval(() => {
         prog++;
         setRevealProgress(prog);
         if (prog >= 5) {
           clearInterval(interval);
           // Aguarda o CSS flip da última letra (500ms) + margem de segurança (50ms)
-          finishTimer = setTimeout(() => {
-            setRevealingRow(-1);
-            setRevealProgress(-1);
-            setCurrentInput('');
-            setCursorPos(0);
-            isSubmittingRef.current = false;
-            setIsSubmittingLocal(false);
-            if (isWin) {
-              setBounceRow(newRowIdx);
-            }
-          }, 550);
+          finishTimer = setTimeout(finishAnimation, 550);
         }
       }, 220);
 
-      prevGuessesCount.current = myGuesses.length;
+      // Watchdog de segurança: garante que sob NENHUMA hipótese o teclado
+      // ou a geração da nova linha ativa fiquem bloqueados por mais de 3.2s
+      watchdogTimer = setTimeout(() => {
+        clearInterval(interval);
+        finishAnimation();
+      }, 3200);
+
       return () => {
         clearInterval(interval);
         if (finishTimer) clearTimeout(finishTimer);
+        if (watchdogTimer) clearTimeout(watchdogTimer);
       };
     } else {
       prevGuessesCount.current = myGuesses.length;
     }
-  }, [myGuesses]);
+  }, [myGuesses.length]);
 
   // ── Animação de revelação das tentativas do parceiro (Espectador) ──────────
   useEffect(() => {
     if (partnerGuesses.length > prevPartnerGuessesCount.current) {
       const newRowIdx = partnerGuesses.length - 1;
+      const latestGuess = partnerGuessesRef.current[newRowIdx] || partnerGuesses[newRowIdx];
+      const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
+
+      prevPartnerGuessesCount.current = partnerGuesses.length;
+
       setPartnerRevealingRow(newRowIdx);
       setPartnerRevealProgress(0);
 
-      const latestGuess = partnerGuesses[newRowIdx];
-      const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
-
       let prog = 0;
       let finishTimer: ReturnType<typeof setTimeout> | null = null;
+      let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const finishPartnerAnimation = () => {
+        setPartnerRevealingRow(-1);
+        setPartnerRevealProgress(-1);
+        if (isWin) {
+          setPartnerBounceRow(newRowIdx);
+        }
+      };
+
       const interval = setInterval(() => {
         prog++;
         setPartnerRevealProgress(prog);
         if (prog >= 5) {
           clearInterval(interval);
-          // Aguarda o CSS flip da última letra (500ms) + margem de segurança (50ms)
-          finishTimer = setTimeout(() => {
-            setPartnerRevealingRow(-1);
-            setPartnerRevealProgress(-1);
-            if (isWin) {
-              setPartnerBounceRow(newRowIdx);
-            }
-          }, 550);
+          finishTimer = setTimeout(finishPartnerAnimation, 550);
         }
       }, 220);
 
-      prevPartnerGuessesCount.current = partnerGuesses.length;
+      // Watchdog de segurança espectador
+      watchdogTimer = setTimeout(() => {
+        clearInterval(interval);
+        finishPartnerAnimation();
+      }, 3200);
+
       return () => {
         clearInterval(interval);
         if (finishTimer) clearTimeout(finishTimer);
+        if (watchdogTimer) clearTimeout(watchdogTimer);
       };
     } else {
       prevPartnerGuessesCount.current = partnerGuesses.length;
     }
-  }, [partnerGuesses]);
+  }, [partnerGuesses.length]);
 
   // ── Transição suave de turno com aviso na tela ────────────────────────────
   useEffect(() => {
@@ -187,8 +225,10 @@ export function WordDuelBattle({
     if (prevTurnRef.current === null) {
       prevTurnRef.current = activeTurn;
       if (isMyTurn) {
+        activeTabRef.current = 'my';
         setActiveTab('my');
       } else {
+        activeTabRef.current = 'partner';
         setActiveTab('partner');
       }
       return;
@@ -207,20 +247,24 @@ export function WordDuelBattle({
 
       // Aguarda a animação da palavra terminar de virar (5 letras x 250ms = 1250ms)
       // + 950ms de pausa para leitura calma do usuário antes de anunciar quem joga agora
-      const hasPreviousGuesses = myGuesses.length > 0 || partnerGuesses.length > 0;
+      const hasPreviousGuesses =
+        (myGuessesRef.current?.length || 0) > 0 || (partnerGuessesRef.current?.length || 0) > 0;
       const turnChangeDelay = hasPreviousGuesses ? 2200 : 0;
 
       turnTransitionTimerRef.current = setTimeout(() => {
+        // Lê a aba atual via ref para não precisar de activeTab como dependência
+        const currentTab = activeTabRef.current;
         if (isMyTurn) {
           // Passou a ser a MINHA vez
           // Se eu já estiver na minha aba, não interrompe com overlay
-          if (activeTab !== 'my') {
+          if (currentTab !== 'my') {
             setTurnBanner({
               title: 'Sua Vez!',
               subtitle: `Hora de tentar decifrar a palavra de ${partnerDisplayName}`,
               targetTab: 'my',
             });
             bannerTimerRef.current = setTimeout(() => {
+              activeTabRef.current = 'my';
               setActiveTab('my');
               setTurnBanner(null);
             }, 1800);
@@ -228,13 +272,14 @@ export function WordDuelBattle({
         } else {
           // Passou a ser a vez do PARCEIRO
           // Se eu já estiver na aba dele, não interrompe com overlay
-          if (activeTab !== 'partner') {
+          if (currentTab !== 'partner') {
             setTurnBanner({
               title: `Turno de ${partnerDisplayName}`,
               subtitle: 'Acompanhe as tentativas em tempo real',
               targetTab: 'partner',
             });
             bannerTimerRef.current = setTimeout(() => {
+              activeTabRef.current = 'partner';
               setActiveTab('partner');
               setTurnBanner(null);
             }, 1800);
@@ -251,17 +296,22 @@ export function WordDuelBattle({
         clearTimeout(bannerTimerRef.current);
       }
     };
-  }, [currentTurn, isMyTurn, myPlayerId, partnerDisplayName, activeTab, myGuesses.length, partnerGuesses.length]);
+    // Somente re-executa quando o turno realmente mudar ou o jogador/identidade mudar.
+    // NÃO incluir activeTab nem guesses.length nas dependências:
+    // isso evita que a troca de aba ou atualização do Firestore cancelem os timers prematuramente.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTurn, isMyTurn, myPlayerId, partnerDisplayName]);
 
   // Troca de aba manual pelo usuário
   const handleTabClick = (tab: 'my' | 'partner') => {
-    if (turnTransitionTimerRef.current) {
-      clearTimeout(turnTransitionTimerRef.current);
-    }
+    // Cancela apenas o bannerTimer (auto-dismiss). NÃO cancela o turnTransitionTimer
+    // para evitar que a troca de aba interrompa o timer de exibição do banner de próximo turno.
     if (bannerTimerRef.current) {
       clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
     }
     setTurnBanner(null);
+    activeTabRef.current = tab;
     setActiveTab(tab);
   };
 
