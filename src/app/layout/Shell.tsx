@@ -18,6 +18,7 @@ const ReturnToGameToast = lazy(() => import('../../features/games/sync/component
 const SyncPresenceBeacon = lazy(() => import('../../features/games/sync/components/SyncPresenceBeacon').then(m => ({ default: m.SyncPresenceBeacon })));
 const SyncInviteToast = lazy(() => import('../../features/games/sync/components/SyncInviteToast').then(m => ({ default: m.SyncInviteToast })));
 const WordDuelInviteToast = lazy(() => import('../../features/games/word-duel/WordDuelInviteToast').then(m => ({ default: m.WordDuelInviteToast })));
+const ReturnToWordDuelToast = lazy(() => import('../../features/games/word-duel/ReturnToWordDuelToast').then(m => ({ default: m.ReturnToWordDuelToast })));
 
 export function Shell() {
   const [showSplash, setShowSplash] = useState(true);
@@ -109,6 +110,7 @@ export function Shell() {
                 <SyncPresenceBeacon />
                 <SyncInviteToast />
                 <WordDuelInviteToast />
+                <ReturnToWordDuelToast />
               </Suspense>
             </div>
           )}

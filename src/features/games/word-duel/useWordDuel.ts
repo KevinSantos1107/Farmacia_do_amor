@@ -12,6 +12,9 @@ import {
   acceptInvite,
   rejectInvite,
   updateLiveDraft,
+  leaveGameRoom,
+  forceEndGameRoom,
+  returnToGameRoom,
   submitSecretWord,
   submitGuess,
   resetWordDuel,
@@ -156,6 +159,44 @@ export function useWordDuel() {
     await rejectInvite(roomId, siteId);
   }, [roomId, siteId]);
 
+  const leaveGame = useCallback(
+    async (targetPlayerId?: string) => {
+      await leaveGameRoom(roomId, targetPlayerId || myPlayerId, room?.status, siteId);
+    },
+    [roomId, myPlayerId, room?.status, siteId]
+  );
+
+  const forceEndGame = useCallback(async () => {
+    await forceEndGameRoom(roomId, siteId);
+  }, [roomId, siteId]);
+
+  const returnToGame = useCallback(async () => {
+    await returnToGameRoom(roomId, siteId);
+  }, [roomId, siteId]);
+
+  // Detector de parceiro desconectado / dead tab durante partida ativa
+  useEffect(() => {
+    if (status !== 'waiting_words' && status !== 'dueling') return;
+    if (room?.leftBy) return;
+    if (partnerPresence === 'offline') {
+      const timer = setTimeout(() => {
+        leaveGame(partnerId).catch(() => {});
+      }, 20000);
+      return () => clearTimeout(timer);
+    }
+  }, [status, room?.leftBy, partnerPresence, leaveGame, partnerId]);
+
+  // Ao fechar aba / descarregar janela do navegador
+  useEffect(() => {
+    const handlePageHide = () => {
+      if (status === 'waiting_words' || status === 'dueling') {
+        leaveGame();
+      }
+    };
+    window.addEventListener('pagehide', handlePageHide);
+    return () => window.removeEventListener('pagehide', handlePageHide);
+  }, [status, leaveGame]);
+
   const syncMyDraft = useCallback(
     (text: string, cursor: number) => {
       updateLiveDraft(roomId, myPlayerId, text, cursor, siteId);
@@ -260,10 +301,15 @@ export function useWordDuel() {
     isWinner,
     myRevealedSecret,
     partnerRevealedSecret,
+    leftBy: room?.leftBy || null,
+    leftAt: room?.leftAt || null,
     startDuel: handleStartDuel,
     cancelInvite: handleCancelInvite,
     acceptInvite: handleAcceptInvite,
     rejectInvite: handleRejectInvite,
+    leaveGame,
+    forceEndGame,
+    returnToGame,
     syncMyDraft,
     lockMyWord,
     makeGuess,

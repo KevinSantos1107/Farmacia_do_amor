@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useWordDuel } from './useWordDuel';
 import { useWordDictionary } from '../word/useWordDictionary';
 import { WordDuelLobby } from './WordDuelLobby';
@@ -6,9 +8,15 @@ import { WordDuelBattle } from './WordDuelBattle';
 import { WordDuelGameOver } from './WordDuelGameOver';
 import { Spinner } from '../../../shared/ui/Spinner';
 
-export function WordDuelGame() {
+interface WordDuelGameProps {
+  onClose?: () => void;
+  registerLeaveGame?: (fn: () => void) => void;
+}
+
+export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
   const {
     myPlayerId,
+    partnerId,
     myDisplayName,
     partnerDisplayName,
     playerAvatar,
@@ -30,8 +38,12 @@ export function WordDuelGame() {
     isWinner,
     myRevealedSecret,
     partnerRevealedSecret,
+    leftBy,
+    leftAt,
     startDuel,
     cancelInvite,
+    leaveGame,
+    forceEndGame,
     syncMyDraft,
     lockMyWord,
     makeGuess,
@@ -39,6 +51,29 @@ export function WordDuelGame() {
   } = useWordDuel();
 
   const { isValidWord } = useWordDictionary();
+
+  // Registra o handler para quando o modal fechar
+  useEffect(() => {
+    if (registerLeaveGame) {
+      registerLeaveGame(leaveGame);
+    }
+  }, [registerLeaveGame, leaveGame]);
+
+  // Contagem regressiva se o parceiro saiu
+  const [partnerLeftCountdown, setPartnerLeftCountdown] = useState(60);
+  useEffect(() => {
+    if (leftBy !== partnerId || !leftAt) return;
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - leftAt) / 1000);
+      const remaining = Math.max(0, 60 - elapsed);
+      setPartnerLeftCountdown(remaining);
+      if (remaining === 0) {
+        clearInterval(interval);
+        forceEndGame();
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [leftBy, partnerId, leftAt, forceEndGame]);
 
   if (loading) {
     return (
@@ -52,8 +87,44 @@ export function WordDuelGame() {
   const winnerDisplayName =
     winnerId === myPlayerId ? myDisplayName : partnerDisplayName;
 
+  const isPartnerLeft = leftBy === partnerId && (status === 'waiting_words' || status === 'dueling');
+
   return (
-    <div className="flex flex-col flex-1 w-full min-h-full">
+    <div className="relative flex flex-col flex-1 w-full min-h-full">
+      {/* Banner de Parceiro Saiu (idêntico ao Sincronia) */}
+      {isPartnerLeft && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-neutral-900 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4 text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center overflow-hidden border border-white/10">
+              {partnerAvatar ? (
+                <img
+                  src={partnerAvatar}
+                  alt={partnerDisplayName}
+                  className="w-full h-full object-cover opacity-50 grayscale"
+                />
+              ) : (
+                <span className="text-2xl font-bold opacity-50 text-white">
+                  {partnerDisplayName.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <h3 className="text-xl font-bold text-white">{partnerDisplayName} saiu da partida.</h3>
+            <p className="text-neutral-400 text-sm">
+              Aguardando retorno... ({partnerLeftCountdown}s)
+            </p>
+            <button
+              onClick={forceEndGame}
+              className="mt-3 w-full py-3 rounded-xl text-sm font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all active:scale-95"
+            >
+              Encerrar Partida
+            </button>
+          </motion.div>
+        </div>
+      )}
       {(status === 'lobby' || status === 'inviting') && (
         <WordDuelLobby
           playerName={myDisplayName}

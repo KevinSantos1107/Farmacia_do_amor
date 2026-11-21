@@ -54,11 +54,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const db = getAdminFirestore();
 
-  const roomDocRef = siteId
+  const isSiteLayout = process.env.VITE_DATA_LAYOUT === 'site' || process.env.DATA_LAYOUT === 'site';
+  const roomDocRef = isSiteLayout && siteId
     ? db.collection('sites').doc(siteId).collection('word_duel_rooms').doc(roomId)
     : db.collection('word_duel_rooms').doc(roomId);
 
-  const secretsDocRef = siteId
+  const secretsDocRef = isSiteLayout && siteId
     ? db.collection('sites').doc(siteId).collection('word_duel_secrets').doc(roomId)
     : db.collection('word_duel_secrets').doc(roomId);
 

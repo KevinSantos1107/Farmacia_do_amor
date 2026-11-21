@@ -156,6 +156,77 @@ export async function updateLiveDraft(
 }
 
 /**
+ * Sai da partida (unilateralmente) ou marca abandono temporário.
+ */
+export async function leaveGameRoom(
+  roomId: string,
+  leaverId: string,
+  status?: string,
+  siteId?: string
+): Promise<void> {
+  const docRef = siteDoc('word_duel_rooms', roomId, siteId);
+  try {
+    if (status === 'lobby' || status === 'round_over') {
+      await updateDoc(docRef, {
+        status: 'lobby',
+        leftBy: null,
+        leftAt: null,
+        updatedAt: serverTimestamp(),
+      });
+      return;
+    }
+    await updateDoc(docRef, {
+      leftBy: leaverId,
+      leftAt: Date.now(),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn('Erro ao sair da partida:', err);
+  }
+}
+
+/**
+ * Encerra a partida forçadamente e devolve ao lobby.
+ */
+export async function forceEndGameRoom(roomId: string, siteId?: string): Promise<void> {
+  const docRef = siteDoc('word_duel_rooms', roomId, siteId);
+  try {
+    await updateDoc(docRef, {
+      status: 'lobby',
+      leftBy: null,
+      leftAt: null,
+      p1Locked: false,
+      p2Locked: false,
+      p1Guesses: [],
+      p2Guesses: [],
+      liveDraft: {},
+      winnerId: null,
+      p1RevealedWord: null,
+      p2RevealedWord: null,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn('Erro ao forçar encerramento da partida:', err);
+  }
+}
+
+/**
+ * Retorna à partida em andamento.
+ */
+export async function returnToGameRoom(roomId: string, siteId?: string): Promise<void> {
+  const docRef = siteDoc('word_duel_rooms', roomId, siteId);
+  try {
+    await updateDoc(docRef, {
+      leftBy: null,
+      leftAt: null,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn('Erro ao retornar à partida:', err);
+  }
+}
+
+/**
  * Trava a palavra secreta escolhida pelo jogador.
  */
 export async function submitSecretWord(
