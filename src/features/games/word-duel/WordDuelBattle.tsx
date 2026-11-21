@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swords, Eye, User, Sparkles } from 'lucide-react';
 import { WordGrid } from '../word/WordGrid';
@@ -53,10 +53,10 @@ export function WordDuelBattle({
   const [revealProgress, setRevealProgress] = useState(-1);
   const [bounceRow, setBounceRow] = useState(-1);
   const [lastTypedIdx, setLastTypedIdx] = useState(-1);
-  const [optimisticGuess, setOptimisticGuess] = useState<LetterCell[] | null>(null);
   const isSubmittingRef = useRef(false);
   const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
   const prevGuessesCount = useRef(myGuesses.length);
+  const [prevMyGuessesLen, setPrevMyGuessesLen] = useState(myGuesses.length);
 
   // Animações para o espectador (assistindo o parceiro jogar ao vivo)
   const [partnerRevealingRow, setPartnerRevealingRow] = useState(-1);
@@ -65,21 +65,21 @@ export function WordDuelBattle({
   const prevPartnerGuessesCount = useRef(partnerGuesses.length);
   const [prevPartnerGuessesLen, setPrevPartnerGuessesLen] = useState(partnerGuesses.length);
 
-  // Ajuste síncrono durante a renderização: se o parceiro enviou um palpite,
+  // Ajuste síncrono durante a renderização: se chegou um novo palpite,
   // já inicia no estado de animação (revealProgress = 0) sem nenhum flash das cores finais
+  if (myGuesses.length > prevMyGuessesLen) {
+    setPrevMyGuessesLen(myGuesses.length);
+    setRevealingRow(myGuesses.length - 1);
+    setRevealProgress(0);
+    setCurrentInput('');
+    setCursorPos(0);
+  }
+
   if (partnerGuesses.length > prevPartnerGuessesLen) {
     setPrevPartnerGuessesLen(partnerGuesses.length);
     setPartnerRevealingRow(partnerGuesses.length - 1);
     setPartnerRevealProgress(0);
   }
-
-  // Palpites para exibição na tela (inclui o palpite otimista imediato da API HTTP)
-  const displayGuesses = useMemo(() => {
-    if (optimisticGuess && myGuesses.length === prevGuessesCount.current) {
-      return [...myGuesses, optimisticGuess];
-    }
-    return myGuesses;
-  }, [myGuesses, optimisticGuess]);
 
   // Aba selecionada: 'my' (minha tela) ou 'partner' (assistir o parceiro em tempo real)
   const [activeTab, setActiveTab] = useState<'my' | 'partner'>('my');
@@ -95,10 +95,14 @@ export function WordDuelBattle({
   const turnTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Disparo da animação de revelação 3D letra por letra
-  const triggerRevealAnimation = useCallback(
-    (rowIndex: number, guessRow: LetterCell[], isWin: boolean) => {
-      setRevealingRow(rowIndex);
+  // ── Animação de revelação das minhas tentativas ────────────────────────────
+  useEffect(() => {
+    if (myGuesses.length > prevGuessesCount.current) {
+      const newRowIdx = myGuesses.length - 1;
+      const latestGuess = myGuesses[newRowIdx];
+      const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
+
+      setRevealingRow(newRowIdx);
       setRevealProgress(0);
 
       let prog = 0;
@@ -114,33 +118,17 @@ export function WordDuelBattle({
           isSubmittingRef.current = false;
           setIsSubmittingLocal(false);
           if (isWin) {
-            setBounceRow(rowIndex);
+            setBounceRow(newRowIdx);
           }
         }
       }, 180);
-    },
-    []
-  );
 
-  // ── Sincronização com as tentativas do banco (Firestore) ──────────────────
-  useEffect(() => {
-    if (myGuesses.length > prevGuessesCount.current) {
-      const newRowIdx = myGuesses.length - 1;
-      // Se a animação já foi disparada diretamente pela resposta imediata da API HTTP, apenas sincroniza
-      if (revealingRow === newRowIdx) {
-        setOptimisticGuess(null);
-        prevGuessesCount.current = myGuesses.length;
-        return;
-      }
-      setOptimisticGuess(null);
-      const latestGuess = myGuesses[newRowIdx];
-      const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
-      triggerRevealAnimation(newRowIdx, latestGuess, isWin);
       prevGuessesCount.current = myGuesses.length;
+      return () => clearInterval(interval);
     } else {
       prevGuessesCount.current = myGuesses.length;
     }
-  }, [myGuesses, revealingRow, triggerRevealAnimation]);
+  }, [myGuesses]);
 
   // ── Animação de revelação das tentativas do parceiro (Espectador) ──────────
   useEffect(() => {
@@ -318,7 +306,7 @@ export function WordDuelBattle({
         setIsSubmittingLocal(true);
 
         const res = await onMakeGuess(normalized);
-        if (!res.success || !res.row) {
+        if (!res.success) {
           isSubmittingRef.current = false;
           setIsSubmittingLocal(false);
           showToast(res.error || 'Erro ao enviar palpite');
@@ -326,11 +314,6 @@ export function WordDuelBattle({
           setTimeout(() => setShake(false), 500);
           return;
         }
-
-        // Inicia a revelação imediatamente com os dados do palpite retornados pela API HTTP
-        const targetRowIdx = myGuesses.length;
-        setOptimisticGuess(res.row);
-        triggerRevealAnimation(targetRowIdx, res.row, !!res.isWin);
         return;
       }
 
@@ -357,7 +340,6 @@ export function WordDuelBattle({
       onMakeGuess,
       onDraftChange,
       myGuesses.length,
-      triggerRevealAnimation,
     ]
   );
 
@@ -393,18 +375,18 @@ export function WordDuelBattle({
   const isMyRevealing = revealingRow >= 0;
   const isPartnerRevealing = partnerRevealingRow >= 0;
 
-  const isMyWinning = displayGuesses.some(
+  const isMyWinning = myGuesses.some(
     (row) => row.length === 5 && row.every((c) => c.state === 'correct')
   );
   const isPartnerWinning = partnerGuesses.some(
     (row) => row.length === 5 && row.every((c) => c.state === 'correct')
   );
 
-  const myMaxAttempts = isMyRevealing || isMyWinning ? displayGuesses.length : displayGuesses.length + 1;
+  const myMaxAttempts = isMyRevealing || isMyWinning ? myGuesses.length : myGuesses.length + 1;
   const partnerMaxAttempts = isPartnerRevealing || isPartnerWinning ? partnerGuesses.length : partnerGuesses.length + 1;
 
   const myRows = buildGridRows(
-    displayGuesses,
+    myGuesses,
     isMyRevealing || isMyWinning ? '' : currentInput,
     isMyRevealing || isMyWinning ? -1 : cursorPos,
     5,
@@ -425,7 +407,7 @@ export function WordDuelBattle({
     partnerMaxAttempts
   );
 
-  const keyStates = getKeyboardStates(displayGuesses, revealingRow, revealProgress);
+  const keyStates = getKeyboardStates(myGuesses, revealingRow, revealProgress);
 
   return (
     <div className="relative flex flex-col items-center justify-between w-full flex-1 max-w-sm sm:max-w-md md:max-w-xl lg:max-w-5xl mx-auto py-1 px-1 sm:px-3">
@@ -540,7 +522,7 @@ export function WordDuelBattle({
             <div className={`w-full flex justify-center max-h-[40vh] overflow-y-auto no-scrollbar py-2 ${shake ? 'word-shake' : ''}`}>
               <WordGrid
                 rows={myRows}
-                guesses={displayGuesses}
+                guesses={myGuesses}
                 revealingRow={revealingRow}
                 revealProgress={revealProgress}
                 bounceRow={bounceRow}
@@ -608,7 +590,7 @@ export function WordDuelBattle({
               <div className={shake ? 'word-shake' : ''}>
                 <WordGrid
                   rows={myRows}
-                  guesses={displayGuesses}
+                  guesses={myGuesses}
                   revealingRow={revealingRow}
                   revealProgress={revealProgress}
                   bounceRow={bounceRow}
