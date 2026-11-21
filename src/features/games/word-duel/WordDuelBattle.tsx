@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swords, Eye, User, Sparkles } from 'lucide-react';
 import { WordGrid } from '../word/WordGrid';
