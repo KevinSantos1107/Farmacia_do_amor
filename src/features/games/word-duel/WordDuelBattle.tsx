@@ -321,22 +321,26 @@ export function WordDuelBattle({
   }, [handleKey, activeTab]);
 
   // Sem limite fixo de 6 tentativas:
-  // maxAttempts é dinâmico: número de tentativas já feitas + 1 (linha ativa)
-  const myMaxAttempts = myGuesses.length + 1;
-  const partnerMaxAttempts = partnerGuesses.length + 1;
+  // Durante a animação de revelação de uma tentativa, NÃO adiciona a linha nova ainda!
+  // Somente após todas as letras terminarem de virar (revealingRow === -1), acrescenta a linha ativa (+1).
+  const isMyRevealing = revealingRow >= 0;
+  const isPartnerRevealing = partnerRevealingRow >= 0;
+
+  const myMaxAttempts = isMyRevealing ? myGuesses.length : myGuesses.length + 1;
+  const partnerMaxAttempts = isPartnerRevealing ? partnerGuesses.length : partnerGuesses.length + 1;
 
   const myRows = buildGridRows(
     myGuesses,
-    currentInput,
-    cursorPos,
+    isMyRevealing ? '' : currentInput,
+    isMyRevealing ? -1 : cursorPos,
     5,
     false,
     myMaxAttempts
   );
 
   // Linhas do parceiro com digitação ao vivo
-  const partnerInputDraft = !isMyTurn ? partnerDraft?.text || '' : '';
-  const partnerCursorDraft = !isMyTurn ? partnerDraft?.cursor ?? -1 : -1;
+  const partnerInputDraft = !isMyTurn && !isPartnerRevealing ? partnerDraft?.text || '' : '';
+  const partnerCursorDraft = !isMyTurn && !isPartnerRevealing ? partnerDraft?.cursor ?? -1 : -1;
 
   const partnerRows = buildGridRows(
     partnerGuesses,
