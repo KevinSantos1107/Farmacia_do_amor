@@ -305,6 +305,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           winnerId: player,
           p1RevealedWord: p1Revealed,
           p2RevealedWord: p2Revealed,
+          [`liveDraft.${player}`]: null,
           updatedAt: FieldValue.serverTimestamp(),
         });
 
@@ -325,6 +326,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           p1Guesses,
           p2Guesses,
           currentTurn: nextTurn,
+          [`liveDraft.${player}`]: null,
           updatedAt: FieldValue.serverTimestamp(),
         });
 

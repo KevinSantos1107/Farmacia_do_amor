@@ -236,8 +236,6 @@ export function useWordDuel() {
       setIsSubmitting(true);
       setErrorMsg(null);
       try {
-        // Limpa o rascunho ao submeter
-        updateLiveDraft(roomId, myPlayerId, '', 0, siteId);
         const res = await submitGuess(roomId, myPlayerId, guess, siteId);
         if (!res.success) {
           setErrorMsg(res.error || 'Erro ao enviar palpite');

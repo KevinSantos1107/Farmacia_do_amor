@@ -93,7 +93,7 @@ export function WordDuelBattle({
             setBounceRow(newRowIdx);
           }
         }
-      }, 250);
+      }, 200);
 
       prevGuessesCount.current = myGuesses.length;
     } else {
@@ -123,7 +123,7 @@ export function WordDuelBattle({
             setPartnerBounceRow(newRowIdx);
           }
         }
-      }, 250);
+      }, 200);
 
       prevPartnerGuessesCount.current = partnerGuesses.length;
     } else {
@@ -224,7 +224,7 @@ export function WordDuelBattle({
 
   const handleKey = useCallback(
     async (key: string) => {
-      if (!isMyTurn || isSubmitting || revealingRow >= 0 || currentInput === 'ANIMATING') {
+      if (!isMyTurn || isSubmitting || revealingRow >= 0) {
         return;
       }
 
@@ -271,10 +271,9 @@ export function WordDuelBattle({
           return;
         }
 
-        setCurrentInput('ANIMATING');
+        // Mantém a palavra digitada na tela sem apagar (evita piscada e travada)
         const res = await onMakeGuess(normalized);
         if (!res.success) {
-          setCurrentInput(normalized);
           showToast(res.error || 'Erro ao enviar palpite');
           setShake(true);
           setTimeout(() => setShake(false), 500);
