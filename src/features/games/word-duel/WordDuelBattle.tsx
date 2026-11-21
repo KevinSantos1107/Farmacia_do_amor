@@ -462,66 +462,71 @@ export function WordDuelBattle({
         </div>
       )}
 
-      {/* ── MODO DESKTOP (>= 1024px): ARENA 2 COLUNAS LADO A LADO ───────────────────────────── */}
-      <div className="hidden lg:grid lg:grid-cols-2 lg:gap-8 lg:w-full lg:items-start my-auto">
-        {/* Coluna 1: Minha Tela */}
-        <div className="flex flex-col items-center bg-white/[0.02] border border-white/10 rounded-3xl p-5 shadow-2xl">
-          <div className="text-xs uppercase tracking-wider font-semibold text-neutral-300 mb-3 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-            Seu Tabuleiro (Adivinhando palavra de {partnerDisplayName})
+      {/* ── MODO DESKTOP (>= 1024px): ARENA 2 COLUNAS LADO A LADO + TECLADO CENTRALIZADO ─── */}
+      <div className="hidden lg:flex lg:flex-col lg:items-center lg:w-full lg:flex-1 lg:justify-between">
+        {/* Arena de 2 Colunas para os Tabuleiros */}
+        <div className="grid grid-cols-2 gap-6 w-full max-w-4xl items-start my-auto">
+          {/* Coluna 1: Minha Tela */}
+          <div className="flex flex-col items-center bg-white/[0.02] border border-white/10 rounded-3xl p-5 shadow-2xl">
+            <div className="text-xs uppercase tracking-wider font-semibold text-neutral-300 mb-3 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              Seu Tabuleiro (Adivinhando palavra de {partnerDisplayName})
+            </div>
+            <div className={`w-full flex justify-center max-h-[40vh] overflow-y-auto no-scrollbar py-2 ${shake ? 'word-shake' : ''}`}>
+              <WordGrid
+                rows={myRows}
+                guesses={myGuesses}
+                revealingRow={revealingRow}
+                revealProgress={revealProgress}
+                bounceRow={bounceRow}
+                lastTypedIdx={lastTypedIdx}
+                shake={shake}
+                onTileClick={(idx) => {
+                  if (isMyTurn) setCursorPos(idx);
+                }}
+              />
+            </div>
           </div>
-          <div className={`my-auto max-h-[46vh] overflow-y-auto no-scrollbar py-2 ${shake ? 'word-shake' : ''}`}>
-            <WordGrid
-              rows={myRows}
-              guesses={myGuesses}
-              revealingRow={revealingRow}
-              revealProgress={revealProgress}
-              bounceRow={bounceRow}
-              lastTypedIdx={lastTypedIdx}
-              shake={shake}
-              onTileClick={(idx) => {
-                if (isMyTurn) setCursorPos(idx);
-              }}
-            />
-          </div>
-          <div className="w-full mt-4 pt-2">
-            <WordKeyboard
-              onKey={handleKey}
-              keyStates={keyStates}
-              disabled={!isMyTurn || isSubmitting || revealingRow >= 0}
-            />
+
+          {/* Coluna 2: Tela do Adversário (Ao Vivo) */}
+          <div className="flex flex-col items-center bg-white/[0.02] border border-white/10 rounded-3xl p-5 shadow-2xl">
+            <div className="text-xs uppercase tracking-wider font-semibold text-neutral-300 mb-3 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse"></span>
+              Tabuleiro de {partnerDisplayName} (Ao Vivo)
+            </div>
+            <div className="w-full flex justify-center max-h-[40vh] overflow-y-auto no-scrollbar py-2">
+              <WordGrid
+                rows={partnerRows}
+                guesses={partnerGuesses}
+                revealingRow={partnerRevealingRow}
+                revealProgress={partnerRevealProgress}
+                bounceRow={partnerBounceRow}
+                lastTypedIdx={-1}
+                shake={false}
+                onTileClick={() => {}}
+              />
+            </div>
+            <div className="w-full mt-3 text-center min-h-[30px] flex items-center justify-center">
+              {!isMyTurn && partnerInputDraft ? (
+                <span className="text-xs text-amber-300 font-medium italic flex items-center gap-1.5 animate-pulse">
+                  <Sparkles className="w-3.5 h-3.5" /> {partnerDisplayName} está digitando ao vivo...
+                </span>
+              ) : !isMyTurn ? (
+                <span className="text-xs text-neutral-400">Aguardando jogada de {partnerDisplayName}...</span>
+              ) : (
+                <span className="text-xs text-neutral-500">Sua vez de jogar!</span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Coluna 2: Tela do Adversário (Ao Vivo) */}
-        <div className="flex flex-col items-center bg-white/[0.02] border border-white/10 rounded-3xl p-5 shadow-2xl">
-          <div className="text-xs uppercase tracking-wider font-semibold text-neutral-300 mb-3 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse"></span>
-            Tabuleiro de {partnerDisplayName} (Ao Vivo)
-          </div>
-          <div className="my-auto max-h-[46vh] overflow-y-auto no-scrollbar py-2">
-            <WordGrid
-              rows={partnerRows}
-              guesses={partnerGuesses}
-              revealingRow={partnerRevealingRow}
-              revealProgress={partnerRevealProgress}
-              bounceRow={partnerBounceRow}
-              lastTypedIdx={-1}
-              shake={false}
-              onTileClick={() => {}}
-            />
-          </div>
-          <div className="w-full mt-4 pt-6 text-center min-h-[60px] flex items-center justify-center">
-            {!isMyTurn && partnerInputDraft ? (
-              <span className="text-sm text-amber-300 font-medium italic flex items-center gap-1.5 animate-pulse">
-                <Sparkles className="w-4 h-4" /> {partnerDisplayName} está digitando ao vivo...
-              </span>
-            ) : !isMyTurn ? (
-              <span className="text-xs text-neutral-400">Aguardando jogada de {partnerDisplayName}...</span>
-            ) : (
-              <span className="text-xs text-neutral-500">Sua vez de jogar — digite no tabuleiro ao lado!</span>
-            )}
-          </div>
+        {/* Teclado Desktop Centralizado */}
+        <div className="w-full max-w-lg mt-auto pt-3">
+          <WordKeyboard
+            onKey={handleKey}
+            keyStates={keyStates}
+            disabled={!isMyTurn || isSubmitting || revealingRow >= 0}
+          />
         </div>
       </div>
 

@@ -20,7 +20,7 @@ export const CELL_BG: Record<LetterState, string> = {
     'bg-[rgba(var(--theme-primary-rgb),0.05)] border-[rgba(var(--theme-primary-rgb),0.3)] text-[var(--theme-primary)]',
   // active usa border-primary (brilhante), bg mais intenso — glow via style prop inline
   active:
-    'bg-[rgba(var(--theme-primary-rgb),0.2)] border-[var(--theme-primary)] text-white scale-[1.04] z-10',
+    'bg-[rgba(var(--theme-primary-rgb),0.15)] border-[var(--theme-primary)] text-white z-10',
   typed:
     'bg-[rgba(var(--theme-primary-rgb),0.1)] border-[var(--theme-primary)] text-white',
 };

@@ -3,78 +3,81 @@ export function WordGameStyles() {
     <style>{`
       /* ── Tile sizing (responsivo: mobile → tablet → desktop) ─── */
       .wg-tile-wrapper {
-        width:  clamp(38px, min(11.5vw, 7.5dvh), 56px);
-        height: clamp(38px, min(11.5vw, 7.5dvh), 56px);
+        width: clamp(38px, min(11vw, 7dvh), 54px);
+        height: clamp(38px, min(11vw, 7dvh), 54px);
+        aspect-ratio: 1 / 1;
+        flex-shrink: 0;
         position: relative;
         perspective: 900px;
       }
 
       @media (min-width: 640px) {
         .wg-tile-wrapper {
-          width:  clamp(48px, min(8.5vw, 8dvh), 66px);
-          height: clamp(48px, min(8.5vw, 8dvh), 66px);
+          width: clamp(44px, min(8vw, 7.5dvh), 60px);
+          height: clamp(44px, min(8vw, 7.5dvh), 60px);
+          aspect-ratio: 1 / 1;
+          flex-shrink: 0;
         }
       }
 
       @media (min-width: 1024px) {
         .wg-tile-wrapper {
-          width:  clamp(56px, min(6.5vw, 8.5dvh), 74px);
-          height: clamp(56px, min(6.5vw, 8.5dvh), 74px);
+          width: clamp(48px, min(5.5vw, 7.5dvh), 64px);
+          height: clamp(48px, min(5.5vw, 7.5dvh), 64px);
+          aspect-ratio: 1 / 1;
+          flex-shrink: 0;
         }
       }
 
       .wg-tile {
         position: absolute;
         inset: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
         border-width: 1.5px;
         border-style: solid;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 800;
-        font-size: clamp(15px, min(4vw, 3dvh), 22px);
+        font-size: clamp(15px, min(3.5vw, 2.8dvh), 22px);
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        border-radius: 9px;
-        transition: background-color 0.12s, border-color 0.12s, box-shadow 0.12s, color 0.12s, transform 0.12s;
+        border-radius: 10px;
+        transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s;
         transform-style: preserve-3d;
         will-change: transform, box-shadow;
       }
 
       @media (min-width: 768px) {
         .wg-tile {
-          font-size: clamp(18px, min(2.8vw, 3.5dvh), 26px);
+          font-size: clamp(17px, min(2.5vw, 3.2dvh), 25px);
           border-radius: 11px;
         }
       }
 
       @media (min-width: 1024px) {
         .wg-tile {
-          font-size: clamp(20px, min(2.2vw, 3dvh), 30px);
-          border-radius: 13px;
+          font-size: clamp(19px, min(2vw, 2.8dvh), 27px);
+          border-radius: 12px;
           border-width: 2px;
         }
       }
 
       /* ── Active cursor breathe & enter ──────────────────────── */
       .wg-cursor-breathe {
-        animation: wg-cursor-in 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), wg-cursor-breathe 1.4s ease-in-out infinite 0.14s;
-      }
-
-      @keyframes wg-cursor-in {
-        0% { transform: scale(0.92); }
-        60% { transform: scale(1.06); }
-        100% { transform: scale(1); }
+        animation: wg-cursor-breathe 1.5s ease-in-out infinite;
       }
 
       @keyframes wg-cursor-breathe {
         0%, 100% {
-          box-shadow: 0 0 0 1.5px var(--theme-primary), 0 0 18px var(--theme-primary), 0 0 35px rgba(var(--theme-primary-rgb), 0.5);
-          background-color: rgba(var(--theme-primary-rgb), 0.2);
+          box-shadow: 0 0 10px var(--theme-primary), inset 0 0 4px rgba(var(--theme-primary-rgb), 0.25);
+          border-color: var(--theme-primary);
         }
         50% {
-          box-shadow: 0 0 0 2px var(--theme-primary), 0 0 28px var(--theme-primary), 0 0 50px rgba(var(--theme-primary-rgb), 0.7);
-          background-color: rgba(var(--theme-primary-rgb), 0.3);
+          box-shadow: 0 0 16px var(--theme-primary), inset 0 0 6px rgba(var(--theme-primary-rgb), 0.35);
+          border-color: var(--theme-primary);
         }
       }
 

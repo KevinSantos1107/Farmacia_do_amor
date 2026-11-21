@@ -31,8 +31,8 @@ function getDynamicStyle(
     return {
       animationDelay: delay,
       boxShadow:
-        '0 0 24px var(--theme-primary), 0 0 10px var(--theme-primary), inset 0 0 8px rgba(var(--theme-primary-rgb), 0.35)',
-      textShadow: '0 0 10px rgba(255,255,255,1)',
+        '0 0 14px var(--theme-primary), inset 0 0 4px rgba(var(--theme-primary-rgb), 0.3)',
+      textShadow: '0 0 8px rgba(255,255,255,0.9)',
     };
   }
   if (state === 'typed') {
