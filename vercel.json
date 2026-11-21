@@ -42,10 +42,6 @@
     },
     "api/word-duel-reset.ts": {
       "maxDuration": 30
-    },
-    "api/word-duel-health.ts": {
-      "maxDuration": 10,
-      "includeFiles": "public/pt-5-letters.json"
     }
   },
   "rewrites": [
