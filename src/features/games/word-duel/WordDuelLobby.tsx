@@ -16,7 +16,7 @@ interface WordDuelLobbyProps {
   partnerName: string;
   playerAvatar?: string;
   partnerAvatar?: string;
-  isPartnerOnline: boolean;
+  _isPartnerOnline?: boolean;
   partnerPresence?: SyncPresenceState;
   isInviting?: boolean;
   onStart: () => Promise<void>;
@@ -29,7 +29,7 @@ export function WordDuelLobby({
   partnerName,
   playerAvatar,
   partnerAvatar,
-  isPartnerOnline,
+  _isPartnerOnline,
   partnerPresence = 'offline',
   isInviting = false,
   onStart,
@@ -106,7 +106,7 @@ export function WordDuelLobby({
               <Swords className="w-4 h-4" />
               {starting
                 ? 'Iniciando…'
-                : isPartnerOnline
+                : partnerPresence === 'site'
                 ? `Convidar ${partnerName}`
                 : 'Iniciar Duelo'}
             </div>
@@ -135,7 +135,7 @@ export function WordDuelLobby({
             )}
           </div>
         )}
-        {!isInviting && !isPartnerOnline && (
+        {!isInviting && partnerPresence === 'offline' && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: [0.5, 1, 0.5] }}
@@ -144,6 +144,17 @@ export function WordDuelLobby({
             aria-live="polite"
           >
             Aguardando {partnerName} conectar…
+          </motion.p>
+        )}
+        {!isInviting && partnerPresence === 'game' && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="text-emerald-400 font-medium text-sm bg-emerald-500/10 border border-emerald-500/20 px-6 py-2 rounded-full"
+            aria-live="polite"
+          >
+            {partnerName} está na sala! Prontos para duelar.
           </motion.p>
         )}
       </motion.div>

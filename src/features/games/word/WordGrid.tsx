@@ -5,14 +5,14 @@ import { CELL_BG } from './wordConstants';
 
 interface WordGridProps {
   rows: { cells: LetterCell[]; isActive: boolean }[];
-  guesses: LetterCell[][];
-  revealingRow: number;
-  revealProgress: number;
-  bounceRow: number;
-  lastTypedIdx: number;
-  shake: boolean;
-  gameOver: boolean;
-  onTileClick: (columnIndex: number) => void;
+  guesses?: LetterCell[][];
+  revealingRow?: number;
+  revealProgress?: number;
+  bounceRow?: number;
+  lastTypedIdx?: number;
+  shake?: boolean;
+  gameOver?: boolean;
+  onTileClick?: (columnIndex: number) => void;
 }
 
 function getDynamicStyle(
@@ -50,14 +50,14 @@ function getDynamicStyle(
 }
 
 export function WordGrid({
-  rows,
-  guesses,
-  revealingRow,
-  revealProgress,
-  bounceRow,
-  lastTypedIdx,
-  shake,
-  gameOver,
+  rows = [],
+  guesses = [],
+  revealingRow = -1,
+  revealProgress = -1,
+  bounceRow = -1,
+  lastTypedIdx = -1,
+  shake = false,
+  gameOver = false,
   onTileClick,
 }: WordGridProps) {
   // ── Fundo atmosférico reativo ao progresso da tentativa ─────────────────────
@@ -74,6 +74,8 @@ export function WordGrid({
   // Interpolação suave de 0.04 até 0.12 conforme o jogador encontra letras certas
   const bgOpacity = Number((0.04 + progressRatio * 0.08).toFixed(3));
   const isWinning = bounceRow >= 0;
+
+  const safeGuessesLength = guesses?.length ?? 0;
 
   return (
     <div className="
@@ -98,8 +100,8 @@ export function WordGrid({
           key={ri}
           className={cn(
             'flex gap-[5px] sm:gap-[6px] md:gap-[7px] transition-all duration-300 relative',
-            shake && ri === guesses.length && 'wg-shake',
-            !row.isActive && ri >= guesses.length && 'opacity-20 scale-[0.97]'
+            shake && ri === safeGuessesLength && 'wg-shake',
+            !row.isActive && ri >= safeGuessesLength && 'opacity-20 scale-[0.97]'
           )}
         >
           {row.cells.map((cell, ci) => {
@@ -119,7 +121,7 @@ export function WordGrid({
                 className="wg-tile-wrapper cursor-pointer"
                 style={{ animationDelay: isBouncing ? `${ci * 80}ms` : '0ms' }}
                 onClick={() => {
-                  if (row.isActive && !gameOver) {
+                  if (row.isActive && !gameOver && onTileClick) {
                     onTileClick(ci);
                   }
                 }}

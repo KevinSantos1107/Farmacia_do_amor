@@ -34,6 +34,7 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
     partnerGuesses,
     partnerDraft,
     isMyTurn,
+    currentTurn,
     winnerId,
     isWinner,
     myRevealedSecret,
@@ -74,6 +75,20 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
     }, 1000);
     return () => clearInterval(interval);
   }, [leftBy, partnerId, leftAt, forceEndGame]);
+
+  // Atraso de 2.8s para exibir o Game Over para permitir que a animação da
+  // última palavra (5 letras verdes + bounce) termine e o jogador possa ver antes do modal abrir
+  const [showGameOver, setShowGameOver] = useState(false);
+  useEffect(() => {
+    if (status === 'round_over') {
+      const timer = setTimeout(() => {
+        setShowGameOver(true);
+      }, 2800);
+      return () => clearTimeout(timer);
+    } else {
+      setShowGameOver(false);
+    }
+  }, [status]);
 
   if (loading) {
     return (
@@ -131,7 +146,7 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
           partnerName={partnerDisplayName}
           playerAvatar={playerAvatar}
           partnerAvatar={partnerAvatar}
-          isPartnerOnline={isPartnerOnline}
+          _isPartnerOnline={isPartnerOnline}
           partnerPresence={partnerPresence}
           isInviting={isInviting}
           onStart={startDuel}
@@ -155,6 +170,8 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
 
       {(status === 'dueling' || status === 'round_over') && (
         <WordDuelBattle
+          myPlayerId={myPlayerId}
+          currentTurn={currentTurn}
           myDisplayName={myDisplayName}
           partnerDisplayName={partnerDisplayName}
           myGuesses={myGuesses}
@@ -170,7 +187,7 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
       )}
 
       <WordDuelGameOver
-        isOpen={status === 'round_over'}
+        isOpen={showGameOver}
         isWinner={isWinner}
         winnerDisplayName={winnerDisplayName}
         myDisplayName={myDisplayName}

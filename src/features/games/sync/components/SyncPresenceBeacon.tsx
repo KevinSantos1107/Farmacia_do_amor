@@ -15,9 +15,14 @@ export interface SyncPresenceDoc {
   lastSeen: Record<string, number>;
 }
 
-/** Retorna true se o pathname indica que estamos dentro do jogo Sincronia */
-function isOnSyncRoute(pathname: string): boolean {
-  return pathname === '/sync' || pathname === '/sincronia';
+/** Retorna true se o pathname indica que estamos dentro de um jogo multiplayer (Sincronia ou Duelo) */
+function isOnGameRoute(pathname: string): boolean {
+  return (
+    pathname === '/sync' ||
+    pathname === '/sincronia' ||
+    pathname === '/word-duel' ||
+    pathname === '/duelo'
+  );
 }
 
 export function SyncPresenceBeacon() {
@@ -34,10 +39,14 @@ export function SyncPresenceBeacon() {
     const roomId = `${p1Id}_${p2Id}`;
     const ref = siteDoc('sync_presence', roomId);
 
-    // Considera "no jogo" tanto quando aberto via modal (activeModal === 'sync')
-    // quanto quando acessado diretamente pela rota /sync ou /sincronia
+    // Considera "no jogo" tanto quando aberto via modal (sync / word-duel)
+    // quanto quando acessado diretamente pelas rotas de jogo
     const getStatus = (): SyncPresenceState =>
-      activeModal === 'sync' || isOnSyncRoute(location.pathname) ? 'game' : 'site';
+      activeModal === 'sync' ||
+      activeModal === 'word-duel' ||
+      isOnGameRoute(location.pathname)
+        ? 'game'
+        : 'site';
 
     // IMPORTANT: Use nested objects (not dot-notation keys) so Firestore
     // merges them as sub-fields, not literal dot-in-key field names.

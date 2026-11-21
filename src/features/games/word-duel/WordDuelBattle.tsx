@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Swords, Eye, User, Sparkles } from 'lucide-react';
 import { WordGrid } from '../word/WordGrid';
 import { WordKeyboard } from '../word/WordKeyboard';
@@ -8,6 +8,8 @@ import { normalizeWord, buildGridRows, getKeyboardStates } from '../word/wordLog
 import type { LetterCell } from '../word/types';
 
 interface WordDuelBattleProps {
+  myPlayerId?: string;
+  currentTurn?: string;
   myDisplayName?: string;
   partnerDisplayName: string;
   myGuesses: LetterCell[][];
@@ -22,6 +24,8 @@ interface WordDuelBattleProps {
 }
 
 export function WordDuelBattle({
+  myPlayerId,
+  currentTurn,
   partnerDisplayName,
   myGuesses,
   partnerGuesses,
@@ -37,22 +41,43 @@ export function WordDuelBattle({
   const [cursorPos, setCursorPos] = useState(0);
   const [shake, setShake] = useState(false);
   const [toast, setToast] = useState('');
+
+  // Animações para o jogador atual
   const [revealingRow, setRevealingRow] = useState(-1);
   const [revealProgress, setRevealProgress] = useState(-1);
-  const [bounceRow] = useState(-1);
+  const [bounceRow, setBounceRow] = useState(-1);
   const [lastTypedIdx, setLastTypedIdx] = useState(-1);
+  const prevGuessesCount = useRef(myGuesses.length);
+
+  // Animações para o espectador (assistindo o parceiro jogar ao vivo)
+  const [partnerRevealingRow, setPartnerRevealingRow] = useState(-1);
+  const [partnerRevealProgress, setPartnerRevealProgress] = useState(-1);
+  const [partnerBounceRow, setPartnerBounceRow] = useState(-1);
+  const prevPartnerGuessesCount = useRef(partnerGuesses.length);
 
   // Aba selecionada: 'my' (minha tela) ou 'partner' (assistir o parceiro em tempo real)
   const [activeTab, setActiveTab] = useState<'my' | 'partner'>('my');
 
-  const prevGuessesCount = useRef(myGuesses.length);
+  // Banner de transição de turno ("Sua Vez!" / "Turno de [Nome]")
+  const [turnBanner, setTurnBanner] = useState<{
+    title: string;
+    subtitle: string;
+    targetTab: 'my' | 'partner';
+  } | null>(null);
 
-  // Efeito de revelação e animação quando uma nova tentativa é confirmada
+  const prevTurnRef = useRef<string | null>(null);
+  const turnTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Animação de revelação das minhas tentativas ──────────────────────────
   useEffect(() => {
     if (myGuesses.length > prevGuessesCount.current) {
       const newRowIdx = myGuesses.length - 1;
       setRevealingRow(newRowIdx);
       setRevealProgress(0);
+
+      const latestGuess = myGuesses[newRowIdx];
+      const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
 
       let prog = 0;
       const interval = setInterval(() => {
@@ -64,6 +89,9 @@ export function WordDuelBattle({
           setRevealProgress(-1);
           setCurrentInput('');
           setCursorPos(0);
+          if (isWin) {
+            setBounceRow(newRowIdx);
+          }
         }
       }, 250);
 
@@ -73,12 +101,121 @@ export function WordDuelBattle({
     }
   }, [myGuesses]);
 
-  // Se passou a ser meu turno, foca na minha tela automaticamente
+  // ── Animação de revelação das tentativas do parceiro (Espectador) ──────────
   useEffect(() => {
-    if (isMyTurn) {
-      setActiveTab('my');
+    if (partnerGuesses.length > prevPartnerGuessesCount.current) {
+      const newRowIdx = partnerGuesses.length - 1;
+      setPartnerRevealingRow(newRowIdx);
+      setPartnerRevealProgress(0);
+
+      const latestGuess = partnerGuesses[newRowIdx];
+      const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
+
+      let prog = 0;
+      const interval = setInterval(() => {
+        prog++;
+        setPartnerRevealProgress(prog);
+        if (prog >= 5) {
+          clearInterval(interval);
+          setPartnerRevealingRow(-1);
+          setPartnerRevealProgress(-1);
+          if (isWin) {
+            setPartnerBounceRow(newRowIdx);
+          }
+        }
+      }, 250);
+
+      prevPartnerGuessesCount.current = partnerGuesses.length;
+    } else {
+      prevPartnerGuessesCount.current = partnerGuesses.length;
     }
-  }, [isMyTurn]);
+  }, [partnerGuesses]);
+
+  // ── Transição suave de turno com aviso na tela ────────────────────────────
+  useEffect(() => {
+    const activeTurn = currentTurn || (isMyTurn ? myPlayerId : 'partner');
+
+    // Inicialização ao montar a tela
+    if (prevTurnRef.current === null) {
+      prevTurnRef.current = activeTurn;
+      if (isMyTurn) {
+        setActiveTab('my');
+      } else {
+        setActiveTab('partner');
+      }
+      return;
+    }
+
+    // Se o turno mudou de mãos
+    if (prevTurnRef.current !== activeTurn && activeTurn) {
+      prevTurnRef.current = activeTurn;
+
+      if (turnTransitionTimerRef.current) {
+        clearTimeout(turnTransitionTimerRef.current);
+      }
+      if (bannerTimerRef.current) {
+        clearTimeout(bannerTimerRef.current);
+      }
+
+      // Aguarda a animação da palavra terminar de virar (5 letras x 250ms = 1250ms)
+      // + 950ms de pausa para leitura calma do usuário antes de anunciar quem joga agora
+      const hasPreviousGuesses = myGuesses.length > 0 || partnerGuesses.length > 0;
+      const turnChangeDelay = hasPreviousGuesses ? 2200 : 0;
+
+      turnTransitionTimerRef.current = setTimeout(() => {
+        if (isMyTurn) {
+          // Passou a ser a MINHA vez
+          // Se eu já estiver na minha aba, não interrompe com overlay
+          if (activeTab !== 'my') {
+            setTurnBanner({
+              title: 'Sua Vez!',
+              subtitle: `Hora de tentar decifrar a palavra de ${partnerDisplayName}`,
+              targetTab: 'my',
+            });
+            bannerTimerRef.current = setTimeout(() => {
+              setActiveTab('my');
+              setTurnBanner(null);
+            }, 1800);
+          }
+        } else {
+          // Passou a ser a vez do PARCEIRO
+          // Se eu já estiver na aba dele, não interrompe com overlay
+          if (activeTab !== 'partner') {
+            setTurnBanner({
+              title: `Turno de ${partnerDisplayName}`,
+              subtitle: 'Acompanhe as tentativas em tempo real',
+              targetTab: 'partner',
+            });
+            bannerTimerRef.current = setTimeout(() => {
+              setActiveTab('partner');
+              setTurnBanner(null);
+            }, 1800);
+          }
+        }
+      }, turnChangeDelay);
+    }
+
+    return () => {
+      if (turnTransitionTimerRef.current) {
+        clearTimeout(turnTransitionTimerRef.current);
+      }
+      if (bannerTimerRef.current) {
+        clearTimeout(bannerTimerRef.current);
+      }
+    };
+  }, [currentTurn, isMyTurn, myPlayerId, partnerDisplayName, activeTab, myGuesses.length, partnerGuesses.length]);
+
+  // Troca de aba manual pelo usuário
+  const handleTabClick = (tab: 'my' | 'partner') => {
+    if (turnTransitionTimerRef.current) {
+      clearTimeout(turnTransitionTimerRef.current);
+    }
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+    }
+    setTurnBanner(null);
+    setActiveTab(tab);
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -213,14 +350,47 @@ export function WordDuelBattle({
   const keyStates = getKeyboardStates(myGuesses, revealingRow, revealProgress);
 
   return (
-    <div className="flex flex-col items-center justify-between w-full flex-1 max-w-sm sm:max-w-md mx-auto py-1">
+    <div className="relative flex flex-col items-center justify-between w-full flex-1 max-w-sm sm:max-w-md mx-auto py-1">
       <WordGameStyles />
+
+      {/* Overlay de Transição de Turno com animação e clique para dispensar */}
+      <AnimatePresence>
+        {turnBanner && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => handleTabClick(turnBanner.targetTab)}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 cursor-pointer"
+          >
+            <motion.div
+              initial={{ scale: 0.85, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: -10 }}
+              className="bg-neutral-900 border border-amber-500/40 rounded-2xl p-6 text-center shadow-2xl flex flex-col items-center gap-2 max-w-xs"
+            >
+              <div className="w-12 h-12 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mb-1">
+                <Swords className="w-6 h-6 text-amber-400 animate-pulse" />
+              </div>
+              <h3 className="text-2xl font-bold text-white tracking-wide">
+                {turnBanner.title}
+              </h3>
+              <p className="text-xs text-neutral-300">
+                {turnBanner.subtitle}
+              </p>
+              <span className="text-[10px] text-amber-400/80 mt-2 font-medium">
+                Toque para continuar
+              </span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Seletor de visualização (Minha tela vs Tela do parceiro em tempo real) */}
       <div className="w-full mb-3 flex flex-col gap-2">
         <div className="grid grid-cols-2 p-1 bg-black/40 border border-white/10 rounded-xl">
           <button
-            onClick={() => setActiveTab('my')}
+            onClick={() => handleTabClick('my')}
             className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'my'
                 ? 'bg-amber-500 text-neutral-950 shadow-md'
@@ -231,7 +401,7 @@ export function WordDuelBattle({
             Minha Tela {isMyTurn && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
           </button>
           <button
-            onClick={() => setActiveTab('partner')}
+            onClick={() => handleTabClick('partner')}
             className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'partner'
                 ? 'bg-indigo-500 text-white shadow-md'
@@ -290,18 +460,20 @@ export function WordDuelBattle({
             <div className={shake ? 'word-shake' : ''}>
               <WordGrid
                 rows={myRows}
+                guesses={myGuesses}
                 revealingRow={revealingRow}
                 revealProgress={revealProgress}
                 bounceRow={bounceRow}
                 lastTypedIdx={lastTypedIdx}
-                onCellClick={(idx) => {
+                shake={shake}
+                onTileClick={(idx) => {
                   if (isMyTurn) setCursorPos(idx);
                 }}
               />
             </div>
           </div>
         ) : (
-          /* Tela do Parceiro em Tempo Real (Live Spectate) */
+          /* Tela do Parceiro em Tempo Real (Live Spectate) com animação de revelação */
           <div className="flex flex-col items-center">
             <div className="text-xs uppercase tracking-wider font-semibold text-neutral-400 mb-1.5 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
@@ -310,11 +482,13 @@ export function WordDuelBattle({
             <div>
               <WordGrid
                 rows={partnerRows}
-                revealingRow={-1}
-                revealProgress={-1}
-                bounceRow={-1}
+                guesses={partnerGuesses}
+                revealingRow={partnerRevealingRow}
+                revealProgress={partnerRevealProgress}
+                bounceRow={partnerBounceRow}
                 lastTypedIdx={-1}
-                onCellClick={() => {}}
+                shake={false}
+                onTileClick={() => {}}
               />
             </div>
             {!isMyTurn && partnerInputDraft && (

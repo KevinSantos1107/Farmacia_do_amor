@@ -93,22 +93,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const secretsData = secretsSnap.exists ? secretsSnap.data() || {} : {};
       const roomData = roomSnap.exists ? roomSnap.data() || {} : {};
 
-      // Atualiza o documento de segredos (NUNCA lido pelo cliente)
-      const otherSecret = isP1 ? secretsData.p2Secret : secretsData.p1Secret;
+      // Verifica se o outro jogador já travou sua palavra NESTA rodada (baseado em roomData)
+      const otherLocked = isP1 ? !!roomData.p2Locked : !!roomData.p1Locked;
+      const otherSecret = otherLocked ? (isP1 ? secretsData.p2Secret : secretsData.p1Secret) : null;
       const roundNumber = typeof secretsData.roundNumber === 'number' ? secretsData.roundNumber : 1;
 
-      t.set(
-        secretsDocRef,
-        {
-          [secretField]: normalized,
-          roundNumber,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+      // Se o outro jogador ainda não havia travado nesta rodada,
+      // limpa qualquer segredo residual antigo do outro jogador para garantir consistência
+      const secretsUpdate: Record<string, unknown> = {
+        [secretField]: normalized,
+        roundNumber,
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+      if (!otherLocked) {
+        const otherSecretField = isP1 ? 'p2Secret' : 'p1Secret';
+        secretsUpdate[otherSecretField] = null;
+      }
 
-      // Checa se ambas as palavras estão agora definidas
-      const bothReady = !!(normalized && otherSecret);
+      t.set(secretsDocRef, secretsUpdate, { merge: true });
+
+      // Checa se ambas as palavras estão verdadeiramente definidas e travadas nesta rodada
+      const bothReady = !!(normalized && otherLocked && otherSecret);
 
       if (bothReady) {
         // Ambas as palavras travadas: inicia a fase de duelo
