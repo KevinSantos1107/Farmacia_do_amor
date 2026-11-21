@@ -37,7 +37,10 @@ export function WordDuelLobby({
 }: WordDuelLobbyProps) {
   const [starting, setStarting] = useState(false);
 
+  const isOffline = partnerPresence === 'offline';
+
   const handleStart = async () => {
+    if (isOffline) return;
     setStarting(true);
     try {
       await onStart();
@@ -47,7 +50,7 @@ export function WordDuelLobby({
   };
 
   return (
-    <div className="w-full flex flex-col items-center justify-center p-4 md:p-8">
+    <div className="w-full flex flex-col items-center justify-center p-3 sm:p-6 md:p-10 max-w-4xl mx-auto">
       {/* Background Orbs — idêntico ao Sincronia */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[var(--theme-primary)] opacity-20 rounded-full blur-[100px] -z-10 mix-blend-screen animate-pulse" />
       <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[var(--theme-accent)] opacity-20 rounded-full blur-[80px] -z-10 mix-blend-screen animate-pulse delay-1000" />
@@ -96,7 +99,7 @@ export function WordDuelLobby({
         <div className="flex flex-col gap-3 w-full max-w-sm">
           <button
             onClick={handleStart}
-            disabled={starting}
+            disabled={starting || isOffline}
             className="group relative w-full py-4 rounded-2xl font-semibold text-base text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden shadow-lg"
             aria-label="Iniciar duelo"
           >
@@ -106,6 +109,8 @@ export function WordDuelLobby({
               <Swords className="w-4 h-4" />
               {starting
                 ? 'Iniciando…'
+                : isOffline
+                ? `Aguardando ${partnerName}...`
                 : partnerPresence === 'site'
                 ? `Convidar ${partnerName}`
                 : 'Iniciar Duelo'}

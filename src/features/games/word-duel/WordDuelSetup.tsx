@@ -29,6 +29,9 @@ export function WordDuelSetup({
   const [cursorPos, setCursorPos] = useState(0);
   const [shake, setShake] = useState(false);
   const [toast, setToast] = useState('');
+  const [localLocked, setLocalLocked] = useState(false);
+
+  const effectivelyLocked = isLocked || localLocked;
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -37,7 +40,7 @@ export function WordDuelSetup({
 
   const handleKey = useCallback(
     (key: string) => {
-      if (isLocked || isSubmitting) return;
+      if (effectivelyLocked || isSubmitting) return;
 
       const chars = inputWord.split('');
       while (chars.length < 5) chars.push(' ');
@@ -65,14 +68,21 @@ export function WordDuelSetup({
         }
 
         const normalized = normalizeWord(fullWord);
+        // Validação instantânea local do dicionário de 5 letras
         if (!isValidWord(normalized)) {
-          showToast('Palavra inválida');
+          showToast('Palavra não encontrada no dicionário');
           setShake(true);
           setTimeout(() => setShake(false), 500);
           return;
         }
 
-        onLockWord(normalized);
+        // Otimista: trava imediatamente na UI para feedback instantâneo e responsivo
+        setLocalLocked(true);
+        onLockWord(normalized).then((success) => {
+          if (!success) {
+            setLocalLocked(false);
+          }
+        });
         return;
       }
 
@@ -85,7 +95,7 @@ export function WordDuelSetup({
         }
       }
     },
-    [isLocked, isSubmitting, inputWord, cursorPos, isValidWord, onLockWord]
+    [effectivelyLocked, isSubmitting, inputWord, cursorPos, isValidWord, onLockWord]
   );
 
   // Escuta teclado físico do computador
@@ -114,30 +124,30 @@ export function WordDuelSetup({
   while (chars.length < 5) chars.push('');
 
   return (
-    <div className="flex flex-col items-center justify-between w-full flex-1 max-w-sm sm:max-w-md mx-auto py-2">
+    <div className="flex flex-col items-center justify-between w-full flex-1 max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto py-2 px-3 sm:px-6">
       <WordGameStyles />
 
       {/* Cabeçalho */}
-      <div className="text-center mb-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center justify-center gap-2">
-          <Sparkles className="w-5 h-5 text-amber-400" />
+      <div className="text-center mb-3 sm:mb-5">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex items-center justify-center gap-2">
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
           Escolha sua Palavra Secreta
         </h2>
-        <p className="text-sm text-neutral-400 mt-1">
+        <p className="text-xs sm:text-sm md:text-base text-neutral-400 mt-1">
           {partnerDisplayName} terá que decifrar esta palavra de 5 letras.
         </p>
       </div>
 
       {/* Status do adversário */}
-      <div className="w-full bg-white/5 border border-white/10 rounded-xl p-3 mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-neutral-300 font-medium">{partnerDisplayName}:</span>
+      <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-4 mb-3 sm:mb-5 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-xs sm:text-sm text-neutral-300 font-medium">{partnerDisplayName}:</span>
           {partnerLocked ? (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Palavra travada!
+            <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Palavra travada!
             </span>
           ) : (
-            <span className="text-xs text-amber-300/80 italic animate-pulse">
+            <span className="text-xs sm:text-sm text-amber-300/80 italic animate-pulse">
               Escolhendo a palavra...
             </span>
           )}
@@ -145,27 +155,27 @@ export function WordDuelSetup({
       </div>
 
       {/* Grid de 1 linha para a palavra secreta */}
-      <div className="flex flex-col items-center my-4">
+      <div className="flex flex-col items-center my-3 sm:my-6 w-full">
         <div
-          className={`grid grid-cols-5 gap-2 sm:gap-2.5 p-3 rounded-2xl bg-black/40 border border-white/10 ${
+          className={`grid grid-cols-5 gap-2 sm:gap-3 md:gap-4 p-3 sm:p-4 rounded-2xl bg-black/40 border border-white/10 shadow-xl ${
             shake ? 'word-shake' : ''
           }`}
         >
           {chars.map((letter, idx) => {
-            const isActive = !isLocked && idx === cursorPos;
+            const isActive = !effectivelyLocked && idx === cursorPos;
             const hasLetter = letter.trim().length > 0;
             return (
               <button
                 key={idx}
                 type="button"
                 onClick={() => {
-                  if (!isLocked) setCursorPos(idx);
+                  if (!effectivelyLocked) setCursorPos(idx);
                 }}
-                className={`w-12 h-14 sm:w-14 sm:h-16 rounded-xl flex items-center justify-center font-bold text-2xl uppercase select-none transition-all duration-150 border-2 ${
+                className={`w-12 h-14 sm:w-16 sm:h-18 md:w-18 md:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-2xl sm:text-3xl md:text-4xl uppercase select-none transition-all duration-150 border-2 cursor-pointer ${
                   isActive
-                    ? 'border-amber-400 bg-white/10 text-white shadow-[0_0_15px_rgba(251,191,36,0.25)]'
+                    ? 'border-amber-400 bg-white/10 text-white shadow-[0_0_20px_rgba(251,191,36,0.35)] scale-105'
                     : hasLetter
-                    ? 'border-white/40 bg-white/5 text-white'
+                    ? 'border-white/50 bg-white/5 text-white'
                     : 'border-white/20 bg-white/5 text-neutral-400'
                 }`}
               >
@@ -180,39 +190,39 @@ export function WordDuelSetup({
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-3 px-3 py-1 bg-rose-500 text-white text-xs font-medium rounded-full shadow-lg"
+            className="mt-3 px-4 py-1.5 bg-rose-500 text-white text-xs sm:text-sm font-medium rounded-full shadow-lg"
           >
             {toast}
           </motion.div>
         )}
 
         {errorMsg && (
-          <div className="mt-2 text-rose-400 text-xs font-medium bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg">
+          <div className="mt-3 text-rose-400 text-xs sm:text-sm font-medium bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-xl">
             {errorMsg}
           </div>
         )}
       </div>
 
       {/* Estado travado ou Teclado */}
-      {isLocked ? (
-        <div className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center my-auto flex flex-col items-center">
-          <CheckCircle2 className="w-12 h-12 text-emerald-400 mb-2 animate-bounce" />
-          <h3 className="text-lg font-bold text-emerald-300">Sua palavra está travada!</h3>
-          <p className="text-sm text-neutral-300 mt-1">
+      {effectivelyLocked ? (
+        <div className="w-full max-w-md bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 sm:p-8 text-center my-auto flex flex-col items-center shadow-xl">
+          <CheckCircle2 className="w-12 h-12 sm:w-16 sm:h-16 text-emerald-400 mb-3 animate-bounce" />
+          <h3 className="text-lg sm:text-2xl font-bold text-emerald-300">Sua palavra está travada!</h3>
+          <p className="text-xs sm:text-base text-neutral-300 mt-2">
             {partnerLocked
               ? 'Iniciando o duelo...'
               : `Aguardando ${partnerDisplayName} travar a palavra dele(a)...`}
           </p>
         </div>
       ) : (
-        <div className="w-full mt-auto">
-          <div className="flex justify-center mb-3">
+        <div className="w-full max-w-md md:max-w-lg mt-auto">
+          <div className="flex justify-center mb-3 sm:mb-4">
             <button
               onClick={() => handleKey('ENTER')}
               disabled={isSubmitting || inputWord.replace(/ /g, '').length !== 5}
-              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-rose-500/20 transition-all text-sm"
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-2xl shadow-xl shadow-rose-500/20 transition-all text-sm sm:text-base active:scale-95 cursor-pointer"
             >
-              <Lock className="w-4 h-4" />
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
               {isSubmitting ? 'Validando...' : 'Travar Palavra'}
             </button>
           </div>

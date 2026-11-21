@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../../shared/utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Flame } from 'lucide-react';
+import { Trophy, Flame, Swords } from 'lucide-react';
 import { RankingModal } from './ranking/RankingModal';
 
 import type { LetterCell, Question } from './word/types';
@@ -30,6 +31,7 @@ import { Confetti } from './word/Confetti';
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function WordGame() {
+  const navigate = useNavigate();
   const { questions, questionsLoaded } = useWordQuestions();
   const usedWords = useRef<string[]>(loadUsedWords());
   const { isValidWord } = useWordDictionary();
@@ -397,6 +399,20 @@ export function WordGame() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Botão minimalista para alternar para o Modo Duelo 1v1 */}
+          <button
+            onClick={() => navigate('/word-duel')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-300 border cursor-pointer',
+              'bg-gradient-to-r from-amber-500/10 to-rose-500/10 border-amber-500/30 hover:border-amber-400 hover:from-amber-500/20 hover:to-rose-500/20 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)] text-white/90 active:scale-95'
+            )}
+            title="Duelo 1v1 Online"
+            style={{ touchAction: 'manipulation' }}
+          >
+            <Swords className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-medium">Duelo</span>
+          </button>
+
           <button
             onClick={() => setShowRanking(true)}
             className={cn(

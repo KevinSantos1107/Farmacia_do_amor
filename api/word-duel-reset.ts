@@ -11,6 +11,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
 import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import fs from 'fs';
+import path from 'path';
 
 // ── 1. Auth Helper ─────────────────────────────────────────────
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -45,6 +47,7 @@ function getAdminFirestore(): Firestore {
   if (existingApps.length > 0) {
     adminApp = existingApps[0];
   } else {
+    // 1. Variável de ambiente (Vercel Production)
     const envServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (envServiceAccount) {
       const parsed = typeof envServiceAccount === 'string' ? JSON.parse(envServiceAccount) : envServiceAccount;
@@ -56,10 +59,37 @@ function getAdminFirestore(): Firestore {
         projectId: parsed.project_id || process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
       });
     } else {
-      adminApp = initializeApp({
-        projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
-      });
+      // 2. Chave de serviço local (desenvolvimento localhost)
+      const cwd = process.cwd();
+      const localPaths = [
+        path.join(cwd, 'scripts', 'serviceAccountKey.json'),
+        path.join(cwd, 'serviceAccountKey.json'),
+      ];
+      let loaded = false;
+      for (const p of localPaths) {
+        if (fs.existsSync(p)) {
+          try {
+            const parsed = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            adminApp = initializeApp({
+              credential: cert(parsed),
+              projectId: parsed.project_id || process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+            });
+            loaded = true;
+            break;
+          } catch (e) {
+            console.warn(`Falha ao ler chave de serviço local de ${p}:`, e);
+          }
+        }
+      }
+      if (!loaded) {
+        adminApp = initializeApp({
+          projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site',
+        });
+      }
     }
+  }
+  if (!adminApp) {
+    throw new Error('Falha ao inicializar Firebase Admin App.');
   }
   adminDb = getFirestore(adminApp);
   return adminDb;

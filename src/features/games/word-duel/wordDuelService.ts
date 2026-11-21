@@ -63,8 +63,12 @@ export async function startInvite(
   partnerPresence: string,
   siteId?: string
 ): Promise<void> {
-  // Se o parceiro estiver apenas "no site" (fora do jogo), envia convite ('inviting').
-  // Se já estiver "no jogo" ('game') ou 'offline', inicia diretamente ('waiting_words').
+  if (partnerPresence === 'offline') {
+    throw new Error('Aguarde o parceiro ficar online para iniciar a partida.');
+  }
+
+  // Se o parceiro estiver "no site" (fora da sala), envia convite ('inviting').
+  // Se já estiver na sala ("no jogo" / 'game'), inicia diretamente ('waiting_words').
   const needsInvite = partnerPresence === 'site';
   const docRef = siteDoc('word_duel_rooms', roomId, siteId);
 

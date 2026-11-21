@@ -301,7 +301,8 @@ export function WordDuelBattle({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.altKey || e.metaKey) return;
-      if (activeTab !== 'my') return;
+      // No mobile só digita se estiver na aba 'my'. No desktop (>=1024px), ambas as telas são visíveis
+      if (activeTab !== 'my' && typeof window !== 'undefined' && window.innerWidth < 1024) return;
       if (e.key === 'Backspace') {
         e.preventDefault();
         handleKey('⌫');
@@ -362,7 +363,7 @@ export function WordDuelBattle({
   const keyStates = getKeyboardStates(myGuesses, revealingRow, revealProgress);
 
   return (
-    <div className="relative flex flex-col items-center justify-between w-full flex-1 max-w-sm sm:max-w-md mx-auto py-1">
+    <div className="relative flex flex-col items-center justify-between w-full flex-1 max-w-sm sm:max-w-md md:max-w-xl lg:max-w-5xl mx-auto py-1 px-1 sm:px-3">
       <WordGameStyles />
 
       {/* Overlay de Transição de Turno com animação e clique para dispensar */}
@@ -379,18 +380,18 @@ export function WordDuelBattle({
               initial={{ scale: 0.85, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: -10 }}
-              className="bg-neutral-900 border border-amber-500/40 rounded-2xl p-6 text-center shadow-2xl flex flex-col items-center gap-2 max-w-xs"
+              className="bg-neutral-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 text-center shadow-2xl flex flex-col items-center gap-3 max-w-sm"
             >
-              <div className="w-12 h-12 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mb-1">
-                <Swords className="w-6 h-6 text-amber-400 animate-pulse" />
+              <div className="w-14 h-14 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mb-1">
+                <Swords className="w-7 h-7 text-amber-400 animate-pulse" />
               </div>
-              <h3 className="text-2xl font-bold text-white tracking-wide">
+              <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-wide">
                 {turnBanner.title}
               </h3>
-              <p className="text-xs text-neutral-300">
+              <p className="text-xs sm:text-sm text-neutral-300">
                 {turnBanner.subtitle}
               </p>
-              <span className="text-[10px] text-amber-400/80 mt-2 font-medium">
+              <span className="text-[11px] text-amber-400/80 mt-2 font-medium">
                 Toque para continuar
               </span>
             </motion.div>
@@ -398,12 +399,13 @@ export function WordDuelBattle({
         )}
       </AnimatePresence>
 
-      {/* Seletor de visualização (Minha tela vs Tela do parceiro em tempo real) */}
+      {/* Indicador de Turno Superior Global */}
       <div className="w-full mb-3 flex flex-col gap-2">
-        <div className="grid grid-cols-2 p-1 bg-black/40 border border-white/10 rounded-xl">
+        {/* Seletor de visualização visível apenas em telas menores (< 1024px) */}
+        <div className="grid grid-cols-2 p-1 bg-black/40 border border-white/10 rounded-2xl lg:hidden">
           <button
             onClick={() => handleTabClick('my')}
-            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'my'
                 ? 'bg-amber-500 text-neutral-950 shadow-md'
                 : 'text-neutral-400 hover:text-white'
@@ -414,7 +416,7 @@ export function WordDuelBattle({
           </button>
           <button
             onClick={() => handleTabClick('partner')}
-            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'partner'
                 ? 'bg-indigo-500 text-white shadow-md'
                 : 'text-neutral-400 hover:text-white'
@@ -427,17 +429,17 @@ export function WordDuelBattle({
 
         {/* Indicador de Turno */}
         <div
-          className={`flex items-center justify-between px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all ${
+          className={`flex items-center justify-between px-4 py-2.5 rounded-2xl border text-xs sm:text-sm font-semibold transition-all ${
             isMyTurn
               ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
               : 'bg-white/5 border-white/10 text-neutral-400'
           }`}
         >
           <div className="flex items-center gap-2">
-            <Swords className={`w-4 h-4 ${isMyTurn ? 'text-amber-400 animate-pulse' : 'text-neutral-500'}`} />
+            <Swords className={`w-4 h-4 sm:w-5 sm:h-5 ${isMyTurn ? 'text-amber-400 animate-pulse' : 'text-neutral-500'}`} />
             <span>{isMyTurn ? 'Sua vez de jogar!' : `Vez de ${partnerDisplayName} jogar...`}</span>
           </div>
-          <span className="text-[11px] text-neutral-400">
+          <span className="text-[11px] sm:text-xs text-neutral-400 font-medium">
             {myGuesses.length} x {partnerGuesses.length} palpites
           </span>
         </div>
@@ -448,78 +450,144 @@ export function WordDuelBattle({
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-2 px-3 py-1 bg-rose-500 text-white text-xs font-semibold rounded-full shadow-lg"
+          className="mb-2 px-4 py-1.5 bg-rose-500 text-white text-xs sm:text-sm font-semibold rounded-full shadow-lg"
         >
           {toast}
         </motion.div>
       )}
 
       {errorMsg && (
-        <div className="mb-2 text-rose-400 text-xs font-medium bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg">
+        <div className="mb-2 text-rose-400 text-xs sm:text-sm font-medium bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-xl">
           {errorMsg}
         </div>
       )}
 
-      {/* Área dos Grids */}
-      <div className="w-full flex flex-col gap-4 my-auto overflow-y-auto max-h-[46vh] sm:max-h-[50vh] px-1 no-scrollbar">
-        {activeTab === 'my' ? (
-          /* Minha Tela de Tentativas */
-          <div className="flex flex-col items-center">
-            <div className="text-xs uppercase tracking-wider font-semibold text-neutral-400 mb-1.5 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              Descobrindo a palavra de {partnerDisplayName}
-            </div>
-            <div className={shake ? 'word-shake' : ''}>
-              <WordGrid
-                rows={myRows}
-                guesses={myGuesses}
-                revealingRow={revealingRow}
-                revealProgress={revealProgress}
-                bounceRow={bounceRow}
-                lastTypedIdx={lastTypedIdx}
-                shake={shake}
-                onTileClick={(idx) => {
-                  if (isMyTurn) setCursorPos(idx);
-                }}
-              />
-            </div>
+      {/* ── MODO DESKTOP (>= 1024px): ARENA 2 COLUNAS LADO A LADO ───────────────────────────── */}
+      <div className="hidden lg:grid lg:grid-cols-2 lg:gap-8 lg:w-full lg:items-start my-auto">
+        {/* Coluna 1: Minha Tela */}
+        <div className="flex flex-col items-center bg-white/[0.02] border border-white/10 rounded-3xl p-5 shadow-2xl">
+          <div className="text-xs uppercase tracking-wider font-semibold text-neutral-300 mb-3 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            Seu Tabuleiro (Adivinhando palavra de {partnerDisplayName})
           </div>
-        ) : (
-          /* Tela do Parceiro em Tempo Real (Live Spectate) com animação de revelação */
-          <div className="flex flex-col items-center">
-            <div className="text-xs uppercase tracking-wider font-semibold text-neutral-400 mb-1.5 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-              Assistindo {partnerDisplayName} tentando achar sua palavra
-            </div>
-            <div>
-              <WordGrid
-                rows={partnerRows}
-                guesses={partnerGuesses}
-                revealingRow={partnerRevealingRow}
-                revealProgress={partnerRevealProgress}
-                bounceRow={partnerBounceRow}
-                lastTypedIdx={-1}
-                shake={false}
-                onTileClick={() => {}}
-              />
-            </div>
-            {!isMyTurn && partnerInputDraft && (
-              <span className="text-[11px] text-amber-300/80 mt-2 italic flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Digitando ao vivo...
+          <div className={`my-auto max-h-[46vh] overflow-y-auto no-scrollbar py-2 ${shake ? 'word-shake' : ''}`}>
+            <WordGrid
+              rows={myRows}
+              guesses={myGuesses}
+              revealingRow={revealingRow}
+              revealProgress={revealProgress}
+              bounceRow={bounceRow}
+              lastTypedIdx={lastTypedIdx}
+              shake={shake}
+              onTileClick={(idx) => {
+                if (isMyTurn) setCursorPos(idx);
+              }}
+            />
+          </div>
+          <div className="w-full mt-4 pt-2">
+            <WordKeyboard
+              onKey={handleKey}
+              keyStates={keyStates}
+              disabled={!isMyTurn || isSubmitting || revealingRow >= 0}
+            />
+          </div>
+        </div>
+
+        {/* Coluna 2: Tela do Adversário (Ao Vivo) */}
+        <div className="flex flex-col items-center bg-white/[0.02] border border-white/10 rounded-3xl p-5 shadow-2xl">
+          <div className="text-xs uppercase tracking-wider font-semibold text-neutral-300 mb-3 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse"></span>
+            Tabuleiro de {partnerDisplayName} (Ao Vivo)
+          </div>
+          <div className="my-auto max-h-[46vh] overflow-y-auto no-scrollbar py-2">
+            <WordGrid
+              rows={partnerRows}
+              guesses={partnerGuesses}
+              revealingRow={partnerRevealingRow}
+              revealProgress={partnerRevealProgress}
+              bounceRow={partnerBounceRow}
+              lastTypedIdx={-1}
+              shake={false}
+              onTileClick={() => {}}
+            />
+          </div>
+          <div className="w-full mt-4 pt-6 text-center min-h-[60px] flex items-center justify-center">
+            {!isMyTurn && partnerInputDraft ? (
+              <span className="text-sm text-amber-300 font-medium italic flex items-center gap-1.5 animate-pulse">
+                <Sparkles className="w-4 h-4" /> {partnerDisplayName} está digitando ao vivo...
               </span>
+            ) : !isMyTurn ? (
+              <span className="text-xs text-neutral-400">Aguardando jogada de {partnerDisplayName}...</span>
+            ) : (
+              <span className="text-xs text-neutral-500">Sua vez de jogar — digite no tabuleiro ao lado!</span>
             )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Teclado (ativo apenas na minha tela e no meu turno) */}
-      <div className="w-full mt-auto pt-2">
-        <WordKeyboard
-          onKey={handleKey}
-          keyStates={keyStates}
-          disabled={!isMyTurn || isSubmitting || revealingRow >= 0 || activeTab !== 'my'}
-        />
+      {/* ── MODO MOBILE / TABLET (< 1024px): 1 COLUNA COM ABAS ──────────────────────────────── */}
+      <div className="flex lg:hidden flex-col items-center w-full flex-1 justify-between">
+        <div className="w-full flex flex-col gap-4 my-auto overflow-y-auto max-h-[46vh] sm:max-h-[50vh] px-1 no-scrollbar">
+          {activeTab === 'my' ? (
+            /* Minha Tela de Tentativas */
+            <div className="flex flex-col items-center">
+              <div className="text-xs uppercase tracking-wider font-semibold text-neutral-400 mb-1.5 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                Descobrindo a palavra de {partnerDisplayName}
+              </div>
+              <div className={shake ? 'word-shake' : ''}>
+                <WordGrid
+                  rows={myRows}
+                  guesses={myGuesses}
+                  revealingRow={revealingRow}
+                  revealProgress={revealProgress}
+                  bounceRow={bounceRow}
+                  lastTypedIdx={lastTypedIdx}
+                  shake={shake}
+                  onTileClick={(idx) => {
+                    if (isMyTurn) setCursorPos(idx);
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            /* Tela do Parceiro em Tempo Real (Live Spectate) com animação de revelação */
+            <div className="flex flex-col items-center">
+              <div className="text-xs uppercase tracking-wider font-semibold text-neutral-400 mb-1.5 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                Assistindo {partnerDisplayName} tentando achar sua palavra
+              </div>
+              <div>
+                <WordGrid
+                  rows={partnerRows}
+                  guesses={partnerGuesses}
+                  revealingRow={partnerRevealingRow}
+                  revealProgress={partnerRevealProgress}
+                  bounceRow={partnerBounceRow}
+                  lastTypedIdx={-1}
+                  shake={false}
+                  onTileClick={() => {}}
+                />
+              </div>
+              {!isMyTurn && partnerInputDraft && (
+                <span className="text-[11px] text-amber-300/80 mt-2 italic flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Digitando ao vivo...
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Teclado (ativo apenas na minha tela e no meu turno) */}
+        <div className="w-full mt-auto pt-2">
+          <WordKeyboard
+            onKey={handleKey}
+            keyStates={keyStates}
+            disabled={!isMyTurn || isSubmitting || revealingRow >= 0 || activeTab !== 'my'}
+          />
+        </div>
       </div>
     </div>
   );
+}
 }

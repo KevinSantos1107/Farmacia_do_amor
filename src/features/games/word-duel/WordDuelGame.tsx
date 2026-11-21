@@ -106,15 +106,15 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
 
   return (
     <div className="relative flex flex-col flex-1 w-full min-h-full">
-      {/* Banner de Parceiro Saiu (idêntico ao Sincronia) */}
+      {/* Banner de Parceiro Saiu (idêntico ao Sincronia, responsivo) */}
       {isPartnerLeft && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-sm bg-neutral-900 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4 text-center"
+            className="w-full max-w-sm sm:max-w-md bg-neutral-900 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center gap-4 text-center"
           >
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center overflow-hidden border border-white/10">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/5 flex items-center justify-center overflow-hidden border border-white/10">
               {partnerAvatar ? (
                 <img
                   src={partnerAvatar}
@@ -122,18 +122,18 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
                   className="w-full h-full object-cover opacity-50 grayscale"
                 />
               ) : (
-                <span className="text-2xl font-bold opacity-50 text-white">
+                <span className="text-2xl sm:text-3xl font-bold opacity-50 text-white">
                   {partnerDisplayName.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
-            <h3 className="text-xl font-bold text-white">{partnerDisplayName} saiu da partida.</h3>
-            <p className="text-neutral-400 text-sm">
+            <h3 className="text-xl sm:text-2xl font-bold text-white">{partnerDisplayName} saiu da partida.</h3>
+            <p className="text-neutral-400 text-xs sm:text-sm">
               Aguardando retorno... ({partnerLeftCountdown}s)
             </p>
             <button
               onClick={forceEndGame}
-              className="mt-3 w-full py-3 rounded-xl text-sm font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all active:scale-95"
+              className="mt-2 w-full py-3 sm:py-3.5 rounded-2xl text-sm sm:text-base font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all active:scale-95 cursor-pointer"
             >
               Encerrar Partida
             </button>
