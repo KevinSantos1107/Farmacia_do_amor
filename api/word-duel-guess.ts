@@ -4,25 +4,138 @@
  * Vercel Serverless Function:
  * Processa uma tentativa (palpite) de um jogador no modo duelo.
  *
- * Segurança:
- * - Validação de Firebase ID Token.
- * - Valida se é a vez do jogador (player === currentTurn).
- * - Valida tamanho 5 e presença no dicionário de 5 letras (isValidWord).
- * - Lê a palavra secreta do adversário exclusivamente do servidor em `word_duel_secrets/{roomId}`.
- * - Avalia o palpite e registra no array do jogador em `word_duel_rooms/{roomId}`.
- * - Alterna o turno para o adversário.
- * - Detecta vitória (todas as letras 'correct'):
- *   - Finaliza a rodada com `status: 'round_over'` e `winnerId: player`.
- *   - Revela as duas palavras (`p1RevealedWord`, `p2RevealedWord`).
- * - Retorna o resultado colorido da tentativa na resposta HTTP.
+ * Totalmente autocontido para compatibilidade garantida com Node ESM da Vercel.
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { FieldValue } from 'firebase-admin/firestore';
-import { verifyAuthToken } from './_lib/authHelper';
-import { isValidWord, normalizeWordServer, evaluateGuessServer, type LetterState } from './_lib/wordDictionary';
-import { getAdminFirestore } from './_lib/firebaseAdmin';
+import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
+import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+import fs from 'fs';
+import path from 'path';
 
+// ── 1. Auth Helper ─────────────────────────────────────────────
+const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+const JWKS = createRemoteJWKSet(new URL(GOOGLE_JWKS_URL));
+
+async function verifyAuthToken(authHeaderOrToken: string | undefined): Promise<{ uid: string } | null> {
+  if (!authHeaderOrToken || typeof authHeaderOrToken !== 'string') return null;
+  const token = authHeaderOrToken.startsWith('Bearer ') ? authHeaderOrToken.slice(7).trim() : authHeaderOrToken.trim();
+  if (!token) return null;
+
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
+  try {
+    const verified = await jwtVerify(token, JWKS, {
+      issuer: `https://securetoken.google.com/${projectId}`,
+      audience: projectId,
+    });
+    const payload = verified.payload as Record<string, unknown>;
+    const uid = typeof payload.sub === 'string' ? payload.sub : '';
+    return uid ? { uid } : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── 2. Firebase Admin ──────────────────────────────────────────
+let adminApp: App | null = null;
+let adminDb: Firestore | null = null;
+
+function getAdminFirestore(): Firestore {
+  if (adminDb) return adminDb;
+  const existingApps = getApps();
+  if (existingApps.length > 0) {
+    adminApp = existingApps[0];
+  } else {
+    const envServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (envServiceAccount) {
+      const parsed = typeof envServiceAccount === 'string' ? JSON.parse(envServiceAccount) : envServiceAccount;
+      if (parsed && typeof parsed.private_key === 'string') {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+      adminApp = initializeApp({
+        credential: cert(parsed),
+        projectId: parsed.project_id || process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+      });
+    } else {
+      adminApp = initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+      });
+    }
+  }
+  adminDb = getFirestore(adminApp);
+  return adminDb;
+}
+
+// ── 3. Dicionário & Avaliação ─────────────────────────────────
+let cachedWords: Set<string> | null = null;
+
+function loadDictionary(): Set<string> {
+  if (cachedWords) return cachedWords;
+  const cwd = process.cwd();
+  const candidates = [
+    path.join(cwd, 'public', 'pt-5-letters.json'),
+    path.resolve(cwd, 'public', 'pt-5-letters.json'),
+  ];
+  let rawData = '';
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      rawData = fs.readFileSync(p, 'utf-8');
+      break;
+    }
+  }
+  if (!rawData) {
+    throw new Error('Arquivo pt-5-letters.json não encontrado no servidor.');
+  }
+  const list: string[] = JSON.parse(rawData);
+  cachedWords = new Set(list.map((w) => w.toUpperCase().trim()));
+  return cachedWords;
+}
+
+function normalizeWordServer(w: string): string {
+  if (!w || typeof w !== 'string') return '';
+  return w
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z]/g, '');
+}
+
+function isValidWord(word: string): boolean {
+  const norm = normalizeWordServer(word);
+  if (norm.length !== 5) return false;
+  return loadDictionary().has(norm);
+}
+
+export type LetterState = 'correct' | 'present' | 'absent';
+
+function evaluateGuessServer(guess: string, answer: string): LetterState[] {
+  const result: LetterState[] = Array(answer.length).fill('absent');
+  const answerArr = answer.split('');
+  const guessArr = guess.split('');
+
+  // 1ª passagem: corretas (verdes)
+  guessArr.forEach((l, i) => {
+    if (l === answerArr[i]) {
+      result[i] = 'correct';
+      answerArr[i] = '*';
+    }
+  });
+
+  // 2ª passagem: presentes (amarelas)
+  guessArr.forEach((l, i) => {
+    if (result[i] === 'correct') return;
+    const idx = answerArr.indexOf(l);
+    if (idx !== -1) {
+      result[i] = 'present';
+      answerArr[idx] = '*';
+    }
+  });
+
+  return result;
+}
+
+// ── 4. Handler Principal ───────────────────────────────────────
 interface GuessBody {
   idToken?: string;
   roomId?: string;
@@ -208,8 +321,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(200).json(responseResult);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : undefined;
-    console.error('Erro em word-duel-guess:', msg, stack);
+    console.error('Erro em word-duel-guess:', msg);
     res.status(500).json({ error: 'internal_error', detail: msg });
   }
 }

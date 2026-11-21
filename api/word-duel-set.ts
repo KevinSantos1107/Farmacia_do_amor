@@ -4,19 +4,110 @@
  * Vercel Serverless Function:
  * Define ou atualiza a palavra secreta de 5 letras de um jogador no modo duelo.
  *
- * Segurança:
- * - Validação de Firebase ID Token.
- * - Validação estrita do dicionário no servidor (isValidWord).
- * - A palavra é salva exclusivamente em `word_duel_secrets/{roomId}`, protegida contra leitura do cliente.
- * - NENHUMA palavra é retornada na resposta.
+ * Totalmente autocontido para compatibilidade garantida com Node ESM da Vercel.
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { FieldValue } from 'firebase-admin/firestore';
-import { verifyAuthToken } from './_lib/authHelper';
-import { isValidWord, normalizeWordServer } from './_lib/wordDictionary';
-import { getAdminFirestore } from './_lib/firebaseAdmin';
+import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
+import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+import fs from 'fs';
+import path from 'path';
 
+// ── 1. Auth Helper ─────────────────────────────────────────────
+const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+const JWKS = createRemoteJWKSet(new URL(GOOGLE_JWKS_URL));
+
+async function verifyAuthToken(authHeaderOrToken: string | undefined): Promise<{ uid: string } | null> {
+  if (!authHeaderOrToken || typeof authHeaderOrToken !== 'string') return null;
+  const token = authHeaderOrToken.startsWith('Bearer ') ? authHeaderOrToken.slice(7).trim() : authHeaderOrToken.trim();
+  if (!token) return null;
+
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
+  try {
+    const verified = await jwtVerify(token, JWKS, {
+      issuer: `https://securetoken.google.com/${projectId}`,
+      audience: projectId,
+    });
+    const payload = verified.payload as Record<string, unknown>;
+    const uid = typeof payload.sub === 'string' ? payload.sub : '';
+    return uid ? { uid } : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── 2. Firebase Admin ──────────────────────────────────────────
+let adminApp: App | null = null;
+let adminDb: Firestore | null = null;
+
+function getAdminFirestore(): Firestore {
+  if (adminDb) return adminDb;
+  const existingApps = getApps();
+  if (existingApps.length > 0) {
+    adminApp = existingApps[0];
+  } else {
+    const envServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (envServiceAccount) {
+      const parsed = typeof envServiceAccount === 'string' ? JSON.parse(envServiceAccount) : envServiceAccount;
+      if (parsed && typeof parsed.private_key === 'string') {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+      adminApp = initializeApp({
+        credential: cert(parsed),
+        projectId: parsed.project_id || process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+      });
+    } else {
+      adminApp = initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+      });
+    }
+  }
+  adminDb = getFirestore(adminApp);
+  return adminDb;
+}
+
+// ── 3. Dicionário ──────────────────────────────────────────────
+let cachedWords: Set<string> | null = null;
+
+function loadDictionary(): Set<string> {
+  if (cachedWords) return cachedWords;
+  const cwd = process.cwd();
+  const candidates = [
+    path.join(cwd, 'public', 'pt-5-letters.json'),
+    path.resolve(cwd, 'public', 'pt-5-letters.json'),
+  ];
+  let rawData = '';
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      rawData = fs.readFileSync(p, 'utf-8');
+      break;
+    }
+  }
+  if (!rawData) {
+    throw new Error('Arquivo pt-5-letters.json não encontrado no servidor.');
+  }
+  const list: string[] = JSON.parse(rawData);
+  cachedWords = new Set(list.map((w) => w.toUpperCase().trim()));
+  return cachedWords;
+}
+
+function normalizeWordServer(w: string): string {
+  if (!w || typeof w !== 'string') return '';
+  return w
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z]/g, '');
+}
+
+function isValidWord(word: string): boolean {
+  const norm = normalizeWordServer(word);
+  if (norm.length !== 5) return false;
+  return loadDictionary().has(norm);
+}
+
+// ── 4. Handler Principal ───────────────────────────────────────
 interface SetWordBody {
   idToken?: string;
   roomId?: string;
@@ -71,7 +162,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const db = getAdminFirestore();
 
-  // Abstração de caminhos para suportar multi-site APENAS se VITE_DATA_LAYOUT=site estiver configurado
   const isSiteLayout = process.env.VITE_DATA_LAYOUT === 'site' || process.env.DATA_LAYOUT === 'site';
   const roomDocRef = isSiteLayout && siteId
     ? db.collection('sites').doc(siteId).collection('word_duel_rooms').doc(roomId)
@@ -93,13 +183,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const secretsData = secretsSnap.exists ? secretsSnap.data() || {} : {};
       const roomData = roomSnap.exists ? roomSnap.data() || {} : {};
 
-      // Verifica se o outro jogador já travou sua palavra NESTA rodada (baseado em roomData)
       const otherLocked = isP1 ? !!roomData.p2Locked : !!roomData.p1Locked;
       const otherSecret = otherLocked ? (isP1 ? secretsData.p2Secret : secretsData.p1Secret) : null;
       const roundNumber = typeof secretsData.roundNumber === 'number' ? secretsData.roundNumber : 1;
 
-      // Se o outro jogador ainda não havia travado nesta rodada,
-      // limpa qualquer segredo residual antigo do outro jogador para garantir consistência
       const secretsUpdate: Record<string, unknown> = {
         [secretField]: normalized,
         roundNumber,
@@ -112,11 +199,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
       t.set(secretsDocRef, secretsUpdate, { merge: true });
 
-      // Checa se ambas as palavras estão verdadeiramente definidas e travadas nesta rodada
       const bothReady = !!(normalized && otherLocked && otherSecret);
 
       if (bothReady) {
-        // Ambas as palavras travadas: inicia a fase de duelo
         const starterId = roomData.starterId || p1Id;
         t.set(
           roomDocRef,
@@ -139,7 +224,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           { merge: true }
         );
       } else {
-        // Apenas o jogador atual travou sua palavra
         t.set(
           roomDocRef,
           {
@@ -163,8 +247,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(200).json({ success: true, locked: true });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : undefined;
-    console.error('Erro em word-duel-set:', msg, stack);
+    console.error('Erro em word-duel-set:', msg);
     res.status(500).json({ error: 'internal_error', detail: msg });
   }
 }

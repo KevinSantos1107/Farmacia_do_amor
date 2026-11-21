@@ -3,7 +3,7 @@ import {
   isValidWord,
   normalizeWordServer,
   evaluateGuessServer,
-} from './_lib/wordDictionary';
+} from './_lib/wordDictionary.ts';
 
 describe('Server-side Word Dictionary & Logic', () => {
   it('normalizes words properly (strips accents, uppercase, letters only)', () => {

@@ -4,16 +4,68 @@
  * Vercel Serverless Function:
  * Reinicia a rodada para um novo jogo (jogar de novo).
  *
- * - Zera p1Secret e p2Secret em `word_duel_secrets/{roomId}`.
- * - Inverte o starterId para alternar quem começa na próxima rodada.
- * - Redefine o status da sala pública para 'waiting_words', limpando palpites e vencedores.
+ * Totalmente autocontido para compatibilidade garantida com Node ESM da Vercel.
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { FieldValue } from 'firebase-admin/firestore';
-import { verifyAuthToken } from './_lib/authHelper';
-import { getAdminFirestore } from './_lib/firebaseAdmin';
+import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
+import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 
+// ── 1. Auth Helper ─────────────────────────────────────────────
+const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+const JWKS = createRemoteJWKSet(new URL(GOOGLE_JWKS_URL));
+
+async function verifyAuthToken(authHeaderOrToken: string | undefined): Promise<{ uid: string } | null> {
+  if (!authHeaderOrToken || typeof authHeaderOrToken !== 'string') return null;
+  const token = authHeaderOrToken.startsWith('Bearer ') ? authHeaderOrToken.slice(7).trim() : authHeaderOrToken.trim();
+  if (!token) return null;
+
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'kevin-iara-site';
+  try {
+    const verified = await jwtVerify(token, JWKS, {
+      issuer: `https://securetoken.google.com/${projectId}`,
+      audience: projectId,
+    });
+    const payload = verified.payload as Record<string, unknown>;
+    const uid = typeof payload.sub === 'string' ? payload.sub : '';
+    return uid ? { uid } : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── 2. Firebase Admin ──────────────────────────────────────────
+let adminApp: App | null = null;
+let adminDb: Firestore | null = null;
+
+function getAdminFirestore(): Firestore {
+  if (adminDb) return adminDb;
+  const existingApps = getApps();
+  if (existingApps.length > 0) {
+    adminApp = existingApps[0];
+  } else {
+    const envServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (envServiceAccount) {
+      const parsed = typeof envServiceAccount === 'string' ? JSON.parse(envServiceAccount) : envServiceAccount;
+      if (parsed && typeof parsed.private_key === 'string') {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+      adminApp = initializeApp({
+        credential: cert(parsed),
+        projectId: parsed.project_id || process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+      });
+    } else {
+      adminApp = initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+      });
+    }
+  }
+  adminDb = getFirestore(adminApp);
+  return adminDb;
+}
+
+// ── 3. Handler Principal ───────────────────────────────────────
 interface ResetBody {
   idToken?: string;
   roomId?: string;
@@ -113,7 +165,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     res.status(200).json({ success: true, status: 'waiting_words' });
   } catch (err: unknown) {
-    console.error('Erro em word-duel-reset:', err);
-    res.status(500).json({ error: 'internal_error' });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Erro em word-duel-reset:', msg);
+    res.status(500).json({ error: 'internal_error', detail: msg });
   }
 }
