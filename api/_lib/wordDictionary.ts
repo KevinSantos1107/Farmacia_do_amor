@@ -15,13 +15,21 @@ function loadDictionary(): Set<string> {
     return cachedWords;
   }
 
-  // Tenta encontrar o arquivo a partir de diferentes resoluções comuns em Node / Vercel Serverless
+  // Tenta encontrar o arquivo a partir de diferentes resoluções comuns em Node / Vercel Serverless / Vite SSR
+  const cwd = process.cwd();
   const potentialPaths = [
-    path.join(process.cwd(), 'public', 'pt-5-letters.json'),
-    path.join(__dirname, '..', '..', 'public', 'pt-5-letters.json'),
-    path.join(__dirname, '..', 'public', 'pt-5-letters.json'),
-    path.join(__dirname, 'public', 'pt-5-letters.json'),
+    path.join(cwd, 'public', 'pt-5-letters.json'),
+    path.resolve(cwd, 'public', 'pt-5-letters.json'),
   ];
+
+  // Em ambientes que possuem __dirname
+  if (typeof __dirname !== 'undefined') {
+    potentialPaths.push(
+      path.join(__dirname, '..', '..', 'public', 'pt-5-letters.json'),
+      path.join(__dirname, '..', 'public', 'pt-5-letters.json'),
+      path.join(__dirname, 'public', 'pt-5-letters.json')
+    );
+  }
 
   let rawData = '';
   for (const p of potentialPaths) {

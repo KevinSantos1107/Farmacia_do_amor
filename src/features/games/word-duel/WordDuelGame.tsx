@@ -1,5 +1,6 @@
 import { useWordDuel } from './useWordDuel';
 import { useWordDictionary } from '../word/useWordDictionary';
+import { WordDuelLobby } from './WordDuelLobby';
 import { WordDuelSetup } from './WordDuelSetup';
 import { WordDuelBattle } from './WordDuelBattle';
 import { WordDuelGameOver } from './WordDuelGameOver';
@@ -10,7 +11,12 @@ export function WordDuelGame() {
     myPlayerId,
     myDisplayName,
     partnerDisplayName,
+    playerAvatar,
+    partnerAvatar,
+    partnerPresence,
+    isPartnerOnline,
     status,
+    isInviting,
     loading,
     isSubmitting,
     errorMsg,
@@ -18,11 +24,15 @@ export function WordDuelGame() {
     partnerLocked,
     myGuesses,
     partnerGuesses,
+    partnerDraft,
     isMyTurn,
     winnerId,
     isWinner,
     myRevealedSecret,
     partnerRevealedSecret,
+    startDuel,
+    cancelInvite,
+    syncMyDraft,
     lockMyWord,
     makeGuess,
     playAgain,
@@ -44,6 +54,21 @@ export function WordDuelGame() {
 
   return (
     <div className="flex flex-col flex-1 w-full min-h-full">
+      {(status === 'lobby' || status === 'inviting') && (
+        <WordDuelLobby
+          playerName={myDisplayName}
+          partnerName={partnerDisplayName}
+          playerAvatar={playerAvatar}
+          partnerAvatar={partnerAvatar}
+          isPartnerOnline={isPartnerOnline}
+          partnerPresence={partnerPresence}
+          isInviting={isInviting}
+          onStart={startDuel}
+          onCancelInvite={cancelInvite}
+          isSubmitting={isSubmitting}
+        />
+      )}
+
       {status === 'waiting_words' && (
         <WordDuelSetup
           myDisplayName={myDisplayName}
@@ -63,9 +88,11 @@ export function WordDuelGame() {
           partnerDisplayName={partnerDisplayName}
           myGuesses={myGuesses}
           partnerGuesses={partnerGuesses}
+          partnerDraft={partnerDraft}
           isMyTurn={isMyTurn}
           isValidWord={isValidWord}
           onMakeGuess={makeGuess}
+          onDraftChange={syncMyDraft}
           isSubmitting={isSubmitting}
           errorMsg={errorMsg}
         />

@@ -4,9 +4,16 @@
  * Serviço de comunicação com as funções serverless do Modo Duelo e listeners Firestore.
  */
 
-import { onSnapshot, type Unsubscribe } from 'firebase/firestore';
+import {
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+  type Unsubscribe,
+} from 'firebase/firestore';
 import { siteDoc } from '../../../services/firestore/paths';
 import { auth } from '../../../services/firebase/auth';
+import { waitForAuth } from '../../../services/records/common';
 import type { WordDuelRoom } from './types';
 
 /**
@@ -36,14 +43,116 @@ export function subscribeToWordDuelRoom(
 }
 
 /**
- * Obtém o Firebase ID Token atual ou lança erro se não autenticado.
+ * Obtém o Firebase ID Token atual aguardando inicialização do Auth.
  */
-async function getIdToken(): Promise<string> {
+export async function getIdToken(): Promise<string> {
+  await waitForAuth();
   const user = auth.currentUser;
   if (!user) {
-    throw new Error('Usuário não autenticado no Firebase.');
+    throw new Error('Aguarde a autenticação do jogador...');
   }
   return await user.getIdToken();
+}
+
+/**
+ * Inicia convite para o parceiro jogar Duelo de Palavras.
+ */
+export async function startInvite(
+  roomId: string,
+  hostId: string,
+  partnerPresence: string,
+  siteId?: string
+): Promise<void> {
+  const isPartnerOnline = partnerPresence === 'site';
+  const docRef = siteDoc('word_duel_rooms', roomId, siteId);
+
+  await setDoc(
+    docRef,
+    {
+      roomId,
+      p1Id: roomId.split('_')[0],
+      p2Id: roomId.split('_')[1],
+      hostId,
+      status: isPartnerOnline ? 'inviting' : 'waiting_words',
+      inviteExpiresAt: isPartnerOnline ? Date.now() + 60000 : null,
+      p1Locked: false,
+      p2Locked: false,
+      currentTurn: hostId,
+      starterId: hostId,
+      p1Guesses: [],
+      p2Guesses: [],
+      liveDraft: {},
+      winnerId: null,
+      p1RevealedWord: null,
+      p2RevealedWord: null,
+      leftBy: null,
+      leftAt: null,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+/**
+ * Cancela o convite e retorna ao lobby.
+ */
+export async function cancelInvite(roomId: string, siteId?: string): Promise<void> {
+  const docRef = siteDoc('word_duel_rooms', roomId, siteId);
+  await updateDoc(docRef, {
+    status: 'lobby',
+    inviteExpiresAt: null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Aceita o convite e inicia a escolha das palavras secretas.
+ */
+export async function acceptInvite(roomId: string, siteId?: string): Promise<void> {
+  const docRef = siteDoc('word_duel_rooms', roomId, siteId);
+  await updateDoc(docRef, {
+    status: 'waiting_words',
+    inviteExpiresAt: null,
+    leftBy: null,
+    leftAt: null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Recusa o convite e volta ao lobby.
+ */
+export async function rejectInvite(roomId: string, siteId?: string): Promise<void> {
+  const docRef = siteDoc('word_duel_rooms', roomId, siteId);
+  await updateDoc(docRef, {
+    status: 'lobby',
+    inviteExpiresAt: null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Sincroniza o rascunho de digitação em tempo real (para o adversário assistir).
+ */
+export async function updateLiveDraft(
+  roomId: string,
+  player: string,
+  text: string,
+  cursor: number,
+  siteId?: string
+): Promise<void> {
+  try {
+    const docRef = siteDoc('word_duel_rooms', roomId, siteId);
+    await updateDoc(docRef, {
+      [`liveDraft.${player}`]: {
+        text,
+        cursor,
+        updatedAt: Date.now(),
+      },
+    });
+  } catch {
+    // best-effort em tempo real
+  }
 }
 
 /**
@@ -71,9 +180,17 @@ export async function submitSecretWord(
     }),
   });
 
-  const data = await res.json();
+  const rawText = await res.text();
+  let data: Record<string, unknown> = {};
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    return { success: false, error: rawText || 'Resposta inválida do servidor.' };
+  }
+
   if (!res.ok) {
-    return { success: false, error: data.error || 'Falha ao salvar palavra secreta.' };
+    const err = typeof data.error === 'string' ? data.error : 'Falha ao salvar palavra secreta.';
+    return { success: false, error: err };
   }
   return { success: true };
 }
@@ -108,11 +225,24 @@ export async function submitGuess(
     }),
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    return { success: false, error: data.error || 'Falha ao enviar tentativa.' };
+  const rawText = await res.text();
+  let data: Record<string, unknown> = {};
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    return { success: false, error: rawText || 'Resposta inválida do servidor.' };
   }
-  return data;
+
+  if (!res.ok) {
+    const err = typeof data.error === 'string' ? data.error : 'Falha ao enviar tentativa.';
+    return { success: false, error: err };
+  }
+  return data as {
+    success: boolean;
+    error?: string;
+    states?: ('correct' | 'present' | 'absent')[];
+    isWin?: boolean;
+  };
 }
 
 /**
@@ -138,9 +268,17 @@ export async function resetWordDuel(
     }),
   });
 
-  const data = await res.json();
+  const rawText = await res.text();
+  let data: Record<string, unknown> = {};
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    return { success: false, error: rawText || 'Resposta inválida do servidor.' };
+  }
+
   if (!res.ok) {
-    return { success: false, error: data.error || 'Falha ao reiniciar partida.' };
+    const err = typeof data.error === 'string' ? data.error : 'Falha ao reiniciar partida.';
+    return { success: false, error: err };
   }
   return { success: true };
 }

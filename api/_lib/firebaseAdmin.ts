@@ -40,12 +40,18 @@ export function getAdminApp(): App {
   }
 
   // 2. Chave de serviço em arquivo local (ex.: scripts/serviceAccountKey.json ou raiz)
+  const cwd = process.cwd();
   const localPaths = [
-    path.resolve(process.cwd(), 'scripts', 'serviceAccountKey.json'),
-    path.resolve(process.cwd(), 'serviceAccountKey.json'),
-    path.resolve(__dirname, '..', '..', 'scripts', 'serviceAccountKey.json'),
-    path.resolve(__dirname, '..', 'scripts', 'serviceAccountKey.json'),
+    path.resolve(cwd, 'scripts', 'serviceAccountKey.json'),
+    path.resolve(cwd, 'serviceAccountKey.json'),
   ];
+
+  if (typeof __dirname !== 'undefined') {
+    localPaths.push(
+      path.resolve(__dirname, '..', '..', 'scripts', 'serviceAccountKey.json'),
+      path.resolve(__dirname, '..', 'scripts', 'serviceAccountKey.json')
+    );
+  }
 
   for (const lp of localPaths) {
     if (fs.existsSync(lp)) {

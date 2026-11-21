@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Swords } from 'lucide-react';
+import { Swords, Eye, User, Sparkles } from 'lucide-react';
 import { WordGrid } from '../word/WordGrid';
 import { WordKeyboard } from '../word/WordKeyboard';
 import { WordGameStyles } from '../word/WordGameStyles';
@@ -12,9 +12,11 @@ interface WordDuelBattleProps {
   partnerDisplayName: string;
   myGuesses: LetterCell[][];
   partnerGuesses: LetterCell[][];
+  partnerDraft?: { text: string; cursor: number };
   isMyTurn: boolean;
   isValidWord: (w: string) => boolean;
   onMakeGuess: (w: string) => Promise<{ success: boolean; error?: string }>;
+  onDraftChange?: (text: string, cursor: number) => void;
   isSubmitting: boolean;
   errorMsg: string | null;
 }
@@ -23,9 +25,11 @@ export function WordDuelBattle({
   partnerDisplayName,
   myGuesses,
   partnerGuesses,
+  partnerDraft,
   isMyTurn,
   isValidWord,
   onMakeGuess,
+  onDraftChange,
   isSubmitting,
   errorMsg,
 }: WordDuelBattleProps) {
@@ -38,6 +42,9 @@ export function WordDuelBattle({
   const [bounceRow] = useState(-1);
   const [lastTypedIdx, setLastTypedIdx] = useState(-1);
 
+  // Aba selecionada: 'my' (minha tela) ou 'partner' (assistir o parceiro em tempo real)
+  const [activeTab, setActiveTab] = useState<'my' | 'partner'>('my');
+
   const prevGuessesCount = useRef(myGuesses.length);
 
   // Efeito de revelação e animação quando uma nova tentativa é confirmada
@@ -47,7 +54,6 @@ export function WordDuelBattle({
       setRevealingRow(newRowIdx);
       setRevealProgress(0);
 
-      // Animação das 5 letras virando em cascata
       let prog = 0;
       const interval = setInterval(() => {
         prog++;
@@ -67,6 +73,13 @@ export function WordDuelBattle({
     }
   }, [myGuesses]);
 
+  // Se passou a ser meu turno, foca na minha tela automaticamente
+  useEffect(() => {
+    if (isMyTurn) {
+      setActiveTab('my');
+    }
+  }, [isMyTurn]);
+
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 2200);
@@ -83,17 +96,23 @@ export function WordDuelBattle({
 
       // ── BACKSPACE ──────────────────────────────────────────────────────────
       if (key === '⌫' || key === 'BACKSPACE') {
+        let newStr = '';
+        let newCur = cursorPos;
         if (cursorPos < 5 && chars[cursorPos] !== ' ') {
           chars[cursorPos] = ' ';
-          setCurrentInput(chars.join('').replace(/ +$/, ''));
+          newStr = chars.join('').replace(/ +$/, '');
+          setCurrentInput(newStr);
           setLastTypedIdx(-1);
         } else if (cursorPos > 0) {
           const prev = cursorPos - 1;
           chars[prev] = ' ';
-          setCurrentInput(chars.join('').replace(/ +$/, ''));
+          newStr = chars.join('').replace(/ +$/, '');
+          newCur = prev;
+          setCurrentInput(newStr);
           setCursorPos(prev);
           setLastTypedIdx(-1);
         }
+        if (onDraftChange) onDraftChange(newStr, newCur);
         return;
       }
 
@@ -130,20 +149,22 @@ export function WordDuelBattle({
       const letter = normalizeWord(key);
       if (letter.length === 1 && letter >= 'A' && letter <= 'Z') {
         chars[cursorPos] = letter;
-        setCurrentInput(chars.join(''));
+        const newStr = chars.join('');
+        const newCur = cursorPos < 4 ? cursorPos + 1 : cursorPos;
+        setCurrentInput(newStr);
         setLastTypedIdx(cursorPos);
-        if (cursorPos < 4) {
-          setCursorPos(cursorPos + 1);
-        }
+        setCursorPos(newCur);
+        if (onDraftChange) onDraftChange(newStr, newCur);
       }
     },
-    [isMyTurn, isSubmitting, revealingRow, currentInput, cursorPos, isValidWord, onMakeGuess]
+    [isMyTurn, isSubmitting, revealingRow, currentInput, cursorPos, isValidWord, onMakeGuess, onDraftChange]
   );
 
   // Escuta teclado físico do computador
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (activeTab !== 'my') return;
       if (e.key === 'Backspace') {
         e.preventDefault();
         handleKey('⌫');
@@ -160,12 +181,12 @@ export function WordDuelBattle({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKey]);
+  }, [handleKey, activeTab]);
 
   // Sem limite fixo de 6 tentativas:
   // maxAttempts é dinâmico: número de tentativas já feitas + 1 (linha ativa)
   const myMaxAttempts = myGuesses.length + 1;
-  const partnerMaxAttempts = Math.max(partnerGuesses.length, 1);
+  const partnerMaxAttempts = partnerGuesses.length + 1;
 
   const myRows = buildGridRows(
     myGuesses,
@@ -176,12 +197,16 @@ export function WordDuelBattle({
     myMaxAttempts
   );
 
+  // Linhas do parceiro com digitação ao vivo
+  const partnerInputDraft = !isMyTurn ? partnerDraft?.text || '' : '';
+  const partnerCursorDraft = !isMyTurn ? partnerDraft?.cursor ?? -1 : -1;
+
   const partnerRows = buildGridRows(
     partnerGuesses,
-    '',
-    -1,
+    partnerInputDraft,
+    partnerCursorDraft,
     5,
-    true,
+    false,
     partnerMaxAttempts
   );
 
@@ -191,24 +216,48 @@ export function WordDuelBattle({
     <div className="flex flex-col items-center justify-between w-full flex-1 max-w-sm sm:max-w-md mx-auto py-1">
       <WordGameStyles />
 
-      {/* Indicador de Turno */}
-      <div className="w-full mb-3">
+      {/* Seletor de visualização (Minha tela vs Tela do parceiro em tempo real) */}
+      <div className="w-full mb-3 flex flex-col gap-2">
+        <div className="grid grid-cols-2 p-1 bg-black/40 border border-white/10 rounded-xl">
+          <button
+            onClick={() => setActiveTab('my')}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'my'
+                ? 'bg-amber-500 text-neutral-950 shadow-md'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            Minha Tela {isMyTurn && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('partner')}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'partner'
+                ? 'bg-indigo-500 text-white shadow-md'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            Ver {partnerDisplayName} {!isMyTurn && <span className="text-[10px] text-amber-300 font-normal animate-pulse">(jogando)</span>}
+          </button>
+        </div>
+
+        {/* Indicador de Turno */}
         <div
-          className={`flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all ${
+          className={`flex items-center justify-between px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all ${
             isMyTurn
-              ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+              ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
               : 'bg-white/5 border-white/10 text-neutral-400'
           }`}
         >
           <div className="flex items-center gap-2">
-            <Swords className={`w-5 h-5 ${isMyTurn ? 'text-amber-400 animate-pulse' : 'text-neutral-500'}`} />
-            <span className="font-semibold text-sm">
-              {isMyTurn ? 'Sua vez de jogar!' : `Vez de ${partnerDisplayName}...`}
-            </span>
+            <Swords className={`w-4 h-4 ${isMyTurn ? 'text-amber-400 animate-pulse' : 'text-neutral-500'}`} />
+            <span>{isMyTurn ? 'Sua vez de jogar!' : `Vez de ${partnerDisplayName} jogar...`}</span>
           </div>
-          <div className="text-xs font-medium text-neutral-400">
-            Tentativas: {myGuesses.length} x {partnerGuesses.length}
-          </div>
+          <span className="text-[11px] text-neutral-400">
+            {myGuesses.length} x {partnerGuesses.length} palpites
+          </span>
         </div>
       </div>
 
@@ -231,51 +280,58 @@ export function WordDuelBattle({
 
       {/* Área dos Grids */}
       <div className="w-full flex flex-col gap-4 my-auto overflow-y-auto max-h-[46vh] sm:max-h-[50vh] px-1 no-scrollbar">
-        {/* Meu Grid (Ativo para digitação) */}
-        <div className="flex flex-col items-center">
-          <div className="text-xs uppercase tracking-wider font-semibold text-neutral-400 mb-1.5 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            Seus Palpites (Palavra de {partnerDisplayName})
-          </div>
-          <div className={shake ? 'word-shake' : ''}>
-            <WordGrid
-              rows={myRows}
-              revealingRow={revealingRow}
-              revealProgress={revealProgress}
-              bounceRow={bounceRow}
-              lastTypedIdx={lastTypedIdx}
-              onCellClick={(idx) => {
-                if (isMyTurn) setCursorPos(idx);
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Grid do Parceiro (Read-only via Firestore) */}
-        {partnerGuesses.length > 0 && (
-          <div className="flex flex-col items-center pt-2 border-t border-white/5 opacity-80">
+        {activeTab === 'my' ? (
+          /* Minha Tela de Tentativas */
+          <div className="flex flex-col items-center">
             <div className="text-xs uppercase tracking-wider font-semibold text-neutral-400 mb-1.5 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-              Palpites de {partnerDisplayName} ({partnerGuesses.length})
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Descobrindo a palavra de {partnerDisplayName}
             </div>
-            <WordGrid
-              rows={partnerRows}
-              revealingRow={-1}
-              revealProgress={-1}
-              bounceRow={-1}
-              lastTypedIdx={-1}
-              onCellClick={() => {}}
-            />
+            <div className={shake ? 'word-shake' : ''}>
+              <WordGrid
+                rows={myRows}
+                revealingRow={revealingRow}
+                revealProgress={revealProgress}
+                bounceRow={bounceRow}
+                lastTypedIdx={lastTypedIdx}
+                onCellClick={(idx) => {
+                  if (isMyTurn) setCursorPos(idx);
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          /* Tela do Parceiro em Tempo Real (Live Spectate) */
+          <div className="flex flex-col items-center">
+            <div className="text-xs uppercase tracking-wider font-semibold text-neutral-400 mb-1.5 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+              Assistindo {partnerDisplayName} tentando achar sua palavra
+            </div>
+            <div>
+              <WordGrid
+                rows={partnerRows}
+                revealingRow={-1}
+                revealProgress={-1}
+                bounceRow={-1}
+                lastTypedIdx={-1}
+                onCellClick={() => {}}
+              />
+            </div>
+            {!isMyTurn && partnerInputDraft && (
+              <span className="text-[11px] text-amber-300/80 mt-2 italic flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Digitando ao vivo...
+              </span>
+            )}
           </div>
         )}
       </div>
 
-      {/* Teclado */}
+      {/* Teclado (ativo apenas na minha tela e no meu turno) */}
       <div className="w-full mt-auto pt-2">
         <WordKeyboard
           onKey={handleKey}
           keyStates={keyStates}
-          disabled={!isMyTurn || isSubmitting || revealingRow >= 0}
+          disabled={!isMyTurn || isSubmitting || revealingRow >= 0 || activeTab !== 'my'}
         />
       </div>
     </div>
