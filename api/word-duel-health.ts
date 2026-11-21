@@ -13,66 +13,78 @@ import fs from 'fs';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse): Promise<void> {
   const cwd = process.cwd();
-  const dirName = typeof __dirname !== 'undefined' ? __dirname : '(no __dirname)';
 
-  // Testa paths de dicionário
-  const dictPaths: { path: string; exists: boolean }[] = [];
-  const pathsToCheck = [
-    path.join(cwd, 'public', 'pt-5-letters.json'),
-    ...(typeof __dirname !== 'undefined'
-      ? [
-          path.join(__dirname, 'pt-5-letters.json'),
-          path.join(__dirname, '..', 'pt-5-letters.json'),
-          path.join(__dirname, '..', '..', 'public', 'pt-5-letters.json'),
-          path.join(__dirname, '..', 'public', 'pt-5-letters.json'),
-        ]
-      : []),
-  ];
-
-  for (const p of pathsToCheck) {
-    dictPaths.push({ path: p, exists: fs.existsSync(p) });
-  }
-
-  // Testa dicionário
-  let dictLoaded = false;
-  let dictError: string | null = null;
-  try {
-    const { isValidWord } = await import('./_lib/wordDictionary');
-    dictLoaded = isValidWord('CARRO');
-  } catch (e) {
-    dictError = e instanceof Error ? e.message : String(e);
-  }
-
-  // Testa Firebase Admin
-  let firebaseReady = false;
-  let firebaseError: string | null = null;
-  try {
-    const { getAdminFirestore } = await import('./_lib/firebaseAdmin');
-    const db = getAdminFirestore();
-    // Apenas verifica se db existe (não faz leitura real)
-    firebaseReady = !!db;
-  } catch (e) {
-    firebaseError = e instanceof Error ? e.message : String(e);
-  }
-
-  // Info de ambiente
-  const envInfo = {
-    hasFirebaseServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT,
-    hasFirebaseProjectId: !!process.env.FIREBASE_PROJECT_ID,
-    hasViteFirebaseProjectId: !!process.env.VITE_FIREBASE_PROJECT_ID,
-    projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || '(não definido)',
-    nodeEnv: process.env.NODE_ENV,
-    cwd,
-    dirname: dirName,
+  // Inspeciona diretórios no Vercel
+  const inspectDir = (dir: string) => {
+    try {
+      if (fs.existsSync(dir)) {
+        return fs.readdirSync(dir);
+      }
+      return `NOT_FOUND: ${dir}`;
+    } catch (e) {
+      return `ERROR: ${e instanceof Error ? e.message : String(e)}`;
+    }
   };
 
+  const fsState = {
+    cwd,
+    taskFiles: inspectDir('/var/task'),
+    apiFiles: inspectDir('/var/task/api'),
+    libFiles: inspectDir('/var/task/api/_lib'),
+    publicFiles: inspectDir('/var/task/public'),
+  };
+
+  // Testa dicionário diretamente lendo o JSON
+  let dictDirectLoad = false;
+  let wordCount = 0;
+  const dictPath = path.join(cwd, 'public', 'pt-5-letters.json');
+  if (fs.existsSync(dictPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(dictPath, 'utf-8'));
+      dictDirectLoad = Array.isArray(data);
+      wordCount = data.length;
+    } catch {
+      dictDirectLoad = false;
+    }
+  }
+
+  // Testa Firebase Admin inicializando diretamente
+  let firebaseAdminDirect = false;
+  let firebaseAdminError: string | null = null;
+  try {
+    const { initializeApp, getApps, cert } = await import('firebase-admin/app');
+    const { getFirestore } = await import('firebase-admin/firestore');
+    
+    let app;
+    if (getApps().length > 0) {
+      app = getApps()[0];
+    } else {
+      const envServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+      if (envServiceAccount) {
+        const parsed = typeof envServiceAccount === 'string' ? JSON.parse(envServiceAccount) : envServiceAccount;
+        if (parsed && typeof parsed.private_key === 'string') {
+          parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+        }
+        app = initializeApp({
+          credential: cert(parsed),
+          projectId: parsed.project_id || process.env.FIREBASE_PROJECT_ID,
+        });
+      } else {
+        throw new Error('FIREBASE_SERVICE_ACCOUNT não definida');
+      }
+    }
+    const db = getFirestore(app);
+    firebaseAdminDirect = !!db;
+  } catch (e) {
+    firebaseAdminError = e instanceof Error ? e.message : String(e);
+  }
+
   res.status(200).json({
-    ok: dictLoaded && firebaseReady,
-    dictLoaded,
-    dictError,
-    dictPaths,
-    firebaseReady,
-    firebaseError,
-    env: envInfo,
+    ok: dictDirectLoad && firebaseAdminDirect,
+    dictDirectLoad,
+    wordCount,
+    firebaseAdminDirect,
+    firebaseAdminError,
+    fsState,
   });
 }

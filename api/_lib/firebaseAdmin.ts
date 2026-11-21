@@ -29,13 +29,22 @@ export function getAdminApp(): App {
       const parsed = typeof envServiceAccount === 'string'
         ? JSON.parse(envServiceAccount)
         : envServiceAccount;
+
+      // A Vercel às vezes escapa duplamente o \n da private_key ao salvar a env var.
+      // Corrige: converte \\n (literal backslash-n) para \n (newline real).
+      if (parsed && typeof parsed.private_key === 'string') {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+
       adminApp = initializeApp({
         credential: cert(parsed),
-        projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+        projectId: parsed.project_id || process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
       });
       return adminApp;
     } catch (e) {
-      console.warn('Falha ao inicializar com FIREBASE_SERVICE_ACCOUNT env:', e);
+      console.error('Falha ao inicializar com FIREBASE_SERVICE_ACCOUNT env:', e);
+      // Não silencia — relança para aparecer no log da função
+      throw e;
     }
   }
 
