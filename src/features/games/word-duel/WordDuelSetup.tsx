@@ -227,7 +227,11 @@ export function WordDuelSetup({
             </button>
           </div>
 
-          <WordKeyboard onKey={handleKey} keyStates={{}} />
+          <WordKeyboard
+            onKey={handleKey}
+            keyStates={{}}
+            disabled={effectivelyLocked || isSubmitting}
+          />
         </div>
       )}
     </div>

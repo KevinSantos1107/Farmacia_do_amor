@@ -232,7 +232,15 @@ export function useWordDuel() {
   );
 
   const makeGuess = useCallback(
-    async (guess: string): Promise<{ success: boolean; error?: string }> => {
+    async (
+      guess: string
+    ): Promise<{
+      success: boolean;
+      error?: string;
+      states?: ('correct' | 'present' | 'absent')[];
+      row?: LetterCell[];
+      isWin?: boolean;
+    }> => {
       setIsSubmitting(true);
       setErrorMsg(null);
       try {
@@ -241,7 +249,12 @@ export function useWordDuel() {
           setErrorMsg(res.error || 'Erro ao enviar palpite');
           return { success: false, error: res.error };
         }
-        return { success: true };
+        return {
+          success: true,
+          states: res.states,
+          row: res.row,
+          isWin: res.isWin,
+        };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Erro ao enviar palpite';
         setErrorMsg(msg);

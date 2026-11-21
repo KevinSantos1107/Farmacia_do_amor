@@ -73,16 +73,11 @@ export function buildGridRows(
   gameOver: boolean,
   maxAttempts: number = 6
 ): { cells: LetterCell[]; isActive: boolean }[] {
-  // Se o jogador já acertou a palavra (todas as letras 'correct'), não gera mais linha ativa
-  const isWon = guesses.some(
-    (row) => row.length === wordLength && row.every((c) => c.state === 'correct')
-  );
-
   const rows: { cells: LetterCell[]; isActive: boolean }[] = [];
   for (let i = 0; i < maxAttempts; i++) {
     if (i < guesses.length) {
       rows.push({ cells: guesses[i], isActive: false });
-    } else if (i === guesses.length && !gameOver && !isWon) {
+    } else if (i === guesses.length && !gameOver) {
       const isAnimating = currentInput === 'ANIMATING';
       const cells: LetterCell[] = Array(wordLength)
         .fill(null)

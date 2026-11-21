@@ -243,8 +243,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     let transactionError: { status: number; message: string; error: string } | null = null;
 
     await db.runTransaction(async (t) => {
-      const roomSnap = await t.get(roomDocRef);
-      const secretsSnap = await t.get(secretsDocRef);
+      const [roomSnap, secretsSnap] = await Promise.all([
+        t.get(roomDocRef),
+        t.get(secretsDocRef),
+      ]);
 
       if (!roomSnap.exists || !secretsSnap.exists) {
         transactionError = { status: 404, message: 'Sala não encontrada', error: 'room_not_found' };

@@ -205,8 +205,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   try {
     await db.runTransaction(async (t) => {
-      const roomSnap = await t.get(roomDocRef);
-      const secretsSnap = await t.get(secretsDocRef);
+      const [roomSnap, secretsSnap] = await Promise.all([
+        t.get(roomDocRef),
+        t.get(secretsDocRef),
+      ]);
 
       const secretsData = secretsSnap.exists ? secretsSnap.data() || {} : {};
       const roomData = roomSnap.exists ? roomSnap.data() || {} : {};

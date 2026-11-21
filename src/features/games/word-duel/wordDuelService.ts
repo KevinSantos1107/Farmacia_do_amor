@@ -284,6 +284,7 @@ export async function submitGuess(
   success: boolean;
   error?: string;
   states?: ('correct' | 'present' | 'absent')[];
+  row?: { letter: string; state: 'correct' | 'present' | 'absent' }[];
   isWin?: boolean;
 }> {
   const idToken = await getIdToken();
@@ -318,6 +319,7 @@ export async function submitGuess(
     success: boolean;
     error?: string;
     states?: ('correct' | 'present' | 'absent')[];
+    row?: { letter: string; state: 'correct' | 'present' | 'absent' }[];
     isWin?: boolean;
   };
 }

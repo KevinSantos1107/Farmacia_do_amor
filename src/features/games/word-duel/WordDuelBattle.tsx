@@ -17,7 +17,13 @@ interface WordDuelBattleProps {
   partnerDraft?: { text: string; cursor: number };
   isMyTurn: boolean;
   isValidWord: (w: string) => boolean;
-  onMakeGuess: (w: string) => Promise<{ success: boolean; error?: string }>;
+  onMakeGuess: (w: string) => Promise<{
+    success: boolean;
+    error?: string;
+    states?: ('correct' | 'present' | 'absent')[];
+    row?: LetterCell[];
+    isWin?: boolean;
+  }>;
   onDraftChange?: (text: string, cursor: number) => void;
   isSubmitting: boolean;
   errorMsg: string | null;
@@ -47,6 +53,9 @@ export function WordDuelBattle({
   const [revealProgress, setRevealProgress] = useState(-1);
   const [bounceRow, setBounceRow] = useState(-1);
   const [lastTypedIdx, setLastTypedIdx] = useState(-1);
+  const [optimisticGuess, setOptimisticGuess] = useState<LetterCell[] | null>(null);
+  const isSubmittingRef = useRef(false);
+  const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
   const prevGuessesCount = useRef(myGuesses.length);
 
   // Animações para o espectador (assistindo o parceiro jogar ao vivo)
@@ -54,6 +63,23 @@ export function WordDuelBattle({
   const [partnerRevealProgress, setPartnerRevealProgress] = useState(-1);
   const [partnerBounceRow, setPartnerBounceRow] = useState(-1);
   const prevPartnerGuessesCount = useRef(partnerGuesses.length);
+  const [prevPartnerGuessesLen, setPrevPartnerGuessesLen] = useState(partnerGuesses.length);
+
+  // Ajuste síncrono durante a renderização: se o parceiro enviou um palpite,
+  // já inicia no estado de animação (revealProgress = 0) sem nenhum flash das cores finais
+  if (partnerGuesses.length > prevPartnerGuessesLen) {
+    setPrevPartnerGuessesLen(partnerGuesses.length);
+    setPartnerRevealingRow(partnerGuesses.length - 1);
+    setPartnerRevealProgress(0);
+  }
+
+  // Palpites para exibição na tela (inclui o palpite otimista imediato da API HTTP)
+  const displayGuesses = useMemo(() => {
+    if (optimisticGuess && myGuesses.length === prevGuessesCount.current) {
+      return [...myGuesses, optimisticGuess];
+    }
+    return myGuesses;
+  }, [myGuesses, optimisticGuess]);
 
   // Aba selecionada: 'my' (minha tela) ou 'partner' (assistir o parceiro em tempo real)
   const [activeTab, setActiveTab] = useState<'my' | 'partner'>('my');
@@ -69,15 +95,11 @@ export function WordDuelBattle({
   const turnTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Animação de revelação das minhas tentativas ──────────────────────────
-  useEffect(() => {
-    if (myGuesses.length > prevGuessesCount.current) {
-      const newRowIdx = myGuesses.length - 1;
-      setRevealingRow(newRowIdx);
+  // Disparo da animação de revelação 3D letra por letra
+  const triggerRevealAnimation = useCallback(
+    (rowIndex: number, guessRow: LetterCell[], isWin: boolean) => {
+      setRevealingRow(rowIndex);
       setRevealProgress(0);
-
-      const latestGuess = myGuesses[newRowIdx];
-      const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
 
       let prog = 0;
       const interval = setInterval(() => {
@@ -89,17 +111,36 @@ export function WordDuelBattle({
           setRevealProgress(-1);
           setCurrentInput('');
           setCursorPos(0);
+          isSubmittingRef.current = false;
+          setIsSubmittingLocal(false);
           if (isWin) {
-            setBounceRow(newRowIdx);
+            setBounceRow(rowIndex);
           }
         }
-      }, 200);
+      }, 180);
+    },
+    []
+  );
 
+  // ── Sincronização com as tentativas do banco (Firestore) ──────────────────
+  useEffect(() => {
+    if (myGuesses.length > prevGuessesCount.current) {
+      const newRowIdx = myGuesses.length - 1;
+      // Se a animação já foi disparada diretamente pela resposta imediata da API HTTP, apenas sincroniza
+      if (revealingRow === newRowIdx) {
+        setOptimisticGuess(null);
+        prevGuessesCount.current = myGuesses.length;
+        return;
+      }
+      setOptimisticGuess(null);
+      const latestGuess = myGuesses[newRowIdx];
+      const isWin = latestGuess && latestGuess.every((c) => c.state === 'correct');
+      triggerRevealAnimation(newRowIdx, latestGuess, isWin);
       prevGuessesCount.current = myGuesses.length;
     } else {
       prevGuessesCount.current = myGuesses.length;
     }
-  }, [myGuesses]);
+  }, [myGuesses, revealingRow, triggerRevealAnimation]);
 
   // ── Animação de revelação das tentativas do parceiro (Espectador) ──────────
   useEffect(() => {
@@ -123,9 +164,10 @@ export function WordDuelBattle({
             setPartnerBounceRow(newRowIdx);
           }
         }
-      }, 200);
+      }, 180);
 
       prevPartnerGuessesCount.current = partnerGuesses.length;
+      return () => clearInterval(interval);
     } else {
       prevPartnerGuessesCount.current = partnerGuesses.length;
     }
@@ -224,7 +266,7 @@ export function WordDuelBattle({
 
   const handleKey = useCallback(
     async (key: string) => {
-      if (!isMyTurn || isSubmitting || revealingRow >= 0) {
+      if (!isMyTurn || isSubmitting || isSubmittingRef.current || isSubmittingLocal || revealingRow >= 0) {
         return;
       }
 
@@ -271,13 +313,24 @@ export function WordDuelBattle({
           return;
         }
 
-        // Mantém a palavra digitada na tela sem apagar (evita piscada e travada)
+        // Trava síncrona imediata para bloquear toques repetidos no Enter ou letras
+        isSubmittingRef.current = true;
+        setIsSubmittingLocal(true);
+
         const res = await onMakeGuess(normalized);
-        if (!res.success) {
+        if (!res.success || !res.row) {
+          isSubmittingRef.current = false;
+          setIsSubmittingLocal(false);
           showToast(res.error || 'Erro ao enviar palpite');
           setShake(true);
           setTimeout(() => setShake(false), 500);
+          return;
         }
+
+        // Inicia a revelação imediatamente com os dados do palpite retornados pela API HTTP
+        const targetRowIdx = myGuesses.length;
+        setOptimisticGuess(res.row);
+        triggerRevealAnimation(targetRowIdx, res.row, !!res.isWin);
         return;
       }
 
@@ -293,7 +346,19 @@ export function WordDuelBattle({
         if (onDraftChange) onDraftChange(newStr, newCur);
       }
     },
-    [isMyTurn, isSubmitting, revealingRow, currentInput, cursorPos, isValidWord, onMakeGuess, onDraftChange]
+    [
+      isMyTurn,
+      isSubmitting,
+      isSubmittingLocal,
+      revealingRow,
+      currentInput,
+      cursorPos,
+      isValidWord,
+      onMakeGuess,
+      onDraftChange,
+      myGuesses.length,
+      triggerRevealAnimation,
+    ]
   );
 
   // Escuta teclado físico do computador
@@ -302,6 +367,7 @@ export function WordDuelBattle({
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       // No mobile só digita se estiver na aba 'my'. No desktop (>=1024px), ambas as telas são visíveis
       if (activeTab !== 'my' && typeof window !== 'undefined' && window.innerWidth < 1024) return;
+      if (!isMyTurn || isSubmitting || isSubmittingRef.current || isSubmittingLocal || revealingRow >= 0) return;
       if (e.key === 'Backspace') {
         e.preventDefault();
         handleKey('⌫');
@@ -318,7 +384,7 @@ export function WordDuelBattle({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKey, activeTab]);
+  }, [handleKey, activeTab, isMyTurn, isSubmitting, isSubmittingLocal, revealingRow]);
 
   // Sem limite fixo de 6 tentativas:
   // Durante a animação de revelação de uma tentativa, NÃO adiciona a linha nova ainda!
@@ -327,18 +393,18 @@ export function WordDuelBattle({
   const isMyRevealing = revealingRow >= 0;
   const isPartnerRevealing = partnerRevealingRow >= 0;
 
-  const isMyWinning = myGuesses.some(
+  const isMyWinning = displayGuesses.some(
     (row) => row.length === 5 && row.every((c) => c.state === 'correct')
   );
   const isPartnerWinning = partnerGuesses.some(
     (row) => row.length === 5 && row.every((c) => c.state === 'correct')
   );
 
-  const myMaxAttempts = isMyRevealing || isMyWinning ? myGuesses.length : myGuesses.length + 1;
+  const myMaxAttempts = isMyRevealing || isMyWinning ? displayGuesses.length : displayGuesses.length + 1;
   const partnerMaxAttempts = isPartnerRevealing || isPartnerWinning ? partnerGuesses.length : partnerGuesses.length + 1;
 
   const myRows = buildGridRows(
-    myGuesses,
+    displayGuesses,
     isMyRevealing || isMyWinning ? '' : currentInput,
     isMyRevealing || isMyWinning ? -1 : cursorPos,
     5,
@@ -359,7 +425,7 @@ export function WordDuelBattle({
     partnerMaxAttempts
   );
 
-  const keyStates = getKeyboardStates(myGuesses, revealingRow, revealProgress);
+  const keyStates = getKeyboardStates(displayGuesses, revealingRow, revealProgress);
 
   return (
     <div className="relative flex flex-col items-center justify-between w-full flex-1 max-w-sm sm:max-w-md md:max-w-xl lg:max-w-5xl mx-auto py-1 px-1 sm:px-3">
@@ -474,7 +540,7 @@ export function WordDuelBattle({
             <div className={`w-full flex justify-center max-h-[40vh] overflow-y-auto no-scrollbar py-2 ${shake ? 'word-shake' : ''}`}>
               <WordGrid
                 rows={myRows}
-                guesses={myGuesses}
+                guesses={displayGuesses}
                 revealingRow={revealingRow}
                 revealProgress={revealProgress}
                 bounceRow={bounceRow}
@@ -524,7 +590,7 @@ export function WordDuelBattle({
           <WordKeyboard
             onKey={handleKey}
             keyStates={keyStates}
-            disabled={!isMyTurn || isSubmitting || revealingRow >= 0}
+            disabled={!isMyTurn || isSubmitting || isSubmittingLocal || revealingRow >= 0}
           />
         </div>
       </div>
@@ -542,7 +608,7 @@ export function WordDuelBattle({
               <div className={shake ? 'word-shake' : ''}>
                 <WordGrid
                   rows={myRows}
-                  guesses={myGuesses}
+                  guesses={displayGuesses}
                   revealingRow={revealingRow}
                   revealProgress={revealProgress}
                   bounceRow={bounceRow}
@@ -587,7 +653,7 @@ export function WordDuelBattle({
           <WordKeyboard
             onKey={handleKey}
             keyStates={keyStates}
-            disabled={!isMyTurn || isSubmitting || revealingRow >= 0 || activeTab !== 'my'}
+            disabled={!isMyTurn || isSubmitting || isSubmittingLocal || revealingRow >= 0 || activeTab !== 'my'}
           />
         </div>
       </div>

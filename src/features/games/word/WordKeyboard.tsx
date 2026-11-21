@@ -6,14 +6,16 @@ import { KEYBOARD_ROWS, KEY_BG } from './wordConstants';
 interface WordKeyboardProps {
   keyStates: Record<string, string>;
   onKey: (key: string) => void;
+  disabled?: boolean;
 }
 
-export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
+export function WordKeyboard({ keyStates, onKey, disabled = false }: WordKeyboardProps) {
   const [pressedKeys, setPressedKeys] = useState<Record<string, boolean>>({});
   const [actionPressed, setActionPressed] = useState<string | null>(null);
 
   // ── Animação tátil de afundar e voltar no toque (pointerDown) ──────────────
   const handlePointerDown = (key: string) => {
+    if (disabled) return;
     setPressedKeys((prev) => ({ ...prev, [key]: true }));
     setTimeout(() => {
       setPressedKeys((prev) => {
@@ -25,6 +27,7 @@ export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
   };
 
   const handleActionDown = (action: string) => {
+    if (disabled) return;
     setActionPressed(action);
     setTimeout(() => {
       setActionPressed((curr) => (curr === action ? null : curr));
@@ -32,17 +35,24 @@ export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
   };
 
   return (
-    <div className="w-full pb-2 md:pb-3 pt-0.5 px-1 sm:px-2" style={{ touchAction: 'manipulation' }}>
+    <div
+      className={cn(
+        'w-full pb-2 md:pb-3 pt-0.5 px-1 sm:px-2 transition-opacity duration-200',
+        disabled && 'opacity-60 pointer-events-none select-none'
+      )}
+      style={{ touchAction: 'manipulation' }}
+    >
       {/* Botões de apagar e confirmar */}
       <div className="flex items-center justify-center gap-5 md:gap-6 mb-2 md:mb-3">
         <button
+          disabled={disabled}
           onPointerDown={(e) => {
             e.stopPropagation();
             handleActionDown('BACKSPACE');
           }}
           onClick={(e) => {
             e.stopPropagation();
-            onKey('BACKSPACE');
+            if (!disabled) onKey('BACKSPACE');
           }}
           className={cn(
             'relative w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all group',
@@ -62,13 +72,14 @@ export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
           />
         </button>
         <button
+          disabled={disabled}
           onPointerDown={(e) => {
             e.stopPropagation();
             handleActionDown('ENTER');
           }}
           onClick={(e) => {
             e.stopPropagation();
-            onKey('ENTER');
+            if (!disabled) onKey('ENTER');
           }}
           className={cn(
             'relative w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all group',
@@ -116,6 +127,7 @@ export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
               return (
                 <button
                   key={key}
+                  disabled={disabled}
                   onPointerDown={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
@@ -123,7 +135,7 @@ export function WordKeyboard({ keyStates, onKey }: WordKeyboardProps) {
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onKey(key);
+                    if (!disabled) onKey(key);
                   }}
                   className={cn(
                     'border rounded-[7px] md:rounded-[9px] font-bold uppercase select-none flex items-center justify-center transition-all duration-150',
