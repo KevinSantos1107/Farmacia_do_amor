@@ -21,7 +21,12 @@ interface PreviewCallbacks {
 
 let _activeTrackId: string | null = null;
 let _currentAudio: HTMLAudioElement | null = null;
-let _adminYtPlayer: any = null;
+let _adminYtPlayer: {
+  playVideo?: () => void;
+  pauseVideo?: () => void;
+  destroy?: () => void;
+  [key: string]: unknown;
+} | null = null;
 let _adminYtPollTimer: ReturnType<typeof setInterval> | null = null;
 let _currentCallbacks: PreviewCallbacks | null = null;
 const _subscribers = new Set<(activeId: string | null) => void>();
@@ -138,11 +143,11 @@ export async function playPreview(
         origin: typeof window !== 'undefined' ? window.location.origin : undefined,
       },
       events: {
-        onReady: (e: any) => {
+        onReady: (e: { target: { playVideo: () => void } }) => {
           e.target.playVideo();
           startYtPolling();
         },
-        onStateChange: (e: any) => {
+        onStateChange: (e: { data: number }) => {
           // 0 = ENDED, 1 = PLAYING, 2 = PAUSED
           if (e.data === 0) {
             stopYtPolling();

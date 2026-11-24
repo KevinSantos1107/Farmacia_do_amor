@@ -451,15 +451,15 @@ export function MilestonesModal({ isOpen, onClose }: MilestonesModalProps) {
               {/* Filtro de Bodas */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-white/50 uppercase tracking-wider mr-1">Filtrar:</span>
-                {[
+                {([
                   { id: 'all', label: 'Todas as Bodas' },
                   { id: 'monthly', label: 'Mensais (1 a 11 meses)' },
                   { id: 'yearly', label: 'Anuais (Tradição)' },
                   { id: 'days', label: 'Dias Notáveis' },
-                ].map((f) => (
+                ] as const).map((f) => (
                   <button
                     key={f.id}
-                    onClick={() => setBodaFilter(f.id as any)}
+                    onClick={() => setBodaFilter(f.id)}
                     className={cn(
                       'px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer',
                       bodaFilter === f.id

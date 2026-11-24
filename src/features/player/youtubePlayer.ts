@@ -8,9 +8,34 @@
  * Módulo puro: não importa useAudioStore diretamente (evita dependência circular).
  */
 
+interface YTPlayerInstance {
+  playVideo?: () => void;
+  pauseVideo?: () => void;
+  loadVideoById?: (id: string) => void;
+  cueVideoById?: (id: string) => void;
+  seekTo?: (seconds: number, allowSeekAhead: boolean) => void;
+  setVolume?: (volume: number) => void;
+  mute?: () => void;
+  unMute?: () => void;
+  getCurrentTime?: () => number;
+  getDuration?: () => number;
+  destroy?: () => void;
+  [key: string]: unknown;
+}
+
 declare global {
   interface Window {
-    YT: any;
+    YT: {
+      Player: new (
+        elementId: string | HTMLElement,
+        options: {
+          videoId?: string;
+          playerVars?: Record<string, unknown>;
+          events?: Record<string, (event: unknown) => void>;
+        }
+      ) => YTPlayerInstance;
+      [key: string]: unknown;
+    };
     onYouTubeIframeAPIReady: () => void;
   }
 }
@@ -24,7 +49,7 @@ const _ytTimeListeners = new Set<TimeListener>();
 const _ytDurListeners = new Set<DurListener>();
 const _ytStatusListeners = new Set<StatusListener>();
 
-let _ytPlayer: any = null;
+let _ytPlayer: YTPlayerInstance | null = null;
 let _isApiReady = false;
 let _isPlayerReady = false;
 let _pendingVideoId: string | null = null;
@@ -39,7 +64,7 @@ export interface YouTubePlayerCallbacks {
   onPause?: () => void;
   onBuffering?: () => void;
   onCued?: () => void;
-  onError?: (err: any) => void;
+  onError?: (err: unknown) => void;
   getInitialState?: () => { volume: number; isMuted: boolean; isPlaying: boolean };
 }
 
@@ -187,7 +212,7 @@ export async function initYouTubePlayer(elementId: string) {
           }
         }
       },
-      onStateChange: (event: any) => {
+      onStateChange: (event: { data: number }) => {
         // -1 = UNSTARTED, 0 = ENDED, 1 = PLAYING, 2 = PAUSED, 3 = BUFFERING, 5 = CUED
         // Se o YouTube não for a faixa ativa atual, ignora qualquer evento de fundo
         if (!_activeVideoId) return;
@@ -233,7 +258,7 @@ export async function initYouTubePlayer(elementId: string) {
           _callbacks.onCued?.();
         }
       },
-      onError: (event: any) => {
+      onError: (event: { data: unknown }) => {
         if (!_activeVideoId) return;
         stopPolling();
         console.warn('[YouTube Player] Erro no player:', event.data);

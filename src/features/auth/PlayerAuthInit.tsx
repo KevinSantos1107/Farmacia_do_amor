@@ -12,7 +12,7 @@ import { getTopToastOffset } from '../../shared/utils/safeArea';
 
 
 export function PlayerAuthInit() {
-  const { setPlayer, setUid, setTokenStatus } = usePlayerIdentityStore();
+  const { setPlayer, setTokenId, setUid, setTokenStatus, clearSession } = usePlayerIdentityStore();
   const { config } = useSiteConfigStore();
   const [welcomeMsg, setWelcomeMsg] = useState<string | null>(null);
   const [isCelebration, setIsCelebration] = useState(false);
@@ -31,99 +31,188 @@ export function PlayerAuthInit() {
     // Prossegue assim que o config estiver disponível (seja do cache local ou do servidor)
     if (!config) return;
 
+    let isSubscribed = true;
+    let unsubscribeSnapshot: (() => void) | null = null;
+
     const { p1Id, p2Id } = getPlayerIds(config);
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
+    const urlToken = params.get('token');
+    const { tokenId: storedTokenId, player: currentPlayer } = usePlayerIdentityStore.getState();
 
-    // Otimização de carregamento instantâneo:
-    // Se não há token na URL e o usuário já é um jogador conhecido (salvo no localStorage),
-    // autoriza de imediato para liberar a renderização da tela sem aguardar o round-trip de rede.
-    if (!token) {
-      const currentPlayer = usePlayerIdentityStore.getState().player;
-      if (currentPlayer === p1Id || currentPlayer === p2Id) {
-        setTokenStatus('authorized');
-        if (!sessionStorage.getItem('greeted')) {
-          const syncMsg = getWelcomeMessage(currentPlayer, config);
-          showGreeting(syncMsg);
-        }
-      } else {
-        setTokenStatus('unauthorized');
+    // Helper para remover o token da URL sem recarregar a página
+    const cleanUrlToken = () => {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('token');
+        const newUrl = url.pathname + (url.search ? url.search : '') + url.hash;
+        const currentState =
+          window.history.state && typeof window.history.state === 'object'
+            ? window.history.state
+            : {};
+        window.history.replaceState({ ...currentState, path: newUrl }, '', newUrl);
+      } catch (err) {
+        console.warn('Erro ao limpar token da URL:', err);
       }
+    };
+
+    // Revoga o acesso, limpando credenciais locais e forçando a tela de bloqueio
+    const handleRevoke = () => {
+      if (!isSubscribed) return;
+      clearSession();
+      sessionStorage.removeItem('greeted');
+      setTokenStatus('unauthorized');
+    };
+
+    // 1. Otimização de carregamento instantâneo:
+    // Se não há token na URL, mas já temos um token armazenado válido e jogador reconhecido,
+    // autoriza de imediato para não piscar a tela, mas inicia a validação no Firestore logo em seguida.
+    if (!urlToken && storedTokenId && (currentPlayer === p1Id || currentPlayer === p2Id)) {
+      setTokenStatus('authorized');
+      if (!sessionStorage.getItem('greeted')) {
+        const syncMsg = getWelcomeMessage(currentPlayer, config);
+        showGreeting(syncMsg);
+      }
+    } else if (!urlToken && !storedTokenId && currentPlayer === 'visitante') {
+      setTokenStatus('unauthorized');
     }
 
     const initAuth = async () => {
-      let uid = auth.currentUser?.uid || '';
-      // 1. Garante autenticação anônima em background (necessária para regras do Firestore)
-      if (!uid) {
-        try {
-          const userCredential = await signInAnonymously(auth);
-          uid = userCredential.user.uid;
-        } catch (error) {
-          console.error('Erro ao autenticar anonimamente:', error);
+      try {
+        let uid = auth.currentUser?.uid || '';
+        // Garante autenticação anônima em background (necessária para regras do Firestore)
+        if (!uid) {
+          try {
+            const userCredential = await signInAnonymously(auth);
+            uid = userCredential.user.uid;
+          } catch (error) {
+            console.error('Erro ao autenticar anonimamente:', error);
+          }
         }
-      }
-      if (uid) {
-        setUid(uid);
-      }
+        if (uid && isSubscribed) {
+          setUid(uid);
+        }
 
-      // 2. Se há token na URL, valida no Firestore
-      if (token) {
-        try {
-          // Verify token in Firestore
-          const tokenRef = siteDoc('player_tokens', token);
-          const tokenSnap = await getDoc(tokenRef);
-          
-          if (tokenSnap.exists()) {
-            const data = tokenSnap.data();
-            if (data.player === p1Id || data.player === p2Id) {
-              const currentPlayerId = data.player;
+        // Determina qual token verificar (prioridade para a URL, fallback para o store)
+        let tokenToVerify = urlToken || storedTokenId;
 
-              // Grava o vínculo no Firestore usando o token como prova de identidade (Fase 3)
-              if (uid) {
+        // Migração legacy: se não há token na URL nem no store, tenta recuperar via player_links/{uid}
+        if (!tokenToVerify && uid) {
+          try {
+            const linkSnap = await getDoc(siteDoc('player_links', uid));
+            if (linkSnap.exists()) {
+              const linkData = linkSnap.data();
+              if (linkData?.tokenId) {
+                tokenToVerify = linkData.tokenId as string;
+              }
+            }
+          } catch (e) {
+            console.warn('Erro ao consultar player_links para migração:', e);
+          }
+        }
+
+        // Se não há token ativo em nenhum lugar, revoga o acesso
+        if (!tokenToVerify) {
+          if (isSubscribed) {
+            handleRevoke();
+          }
+          return;
+        }
+
+        // Valida o token diretamente no Firestore
+        const tokenRef = siteDoc('player_tokens', tokenToVerify);
+        const tokenSnap = await getDoc(tokenRef);
+
+        if (!isSubscribed) return;
+
+        if (tokenSnap.exists()) {
+          const data = tokenSnap.data();
+          if (data.player === p1Id || data.player === p2Id) {
+            const currentPlayerId = data.player as string;
+
+            // Grava o vínculo no Firestore usando o token como prova de identidade
+            if (uid) {
+              try {
                 const { setDoc } = await import('firebase/firestore');
                 await setDoc(siteDoc('player_links', uid), {
                   player: currentPlayerId,
-                  tokenId: token
+                  tokenId: tokenToVerify,
                 });
+              } catch (linkErr) {
+                console.warn('Erro ao salvar player_links:', linkErr);
               }
+            }
 
-              setPlayer(currentPlayerId);
-              setTokenStatus('authorized');
+            setPlayer(currentPlayerId);
+            setTokenId(tokenToVerify);
+            setTokenStatus('authorized');
 
-              // Show sync message immediately
+            if (!sessionStorage.getItem('greeted')) {
               const syncMsg = getWelcomeMessage(currentPlayerId, config);
               showGreeting(syncMsg);
-            } else {
-              setPlayer('visitante');
-              setTokenStatus('unauthorized');
+            }
+
+            // Listener em tempo real: se o administrador excluir o token em /admin/tokens,
+            // o usuário conectado é desconectado instantaneamente.
+            try {
+              const { onSnapshot } = await import('firebase/firestore');
+              if (isSubscribed) {
+                unsubscribeSnapshot = onSnapshot(
+                  tokenRef,
+                  (snap) => {
+                    if (!snap.exists()) {
+                      console.warn('[PlayerAuthInit] Token foi revogado ou excluído em tempo real.');
+                      handleRevoke();
+                    }
+                  },
+                  (snapErr) => {
+                    console.warn('[PlayerAuthInit] Erro no listener do token:', snapErr);
+                    if (snapErr.code === 'permission-denied') {
+                      handleRevoke();
+                    }
+                  }
+                );
+              }
+            } catch (snapInitErr) {
+              console.warn('[PlayerAuthInit] Falha ao registrar onSnapshot:', snapInitErr);
             }
           } else {
-            console.warn('Token inválido ou expirado.');
-            setPlayer('visitante');
-            setTokenStatus('unauthorized');
+            console.warn('[PlayerAuthInit] Token associado a jogador desconhecido:', data.player);
+            handleRevoke();
           }
-        } catch (error) {
-          console.error('Erro ao verificar o token:', error);
-          // Se houve erro de rede, mas já tem player conhecido no store, não bloqueia
+        } else {
+          // Token foi excluído do Firestore ou é inválido!
+          console.warn('[PlayerAuthInit] Token inválido, inexistente ou revogado.');
+          handleRevoke();
+        }
+      } catch (error) {
+        console.error('[PlayerAuthInit] Erro ao verificar o token:', error);
+        if (isSubscribed) {
+          const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+          const currentToken = usePlayerIdentityStore.getState().tokenId;
           const currentP = usePlayerIdentityStore.getState().player;
-          if (currentP === p1Id || currentP === p2Id) {
+          // Em caso de offline, se o usuário já possuía token armazenado e jogador válido, mantém temporariamente
+          if (isOffline && currentToken && (currentP === p1Id || currentP === p2Id)) {
             setTokenStatus('authorized');
           } else {
-            setTokenStatus('unauthorized');
+            handleRevoke();
           }
-        } finally {
-          // Remove token from URL securely sem refresh
-          const newUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
-          const currentState = (window.history.state && typeof window.history.state === 'object')
-            ? window.history.state
-            : {};
-          window.history.replaceState({ ...currentState, path: newUrl }, '', newUrl);
+        }
+      } finally {
+        if (urlToken && isSubscribed) {
+          cleanUrlToken();
         }
       }
     };
 
     initAuth();
-  }, [setPlayer, setUid, setTokenStatus, config]);
+
+    return () => {
+      isSubscribed = false;
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+    };
+  }, [setPlayer, setTokenId, setUid, setTokenStatus, clearSession, config]);
 
   const [topOffset, setTopOffset] = useState(() => getTopToastOffset());
 

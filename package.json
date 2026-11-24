@@ -15,6 +15,7 @@
     "cleanup": "node scripts/cleanup-cloudinary.mjs",
     "warm": "node scripts/warm-cloudinary.mjs",
     "preview": "vite preview",
+    "export:zip": "git archive --format=zip --output=release.zip HEAD",
     "test": "vitest run"
   },
   "dependencies": {

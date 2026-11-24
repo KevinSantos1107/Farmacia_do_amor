@@ -407,7 +407,7 @@ setYouTubeCallbacks({
       isPlaying: state.isPlaying,
     };
   },
-  onError: (code: any) => {
+  onError: (code: unknown) => {
     console.warn('[useAudio] Erro no player do YouTube (código):', code);
     const state = useAudioStore.getState();
     // Se o vídeo estiver com restrição de incorporação (101/150) ou removido (100),
