@@ -16,7 +16,7 @@ export function MilestoneTrigger() {
     const data = getUniverseData(startDate);
     return {
       fullMoons: data.fullMoons,
-      reachedBodas: data.reachedBodasCount,
+      reachedAnniversaries: data.reachedAnniversariesCount,
       nextTitle: data.nextMilestone.title,
       daysLeft: data.nextMilestone.daysRemaining,
     };
@@ -55,7 +55,7 @@ export function MilestoneTrigger() {
           </span>
           <span className="hidden sm:inline text-white/30">•</span>
           <span className="hidden sm:inline-flex items-center gap-1 text-slate-300 font-light">
-            <Award className="w-3 h-3 text-amber-400 inline" /> {summary.reachedBodas} bodas
+            <Award className="w-3 h-3 text-amber-400 inline" /> {summary.reachedAnniversaries} marcos
           </span>
           <span className="text-white/30">•</span>
           <span className="text-theme-secondary text-[11px] sm:text-xs font-semibold">

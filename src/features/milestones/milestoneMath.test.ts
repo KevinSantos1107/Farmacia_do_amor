@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getUniverseData, calculateMoonPhase, MONTHLY_BODAS, YEARLY_BODAS } from './milestoneMath';
+import {
+  getUniverseData,
+  calculateMoonPhase,
+  MONTHLY_ANNIVERSARIES,
+  YEARLY_ANNIVERSARIES,
+} from './milestoneMath';
 
 describe('milestoneMath', () => {
   it('calcula a fase da lua determinística com base na data de referência', () => {
@@ -11,7 +16,7 @@ describe('milestoneMath', () => {
     expect(phase.illumination).toBeLessThanOrEqual(5);
   });
 
-  it('calcula marcos e bodas para um relacionamento de 1 ano e 3 meses', () => {
+  it('calcula marcos e aniversários de namoro para um relacionamento de 1 ano e 3 meses', () => {
     const startDate = new Date('2023-01-01T12:00:00Z');
     const now = new Date('2024-04-01T12:00:00Z'); // ~456 dias
 
@@ -23,7 +28,9 @@ describe('milestoneMath', () => {
     );
 
     expect(data.totalDays).toBeGreaterThan(450);
-    expect(data.reachedBodasCount).toBeGreaterThanOrEqual(12); // Todas as 11 mensais + 1 ano de papel
+    expect(data.reachedAnniversariesCount).toBeGreaterThanOrEqual(12); // Todas as 11 mensais + 1º ano de namoro
+    expect(data.anniversaries[0].name).toBe('1º Mês de Namoro');
+    expect(data.anniversaries[11].name).toBe('1º Ano de Namoro');
     expect(data.solarOrbits).toBe(1);
     expect(data.fullMoons).toBeGreaterThanOrEqual(15);
     expect(data.orbitalKmMillions).toBeGreaterThan(1000);
@@ -42,8 +49,15 @@ describe('milestoneMath', () => {
     const futureDate = new Date('2099-01-01');
     const data = getUniverseData(futureDate);
     expect(data.totalDays).toBe(0);
-    expect(data.bodas).toEqual([]);
+    expect(data.anniversaries).toEqual([]);
     expect(data.nextMilestone.title).toBe('Primeiro Dia Juntos');
+  });
+
+  it('contém catálogo completo de mensversários e anos de namoro', () => {
+    expect(MONTHLY_ANNIVERSARIES.length).toBe(11);
+    expect(YEARLY_ANNIVERSARIES.length).toBe(16);
+    expect(MONTHLY_ANNIVERSARIES[0].name).toBe('1º Mês de Namoro');
+    expect(YEARLY_ANNIVERSARIES[0].name).toBe('1º Ano de Namoro');
   });
 
   it('calcula o progresso acumulado até o próximo marco (ex: 388 de 500 dias)', () => {

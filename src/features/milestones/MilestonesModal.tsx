@@ -28,11 +28,11 @@ interface MilestonesModalProps {
   onClose: () => void;
 }
 
-type TabKey = 'overview' | 'bodas' | 'cosmos' | 'nature' | 'curiosities';
+type TabKey = 'overview' | 'anniversaries' | 'cosmos' | 'nature' | 'curiosities';
 
 const TABS: { id: TabKey; label: string; icon: React.ElementType }[] = [
   { id: 'overview', label: 'Destaques', icon: Sparkles },
-  { id: 'bodas', label: 'Bodas & Marcos', icon: Award },
+  { id: 'anniversaries', label: 'Mensversários & Anos', icon: Award },
   { id: 'cosmos', label: 'Nosso Cosmos', icon: Moon },
   { id: 'nature', label: 'Natureza & Tempo', icon: TreeDeciduous },
   { id: 'curiosities', label: 'Curiosidades', icon: Clock },
@@ -67,7 +67,7 @@ const cardVariants = {
 export function MilestonesModal({ isOpen, onClose }: MilestonesModalProps) {
   const { config } = useSiteConfigStore();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
-  const [bodaFilter, setBodaFilter] = useState<'all' | 'monthly' | 'yearly' | 'days'>('all');
+  const [filter, setFilter] = useState<'all' | 'monthly' | 'yearly' | 'days'>('all');
   const [copied, setCopied] = useState(false);
 
   const startDate = config?.relationship?.startDate;
@@ -109,10 +109,10 @@ export function MilestonesModal({ isOpen, onClose }: MilestonesModalProps) {
     });
   };
 
-  // Filtragem de bodas
-  const filteredBodas = data.bodas.filter((b) => {
-    if (bodaFilter === 'monthly') return b.type === 'monthly';
-    if (bodaFilter === 'yearly') return b.type === 'yearly';
+  // Filtragem de aniversários e mensversários
+  const filteredAnniversaries = data.anniversaries.filter((b) => {
+    if (filter === 'monthly') return b.type === 'monthly';
+    if (filter === 'yearly') return b.type === 'yearly';
     return true;
   });
 
@@ -326,12 +326,12 @@ export function MilestonesModal({ isOpen, onClose }: MilestonesModalProps) {
                     >
                       <Award className="w-3.5 h-3.5" />
                     </motion.div>
-                    Bodas Conquistadas
+                    Marcos de Namoro
                   </div>
                   <p className="text-2xl md:text-3xl font-bold font-mono text-white">
-                    {data.reachedBodasCount}
+                    {data.reachedAnniversariesCount}
                   </p>
-                  <p className="text-[11px] text-white/50">marcos tradicionais</p>
+                  <p className="text-[11px] text-white/50">celebrações alcançadas</p>
                 </motion.div>
 
                 <motion.div
@@ -439,30 +439,30 @@ export function MilestonesModal({ isOpen, onClose }: MilestonesModalProps) {
             </motion.div>
           )}
 
-          {activeTab === 'bodas' && (
+          {activeTab === 'anniversaries' && (
             <motion.div
-              key="bodas"
+              key="anniversaries"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               exit={{ opacity: 0, y: -12, transition: { duration: 0.18 } }}
               className="space-y-6"
             >
-              {/* Filtro de Bodas */}
+              {/* Filtro de Marcos de Namoro */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-white/50 uppercase tracking-wider mr-1">Filtrar:</span>
                 {([
-                  { id: 'all', label: 'Todas as Bodas' },
-                  { id: 'monthly', label: 'Mensais (1 a 11 meses)' },
-                  { id: 'yearly', label: 'Anuais (Tradição)' },
+                  { id: 'all', label: 'Todos os Marcos' },
+                  { id: 'monthly', label: 'Mensversários (1 a 11 meses)' },
+                  { id: 'yearly', label: 'Anos de Namoro' },
                   { id: 'days', label: 'Dias Notáveis' },
                 ] as const).map((f) => (
                   <button
                     key={f.id}
-                    onClick={() => setBodaFilter(f.id)}
+                    onClick={() => setFilter(f.id)}
                     className={cn(
                       'px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer',
-                      bodaFilter === f.id
+                      filter === f.id
                         ? 'bg-theme-primary/25 text-white border border-theme-primary/50 shadow-[0_0_15px_rgba(var(--theme-primary-rgb),0.2)]'
                         : 'bg-white/[0.03] text-white/60 hover:text-white border border-white/5'
                     )}
@@ -473,7 +473,7 @@ export function MilestonesModal({ isOpen, onClose }: MilestonesModalProps) {
               </div>
 
               {/* Lista com Animações Staggered */}
-              {bodaFilter === 'days' ? (
+              {filter === 'days' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {data.dayMilestones.map((milestone) => (
                     <motion.div
@@ -516,14 +516,14 @@ export function MilestonesModal({ isOpen, onClose }: MilestonesModalProps) {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {filteredBodas.map((boda, idx) => (
+                  {filteredAnniversaries.map((item, idx) => (
                     <motion.div
                       key={idx}
                       variants={cardVariants}
                       whileHover={{ scale: 1.02, y: -3 }}
                       className={cn(
                         'p-5 rounded-2xl border transition-all space-y-2 relative overflow-hidden',
-                        boda.isReached
+                        item.isReached
                           ? 'bg-white/[0.04] border-theme-primary/30 shadow-[0_0_25px_rgba(var(--theme-primary-rgb),0.08)]'
                           : 'bg-white/[0.015] border-white/5 opacity-80'
                       )}
@@ -531,27 +531,27 @@ export function MilestonesModal({ isOpen, onClose }: MilestonesModalProps) {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <span className="text-[10px] uppercase font-bold tracking-widest text-theme-secondary">
-                            {boda.period}
+                            {item.period} de namoro
                           </span>
-                          <h4 className="text-base font-serif font-bold text-white mt-0.5">{boda.name}</h4>
+                          <h4 className="text-base font-serif font-bold text-white mt-0.5">{item.name}</h4>
                         </div>
-                        {boda.isReached ? (
+                        {item.isReached ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
                             <Check className="w-3 h-3 text-emerald-400" /> Celebrado
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-white/5 text-white/60 border border-white/10 shrink-0">
-                            Em {boda.daysRemaining} dias
+                            Em {item.daysRemaining} dias
                           </span>
                         )}
                       </div>
 
-                      <p className="text-xs text-slate-300 font-light leading-relaxed">{boda.meaning}</p>
+                      <p className="text-xs text-slate-300 font-light leading-relaxed">{item.meaning}</p>
 
                       <div className="pt-2 border-t border-white/5 text-[10px] text-white/40">
-                        {boda.isReached ? 'Comemorado em: ' : 'Data prevista: '}
+                        {item.isReached ? 'Comemorado em: ' : 'Data prevista: '}
                         <span className="text-white/70 font-medium">
-                          {formatSafeDate(boda.targetDate, 'pt-BR', {
+                          {formatSafeDate(item.targetDate, 'pt-BR', {
                             day: '2-digit',
                             month: 'long',
                             year: 'numeric',

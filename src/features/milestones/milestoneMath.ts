@@ -12,7 +12,7 @@ import {
 
 export interface NextMilestone {
   title: string;
-  category: 'days' | 'bodas' | 'years';
+  category: 'days' | 'anniversaries' | 'years' | 'bodas';
   targetDate: Date;
   daysRemaining: number;
   progressPercent: number;
@@ -20,7 +20,7 @@ export interface NextMilestone {
   description: string;
 }
 
-export interface BodaInfo {
+export interface AnniversaryInfo {
   period: string;
   name: string;
   meaning: string;
@@ -29,6 +29,8 @@ export interface BodaInfo {
   daysRemaining: number;
   type: 'monthly' | 'yearly';
 }
+
+export type BodaInfo = AnniversaryInfo;
 
 export interface DayMilestone {
   targetDays: number;
@@ -54,11 +56,16 @@ export interface UniverseData {
   // Próximo marco iminente
   nextMilestone: NextMilestone;
 
-  // Bodas e marcos
-  bodas: BodaInfo[];
-  reachedBodasCount: number;
-  nextBoda: BodaInfo | null;
+  // Mensversários, Aniversários e Marcos de Namoro
+  anniversaries: AnniversaryInfo[];
+  reachedAnniversariesCount: number;
+  nextAnniversary: AnniversaryInfo | null;
   dayMilestones: DayMilestone[];
+
+  // Compatibilidade retroativa
+  bodas: AnniversaryInfo[];
+  reachedBodasCount: number;
+  nextBoda: AnniversaryInfo | null;
 
   // Cosmos
   fullMoons: number;
@@ -90,40 +97,44 @@ export interface UniverseData {
   };
 }
 
-// ─── Dicionário de Bodas Mensais (1 a 11 meses) ──────────────────────────────
-export const MONTHLY_BODAS = [
-  { months: 1, name: 'Bodas de Beijinho', meaning: 'O doce início da nossa jornada a dois' },
-  { months: 2, name: 'Bodas de Sorvete', meaning: 'O frescor e a doçura dos nossos primeiros momentos' },
-  { months: 3, name: 'Bodas de Algodão Doce', meaning: 'A leveza e o aconchego do nosso amor' },
-  { months: 4, name: 'Bodas de Pipoca', meaning: 'A alegria contagiante que estala em nossos sorrisos' },
-  { months: 5, name: 'Bodas de Chocolate', meaning: 'A intensidade, o carinho e o afeto irresistível' },
-  { months: 6, name: 'Bodas de Sonhos', meaning: 'Seis meses construindo planos e voando juntos' },
-  { months: 7, name: 'Bodas de Purpurina', meaning: 'O brilho que você trouxe para todos os meus dias' },
-  { months: 8, name: 'Bodas de Pom-pom', meaning: 'O calor suave do nosso abraço que virou morada' },
-  { months: 9, name: 'Bodas de Pirulito', meaning: 'Colorindo a vida com diversão e companheirismo' },
-  { months: 10, name: 'Bodas de Pintinhos', meaning: 'O cuidado mútuo e a cumplicidade que cresce a cada dia' },
-  { months: 11, name: 'Bodas de Chiclete', meaning: 'Inseparáveis e prontos para completar o primeiro ano' },
+// ─── Dicionário de Mensversários de Namoro (1 a 11 meses) ───────────────────
+export const MONTHLY_ANNIVERSARIES = [
+  { months: 1, name: '1º Mês de Namoro', meaning: 'O doce início da nossa jornada e a certeza de estarmos no caminho certo' },
+  { months: 2, name: '2º Mês de Namoro', meaning: 'O frescor, o encanto e a alegria dos nossos primeiros momentos juntos' },
+  { months: 3, name: '3º Mês de Namoro', meaning: 'A leveza, a conexão e o aconchego que crescem a cada dia' },
+  { months: 4, name: '4º Mês de Namoro', meaning: 'A cumplicidade leve e as risadas compartilhadas que só nós dois entendemos' },
+  { months: 5, name: '5º Mês de Namoro', meaning: 'O carinho sincero e a parceria que se fortalecem a cada conversa' },
+  { months: 6, name: '6º Mês de Namoro (1º Semestre)', meaning: 'Meio ano construindo planos, memórias e voando lado a lado' },
+  { months: 7, name: '7º Mês de Namoro', meaning: 'A paz e o brilho que você trouxe para a minha rotina e o meu coração' },
+  { months: 8, name: '8º Mês de Namoro', meaning: 'A harmonia suave e a certeza de que seu abraço virou meu lugar favorito' },
+  { months: 9, name: '9º Mês de Namoro', meaning: 'Colorindo a vida com muito companheirismo, respeito e afeto mútuo' },
+  { months: 10, name: '10º Mês de Namoro', meaning: 'O cuidado mútuo e a admiração sincera que se aprofundam com o tempo' },
+  { months: 11, name: '11º Mês de Namoro', meaning: 'Inseparáveis e na expectativa doce de completar nosso primeiro grande ano' },
 ];
 
-// ─── Dicionário de Bodas Anuais Tradicionais ──────────────────────────────────
-export const YEARLY_BODAS = [
-  { years: 1, name: 'Bodas de Papel', meaning: 'A primeira folha em branco de uma linda história escrita a dois' },
-  { years: 2, name: 'Bodas de Algodão', meaning: 'A suavidade, conforto e cumplicidade que se entrelaçam' },
-  { years: 3, name: 'Bodas de Trigo ou Couro', meaning: 'A prosperidade e a resistência do nosso companheirismo' },
-  { years: 4, name: 'Bodas de Flores e Frutas', meaning: 'O florescer dos nossos sentimentos e a doçura dos frutos colhidos' },
-  { years: 5, name: 'Bodas de Madeira ou Ferro', meaning: 'A solidez de raízes profundas e a força inabalável do nosso amor' },
-  { years: 6, name: 'Bodas de Açúcar ou Perfume', meaning: 'O aroma suave e a doçura que permanecem em cada detalhe' },
-  { years: 7, name: 'Bodas de Latão ou Lã', meaning: 'O calor reconfortante e a maleabilidade para vencer desafios' },
-  { years: 8, name: 'Bodas de Barro ou Papoula', meaning: 'A beleza moldada pelas nossas mãos com paciência e dedicação' },
-  { years: 9, name: 'Bodas de Cerâmica ou Vime', meaning: 'A elegância e resistência forjadas pelo tempo' },
-  { years: 10, name: 'Bodas de Estanho ou Zinco', meaning: 'Uma década de amor: blindados contra o tempo e o desgaste' },
-  { years: 15, name: 'Bodas de Cristal', meaning: 'A transparência límpida e a nobreza de uma união radiante' },
-  { years: 20, name: 'Bodas de Porcelana', meaning: 'A preciosidade e o refinamento de duas vidas em perfeita sintonia' },
-  { years: 25, name: 'Bodas de Prata', meaning: 'Um quarto de século iluminando o mundo com um amor brilhante' },
-  { years: 30, name: 'Bodas de Pérola', meaning: 'A raridade cultivada nas profundezas do companheirismo' },
-  { years: 40, name: 'Bodas de Rubi', meaning: 'A paixão eterna que pulsa viva com a nobreza de uma joia rara' },
-  { years: 50, name: 'Bodas de Ouro', meaning: 'Meio século de amor: o tesouro mais valioso que duas vidas podem erguer' },
+// ─── Dicionário de Aniversários de Namoro (Anos) ─────────────────────────────
+export const YEARLY_ANNIVERSARIES = [
+  { years: 1, name: '1º Ano de Namoro', meaning: '365 dias compartilhando a vida, os sonhos e construindo um amor verdadeiro' },
+  { years: 2, name: '2º Ano de Namoro', meaning: 'Dois anos fortalecendo raízes, cumplicidade e maturidade a dois' },
+  { years: 3, name: '3º Ano de Namoro', meaning: 'Três anos de parceria sólida, apoio mútuo e certezas compartilhadas' },
+  { years: 4, name: '4º Ano de Namoro', meaning: 'O amadurecimento bonito do nosso sentimento e a doçura da nossa rotina' },
+  { years: 5, name: '5º Ano de Namoro', meaning: 'Meia década de amor inabalável, respeito e lealdade construídos dia a dia' },
+  { years: 6, name: '6º Ano de Namoro', meaning: 'A beleza serena e a doçura que permanecem vivas em cada detalhe nosso' },
+  { years: 7, name: '7º Ano de Namoro', meaning: 'Sete anos vencendo desafios juntos e celebrando cada conquista a dois' },
+  { years: 8, name: '8º Ano de Namoro', meaning: 'Um amor esculpido com paciência, admiração e carinho profundo' },
+  { years: 9, name: '9º Ano de Namoro', meaning: 'Quase uma década de companheirismo, confidência e sintonia perfeita' },
+  { years: 10, name: '10º Ano de Namoro', meaning: 'Uma década inteira de história, paixão e cumplicidade inabalável' },
+  { years: 15, name: '15 Anos de Namoro', meaning: 'A transparência límpida e a nobreza de uma união radiante e duradoura' },
+  { years: 20, name: '20 Anos de Namoro', meaning: 'Vinte anos de vidas entrelaçadas em perfeita harmonia e companheirismo' },
+  { years: 25, name: '25 Anos de Namoro', meaning: 'Um quarto de século de parceria eterna iluminando o mundo' },
+  { years: 30, name: '30 Anos de Namoro', meaning: 'Três décadas cultivando o amor mais raro e especial' },
+  { years: 40, name: '40 Anos de Namoro', meaning: 'Quatro décadas de uma história exemplar de lealdade e afeto' },
+  { years: 50, name: '50 Anos de Namoro', meaning: 'Meio século de amor: uma vida inteira compartilhada sob o mesmo teto e coração' },
 ];
+
+// Compatibilidade retroativa
+export const MONTHLY_BODAS = MONTHLY_ANNIVERSARIES;
+export const YEARLY_BODAS = YEARLY_ANNIVERSARIES;
 
 export const KEY_DAY_INTERVALS = [
   30, 50, 100, 200, 300, 365, 500, 730, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 10000,
@@ -226,6 +237,9 @@ export function getUniverseData(
         totalTargetDays: 1,
         description: 'O início de tudo',
       },
+      anniversaries: [],
+      reachedAnniversariesCount: 0,
+      nextAnniversary: null,
       bodas: [],
       reachedBodasCount: 0,
       nextBoda: null,
@@ -255,14 +269,14 @@ export function getUniverseData(
   const totalMinutes = differenceInMinutes(now, startDate);
   const totalSeconds = differenceInSeconds(now, startDate);
 
-  // 1. Bodas
-  const bodas: BodaInfo[] = [];
+  // 1. Mensversários e Aniversários de Namoro
+  const anniversaries: AnniversaryInfo[] = [];
 
-  // Mensais
-  for (const item of MONTHLY_BODAS) {
+  // Mensversários (1 a 11 meses)
+  for (const item of MONTHLY_ANNIVERSARIES) {
     const targetDate = addMonths(startDate, item.months);
     const daysRemaining = differenceInDays(targetDate, now);
-    bodas.push({
+    anniversaries.push({
       period: `${item.months} ${item.months === 1 ? 'mês' : 'meses'}`,
       name: item.name,
       meaning: item.meaning,
@@ -273,11 +287,11 @@ export function getUniverseData(
     });
   }
 
-  // Anuais
-  for (const item of YEARLY_BODAS) {
+  // Anos de Namoro
+  for (const item of YEARLY_ANNIVERSARIES) {
     const targetDate = addYears(startDate, item.years);
     const daysRemaining = differenceInDays(targetDate, now);
-    bodas.push({
+    anniversaries.push({
       period: `${item.years} ${item.years === 1 ? 'ano' : 'anos'}`,
       name: item.name,
       meaning: item.meaning,
@@ -288,8 +302,8 @@ export function getUniverseData(
     });
   }
 
-  const reachedBodasCount = bodas.filter((b) => b.isReached).length;
-  const nextBoda = bodas.find((b) => !b.isReached) || null;
+  const reachedAnniversariesCount = anniversaries.filter((a) => a.isReached).length;
+  const nextAnniversary = anniversaries.find((a) => !a.isReached) || null;
 
   // 2. Marcos de Dias (Mile-Days)
   const dayMilestones: DayMilestone[] = KEY_DAY_INTERVALS.map((targetDays) => {
@@ -308,20 +322,20 @@ export function getUniverseData(
   const futureDayMilestone = dayMilestones.find((m) => !m.isReached);
   let nextMilestoneCandidate: NextMilestone;
 
-  if (nextBoda && futureDayMilestone) {
-    if (nextBoda.daysRemaining <= futureDayMilestone.daysRemaining) {
-      // Boda está mais próxima: progresso é dias totais juntos / dias totais até a boda
-      const totalSpan = Math.max(1, differenceInDays(nextBoda.targetDate, startDate));
+  if (nextAnniversary && futureDayMilestone) {
+    if (nextAnniversary.daysRemaining <= futureDayMilestone.daysRemaining) {
+      // Aniversário/Mensversário está mais próximo: progresso é dias totais juntos / dias totais até o marco
+      const totalSpan = Math.max(1, differenceInDays(nextAnniversary.targetDate, startDate));
       const progressPercent = Math.min(100, Math.max(0, Math.round((totalDays / totalSpan) * 100)));
 
       nextMilestoneCandidate = {
-        title: nextBoda.name,
-        category: 'bodas',
-        targetDate: nextBoda.targetDate,
-        daysRemaining: Math.max(0, nextBoda.daysRemaining),
+        title: nextAnniversary.name,
+        category: 'anniversaries',
+        targetDate: nextAnniversary.targetDate,
+        daysRemaining: Math.max(0, nextAnniversary.daysRemaining),
         progressPercent,
         totalTargetDays: totalSpan,
-        description: `Comemoração de ${nextBoda.period} juntos.`,
+        description: `Comemoração de ${nextAnniversary.period} de namoro juntos.`,
       };
     } else {
       // Marco de dia está mais próximo: progresso é dias totais juntos / meta em dias (ex: 388 de 500 = 78%)
@@ -471,9 +485,12 @@ export function getUniverseData(
     totalMinutes,
     totalSeconds,
     nextMilestone: nextMilestoneCandidate,
-    bodas,
-    reachedBodasCount,
-    nextBoda,
+    anniversaries,
+    reachedAnniversariesCount,
+    nextAnniversary,
+    bodas: anniversaries,
+    reachedBodasCount: reachedAnniversariesCount,
+    nextBoda: nextAnniversary,
     dayMilestones,
     fullMoons,
     newMoons,
