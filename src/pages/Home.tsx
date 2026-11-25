@@ -7,7 +7,6 @@ import { useThemeStore } from '../store/useThemeStore';
 import { lazy, Suspense } from 'react';
 import { DaysTogetherBadge } from './home/DaysTogetherBadge';
 import { Countdown } from './home/Countdown';
-import { MilestoneTrigger } from '../features/milestones/MilestoneTrigger';
 
 const PlaylistTabs = lazy(() => import('../features/playlist/PlaylistTabs').then(m => ({ default: m.PlaylistTabs })));
 const AlbumCarousel = lazy(() => import('../features/album/AlbumCarousel').then(m => ({ default: m.AlbumCarousel })));
@@ -355,8 +354,6 @@ function Home() {
           </div>
 
           <Countdown startMs={startMs} />
-
-          <MilestoneTrigger />
         </div>
       </motion.section>
 
