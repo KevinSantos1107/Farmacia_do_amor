@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { getDoc } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../services/firebase/config';
 import { siteDoc } from '../../services/firestore/paths';
 import { usePlayerIdentityStore } from '../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../store/siteConfigStore';
 import { getWelcomeMessage } from './welcomeMessage';
 import { getPlayerIds } from './playerIds';
+import { ensurePlayerLink, markPlayerLinkSynced, resetPlayerLinkSyncCache } from './playerLinkSync';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getTopToastOffset } from '../../shared/utils/safeArea';
 
@@ -33,6 +34,7 @@ export function PlayerAuthInit() {
 
     let isSubscribed = true;
     let unsubscribeSnapshot: (() => void) | null = null;
+    let unsubscribeAuthState: (() => void) | null = null;
 
     const { p1Id, p2Id } = getPlayerIds(config);
     const params = new URLSearchParams(window.location.search);
@@ -58,28 +60,46 @@ export function PlayerAuthInit() {
     // Revoga o acesso, limpando credenciais locais e forçando a tela de bloqueio
     const handleRevoke = () => {
       if (!isSubscribed) return;
+      resetPlayerLinkSyncCache();
       clearSession();
       sessionStorage.removeItem('greeted');
       setTokenStatus('unauthorized');
     };
 
-    // 1. Otimização de carregamento instantâneo:
-    // Se não há token na URL, mas já temos um token armazenado válido e jogador reconhecido,
-    // autoriza de imediato para não piscar a tela, mas inicia a validação no Firestore logo em seguida.
-    if (!urlToken && storedTokenId && (currentPlayer === p1Id || currentPlayer === p2Id)) {
-      setTokenStatus('authorized');
-      if (!sessionStorage.getItem('greeted')) {
-        const syncMsg = getWelcomeMessage(currentPlayer, config);
-        showGreeting(syncMsg);
-      }
-    } else if (!urlToken && !storedTokenId && currentPlayer === 'visitante') {
+    if (!urlToken && !storedTokenId && currentPlayer === 'visitante') {
       setTokenStatus('unauthorized');
     }
 
     const initAuth = async () => {
       try {
+        // Aguarda a restauração da sessão persistida no IndexedDB antes de criar sessão anônima.
+        // Após authStateReady(), auth.currentUser reflete o usuário já persistido (se houver).
+        if (typeof (auth as { authStateReady?: () => Promise<void> }).authStateReady === 'function') {
+          await auth.authStateReady();
+        }
+        if (!isSubscribed) return;
+
+        // Obtém o uid restaurado (se já existia sessão anônima anterior)
         let uid = auth.currentUser?.uid || '';
-        // Garante autenticação anônima em background (necessária para regras do Firestore)
+
+        // Otimização de carregamento instantâneo para usuário recorrente:
+        // Só libera o shell antecipadamente quando o Firebase Auth já restaurou o usuário
+        // (uid disponível após authStateReady), garantindo player_links/{uid} válido.
+        if (
+          !urlToken &&
+          storedTokenId &&
+          (currentPlayer === p1Id || currentPlayer === p2Id) &&
+          uid
+        ) {
+          setTokenStatus('authorized');
+          if (!sessionStorage.getItem('greeted')) {
+            const syncMsg = getWelcomeMessage(currentPlayer, config);
+            showGreeting(syncMsg);
+          }
+        }
+
+        // Garante autenticação anônima em background (necessária para regras do Firestore).
+        // Só cria nova sessão anônima se não existia sessão restaurada pelo authStateReady.
         if (!uid) {
           try {
             const userCredential = await signInAnonymously(auth);
@@ -137,6 +157,7 @@ export function PlayerAuthInit() {
                   player: currentPlayerId,
                   tokenId: tokenToVerify,
                 });
+                markPlayerLinkSynced(uid, currentPlayerId, tokenToVerify);
               } catch (linkErr) {
                 console.warn('Erro ao salvar player_links:', linkErr);
               }
@@ -145,6 +166,18 @@ export function PlayerAuthInit() {
             setPlayer(currentPlayerId);
             setTokenId(tokenToVerify);
             setTokenStatus('authorized');
+
+            // Mantém player_links sincronizado caso o auth.currentUser mude entre abas
+            // (ex.: login/logout no /admin na mesma origem)
+            if (isSubscribed && !unsubscribeAuthState) {
+              let lastObservedUid = uid;
+              unsubscribeAuthState = onAuthStateChanged(auth, (firebaseUser) => {
+                if (!isSubscribed || !firebaseUser?.uid || firebaseUser.uid === lastObservedUid) return;
+                lastObservedUid = firebaseUser.uid;
+                setUid(firebaseUser.uid);
+                void ensurePlayerLink(true);
+              });
+            }
 
             if (!sessionStorage.getItem('greeted')) {
               const syncMsg = getWelcomeMessage(currentPlayerId, config);
@@ -210,6 +243,9 @@ export function PlayerAuthInit() {
       isSubscribed = false;
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
+      }
+      if (unsubscribeAuthState) {
+        unsubscribeAuthState();
       }
     };
   }, [setPlayer, setTokenId, setUid, setTokenStatus, clearSession, config]);

@@ -3,31 +3,72 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ─── FUNÇÕES AUXILIARES DE SEGURANÇA ─────────────────────────────
-    
+
     // Verifica se o usuário está autenticado no Firebase Auth (anônimo ou e-mail/senha)
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é administrador APENAS por Custom Claims de role.
-    // A verificação por e-mail genérico foi removida pois permitia que qualquer
-    // conta Google autenticada fosse tratada como admin.
-    function isAdmin() {
+    // Super Administrador global (acesso irrestrito entre sites e raiz)
+    function isSuperAdmin() {
       return isAuthenticated() &&
-        request.auth.token.role in ['super_admin', 'site_admin'];
+        request.auth.token.role == 'super_admin';
+    }
+
+    // Administrador de coleções na raiz (layout 'legacy'):
+    // super_admin ou site_admin explicitamente vinculado ao site padrão 'meu-site'
+    function isRootAdmin() {
+      return isSuperAdmin() ||
+        (isAuthenticated() &&
+         request.auth.token.role == 'site_admin' &&
+         request.auth.token.siteId == 'meu-site');
+    }
+
+    // Administrador multi-tenant para um site específico:
+    // super_admin ou site_admin cujo custom claim siteId coincide exatamente com {siteId}
+    function isSiteAdmin(siteId) {
+      return isSuperAdmin() ||
+        (isAuthenticated() &&
+         request.auth.token.role == 'site_admin' &&
+         request.auth.token.siteId == siteId);
     }
 
     // Valida vínculo de token de jogador (o token deve existir na coleção e bater com o player reivindicado)
     function isValidPlayerLinkLegacy(uid) {
-      return request.auth.uid == uid &&
+      return isAuthenticated() &&
+        request.auth.uid == uid &&
         exists(/databases/$(database)/documents/player_tokens/$(request.resource.data.tokenId)) &&
         get(/databases/$(database)/documents/player_tokens/$(request.resource.data.tokenId)).data.player == request.resource.data.player;
     }
 
     function isValidPlayerLinkSite(siteId, uid) {
-      return request.auth.uid == uid &&
+      return isAuthenticated() &&
+        request.auth.uid == uid &&
         exists(/databases/$(database)/documents/sites/$(siteId)/player_tokens/$(request.resource.data.tokenId)) &&
         get(/databases/$(database)/documents/sites/$(siteId)/player_tokens/$(request.resource.data.tokenId)).data.player == request.resource.data.player;
+    }
+
+    // Verifica se o usuário autenticado possui vínculo válido em player_links (possui token mágico válido)
+    function hasValidPlayerLinkLegacy() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/player_links/$(request.auth.uid));
+    }
+
+    function hasValidPlayerLinkSite(siteId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/sites/$(siteId)/player_links/$(request.auth.uid));
+    }
+
+    // Jogador autorizado (com token validado) ou admin no layout raiz ('legacy')
+    function isAuthorizedLegacyPlayer() {
+      return isRootAdmin() || hasValidPlayerLinkLegacy();
+    }
+
+    // Jogador autorizado em sites/{siteId} (aceita vínculo do site ou vínculo legado quando siteId == 'meu-site')
+    function isAuthorizedSitePlayer(siteId) {
+      return isSiteAdmin(siteId) ||
+        hasValidPlayerLinkSite(siteId) ||
+        (siteId == 'meu-site' && hasValidPlayerLinkLegacy());
     }
 
     // ─── COLEÇÕES DE INTERAÇÃO DO CASAL / JOGADORES (RAIZ) ───────────
@@ -37,40 +78,35 @@ service cloud.firestore {
       // Leitura individual permitida para validação inicial do link (?token=...)
       allow get: if true;
       // Listagem, criação e exclusão restritas exclusivamente a administradores
-      allow list, write: if isAdmin();
+      allow list, write: if isRootAdmin();
     }
 
     // 2. Vínculo seguro entre UID anônima do jogador e token
     match /player_links/{uid} {
-      allow read: if request.auth.uid == uid || isAdmin();
+      allow read: if (isAuthenticated() && request.auth.uid == uid) || isRootAdmin();
       allow write: if isValidPlayerLinkLegacy(uid);
     }
 
     // 3. Recordes dos Mini-games
     // Leitura pública (placar/ranking visível a todos).
-    // Criação e atualização permitidas a qualquer usuário autenticado (anônimo ou não)
-    // — os jogadores já passam pelo signInAnonymously no PlayerAuthInit.
-    // Exclusão restrita a admin.
+    // Criação e atualização restritas a jogadores autorizados (com vínculo em player_links) ou admin.
     match /game_records/{recordId} {
       allow read: if true;
-      allow create, update: if isAuthenticated();
-      allow delete: if isAdmin();
+      allow create, update: if isAuthorizedLegacyPlayer();
+      allow delete: if isRootAdmin();
     }
 
     // 4. Salas de sincronização e presença em tempo real (Sync Game)
-    // Requer autenticação anônima para evitar abuso externo, mas permite
-    // leitura/escrita aos jogadores que já fizeram signInAnonymously.
     match /sync_rooms/{roomId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthorizedLegacyPlayer();
     }
     match /sync_presence/{roomId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthorizedLegacyPlayer();
     }
 
     // 4.1 Modo Duelo do Jogo de Palavras (Word Duel)
-    // Sala pública com status e tentativas visíveis aos jogadores autenticados
     match /word_duel_rooms/{roomId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthorizedLegacyPlayer();
     }
     // Palavras secretas: NENHUM cliente pode ler ou escrever. Restrito exclusivamente ao Firebase Admin SDK
     match /word_duel_secrets/{roomId} {
@@ -78,142 +114,138 @@ service cloud.firestore {
     }
 
     // 5. Devocional diário compartilhado (sessões, favoritos e metadados)
-    // Requer autenticação anônima — os jogadores já fazem signInAnonymously.
     match /devotional_sessions/{date} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthorizedLegacyPlayer();
     }
     match /devotional_favorites/{favId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthorizedLegacyPlayer();
     }
     match /devotional_meta/{playerId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthorizedLegacyPlayer();
     }
 
     // ─── CONTEÚDO DO SITE NA RAIZ (LEITURA ABERTA / ESCRITA ADMIN) ────
-    
-    // Álbuns e fotos
+
     match /albums/{albumId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
     match /album_photos/{photoId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
-
-    // Timeline dos momentos
     match /timeline/{eventId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
-
-    // Playlists e trilhas sonoras
     match /custom_playlists/{playlistId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
     match /playlist_tracks/{trackId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
-
-    // Roleta
     match /wheels/{wheelId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
-
-    // Mapa das estrelas
     match /starmap/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
-
-    // Retrospectivas
     match /retrospectives/{retroId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
-
-    // Quiz
     match /quiz_questions/{questionId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
     match /quiz_config/{configId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
-
-    // Jogo de palavras (perguntas e palavras cadastradas)
     match /word_game/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
-
-    // Configuração geral do site
     match /site_config/{configId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRootAdmin();
     }
-
-    // Fila de limpeza do Cloudinary
     match /cloudinary_deletions_queue/{queueId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isRootAdmin();
     }
 
     // ─── SUPORTE AO MODO MULTI-SITE (sites/{siteId}/...) ──────────────
-    // Protege completamente caso VITE_DATA_LAYOUT=site seja ativado
     match /sites/{siteId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSiteAdmin(siteId);
 
-      // Coleções aninhadas sob o site
+      // Tokens e vínculos
       match /player_tokens/{tokenId} {
         allow get: if true;
-        allow list, write: if isAdmin();
+        allow list, write: if isSiteAdmin(siteId);
       }
 
       match /player_links/{uid} {
-        allow read: if request.auth.uid == uid || isAdmin();
+        allow read: if (isAuthenticated() && request.auth.uid == uid) || isSiteAdmin(siteId);
         allow write: if isValidPlayerLinkSite(siteId, uid);
       }
 
+      // Jogos e recordes (exigem vínculo válido ou admin do site)
       match /game_records/{recordId} {
         allow read: if true;
-        allow create, update: if isAuthenticated();
-        allow delete: if isAdmin();
+        allow create, update: if isAuthorizedSitePlayer(siteId);
+        allow delete: if isSiteAdmin(siteId);
       }
 
       match /sync_rooms/{roomId} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthorizedSitePlayer(siteId);
       }
       match /sync_presence/{roomId} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthorizedSitePlayer(siteId);
       }
 
-      // Modo Duelo do Jogo de Palavras (Word Duel) sob o site
       match /word_duel_rooms/{roomId} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthorizedSitePlayer(siteId);
       }
       match /word_duel_secrets/{roomId} {
         allow read, write: if false;
       }
 
+      // Devocional compartilhado
       match /devotional_sessions/{date} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthorizedSitePlayer(siteId);
       }
       match /devotional_favorites/{favId} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthorizedSitePlayer(siteId);
       }
       match /devotional_meta/{playerId} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthorizedSitePlayer(siteId);
       }
 
-      // Conteúdo estático/gerenciado sob o site
+      // Coleções administrativas restritas ao admin do site
+      match /cloudinary_deletions_queue/{queueId} {
+        allow read, write: if isSiteAdmin(siteId);
+      }
+      match /ai_quiz_questions/{questionId} {
+        allow read, write: if isSiteAdmin(siteId);
+      }
+
+      // Conteúdo público explícito sob o site (sem wildcard aberto para coleções sensíveis)
       match /{subcol}/{document=**} {
-        allow read: if true;
-        allow write: if isAdmin();
+        allow read: if subcol in [
+          'albums', 'album_photos', 'timeline', 'custom_playlists', 'playlist_tracks',
+          'wheels', 'starmap', 'config', 'retrospectives', 'retrospective_config',
+          'quiz_questions', 'quiz_config', 'word_game', 'site_config'
+        ];
+        allow write: if isSiteAdmin(siteId) && subcol in [
+          'albums', 'album_photos', 'timeline', 'custom_playlists', 'playlist_tracks',
+          'wheels', 'starmap', 'config', 'retrospectives', 'retrospective_config',
+          'quiz_questions', 'quiz_config', 'word_game', 'site_config'
+        ];
       }
     }
   }

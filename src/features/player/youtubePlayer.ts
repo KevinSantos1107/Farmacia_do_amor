@@ -8,11 +8,12 @@
  * Módulo puro: não importa useAudioStore diretamente (evita dependência circular).
  */
 
-interface YTPlayerInstance {
+export interface YTPlayerInstance {
   playVideo?: () => void;
   pauseVideo?: () => void;
-  loadVideoById?: (id: string) => void;
-  cueVideoById?: (id: string) => void;
+  stopVideo?: () => void;
+  loadVideoById?: (options: string | { videoId: string; startSeconds?: number; endSeconds?: number }) => void;
+  cueVideoById?: (options: string | { videoId: string; startSeconds?: number; endSeconds?: number }) => void;
   seekTo?: (seconds: number, allowSeekAhead: boolean) => void;
   setVolume?: (volume: number) => void;
   mute?: () => void;
@@ -23,15 +24,37 @@ interface YTPlayerInstance {
   [key: string]: unknown;
 }
 
+export interface YTPlayerReadyEvent {
+  target: YTPlayerInstance;
+}
+
+export interface YTPlayerStateEvent {
+  data: number;
+  target: YTPlayerInstance;
+}
+
+export interface YTPlayerErrorEvent {
+  data: number;
+  target: YTPlayerInstance;
+}
+
+export interface YTPlayerEvents {
+  onReady?: (event: YTPlayerReadyEvent) => void;
+  onStateChange?: (event: YTPlayerStateEvent) => void;
+  onError?: (event: YTPlayerErrorEvent) => void;
+}
+
 declare global {
   interface Window {
     YT: {
       Player: new (
         elementId: string | HTMLElement,
         options: {
+          height?: string | number;
+          width?: string | number;
           videoId?: string;
           playerVars?: Record<string, unknown>;
-          events?: Record<string, (event: unknown) => void>;
+          events?: YTPlayerEvents;
         }
       ) => YTPlayerInstance;
       [key: string]: unknown;
@@ -212,7 +235,7 @@ export async function initYouTubePlayer(elementId: string) {
           }
         }
       },
-      onStateChange: (event: { data: number }) => {
+      onStateChange: (event: YTPlayerStateEvent) => {
         // -1 = UNSTARTED, 0 = ENDED, 1 = PLAYING, 2 = PAUSED, 3 = BUFFERING, 5 = CUED
         // Se o YouTube não for a faixa ativa atual, ignora qualquer evento de fundo
         if (!_activeVideoId) return;
@@ -258,7 +281,7 @@ export async function initYouTubePlayer(elementId: string) {
           _callbacks.onCued?.();
         }
       },
-      onError: (event: { data: unknown }) => {
+      onError: (event: YTPlayerErrorEvent) => {
         if (!_activeVideoId) return;
         stopPolling();
         console.warn('[YouTube Player] Erro no player:', event.data);
@@ -289,8 +312,8 @@ export function playYouTubeVideo(videoId: string) {
         videoId,
         startSeconds: 0,
       });
-      _ytPlayer.seekTo(0, true);
-      _ytPlayer.playVideo();
+      _ytPlayer.seekTo?.(0, true);
+      _ytPlayer.playVideo?.();
       startPolling();
     }
   } catch (err) {
@@ -316,7 +339,7 @@ export function cueYouTubeVideo(videoId: string) {
         videoId,
         startSeconds: 0,
       });
-      _ytPlayer.seekTo(0, true);
+      _ytPlayer.seekTo?.(0, true);
     }
   } catch (err) {
     console.warn('[YouTube Player] Falha ao dar cue:', err);
@@ -326,7 +349,7 @@ export function cueYouTubeVideo(videoId: string) {
 export function pauseYouTubeVideo() {
   if (!_ytPlayer || !_isPlayerReady) return;
   try {
-    _ytPlayer.pauseVideo();
+    _ytPlayer.pauseVideo?.();
     stopPolling();
   } catch {}
 }
@@ -334,7 +357,7 @@ export function pauseYouTubeVideo() {
 export function resumeYouTubeVideo() {
   if (!_ytPlayer || !_isPlayerReady) return;
   try {
-    _ytPlayer.playVideo();
+    _ytPlayer.playVideo?.();
     startPolling();
   } catch {}
 }
@@ -346,15 +369,15 @@ export function stopYouTubeVideo() {
   stopPolling();
   if (!_ytPlayer || !_isPlayerReady) return;
   try {
-    _ytPlayer.seekTo(0, true);
-    _ytPlayer.pauseVideo();
+    _ytPlayer.seekTo?.(0, true);
+    _ytPlayer.pauseVideo?.();
   } catch {}
 }
 
 export function seekYouTubeVideo(seconds: number) {
   if (!_ytPlayer || !_isPlayerReady) return;
   try {
-    _ytPlayer.seekTo(seconds, true);
+    _ytPlayer.seekTo?.(seconds, true);
     _ytTimeListeners.forEach((fn) => fn(seconds));
   } catch {}
 }
@@ -363,11 +386,11 @@ export function setYouTubeVolume(volume: number) {
   if (!_ytPlayer || !_isPlayerReady) return;
   try {
     const vol100 = Math.round(Math.max(0, Math.min(1, volume)) * 100);
-    _ytPlayer.setVolume(vol100);
+    _ytPlayer.setVolume?.(vol100);
     if (vol100 === 0) {
-      _ytPlayer.mute();
+      _ytPlayer.mute?.();
     } else {
-      _ytPlayer.unMute();
+      _ytPlayer.unMute?.();
     }
   } catch {}
 }

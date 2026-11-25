@@ -4,7 +4,7 @@ import {
   Menu, X, Home, Clock, Palette, PlayCircle, ChevronDown,
   Heart, Timer, Music, Images, Stars, Gamepad2,
   Rocket, Snowflake, Waves, Mail, Worm, MessageCircleHeart, SpellCheck2, Layers, BookOpen,
-  Sparkles, Swords
+  Sparkles
 } from 'lucide-react';
 import { cn } from '../../shared/utils/cn';
 import { useThemeStore } from '../../store/useThemeStore';

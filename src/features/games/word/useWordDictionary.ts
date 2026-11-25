@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { normalizeWord } from './wordLogic';
 
 let cachedValidWords: Set<string> | null = null;
 
@@ -11,11 +12,12 @@ export function useWordDictionary() {
       return;
     }
     // Carrega o dicionário via fetch do /public (fora do bundle principal)
-    // Assim os 149 KB não entram no chunk do jogo de palavras
     fetch('/pt-5-letters.json')
       .then((r) => r.json())
       .then((data: string[]) => {
-        cachedValidWords = new Set(data);
+        cachedValidWords = new Set(
+          data.map((w) => normalizeWord(String(w))).filter((w) => w.length === 5)
+        );
         setDictLoaded(true);
       })
       .catch(() => {
@@ -24,8 +26,10 @@ export function useWordDictionary() {
   }, []);
 
   const isValidWord = useCallback((guess: string) => {
+    const norm = normalizeWord(guess);
+    if (norm.length !== 5) return false;
     if (!cachedValidWords || cachedValidWords.size === 0) return true;
-    return cachedValidWords.has(guess);
+    return cachedValidWords.has(norm);
   }, []);
 
   return { isValidWord };

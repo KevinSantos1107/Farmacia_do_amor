@@ -219,7 +219,7 @@ export function WordDuelBattle({
 
   // ── Transição suave de turno com aviso na tela ────────────────────────────
   useEffect(() => {
-    const activeTurn = currentTurn || (isMyTurn ? myPlayerId : 'partner');
+    const activeTurn = currentTurn || (isMyTurn ? (myPlayerId ?? 'me') : 'partner');
 
     // Inicialização ao montar a tela
     if (prevTurnRef.current === null) {

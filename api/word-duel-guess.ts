@@ -18,7 +18,12 @@ import path from 'path';
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const JWKS = createRemoteJWKSet(new URL(GOOGLE_JWKS_URL));
 
-async function verifyAuthToken(authHeaderOrToken: string | undefined): Promise<{ uid: string } | null> {
+interface VerifiedAuth {
+  uid: string;
+  isAdminForSite: (siteId: string) => boolean;
+}
+
+async function verifyAuthToken(authHeaderOrToken: string | undefined): Promise<VerifiedAuth | null> {
   if (!authHeaderOrToken || typeof authHeaderOrToken !== 'string') return null;
   const token = authHeaderOrToken.startsWith('Bearer ') ? authHeaderOrToken.slice(7).trim() : authHeaderOrToken.trim();
   if (!token) return null;
@@ -31,7 +36,21 @@ async function verifyAuthToken(authHeaderOrToken: string | undefined): Promise<{
     });
     const payload = verified.payload as Record<string, unknown>;
     const uid = typeof payload.sub === 'string' ? payload.sub : '';
-    return uid ? { uid } : null;
+    if (!uid) return null;
+
+    const firebaseClaim = payload.firebase as { sign_in_provider?: string } | undefined;
+    const isNonAnonEmail =
+      typeof payload.email === 'string' &&
+      payload.email.length > 0 &&
+      firebaseClaim?.sign_in_provider !== 'anonymous';
+    const role = payload.role;
+    const claimSiteId = payload.siteId;
+
+    return {
+      uid,
+      isAdminForSite: (siteId: string) =>
+        isNonAnonEmail && (role === 'super_admin' || (role === 'site_admin' && claimSiteId === siteId)),
+    };
   } catch {
     return null;
   }
@@ -172,6 +191,8 @@ interface GuessBody {
   siteId?: string;
 }
 
+const SAFE_DOC_ID_RE = /^[a-zA-Z0-9_-]{1,100}$/;
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method_not_allowed' });
@@ -196,10 +217,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const p1Id = roomId.split('_')[0];
-  const p2Id = roomId.split('_')[1];
+  if (!SAFE_DOC_ID_RE.test(roomId)) {
+    res.status(400).json({ error: 'invalid_room_id' });
+    return;
+  }
 
-  if (player !== p1Id && player !== p2Id) {
+  if (siteId !== undefined && siteId !== '' && (typeof siteId !== 'string' || !SAFE_DOC_ID_RE.test(siteId))) {
+    res.status(400).json({ error: 'invalid_site_id' });
+    return;
+  }
+
+  const roomParts = roomId.split('_');
+  const p1Id = roomParts[0];
+  const p2Id = roomParts[1];
+
+  if (roomParts.length !== 2 || !p1Id || !p2Id || (player !== p1Id && player !== p2Id)) {
     res.status(400).json({ error: 'invalid_player_for_room' });
     return;
   }
@@ -218,13 +250,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const db = getAdminFirestore();
 
-  const isSiteLayout = process.env.VITE_DATA_LAYOUT === 'site' || process.env.DATA_LAYOUT === 'site';
-  const roomDocRef = isSiteLayout && siteId
-    ? db.collection('sites').doc(siteId).collection('word_duel_rooms').doc(roomId)
+  const isSiteLayout = process.env.DATA_LAYOUT === 'site' || process.env.VITE_DATA_LAYOUT === 'site';
+  const resolvedSiteId = siteId || process.env.SITE_ID || process.env.VITE_SITE_ID || 'meu-site';
+
+  // Verifica vínculo real uid -> player em player_links para jogadores não-admin.
+  if (!auth.isAdminForSite(resolvedSiteId)) {
+    try {
+      const linkDocRef = isSiteLayout
+        ? db.collection('sites').doc(resolvedSiteId).collection('player_links').doc(auth.uid)
+        : db.collection('player_links').doc(auth.uid);
+
+      const linkSnap = await linkDocRef.get();
+      const linkData = linkSnap.exists ? linkSnap.data() : null;
+      if (!linkData || linkData.player !== player) {
+        console.warn(`[word-duel-guess] player_links not found or mismatch for uid=${auth.uid}, player=${player}`);
+        res.status(403).json({ error: 'forbidden_player_mismatch' });
+        return;
+      }
+
+      if (typeof linkData.tokenId === 'string' && linkData.tokenId) {
+        const tokenDocRef = isSiteLayout
+          ? db.collection('sites').doc(resolvedSiteId).collection('player_tokens').doc(linkData.tokenId)
+          : db.collection('player_tokens').doc(linkData.tokenId);
+        const tokenSnap = await tokenDocRef.get();
+        if (!tokenSnap.exists || tokenSnap.data()?.player !== player) {
+          res.status(403).json({ error: 'token_revoked' });
+          return;
+        }
+      }
+    } catch (linkErr: unknown) {
+      const msg = linkErr instanceof Error ? linkErr.message : String(linkErr);
+      console.error(`[word-duel-guess] Erro ao validar player_links uid=${auth.uid}:`, msg);
+      res.status(403).json({ error: 'forbidden_player_mismatch', detail: 'Não foi possível verificar o vínculo do jogador. Verifique FIREBASE_SERVICE_ACCOUNT.' });
+      return;
+    }
+  }
+
+  const roomDocRef = isSiteLayout
+    ? db.collection('sites').doc(resolvedSiteId).collection('word_duel_rooms').doc(roomId)
     : db.collection('word_duel_rooms').doc(roomId);
 
-  const secretsDocRef = isSiteLayout && siteId
-    ? db.collection('sites').doc(siteId).collection('word_duel_secrets').doc(roomId)
+  const secretsDocRef = isSiteLayout
+    ? db.collection('sites').doc(resolvedSiteId).collection('word_duel_secrets').doc(roomId)
     : db.collection('word_duel_secrets').doc(roomId);
 
   try {

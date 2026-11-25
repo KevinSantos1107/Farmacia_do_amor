@@ -6,7 +6,14 @@
  * Garante que apenas uma faixa toque por vez no painel.
  */
 
-import { ensureYouTubeIframeApi, extractVideoId, isYouTubeTrack } from '../../../features/player/youtubePlayer';
+import {
+  ensureYouTubeIframeApi,
+  extractVideoId,
+  isYouTubeTrack,
+  type YTPlayerInstance,
+  type YTPlayerReadyEvent,
+  type YTPlayerStateEvent,
+} from '../../../features/player/youtubePlayer';
 import type { Track } from './types';
 
 type ProgressCallback = (progress: number) => void;
@@ -21,12 +28,7 @@ interface PreviewCallbacks {
 
 let _activeTrackId: string | null = null;
 let _currentAudio: HTMLAudioElement | null = null;
-let _adminYtPlayer: {
-  playVideo?: () => void;
-  pauseVideo?: () => void;
-  destroy?: () => void;
-  [key: string]: unknown;
-} | null = null;
+let _adminYtPlayer: YTPlayerInstance | null = null;
 let _adminYtPollTimer: ReturnType<typeof setInterval> | null = null;
 let _currentCallbacks: PreviewCallbacks | null = null;
 const _subscribers = new Set<(activeId: string | null) => void>();
@@ -63,7 +65,7 @@ function startYtPolling() {
       if (typeof time === 'number' && !isNaN(time)) {
         _currentCallbacks?.onProgress(time);
       }
-      const dur = _adminYtPlayer.getDuration();
+      const dur = _adminYtPlayer.getDuration?.();
       if (typeof dur === 'number' && !isNaN(dur) && dur > 0) {
         _currentCallbacks?.onDuration(dur);
       }
@@ -121,7 +123,7 @@ export async function playPreview(
     if (_adminYtPlayer && typeof _adminYtPlayer.loadVideoById === 'function') {
       try {
         _adminYtPlayer.loadVideoById(ytId);
-        _adminYtPlayer.playVideo();
+        _adminYtPlayer.playVideo?.();
         startYtPolling();
       } catch (err) {
         console.warn('[adminAudioPreview] Erro ao carregar vídeo:', err);
@@ -143,11 +145,11 @@ export async function playPreview(
         origin: typeof window !== 'undefined' ? window.location.origin : undefined,
       },
       events: {
-        onReady: (e: { target: { playVideo: () => void } }) => {
-          e.target.playVideo();
+        onReady: (e: YTPlayerReadyEvent) => {
+          e.target.playVideo?.();
           startYtPolling();
         },
-        onStateChange: (e: { data: number }) => {
+        onStateChange: (e: YTPlayerStateEvent) => {
           // 0 = ENDED, 1 = PLAYING, 2 = PAUSED
           if (e.data === 0) {
             stopYtPolling();

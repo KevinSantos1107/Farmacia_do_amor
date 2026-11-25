@@ -232,7 +232,7 @@ export function WordGame() {
           return;
         }
 
-        if (wordLength === 5 && !isValidWord(inputToValidate)) {
+        if (wordLength === 5 && inputToValidate !== currentWord && !isValidWord(inputToValidate)) {
           showToast('Palavra inválida');
           setShake(true);
           setTimeout(() => setShake(false), 500);

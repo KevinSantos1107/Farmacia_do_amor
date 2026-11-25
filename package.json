@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
     "lint": "oxlint",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "seed": "node scripts/seed.mjs",
@@ -16,6 +16,7 @@
     "warm": "node scripts/warm-cloudinary.mjs",
     "preview": "vite preview",
     "export:zip": "git archive --format=zip --output=release.zip HEAD",
+    "dict:build": "node scripts/build-dictionary.mjs",
     "test": "vitest run"
   },
   "dependencies": {
@@ -52,6 +53,7 @@
     "@vitejs/plugin-react": "^6.0.4",
     "autoprefixer": "^10.5.4",
     "cloudinary": "^2.11.0",
+    "dictionary-pt": "^4.0.0",
     "dotenv": "^17.4.2",
     "firebase-admin": "^14.4.0",
     "oxlint": "^1.75.0",

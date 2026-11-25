@@ -16,7 +16,6 @@ interface WordDuelLobbyProps {
   partnerName: string;
   playerAvatar?: string;
   partnerAvatar?: string;
-  _isPartnerOnline?: boolean;
   partnerPresence?: SyncPresenceState;
   isInviting?: boolean;
   onStart: () => Promise<void>;
@@ -29,7 +28,6 @@ export function WordDuelLobby({
   partnerName,
   playerAvatar,
   partnerAvatar,
-  _isPartnerOnline,
   partnerPresence = 'offline',
   isInviting = false,
   onStart,

@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import {
   isValidWord,
   normalizeWordServer,
@@ -20,15 +22,38 @@ describe('Server-side Word Dictionary & Logic', () => {
     expect(isValidWord('NOITE')).toBe(true);
     expect(isValidWord('plano')).toBe(true);
 
+    // Topônimos e nomes dicionarizados no VERO/PT-BR (padrão Letreco/Termo)
+    expect(isValidWord('VIENA')).toBe(true);
+    expect(isValidWord('INDIA')).toBe(true);
+    expect(isValidWord('EGITO')).toBe(true);
+    expect(isValidWord('MILAO')).toBe(true);
+    expect(isValidWord('BELEM')).toBe(true);
+    expect(isValidWord('PEDRO')).toBe(true);
+
     // Palavras com tamanhos diferentes de 5
     expect(isValidWord('AMOR')).toBe(false);
     expect(isValidWord('CORACAO')).toBe(false);
     expect(isValidWord('')).toBe(false);
 
-    // Sequências inexistentes / piadas / sequências aleatórias
+    // Siglas puras, algarismos romanos e sequências inexistentes
+    expect(isValidWord('ABGLT')).toBe(false);
+    expect(isValidWord('BNDES')).toBe(false);
+    expect(isValidWord('CCCIX')).toBe(false);
     expect(isValidWord('ZZZZZ')).toBe(false);
     expect(isValidWord('XYZWQ')).toBe(false);
     expect(isValidWord('ABCDE')).toBe(false);
+  });
+
+  it('contains strictly unique 5-letter uppercase words in public/pt-5-letters.json', () => {
+    const raw = fs.readFileSync(path.resolve(process.cwd(), 'public', 'pt-5-letters.json'), 'utf8');
+    const words = JSON.parse(raw) as string[];
+    expect(Array.isArray(words)).toBe(true);
+    expect(words.length).toBeGreaterThan(19000);
+    const unique = new Set(words);
+    expect(unique.size).toBe(words.length);
+    for (const w of words) {
+      expect(w).toMatch(/^[A-Z]{5}$/);
+    }
   });
 
   it('evaluates guesses correctly with evaluateGuessServer', () => {

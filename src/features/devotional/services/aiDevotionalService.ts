@@ -26,6 +26,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
 import { auth } from '../../../services/firebase/auth';
+import { getCurrentSiteId } from '../../../services/firestore/paths';
+import { ensurePlayerLink } from '../../auth/playerLinkSync';
 import type {
   DevotionalPayload,
   SoloDevotionalResult,
@@ -62,20 +64,40 @@ export async function generateDevotional(
     throw new Error('Sessão não autenticada. Aguarde a conexão com o servidor.');
   }
 
-  const token = await currentUser.getIdToken();
+  await ensurePlayerLink();
 
-  const response = await fetch('/api/generate-devotional', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const bodyPayload = {
+    ...payload,
+    siteId: payload.siteId || getCurrentSiteId(),
+  };
+
+  const sendRequest = async () => {
+    const token = await currentUser.getIdToken();
+    return fetch('/api/generate-devotional', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(bodyPayload),
+    });
+  };
+
+  let response = await sendRequest();
+
+  if (response.status === 403) {
+    const synced = await ensurePlayerLink(true);
+    if (synced) {
+      response = await sendRequest();
+    }
+  }
 
   if (!response.ok) {
     if (response.status === 401) {
       throw new Error('Sessão expirada ou não autorizada. Atualize a página.');
+    }
+    if (response.status === 403) {
+      throw new Error('Acesso negado. Reabra o app pelo link de acesso ou contate o administrador.');
     }
     if (response.status === 429) {
       throw new Error('Limite de devocionais diários atingido. Tente novamente mais tarde.');

@@ -214,9 +214,10 @@ export default defineConfig(({ mode }) => {
   const siteDescription = env.VITE_SITE_DESCRIPTION || 'Um espaço especial para nós — memórias e momentos únicos.';
 
   // Popula process.env para que as Serverless Functions locais (/api/...) consigam ler as chaves
-  process.env.GEMINI_API_KEY = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-  process.env.VITE_GEMINI_API_KEY = env.VITE_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   process.env.FIREBASE_PROJECT_ID = env.FIREBASE_PROJECT_ID || env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || '';
+  process.env.DATA_LAYOUT = env.DATA_LAYOUT || env.VITE_DATA_LAYOUT || process.env.DATA_LAYOUT || '';
+  process.env.SITE_ID = env.SITE_ID || env.VITE_SITE_ID || process.env.SITE_ID || '';
   process.env.CLOUDINARY_CLOUD_NAME = env.VITE_CLOUDINARY_CLOUD_NAME || env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
   process.env.CLOUDINARY_API_KEY = env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY;
   process.env.CLOUDINARY_API_SECRET = env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_API_SECRET;

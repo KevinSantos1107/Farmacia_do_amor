@@ -345,7 +345,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
   if (!geminiApiKey) {
     console.error('Configuração do servidor incompleta: GEMINI_API_KEY não definida.');
     res.status(500).json({ error: 'Erro de configuração no servidor.' });
@@ -401,6 +401,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     } catch {
       res.status(400).json({ error: 'Corpo da requisição deve ser um JSON válido.' });
       return;
+    }
+  }
+
+  // Se siteId for informado e o admin for site_admin, garante isolamento por tenant
+  if (parsedBody && typeof parsedBody === 'object' && !Array.isArray(parsedBody)) {
+    const rawSiteId = (parsedBody as Record<string, unknown>).siteId;
+    if (rawSiteId !== undefined && rawSiteId !== '') {
+      if (typeof rawSiteId !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(rawSiteId)) {
+        res.status(400).json({ error: 'Identificador de site inválido.' });
+        return;
+      }
+      if (role === 'site_admin' && payload.siteId !== rawSiteId) {
+        res.status(403).json({ error: 'Acesso negado para este site.' });
+        return;
+      }
     }
   }
 

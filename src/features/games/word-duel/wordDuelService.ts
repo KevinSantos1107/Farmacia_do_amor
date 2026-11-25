@@ -12,8 +12,9 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { siteDoc } from '../../../services/firestore/paths';
-import { auth } from '../../../services/firebase/auth';
+import { auth } from '../../../services/firebase/config';
 import { waitForAuth } from '../../../services/records/common';
+import { ensurePlayerLink } from '../../auth/playerLinkSync';
 import type { WordDuelRoom } from './types';
 
 /**
@@ -232,6 +233,70 @@ export async function returnToGameRoom(roomId: string, siteId?: string): Promise
   }
 }
 
+const WORD_DUEL_ERROR_MESSAGES: Record<string, string> = {
+  forbidden_player_mismatch: 'Sessão do jogador dessincronizada. Atualize a página ou reabra seu link de acesso.',
+  token_revoked: 'Seu link de acesso foi revogado. Solicite um novo link.',
+  unauthorized: 'Sessão expirada. Atualize a página e tente novamente.',
+  word_not_in_dictionary: 'Palavra não encontrada no dicionário.',
+  invalid_word_length: 'A palavra deve ter exatamente 5 letras.',
+  invalid_guess_length: 'O palpite deve ter exatamente 5 letras.',
+};
+
+async function postWordDuelApi<T extends Record<string, unknown>>(
+  endpoint: string,
+  payload: Record<string, unknown>,
+  fallbackError: string
+): Promise<T & { success: boolean; error?: string }> {
+  await ensurePlayerLink();
+
+  const sendRequest = async () => {
+    const idToken = await getIdToken();
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ idToken, ...payload }),
+    });
+
+    const rawText = await res.text();
+    let data: Record<string, unknown> = {};
+    try {
+      data = JSON.parse(rawText) as Record<string, unknown>;
+    } catch {
+      return { res, data: null as Record<string, unknown> | null, rawText };
+    }
+    return { res, data, rawText };
+  };
+
+  let attempt = await sendRequest();
+
+  if (attempt.res.status === 403 && attempt.data?.error === 'forbidden_player_mismatch') {
+    const synced = await ensurePlayerLink(true);
+    if (synced) {
+      attempt = await sendRequest();
+    }
+  }
+
+  if (!attempt.data) {
+    return {
+      success: false,
+      error: attempt.rawText || 'Resposta inválida do servidor.',
+    } as T & { success: boolean; error?: string };
+  }
+
+  if (!attempt.res.ok) {
+    const rawErr = typeof attempt.data.error === 'string' ? attempt.data.error : fallbackError;
+    return {
+      success: false,
+      error: WORD_DUEL_ERROR_MESSAGES[rawErr] ?? rawErr,
+    } as T & { success: boolean; error?: string };
+  }
+
+  return attempt.data as T & { success: boolean; error?: string };
+}
+
 /**
  * Trava a palavra secreta escolhida pelo jogador.
  */
@@ -241,35 +306,12 @@ export async function submitSecretWord(
   word: string,
   siteId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const idToken = await getIdToken();
-  const res = await fetch('/api/word-duel-set', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({
-      idToken,
-      roomId,
-      player,
-      word,
-      siteId,
-    }),
-  });
-
-  const rawText = await res.text();
-  let data: Record<string, unknown> = {};
-  try {
-    data = JSON.parse(rawText);
-  } catch {
-    return { success: false, error: rawText || 'Resposta inválida do servidor.' };
-  }
-
-  if (!res.ok) {
-    const err = typeof data.error === 'string' ? data.error : 'Falha ao salvar palavra secreta.';
-    return { success: false, error: err };
-  }
-  return { success: true };
+  const res = await postWordDuelApi(
+    '/api/word-duel-set',
+    { roomId, player, word, siteId },
+    'Falha ao salvar palavra secreta.'
+  );
+  return res.success ? { success: true } : { success: false, error: res.error };
 }
 
 /**
@@ -287,41 +329,11 @@ export async function submitGuess(
   row?: { letter: string; state: 'correct' | 'present' | 'absent' }[];
   isWin?: boolean;
 }> {
-  const idToken = await getIdToken();
-  const res = await fetch('/api/word-duel-guess', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({
-      idToken,
-      roomId,
-      player,
-      guess,
-      siteId,
-    }),
-  });
-
-  const rawText = await res.text();
-  let data: Record<string, unknown> = {};
-  try {
-    data = JSON.parse(rawText);
-  } catch {
-    return { success: false, error: rawText || 'Resposta inválida do servidor.' };
-  }
-
-  if (!res.ok) {
-    const err = typeof data.error === 'string' ? data.error : 'Falha ao enviar tentativa.';
-    return { success: false, error: err };
-  }
-  return data as {
-    success: boolean;
-    error?: string;
+  return postWordDuelApi<{
     states?: ('correct' | 'present' | 'absent')[];
     row?: { letter: string; state: 'correct' | 'present' | 'absent' }[];
     isWin?: boolean;
-  };
+  }>('/api/word-duel-guess', { roomId, player, guess, siteId }, 'Falha ao enviar tentativa.');
 }
 
 /**
@@ -355,32 +367,10 @@ export async function resetWordDuel(
   player: string,
   siteId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const idToken = await getIdToken();
-  const res = await fetch('/api/word-duel-reset', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({
-      idToken,
-      roomId,
-      player,
-      siteId,
-    }),
-  });
-
-  const rawText = await res.text();
-  let data: Record<string, unknown> = {};
-  try {
-    data = JSON.parse(rawText);
-  } catch {
-    return { success: false, error: rawText || 'Resposta inválida do servidor.' };
-  }
-
-  if (!res.ok) {
-    const err = typeof data.error === 'string' ? data.error : 'Falha ao reiniciar partida.';
-    return { success: false, error: err };
-  }
-  return { success: true };
+  const res = await postWordDuelApi(
+    '/api/word-duel-reset',
+    { roomId, player, siteId },
+    'Falha ao reiniciar partida.'
+  );
+  return res.success ? { success: true } : { success: false, error: res.error };
 }

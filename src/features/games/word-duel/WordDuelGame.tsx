@@ -22,7 +22,6 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
     playerAvatar,
     partnerAvatar,
     partnerPresence,
-    isPartnerOnline,
     status,
     isInviting,
     loading,
@@ -146,7 +145,6 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
           partnerName={partnerDisplayName}
           playerAvatar={playerAvatar}
           partnerAvatar={partnerAvatar}
-          _isPartnerOnline={isPartnerOnline}
           partnerPresence={partnerPresence}
           isInviting={isInviting}
           onStart={startDuel}
@@ -194,8 +192,8 @@ export function WordDuelGame({ registerLeaveGame }: WordDuelGameProps = {}) {
         partnerDisplayName={partnerDisplayName}
         myAttempts={myGuesses.length}
         partnerAttempts={partnerGuesses.length}
-        myRevealedSecret={myRevealedSecret}
-        partnerRevealedSecret={partnerRevealedSecret}
+        myRevealedSecret={myRevealedSecret ?? null}
+        partnerRevealedSecret={partnerRevealedSecret ?? null}
         onPlayAgain={playAgain}
         isSubmitting={isSubmitting}
       />

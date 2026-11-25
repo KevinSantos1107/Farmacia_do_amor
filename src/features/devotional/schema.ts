@@ -122,6 +122,7 @@ export interface DevotionalSession {
 // ─── API Payloads ────────────────────────────────────────────────────────────
 export interface SoloDevotionalPayload {
   mode: 'solo';
+  siteId?: string;
   playerName: string;
   playerId: string;
   mood: MoodId;
@@ -132,6 +133,7 @@ export interface SoloDevotionalPayload {
 
 export interface SyncDevotionalPayload {
   mode: 'sync';
+  siteId?: string;
   name1: string;
   name2: string;
   mood1: MoodId;

@@ -15,6 +15,65 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import fs from 'fs';
+import path from 'path';
+
+const SAFE_DOC_ID_RE = /^[a-zA-Z0-9_-]{1,100}$/;
+
+let adminApp: App | null = null;
+let adminDb: Firestore | null = null;
+
+function getAdminFirestore(fallbackProjectId: string): Firestore {
+  if (adminDb) return adminDb;
+  const existingApps = getApps();
+  if (existingApps.length > 0) {
+    adminApp = existingApps[0];
+  } else {
+    const envServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (envServiceAccount) {
+      const parsed = typeof envServiceAccount === 'string' ? JSON.parse(envServiceAccount) : envServiceAccount;
+      if (parsed && typeof parsed.private_key === 'string') {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+      adminApp = initializeApp({
+        credential: cert(parsed),
+        projectId: parsed.project_id || fallbackProjectId,
+      });
+    } else {
+      const cwd = process.cwd();
+      const localPaths = [
+        path.join(cwd, 'scripts', 'serviceAccountKey.json'),
+        path.join(cwd, 'serviceAccountKey.json'),
+      ];
+      let loaded = false;
+      for (const p of localPaths) {
+        if (fs.existsSync(p)) {
+          try {
+            const parsed = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            adminApp = initializeApp({
+              credential: cert(parsed),
+              projectId: parsed.project_id || fallbackProjectId,
+            });
+            loaded = true;
+            break;
+          } catch (e) {
+            console.warn(`Falha ao ler chave de serviço local de ${p}:`, e);
+          }
+        }
+      }
+      if (!loaded) {
+        adminApp = initializeApp({ projectId: fallbackProjectId });
+      }
+    }
+  }
+  if (!adminApp) {
+    throw new Error('Falha ao inicializar Firebase Admin App.');
+  }
+  adminDb = getFirestore(adminApp);
+  return adminDb;
+}
 
 // ─────────────────────────────────────────────
 // Constantes e Configurações
@@ -412,7 +471,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // 3. Verificação das variáveis de ambiente necessárias
   const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
-  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
 
   if (!projectId || !geminiApiKey) {
     console.error('Configuração do servidor incompleta: FIREBASE_PROJECT_ID ou GEMINI_API_KEY não definida.');
@@ -440,14 +499,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // 6. Rate limiting por UID
-  const rateCheck = checkRateLimit(uid);
-  if (!rateCheck.allowed) {
-    res.status(429).json({ error: rateCheck.reason || 'Limite de requisições excedido.' });
-    return;
-  }
-
-  // 7. Validação e sanitização do payload de entrada
+  // 6. Validação e sanitização do payload de entrada
   let parsedBody = req.body;
   if (typeof parsedBody === 'string') {
     try {
@@ -456,6 +508,72 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       res.status(400).json({ error: 'Corpo da requisição deve ser um JSON válido.' });
       return;
     }
+  }
+
+  const bodyObj = parsedBody && typeof parsedBody === 'object' && !Array.isArray(parsedBody)
+    ? (parsedBody as Record<string, unknown>)
+    : null;
+  const rawSiteId = typeof bodyObj?.siteId === 'string' ? bodyObj.siteId.trim() : '';
+  if (rawSiteId && !SAFE_DOC_ID_RE.test(rawSiteId)) {
+    res.status(400).json({ error: 'Identificador de site inválido.' });
+    return;
+  }
+  const resolvedSiteId = rawSiteId || process.env.VITE_SITE_ID || 'meu-site';
+
+  // 7. Verifica autorização real: Admin do site OU jogador com vínculo válido em player_links
+  const firebaseClaim = payload.firebase as { sign_in_provider?: string } | undefined;
+  const isNonAnonAdminEmail =
+    typeof payload.email === 'string' &&
+    payload.email.length > 0 &&
+    firebaseClaim?.sign_in_provider !== 'anonymous';
+  const role = payload.role;
+  const isAuthorizedAdmin =
+    isNonAnonAdminEmail &&
+    (role === 'super_admin' || (role === 'site_admin' && payload.siteId === resolvedSiteId));
+
+  if (!isAuthorizedAdmin) {
+    try {
+      const db = getAdminFirestore(projectId);
+      const isSiteLayout = process.env.DATA_LAYOUT === 'site' || process.env.VITE_DATA_LAYOUT === 'site';
+      const linkRef = isSiteLayout
+        ? db.collection('sites').doc(resolvedSiteId).collection('player_links').doc(uid)
+        : db.collection('player_links').doc(uid);
+      const linkSnap = await linkRef.get();
+      const linkData = linkSnap.exists ? linkSnap.data() : null;
+
+      if (!linkData || typeof linkData.player !== 'string' || !linkData.player) {
+        console.warn(`[generate-devotional] player_links not found for uid=${uid}, resolvedSiteId=${resolvedSiteId}`);
+        res.status(403).json({ error: 'Acesso negado. Vínculo de jogador não encontrado.' });
+        return;
+      }
+
+      if (typeof linkData.tokenId === 'string' && linkData.tokenId) {
+        const tokenRef = isSiteLayout
+          ? db.collection('sites').doc(resolvedSiteId).collection('player_tokens').doc(linkData.tokenId)
+          : db.collection('player_tokens').doc(linkData.tokenId);
+        const tokenSnap = await tokenRef.get();
+        if (!tokenSnap.exists || tokenSnap.data()?.player !== linkData.player) {
+          res.status(403).json({ error: 'Token de acesso revogado ou inválido.' });
+          return;
+        }
+      }
+    } catch (authErr) {
+      // Falha ao consultar player_links (ex: credenciais Admin SDK ausentes em dev ou PERMISSION_DENIED).
+      // Retorna 403 explícito para facilitar debug — nunca 500 que confunde com erro do Gemini.
+      const errMsg = authErr instanceof Error ? authErr.message : String(authErr);
+      console.error('[generate-devotional] Erro ao validar vínculo do jogador:', errMsg);
+      res.status(403).json({
+        error: 'Não foi possível verificar seu acesso. Verifique se FIREBASE_SERVICE_ACCOUNT está configurado.',
+      });
+      return;
+    }
+  }
+
+  // 8. Rate limiting por UID
+  const rateCheck = checkRateLimit(uid);
+  if (!rateCheck.allowed) {
+    res.status(429).json({ error: rateCheck.reason || 'Limite de requisições excedido.' });
+    return;
   }
 
   const validation = validatePayload(parsedBody);
@@ -474,9 +592,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   try {
     let geminiResponse: Response | null = null;
 
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) {
-        await new Promise((r) => setTimeout(r, 1200));
+        await new Promise((r) => setTimeout(r, attempt === 1 ? 1000 : 2200));
       }
       geminiResponse = await fetch(GEMINI_API_URL, {
         method: 'POST',
