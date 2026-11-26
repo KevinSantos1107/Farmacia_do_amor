@@ -234,6 +234,24 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
+          globIgnores: [
+            '**/Admin*',
+            '**/AlbumEditor*',
+            '**/ConfigPage*',
+            '**/PlaylistEditor*',
+            '**/QuizEditor*',
+            '**/RetrospectiveEditor*',
+            '**/RouletteEditor*',
+            '**/SharePage*',
+            '**/StarMapEditor*',
+            '**/TimelineEditor*',
+            '**/TokenEditor*',
+            '**/Unauthorized*',
+            '**/LoginPage*',
+            '**/SortableItem*',
+            '**/jsmediatags*',
+            '**/*.woff',
+          ],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/res\.cloudinary\.com\/.*/i,
@@ -256,6 +274,7 @@ export default defineConfig(({ mode }) => {
           name: siteName,
           short_name: siteName,
           description: siteDescription,
+          lang: 'pt-BR',
           theme_color: '#05050A',
           background_color: '#05050A',
           display: 'standalone',
@@ -266,7 +285,8 @@ export default defineConfig(({ mode }) => {
             {
               src: '/icon-192.png',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any'
             },
             {
               src: '/icon-512.png',

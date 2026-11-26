@@ -8,6 +8,7 @@ import { X, Clock } from 'lucide-react';
 import { Spinner } from '../../shared/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
+import { getModalPortalTarget } from '../../shared/utils/portal';
 import { useOverlayHistory } from '../../shared/hooks/useOverlayHistory';
 
 // ─── Modal via Portal (bypasses overflow-x-hidden stacking context) ────────────
@@ -141,7 +142,7 @@ export function TimelineModalContent({
     </motion.div>
   );
 
-  return createPortal(modal, document.body);
+  return createPortal(modal, getModalPortalTarget());
 }
 
 // Cache em memória para abertura instantânea (0ms de latência)

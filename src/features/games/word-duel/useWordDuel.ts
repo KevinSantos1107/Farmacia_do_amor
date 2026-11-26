@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { onSnapshot } from 'firebase/firestore';
 import { siteDoc, getCurrentSiteId } from '../../../services/firestore/paths';
+import { subscribeSharedDoc } from '../../../services/firestore/sharedDocSubscription';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { getPlayerIds, getPlayerDisplayName } from '../../auth/playerIds';
@@ -67,13 +67,12 @@ export function useWordDuel() {
     return () => unsubscribe();
   }, [roomId, siteId]);
 
-  // Escuta a presença do parceiro (reaproveitando o beacon já existente do sync)
+  // Escuta a presença do parceiro (reaproveitando o beacon já existente do sync em listener compartilhado)
   useEffect(() => {
     if (!isPlayer) return;
     const presenceRef = siteDoc('sync_presence', roomId, siteId);
-    const unsubPresence = onSnapshot(presenceRef, (snap) => {
-      if (snap.exists()) {
-        const data = snap.data() as SyncPresenceDoc;
+    return subscribeSharedDoc<SyncPresenceDoc>(presenceRef, (data) => {
+      if (data) {
         const status = data.presence?.[partnerId] || 'offline';
         const partnerGame = data.currentGame?.[partnerId];
         const lastSeen = data.lastSeen?.[partnerId] || 0;
@@ -90,7 +89,6 @@ export function useWordDuel() {
         setPartnerPresence('offline');
       }
     });
-    return () => unsubPresence();
   }, [isPlayer, partnerId, roomId, siteId]);
 
   // Expiração automática de convite
@@ -198,11 +196,11 @@ export function useWordDuel() {
   useEffect(() => {
     if (status !== 'waiting_words') return;
     if (!myLocked || !partnerLocked) return;
-    // Aguarda 2.5s para dar tempo às APIs de fazerem sua verificação pós-transação.
+    // Aguarda 800ms para dar tempo às APIs de fazerem sua verificação pós-transação.
     // Se o status ainda não mudou, força a recuperação via cliente.
     const timer = setTimeout(() => {
       recoverDuelingTransition(roomId, siteId).catch(() => {});
-    }, 2500);
+    }, 800);
     return () => clearTimeout(timer);
   }, [status, myLocked, partnerLocked, roomId, siteId]);
 

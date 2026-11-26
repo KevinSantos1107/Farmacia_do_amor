@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { Trophy, RotateCcw, Swords } from 'lucide-react';
 import { Confetti } from '../word/Confetti';
+import { getModalPortalTarget } from '../../../shared/utils/portal';
 
 interface WordDuelGameOverProps {
   isOpen: boolean;
@@ -117,6 +118,6 @@ export function WordDuelGameOver({
         </motion.div>
       </motion.div>
     </AnimatePresence>,
-    document.body
+    getModalPortalTarget()
   );
 }

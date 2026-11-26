@@ -192,7 +192,9 @@ export function HamburgerMenu() {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="p-1.5 sm:p-2 text-white/80 hover:text-white transition-all duration-200 hover:scale-110 active:scale-95 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]"
-          aria-label="Menu"
+          aria-label={isOpen ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={isOpen}
+          aria-controls="main-nav-drawer"
         >
           {isOpen
             ? <X className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7" />
@@ -212,7 +214,11 @@ export function HamburgerMenu() {
 
       {/* Painel lateral */}
       <div
+        id="main-nav-drawer"
         ref={menuRef}
+        role="dialog"
+        aria-modal={isOpen}
+        aria-label="Menu de navegação"
         className={cn(
           'fixed top-0 left-0 bottom-0 z-50 w-[290px] sm:w-[320px]',
           'bg-[#080611]/95 backdrop-blur-2xl border-r border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]',
@@ -253,6 +259,8 @@ export function HamburgerMenu() {
             {/* ── NAVEGAÇÃO ─────────────────────────────────── */}
             <div className="mb-0.5">
               <button
+                type="button"
+                aria-expanded={isNavOpen}
                 onClick={() => {
                   const next = !isNavOpen;
                   setIsNavOpen(next);
@@ -290,6 +298,8 @@ export function HamburgerMenu() {
             {/* ── INTERATIVOS ───────────────────────────────── */}
             <div className="mb-0.5">
               <button
+                type="button"
+                aria-expanded={isInterOpen}
                 onClick={() => {
                   const next = !isInterOpen;
                   setIsInterOpen(next);
@@ -327,6 +337,8 @@ export function HamburgerMenu() {
             {/* ── TEMAS ─────────────────────────────────────── */}
             <div className="mb-0.5">
               <button
+                type="button"
+                aria-expanded={isThemeOpen}
                 onClick={() => {
                   const next = !isThemeOpen;
                   setIsThemeOpen(next);

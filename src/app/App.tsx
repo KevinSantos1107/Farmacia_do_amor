@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { useSiteConfigStore } from '../store/siteConfigStore';
 import { DEFAULT_SITE_ID } from '../config/defaults';
 import { router } from './router';
@@ -70,6 +71,10 @@ export default function App() {
 
   // No site público ('/'): renderiza RouterProvider imediatamente.
   // O Shell.tsx é quem gerencia uma ÚNICA SplashScreen com a barra contínua.
-  return <RouterProvider router={router} />;
+  return (
+    <MotionConfig reducedMotion="user">
+      <RouterProvider router={router} />
+    </MotionConfig>
+  );
 }
 

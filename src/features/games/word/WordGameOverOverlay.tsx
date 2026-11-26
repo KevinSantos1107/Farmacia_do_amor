@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, HeartCrack, Play, Target } from 'lucide-react';
 import { Confetti } from './Confetti';
 import { MAX_ATTEMPTS } from './wordConstants';
+import { getModalPortalTarget } from '../../../shared/utils/portal';
 
 interface WordGameOverOverlayProps {
   gameOver: boolean;
@@ -273,6 +274,6 @@ export function WordGameOverOverlay({
         </motion.div>
       )}
     </AnimatePresence>,
-    document.body
+    getModalPortalTarget()
   );
 }

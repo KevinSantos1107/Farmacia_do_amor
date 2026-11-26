@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom';
 import { cn } from '../utils/cn';
 import { X } from 'lucide-react';
 import { lockBodyScroll } from '../utils/scrollLock';
+import { getModalPortalTarget } from '../utils/portal';
 import { useOverlayHistory } from '../hooks/useOverlayHistory';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface ModalProps {
   isOpen: boolean;
@@ -14,6 +16,9 @@ interface ModalProps {
 }
 
 export const Modal = ({ isOpen, onClose, title, children, className }: ModalProps) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(isOpen, dialogRef);
+
   const { handleDismiss } = useOverlayHistory({
     id: `modal-${(title || 'dialog').toLowerCase().replace(/\s+/g, '-')}`,
     isOpen,
@@ -48,6 +53,7 @@ export const Modal = ({ isOpen, onClose, title, children, className }: ModalProp
         aria-hidden="true"
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'modal-title' : undefined}
@@ -70,6 +76,6 @@ export const Modal = ({ isOpen, onClose, title, children, className }: ModalProp
         <div className="text-white">{children}</div>
       </div>
     </div>,
-    document.body
+    getModalPortalTarget()
   );
 };

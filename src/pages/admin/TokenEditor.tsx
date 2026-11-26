@@ -16,6 +16,7 @@ import { useToast } from '../../shared/ui/ToastProvider';
 import { Trash2, Copy, Plus, RefreshCw, ExternalLink } from 'lucide-react';
 
 import { useSiteConfigStore } from '../../store/siteConfigStore';
+import { getPlayerIds } from '../../features/auth/playerIds';
 import { copyToClipboard } from '../../shared/utils/clipboard';
 import { AdminPageHeader } from './AdminPageHeader';
 
@@ -35,13 +36,7 @@ export default function TokenEditor() {
   const [tokens, setTokens] = useState<PlayerToken[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  // under the hood we store the ID as 'partner1' and 'partner2' for genericity, 
-  // but since existing data relies on 'kevin' and 'iara', we will use the lowercase names as ID for now.
-  // Wait, if the user changes the name, the old records would be disconnected.
-  // We need to keep the ids as 'kevin' / 'iara' for backward compatibility, OR change to person1/person2.
-  // Wait, the easiest is to just use partner1Name and partner2Name in the UI, but store as lowercase partner names.
-  const p1Id = partner1Name.toLowerCase();
-  const p2Id = partner2Name.toLowerCase();
+  const { p1Id, p2Id } = getPlayerIds(config);
   const [newPlayer, setNewPlayer] = useState<string>(p2Id);
   const [newLabel, setNewLabel] = useState('');
   const { show } = useToast();
@@ -233,7 +228,7 @@ export default function TokenEditor() {
                     <div className="flex items-center gap-2 mb-1">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${
-                          token.player === 'iara'
+                          token.player === p2Id
                             ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30'
                             : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
                         }`}
@@ -259,15 +254,23 @@ export default function TokenEditor() {
                       <Copy className="w-4 h-4 mr-2" />
                       Copiar Link
                     </Button>
-                    <a
-                      href={`/?token=${token.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center w-9 h-9 rounded-md border border-slate-700 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-colors"
-                      title="Testar link"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const confirmed = window.confirm(
+                          'Abrir este link nesta mesma janela vai substituir sua sessão de jogador atual neste navegador.\n\n' +
+                          'Para testar o outro jogador sem interferir na sua sessão, use "Copiar Link" e abra em uma aba anônima.\n\n' +
+                          'Deseja abrir o link mesmo assim?'
+                        );
+                        if (confirmed) {
+                          window.open(`/?token=${token.id}`, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                      className="flex items-center justify-center w-9 h-9 rounded-md border border-slate-700 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Testar link (recomendado usar em aba anônima)"
                     >
                       <ExternalLink className="w-4 h-4" />
-                    </a>
+                    </button>
                     <button
                       onClick={() => handleDelete(token.id)}
                       className="flex items-center justify-center w-9 h-9 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"

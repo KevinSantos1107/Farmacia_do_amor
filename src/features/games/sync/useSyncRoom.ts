@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  onSnapshot,
   runTransaction,
   serverTimestamp,
   setDoc,
@@ -8,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../../services/firebase/config';
 import { siteDoc } from '../../../services/firestore/paths';
+import { subscribeSharedDoc } from '../../../services/firestore/sharedDocSubscription';
 import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { getPlayerIds, getPlayerDisplayName } from '../../auth/playerIds';
@@ -122,14 +122,10 @@ export function useSyncRoom() {
 
     const ref = siteDoc('sync_rooms', roomId);
 
-    const unsubSnap = onSnapshot(
+    const unsubSnap = subscribeSharedDoc<SyncRoom>(
       ref,
-      (snap) => {
-        if (snap.exists()) {
-          setRoom(snap.data() as SyncRoom);
-        } else {
-          setRoom(null);
-        }
+      (data) => {
+        setRoom(data);
         setLoading(false);
       },
       () => {
@@ -139,9 +135,8 @@ export function useSyncRoom() {
     );
 
     const presenceRef = siteDoc('sync_presence', roomId);
-    const unsubPresence = onSnapshot(presenceRef, (snap) => {
-      if (snap.exists()) {
-        const data = snap.data() as SyncPresenceDoc;
+    const unsubPresence = subscribeSharedDoc<SyncPresenceDoc>(presenceRef, (data) => {
+      if (data) {
         const pId = player === p1Id ? p2Id : p1Id;
         const status = data.presence?.[pId] || 'offline';
         const partnerGame = data.currentGame?.[pId];

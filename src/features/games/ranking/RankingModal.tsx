@@ -11,6 +11,7 @@ import {
 import type { WordRecord, QuizRecord, MemoryRecord, MemoryDifficulty } from '../../../services/gameRecords';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { lockBodyScroll } from '../../../shared/utils/scrollLock';
+import { getModalPortalTarget } from '../../../shared/utils/portal';
 import { useOverlayHistory } from '../../../shared/hooks/useOverlayHistory';
 
 export type RankingGame = 'snake' | 'word' | 'quiz' | 'memory';
@@ -592,6 +593,6 @@ export function RankingModal({ isOpen, onClose, initialGame = 'snake' }: Props) 
         </div>
       </motion.div>
     </div>,
-    document.body
+    getModalPortalTarget()
   );
 }

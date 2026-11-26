@@ -9,13 +9,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Swords, X, Check } from 'lucide-react';
-import { siteDoc } from '../../../services/firestore/paths';
+import { siteDoc, getCurrentSiteId } from '../../../services/firestore/paths';
+import { subscribeToWordDuelRoom } from './wordDuelService';
 import { useSiteConfigStore } from '../../../store/siteConfigStore';
 import { usePlayerIdentityStore } from '../../../store/usePlayerIdentityStore';
 import { getPlayerIds, getPlayerDisplayName } from '../../auth/playerIds';
-import { getCurrentSiteId } from '../../../services/firestore/paths';
 import { getTopToastOffset } from '../../../shared/utils/safeArea';
 import type { WordDuelRoom } from './types';
 
@@ -34,19 +34,13 @@ export function WordDuelInviteToast() {
   const [room, setRoom] = useState<WordDuelRoom | null>(null);
   const [topOffset, setTopOffset] = useState(() => getTopToastOffset());
 
-  // Escuta leve da sala do duelo
+  // Escuta compartilhada da sala do duelo
   useEffect(() => {
     if (!isPlayer || !roomId) return;
     const siteId = getCurrentSiteId();
-    const docRef = siteDoc('word_duel_rooms', roomId, siteId);
-    const unsub = onSnapshot(docRef, (snap) => {
-      if (snap.exists()) {
-        setRoom(snap.data() as WordDuelRoom);
-      } else {
-        setRoom(null);
-      }
+    return subscribeToWordDuelRoom(roomId, siteId, (updatedRoom) => {
+      setRoom(updatedRoom);
     });
-    return () => unsub();
   }, [isPlayer, roomId]);
 
   // Ajuste de offset ao redimensionar

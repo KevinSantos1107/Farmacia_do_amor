@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from './../utils/cn';
+import { getModalPortalTarget } from '../utils/portal';
 import { useOverlayHistory } from '../hooks/useOverlayHistory';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface SideSheetProps {
   isOpen: boolean;
@@ -23,6 +25,8 @@ export function SideSheet({
 }: SideSheetProps) {
   const [render, setRender] = useState(isOpen);
   const [mounted, setMounted] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(isOpen && mounted, sheetRef);
 
   const { handleDismiss } = useOverlayHistory({
     id: `sidesheet-${title.toLowerCase().replace(/\s+/g, '-')}`,
@@ -74,6 +78,10 @@ export function SideSheet({
 
       {/* Sheet panel */}
       <div
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         className={cn(
           'relative h-full max-h-screen w-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out sm:w-auto',
           widthClass,
@@ -98,6 +106,6 @@ export function SideSheet({
         <div className="flex-1 overflow-y-auto p-6 no-scrollbar overscroll-contain">{children}</div>
       </div>
     </div>,
-    document.body
+    getModalPortalTarget()
   );
 }

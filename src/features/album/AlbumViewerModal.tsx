@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { cn } from '../../shared/utils/cn';
 import { lockBodyScroll } from '../../shared/utils/scrollLock';
+import { getModalPortalTarget } from '../../shared/utils/portal';
 import { imagePreloader } from './ImagePreloader';
 import { getPhotoUrl } from './photoUrl';
 import { useOverlayHistory } from '../../shared/hooks/useOverlayHistory';
@@ -928,9 +929,7 @@ export function AlbumViewerModal({ albums: albumsProp, initialAlbumIndex, onClos
   // Renderiza no #modal-root (fora do #root do React) para evitar conflito com
   // position:fixed e overflow:hidden que o lockBodyScroll aplica ao body no iOS.
   // O #modal-root fica irmão do body e não é afetado pelo travamento de scroll.
-  const portalTarget =
-    (typeof document !== 'undefined' && document.getElementById('modal-root')) ||
-    (typeof document !== 'undefined' ? document.body : null);
+  const portalTarget = typeof document !== 'undefined' ? getModalPortalTarget() : null;
 
   if (!portalTarget) return null;
 

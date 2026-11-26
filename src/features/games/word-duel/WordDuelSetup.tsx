@@ -207,11 +207,15 @@ export function WordDuelSetup({
       {effectivelyLocked ? (
         <div className="w-full max-w-md bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 sm:p-8 text-center my-auto flex flex-col items-center shadow-xl">
           <CheckCircle2 className="w-12 h-12 sm:w-16 sm:h-16 text-emerald-400 mb-3 animate-bounce" />
-          <h3 className="text-lg sm:text-2xl font-bold text-emerald-300">Sua palavra está travada!</h3>
+          <h3 className="text-lg sm:text-2xl font-bold text-emerald-300">
+            {isSubmitting ? 'Travando sua palavra...' : 'Sua palavra está travada!'}
+          </h3>
           <p className="text-xs sm:text-base text-neutral-300 mt-2">
-            {partnerLocked
-              ? 'Iniciando o duelo...'
-              : `Aguardando ${partnerDisplayName} travar a palavra dele(a)...`}
+            {isSubmitting
+              ? 'Sincronizando com o servidor...'
+              : partnerLocked
+                ? 'Iniciando o duelo...'
+                : `Aguardando ${partnerDisplayName} travar a palavra dele(a)...`}
           </p>
         </div>
       ) : (

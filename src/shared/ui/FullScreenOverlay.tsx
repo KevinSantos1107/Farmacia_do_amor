@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { lockBodyScroll } from '../utils/scrollLock';
+import { getModalPortalTarget } from '../utils/portal';
 import { useOverlayHistory } from '../hooks/useOverlayHistory';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface FullScreenOverlayProps {
   isOpen: boolean;
@@ -34,8 +36,10 @@ export function FullScreenOverlay({
   onBack,
   overlayId,
 }: FullScreenOverlayProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  useFocusTrap(isOpen, overlayRef);
 
   // Quando o overlay é hospedado em uma rota própria (ex: /quiz, /devotional, /word-game),
   // o React Router já gerencia o histórico e o endereço na URL nativamente.
@@ -77,6 +81,7 @@ export function FullScreenOverlay({
 
   return createPortal(
     <div
+      ref={overlayRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="fullscreen-overlay-title"
@@ -143,6 +148,6 @@ export function FullScreenOverlay({
         {children}
       </div>
     </div>,
-    document.body
+    getModalPortalTarget()
   );
 }

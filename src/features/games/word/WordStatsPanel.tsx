@@ -5,6 +5,7 @@ import { X, Flame, Trophy, Gamepad2, Check } from 'lucide-react';
 import type { GameStats } from './types';
 import { useOverlayHistory } from '../../../shared/hooks/useOverlayHistory';
 import { lockBodyScroll } from '../../../shared/utils/scrollLock';
+import { getModalPortalTarget } from '../../../shared/utils/portal';
 
 interface WordStatsPanelProps {
   isOpen: boolean;
@@ -177,6 +178,6 @@ export function WordStatsPanel({ isOpen, onClose, stats }: WordStatsPanelProps) 
         </motion.div>
       </div>
     </AnimatePresence>,
-    document.body
+    getModalPortalTarget()
   );
 }

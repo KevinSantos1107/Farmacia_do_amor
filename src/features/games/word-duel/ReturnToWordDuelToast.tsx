@@ -1,16 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useWordDuel } from './useWordDuel';
 import { Swords, LogOut, Play } from 'lucide-react';
 import { useModalsStore } from '../../../store/useModalsStore';
 
 export function ReturnToWordDuelToast() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { room, isPlayer, myPlayerId, partnerDisplayName, forceEndGame, returnToGame } = useWordDuel();
   const { activeModal } = useModalsStore();
 
+  const isInWordDuelRoute = location.pathname === '/word-duel' || location.pathname === '/duelo';
   const isGameActive = room?.status === 'waiting_words' || room?.status === 'dueling';
-  const shouldShow = isPlayer && room?.leftBy === myPlayerId && isGameActive && activeModal !== 'word-duel';
+  const shouldShow = isPlayer && room?.leftBy === myPlayerId && isGameActive && !isInWordDuelRoute && activeModal !== 'word-duel';
 
   if (!shouldShow) return null;
 

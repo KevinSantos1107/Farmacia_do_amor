@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, X } from 'lucide-react';
 import { useRetroV2Store } from '../../store/useRetroV2Store';
+import { getModalPortalTarget } from '../../../../shared/utils/portal';
 
 export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
   void onReplay;
@@ -474,7 +475,7 @@ export function OutroSlide({ onReplay }: { onReplay?: () => void }) {
             </motion.div>
           )}
         </AnimatePresence>,
-        document.body
+        getModalPortalTarget()
       )}
     </div>
   );

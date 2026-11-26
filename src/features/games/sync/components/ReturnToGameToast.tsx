@@ -1,16 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSyncRoom } from '../useSyncRoom';
 import { LogOut, Play } from 'lucide-react';
 import { useModalsStore } from '../../../../store/useModalsStore';
 
 export function ReturnToGameToast() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { room, isPlayer, player, partnerName, forceEndGame } = useSyncRoom();
   const { activeModal } = useModalsStore();
 
+  const isInSyncRoute = location.pathname === '/sync' || location.pathname === '/sincronia';
   const isLeft = room?.status === 'playing' || room?.status === 'choosing' || room?.status === 'revealed';
-  const shouldShow = isPlayer && room?.leftBy === player && isLeft && activeModal !== 'sync';
+  const shouldShow = isPlayer && room?.leftBy === player && isLeft && !isInSyncRoute && activeModal !== 'sync';
 
   if (!shouldShow) return null;
 

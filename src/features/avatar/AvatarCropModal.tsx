@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check, ZoomIn, ZoomOut } from 'lucide-react';
+import { getModalPortalTarget } from '../../shared/utils/portal';
 
 interface AvatarCropModalProps {
   /** URL de objeto (blob) ou base64 da imagem selecionada */
@@ -398,6 +399,6 @@ export function AvatarCropModal({ imageSrc, onConfirm, onCancel }: AvatarCropMod
         </div>
       </div>
     </div>,
-    document.body
+    getModalPortalTarget()
   );
 }

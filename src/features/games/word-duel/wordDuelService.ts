@@ -5,20 +5,20 @@
  */
 
 import {
-  onSnapshot,
   setDoc,
   updateDoc,
   serverTimestamp,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { siteDoc } from '../../../services/firestore/paths';
+import { subscribeSharedDoc } from '../../../services/firestore/sharedDocSubscription';
 import { auth } from '../../../services/firebase/config';
 import { waitForAuth } from '../../../services/records/common';
 import { ensurePlayerLink } from '../../auth/playerLinkSync';
 import type { WordDuelRoom } from './types';
 
 /**
- * Escuta atualizações em tempo real da sala do Modo Duelo.
+ * Escuta atualizações em tempo real da sala do Modo Duelo (listener compartilhado).
  */
 export function subscribeToWordDuelRoom(
   roomId: string,
@@ -27,20 +27,10 @@ export function subscribeToWordDuelRoom(
   onError?: (err: Error) => void
 ): Unsubscribe {
   const docRef = siteDoc('word_duel_rooms', roomId, siteId);
-  return onSnapshot(
-    docRef,
-    (snapshot) => {
-      if (snapshot.exists()) {
-        onUpdate(snapshot.data() as WordDuelRoom);
-      } else {
-        onUpdate(null);
-      }
-    },
-    (err) => {
-      console.warn('Erro ao escutar sala do modo duelo:', err);
-      if (onError) onError(err);
-    }
-  );
+  return subscribeSharedDoc<WordDuelRoom>(docRef, onUpdate, (err) => {
+    console.warn('Erro ao escutar sala do modo duelo:', err);
+    if (onError) onError(err);
+  });
 }
 
 /**
