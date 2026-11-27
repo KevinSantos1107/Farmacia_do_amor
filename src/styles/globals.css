@@ -113,6 +113,12 @@ a,
   overscroll-behavior: contain;
 }
 
+/* Pula layout/paint de seções fora da tela até chegarem perto da viewport (rolagem super leve no mobile) */
+.home-section-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 640px;
+}
+
 /* Custom scrollbar discreta para áreas do painel admin */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
