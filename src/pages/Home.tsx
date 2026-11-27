@@ -138,37 +138,19 @@ function Home() {
       )}
 
 
-      {/* ══════════════════════════ BACKGROUND NEON LIGHTS (radial gradients — zero GPU blur filter) ══════════════════════════ */}
+      {/* ══════════════════════════ BACKGROUND NEON LIGHTS ══════════════════════════ */}
       <div className="fixed top-0 left-0 w-screen h-[100lvh] z-0 pointer-events-none">
         {activeTheme === 'meteors' ? (
           <>
-            <div
-              className="absolute top-[-15%] left-[-15%] w-[700px] h-[700px] rounded-full"
-              style={{ background: 'radial-gradient(circle, rgba(88,28,135,0.22) 0%, transparent 70%)' }}
-            />
-            <div
-              className="absolute top-[35%] right-[-15%] w-[600px] h-[600px] rounded-full"
-              style={{ background: 'radial-gradient(circle, rgba(15,118,110,0.16) 0%, transparent 70%)' }}
-            />
-            <div
-              className="absolute bottom-[-15%] left-[15%] w-[800px] h-[800px] rounded-full"
-              style={{ background: 'radial-gradient(circle, rgba(49,46,129,0.22) 0%, transparent 70%)' }}
-            />
+            <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-purple-900/20 blur-[200px] rounded-full" />
+            <div className="absolute top-[40%] right-[-10%] w-[500px] h-[500px] bg-teal-700/15 blur-[180px] rounded-full" />
+            <div className="absolute bottom-[-10%] left-[20%] w-[700px] h-[700px] bg-indigo-900/20 blur-[220px] rounded-full" />
           </>
         ) : (
           <>
-            <div
-              className="absolute -top-24 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[650px] rounded-full"
-              style={{ background: 'radial-gradient(ellipse at center, rgba(var(--theme-primary-rgb),0.14) 0%, transparent 70%)' }}
-            />
-            <div
-              className="absolute -bottom-20 -left-20 w-[600px] h-[600px] rounded-full"
-              style={{ background: 'radial-gradient(circle, rgba(var(--theme-accent-rgb),0.08) 0%, transparent 70%)' }}
-            />
-            <div
-              className="absolute bottom-1/4 -right-20 w-[500px] h-[500px] rounded-full"
-              style={{ background: 'radial-gradient(circle, rgba(var(--theme-primary-rgb),0.12) 0%, transparent 70%)' }}
-            />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[600px] bg-[var(--theme-primary)]/10 blur-[150px] rounded-full" />
+            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[var(--theme-accent)]/5 blur-[150px] rounded-full" />
+            <div className="absolute bottom-1/4 right-0 w-[400px] h-[400px] bg-[var(--theme-primary)]/10 blur-[150px] rounded-full" />
           </>
         )}
       </div>
@@ -273,7 +255,7 @@ function Home() {
             <SectionLabel emoji="💌" text="Uma Carta Para Você" />
           </div>
 
-          <div className="relative rounded-[2.5rem] overflow-hidden border border-[var(--theme-primary)]/30 bg-[#0b0916]/80 backdrop-blur-sm shadow-[0_0_50px_rgba(var(--theme-primary-rgb),0.2),inset_0_0_25px_rgba(var(--theme-primary-rgb),0.08)] transition-colors duration-300 hover:border-[var(--theme-primary)]/50 group">
+          <div className="relative rounded-[2.5rem] overflow-hidden border border-[var(--theme-primary)]/30 bg-white/[0.03] backdrop-blur-2xl shadow-[0_0_50px_rgba(var(--theme-primary-rgb),0.2),inset_0_0_25px_rgba(var(--theme-primary-rgb),0.08)] transition-all duration-500 hover:border-[var(--theme-primary)]/50 hover:shadow-[0_0_70px_rgba(var(--theme-primary-rgb),0.35),inset_0_0_35px_rgba(var(--theme-primary-rgb),0.15)] group">
 
             {/* ── Imagem de Capa (LCP) ── */}
             <div className="relative w-full aspect-[16/10] overflow-hidden">
@@ -393,7 +375,7 @@ function Home() {
               Nosso Álbum
             </h2>
           </div>
-          <div>
+          <div className="drop-shadow-[0_0_40px_rgba(var(--theme-primary-rgb),0.3)]">
             <Suspense fallback={null}>
               <AlbumCarousel />
             </Suspense>
@@ -429,11 +411,11 @@ function Home() {
                   transition={{ layout: { type: 'spring', stiffness: 300, damping: 30 } }}
                   className={`
                     w-full text-left rounded-2xl overflow-hidden
-                    backdrop-blur-sm transition-colors duration-300 group
+                    backdrop-blur-xl transition-all duration-500 group
                     border
                     ${isOpen
-                      ? 'bg-[#120e24]/85 border-[var(--theme-primary)]/50 shadow-[0_0_35px_rgba(var(--theme-primary-rgb),0.2),inset_0_1px_0_rgba(255,255,255,0.08)]'
-                      : 'bg-[#0b0916]/75 border-white/[0.08] hover:bg-[#120e24]/80 hover:border-[var(--theme-primary)]/40'
+                      ? 'bg-white/[0.06] border-[var(--theme-primary)]/50 shadow-[0_0_50px_rgba(var(--theme-primary-rgb),0.25),inset_0_1px_0_rgba(255,255,255,0.08)]'
+                      : 'bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] hover:border-[var(--theme-primary)]/40 hover:shadow-[0_0_35px_rgba(var(--theme-primary-rgb),0.15)]'
                     }
                   `}
                   style={{ touchAction: 'manipulation' }}
@@ -532,7 +514,7 @@ function Home() {
         id="section-mensagens"
       >
         <div className="max-w-3xl mx-auto">
-          <div className="relative rounded-[2.5rem] overflow-hidden border border-[var(--theme-primary)]/30 bg-[#0b0916]/80 backdrop-blur-sm shadow-[0_0_40px_rgba(var(--theme-primary-rgb),0.2),inset_0_1px_0_rgba(255,255,255,0.1)] p-8 md:p-14 text-center space-y-10 transition-colors duration-300 hover:border-[var(--theme-primary)]/50 group">
+          <div className="relative rounded-[2.5rem] overflow-hidden border border-[var(--theme-primary)]/30 bg-white/[0.03] backdrop-blur-2xl shadow-[0_0_50px_rgba(var(--theme-primary-rgb),0.2),inset_0_1px_0_rgba(255,255,255,0.1)] p-8 md:p-14 text-center space-y-10 transition-all duration-500 hover:border-[var(--theme-primary)]/50 hover:shadow-[0_0_70px_rgba(var(--theme-primary-rgb),0.35),inset_0_1px_0_rgba(255,255,255,0.15)] group">
             
             {/* Top gradient glow line */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--theme-primary)] to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-700" />
