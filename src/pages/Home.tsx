@@ -52,6 +52,7 @@ function Home() {
   const [msgIndex, setMsgIndex] = useState(0);
   const [spinCount, setSpinCount] = useState(0);
   const [openAcrostic, setOpenAcrostic] = useState<number | null>(null);
+  const [isLetterLit, setIsLetterLit] = useState(false);
 
   const loveMessages = useMemo(() => {
     return config?.loveMessages || [];
@@ -255,7 +256,14 @@ function Home() {
             <SectionLabel emoji="💌" text="Uma Carta Para Você" />
           </div>
 
-          <div className="relative rounded-[2.5rem] overflow-hidden border border-[var(--theme-primary)]/30 bg-white/[0.03] backdrop-blur-2xl shadow-[0_0_50px_rgba(var(--theme-primary-rgb),0.2),inset_0_0_25px_rgba(var(--theme-primary-rgb),0.08)] transition-all duration-500 hover:border-[var(--theme-primary)]/50 hover:shadow-[0_0_70px_rgba(var(--theme-primary-rgb),0.35),inset_0_0_35px_rgba(var(--theme-primary-rgb),0.15)] group">
+          <div
+            onClick={() => setIsLetterLit((prev) => !prev)}
+            className={`relative rounded-[2.5rem] overflow-hidden border bg-white/[0.03] backdrop-blur-2xl transition-all duration-500 group cursor-pointer ${
+              isLetterLit
+                ? 'border-[var(--theme-primary)]/50 shadow-[0_0_70px_rgba(var(--theme-primary-rgb),0.35),inset_0_0_35px_rgba(var(--theme-primary-rgb),0.15)]'
+                : 'border-[var(--theme-primary)]/30 shadow-[0_0_50px_rgba(var(--theme-primary-rgb),0.2),inset_0_0_25px_rgba(var(--theme-primary-rgb),0.08)] hover:border-[var(--theme-primary)]/50 hover:shadow-[0_0_70px_rgba(var(--theme-primary-rgb),0.35),inset_0_0_35px_rgba(var(--theme-primary-rgb),0.15)]'
+            }`}
+          >
 
             {/* ── Imagem de Capa (LCP) ── */}
             <div className="relative w-full aspect-[16/10] overflow-hidden">
@@ -269,12 +277,18 @@ function Home() {
                 height={936}
                 fetchPriority="high"
                 decoding="async"
-                className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
+                className={`w-full h-full object-cover transition-transform duration-[1.5s] ${
+                  isLetterLit ? 'scale-110' : 'group-hover:scale-110'
+                }`}
               />
               {/* Gradient overlay from bottom */}
               <div className="absolute inset-0 bg-gradient-to-t from-[#05050A] via-[#05050A]/40 to-transparent" />
               {/* Neon glow overlay at edges */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[var(--theme-primary)]/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <div
+                className={`absolute inset-0 bg-gradient-to-t from-[var(--theme-primary)]/20 via-transparent to-transparent transition-opacity duration-700 ${
+                  isLetterLit ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                }`}
+              />
               {/* Side vignette */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,#05050A_100%)] opacity-60" />
 
